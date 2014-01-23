@@ -13,7 +13,7 @@
 #include "particle_filter/particle_filter.h"
 #include "../shapes/rectprism.h"
 
-#include <QMat/QMatAll>
+#include <qmat/QMatAll>
 
 typedef pcl::PointXYZRGBA PointT;
 

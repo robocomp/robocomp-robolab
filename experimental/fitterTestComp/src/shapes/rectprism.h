@@ -5,7 +5,7 @@
 #include <bitset>
 #include <math.h>
 #include <cassert>
-#include <QMat/QMatAll>
+#include <qmat/QMatAll>
 #include <stdint.h>
 #include "axis.h"
 #include "codes.h"

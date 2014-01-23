@@ -1,0 +1,28 @@
+import "/robocomp/Interfaces/IDSLs/JointMotor.idsl";
+import "/robocomp/Interfaces/IDSLs/CommonHead.idsl";
+import "/robocomp/Interfaces/IDSLs/MuecasJoint.idsl";
+import "/robocomp/Interfaces/IDSLs/faulhaberComp.idsl";
+import "/robocomp/Interfaces/IDSLs/Camera.idsl";
+import "/robocomp/Interfaces/IDSLs/muecasheadcontrol.idsl";
+import "/robocomp/Interfaces/IDSLs/JoystickAdapter.idsl";
+import "/robocomp/Interfaces/IDSLs/IMU.idsl";
+
+Component muecasheadcontrolComp{
+	Communications{
+		implements CommonHead, muecasheadcontrol, JoystickAdapter;
+		requires JointMotor, JointMotor, Camera, IMU;
+
+	};
+	RoboCompClasses{
+		"/Classes/rcdraw/rcdraw.h";
+		"/Classes/rcdraw/rcdraw.cpp";
+	};
+			RoboCompModules{
+		"ipp";
+		"robocomp";
+		"qmat";
+		"opencv";
+	};
+	gui Qt(QWidget);
+	language Cpp;
+};

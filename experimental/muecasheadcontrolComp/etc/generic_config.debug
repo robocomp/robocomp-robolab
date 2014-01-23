@@ -1,0 +1,15 @@
+# Debug config file
+
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+CommonHeadComp.Endpoints=tcp -p 10005
+muecasheadcontrolComp.Endpoints=tcp -p 10188
+JoystickAdapterComp.Endpoints=tcp -p 10189
+CommonBehavior.Endpoints=tcp -p 11188# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+CameraProxy = camera:tcp -h localhost -p 10001
+JointMotor0Proxy = jointmotor:tcp -h localhost -p 10067
+JointMotor1Proxy = jointmotor:tcp -h localhost -p 10067
+IMUProxy = imu:tcp -h localhost -p 10066

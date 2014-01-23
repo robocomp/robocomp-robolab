@@ -1,0 +1,9 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+CommonBehavior.Endpoints=tcp -p 11259
+
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+RGBDProxy = rgbd:tcp -h localhost -p 30000

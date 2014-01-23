@@ -1,0 +1,11 @@
+import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+Component fitterTestComp{
+	Communications{
+		requires RGBD;
+	};
+	gui Qt(QWidget);
+	RoboCompModules{
+		"pcl";
+	};
+	language Cpp;
+};

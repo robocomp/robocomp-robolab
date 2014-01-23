@@ -1,0 +1,18 @@
+<innerModel>
+  <pointcloud id="cloud" /> 
+  <transform id="world" >
+    <transform id="back_t" tx="0" ty="0" tz="0">
+      <plane id="back" nx="0" ny="0" nz="1" px="0"  py="0"  pz="500000"  size="800000,600000,1000" repeat="1" texture="learnbot.jpg" />
+    </transform>
+    <transform id="cube_0_t">
+      <mesh id="cube_0" file="cubexxx.3ds" scale="1" render="wireframe"/>
+    </transform>
+    <transform id="cube_best_t">
+      <mesh id="cube_best" file="cubexxx.3ds" scale="1" render="wireframe"/>
+    </transform> 
+  </transform>
+  <mesh id="rawOdometry_mesh" file="axis.osg" scale="30" rx="1.57" render="wireframe" /> 
+
+</innerModel>
+
+

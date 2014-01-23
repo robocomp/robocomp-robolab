@@ -1,0 +1,37 @@
+# OpenMP
+find_package(OpenMP)
+if(OPENMP_FOUND)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif(OPENMP_FOUND)
+
+INCLUDE_DIRECTORIES ( /home/robocomp/robocomp/Classes )
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  fitting/mcmc_rect_prism_fitting.cpp
+  fitting/naive_rect_prism_fitting.cpp
+  fitting/pf_rect_prism_fitting.cpp
+  fitting/rect_prism_cloud_particle.cpp
+  shapes/axis.cpp
+  shapes/cylinder.cpp
+  shapes/rectprism.cpp
+  shapes/vector.cpp
+  visual/viewer.cpp
+  visual/innermodelManager.cpp
+  $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  visual/viewer.h
+  visual/innermodelManager.h
+  $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.h
+  
+)
+

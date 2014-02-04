@@ -15,12 +15,12 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
   
   
   ///
-  innermodel = new InnerModel("cubeCloud.xml");
+  innermodel = new InnerModel("cube2.xml");
 
   QGLFormat fmt;
   fmt.setDoubleBuffer(true);
   QGLFormat::setDefaultFormat(fmt);
-  world3D = new OsgView(this);
+  world3D = new OsgView(aqui);
   world3D->init();
 
   innermodelviewer = new InnerModelViewer(innermodel, "root", world3D->getRootGroup());
@@ -198,7 +198,7 @@ void SpecificWorker::compute( )
   try
   {
     rgbd_proxy->getImage(rgbMatrix, distanceMatrix, points_kinect,  h, b);
-    //cout<<"Got: "<<points_kinect.size()<<endl;
+    cout<<"Got: "<<points_kinect.size()<<endl;
     for(uint32_t i=0; i<points_kinect.size(); i++)
     {
       // cout<<points_kinect[i].z<<endl;
@@ -222,34 +222,34 @@ void SpecificWorker::compute( )
     qDebug()<<"Error talking to rgbd_proxy: "<<e.what();
   }
 
-  translateClouds(final_, cloud);
+  //translateClouds(final_, cloud);
 
   //vvv->setPointCloud(final_);
   ///
-  innermodelmanager->setPointCloudData("cloud", final_);
+  innermodelmanager->setPointCloudData("cloud", cloud);
   ///
   
-  pcl::io::savePCDFileASCII ("test_pcd.pcd", *final_);
+  //pcl::io::savePCDFileASCII ("test_pcd.pcd", *final_);
 
   
   //vvv->showImage(640,480, (uint8_t *)&rgbMatrix[0]);
-  innermodelviewer->planesHash["back"]->updateBuffer((uint8_t *)&rgbMatrix[0], 640, 480);
+  //innermodelviewer->planesHash["back"]->updateBuffer((uint8_t *)&rgbMatrix[0], 640, 480);
   
 
   //vvv->update();
   innermodelviewer->update();
   world3D->update();
 
-  if (first)
-  {
-    first=false;
-    fitter = new naiveRectangularPrismFitting( final_ );
-    boost::function<void (const boost::shared_ptr<RectPrism>&)> f =
-      boost::bind (&SpecificWorker::fit_cb, this, _1);
-    
-    fitter->registerCallback (f);
-    fitter->start ();
-  }
+//   if (first)
+//   {
+//     first=false;
+//     fitter = new naiveRectangularPrismFitting( final_ );
+//     boost::function<void (const boost::shared_ptr<RectPrism>&)> f =
+//       boost::bind (&SpecificWorker::fit_cb, this, _1);
+//     
+//     fitter->registerCallback (f);
+//     fitter->start ();
+//   }
   
 
 }

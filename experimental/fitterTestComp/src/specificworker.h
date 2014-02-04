@@ -44,7 +44,7 @@
 #include <innermodel/innermodel.h>
 #include <innermodel/innermodelviewer.h>
 
-#include "visual/innermodelManager.h"
+#include "innermodelManager.h"
 
 #include <iostream>
 

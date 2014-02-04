@@ -20,8 +20,7 @@ SET ( SOURCES
   shapes/cylinder.cpp
   shapes/rectprism.cpp
   shapes/vector.cpp
-  visual/viewer.cpp
-  visual/innermodelManager.cpp
+  innermodelManager.cpp
   $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.cpp
 )
 
@@ -29,8 +28,7 @@ SET ( SOURCES
 SET ( HEADERS
   specificworker.h
   specificmonitor.h
-  visual/viewer.h
-  visual/innermodelManager.h
+  innermodelManager.h
   $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.h
   
 )

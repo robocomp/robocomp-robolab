@@ -1,0 +1,26 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+PrimeSenseComp.Endpoints=tcp -p 10096
+CommonBehavior.Endpoints=tcp -p 11096
+
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+JointMotorProxy = jointmotor:tcp -h localhost -p 10067
+
+FPS=30
+
+
+#############################
+### Ice-related properties ##
+#############################
+# Warn about connection exceptions
+Ice.Warn.Connections=0
+# Network Tracing: (0: no network tracing; 1: trace connection establishment and closure; 2: like 1, but more detailed; 3: like 2, but also trace data transfer).
+Ice.Trace.Network=0
+# Protocol Tracing: (0: no protocol tracing; 1: trace protocol messages)
+Ice.Trace.Protocol=0
+
+# Faster ACM
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+Ice.MessageSizeMax=20480

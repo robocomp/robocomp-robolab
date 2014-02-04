@@ -1,0 +1,47 @@
+# Debug config file
+
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+PrimeSenseComp.Endpoints=tcp -p 10179
+CommonBehavior.Endpoints=tcp -p 11179
+
+# Remote servers proxies example
+
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+# User config parameters
+# Example = value
+# Debug = 1
+
+# Component properties
+#
+#
+# Warn about connection exceptions
+#
+Ice.Warn.Connections=1
+
+#
+#
+# Network Tracing
+#
+# 0 = no network tracing
+# 1 = trace connection establishment and closure
+# 2 = like 1, but more detailed
+# 3 = like 2, but also trace data transfer
+#
+Ice.Trace.Network=3
+
+#
+# Protocol Tracing
+#
+# 0 = no protocol tracing
+# 1 = trace protocol messages
+#
+Ice.Trace.Protocol=1
+
+#
+# We want a faster ACM
+#
+Ice.ACM.Client=10
+Ice.ACM.Server=10

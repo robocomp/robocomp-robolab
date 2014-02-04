@@ -38,7 +38,14 @@
 #include "shapes/rectprism.h"
 #include "fitting/pf_rect_prism_fitting.h"
 #include "fitting/naive_rect_prism_fitting.h"
-#include "visual/viewer.h"
+///#include "visual/viewer.h"
+
+#include <osgviewer/osgview.h>
+#include <innermodel/innermodel.h>
+#include <innermodel/innermodelviewer.h>
+
+#include "visual/innermodelManager.h"
+
 #include <iostream>
 
 /**
@@ -56,8 +63,14 @@ class SpecificWorker : public GenericWorker
 	bool new_cloud_available_flag;
 
 	naiveRectangularPrismFitting* fitter;
-	boost::shared_ptr<Viewer> vvv;
-
+	//boost::shared_ptr<Viewer> vvv;
+	
+	///
+	OsgView *world3D;
+	InnerModelViewer *innermodelviewer;
+	InnerModel *innermodel;
+	InnerModelManager *innermodelmanager;
+	///
 
 	RoboCompRGBD::ColorSeq rgbMatrix;
 	RoboCompRGBD::depthType distanceMatrix;

@@ -59,6 +59,7 @@ void Viewer::setScale(std::string item, float scaleX,float scaleY, float scaleZ)
 
 void Viewer::update()
 {
+	cout<<"update"<<endl;
 	innermodelviewer->update();
 	world3D->update();
 }

@@ -11,9 +11,31 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
   first = true;
   new_cloud_available_flag = false;
 
-  vvv = boost::shared_ptr<Viewer>(new Viewer("cubeCloud.xml", aqui));
+  //vvv = boost::shared_ptr<Viewer>(new Viewer("cubeCloud.xml", aqui));
+  
+  
+  ///
+  innermodel = new InnerModel("cubeCloud.xml");
+
+  QGLFormat fmt;
+  fmt.setDoubleBuffer(true);
+  QGLFormat::setDefaultFormat(fmt);
+  world3D = new OsgView(this);
+  world3D->init();
+
+  innermodelviewer = new InnerModelViewer(innermodel, "root", world3D->getRootGroup());
+
+  world3D->getRootGroup()->addChild(innermodelviewer);
+  world3D->show();
+  world3D->setHomePosition(osg::Vec3(0,0,0),osg::Vec3(0.f,0.,-4000.),osg::Vec3(0.0f,1000.f,0.0f), false);
+
+  innermodelmanager = new InnerModelManager(innermodel, innermodelviewer);  
+  ///
+  
+  
   boost::shared_ptr<RectPrism> shape(new RectPrism());
   timer.start(1);
+ 
 }
 
 /**
@@ -100,12 +122,12 @@ void SpecificWorker::fit_cb(const boost::shared_ptr<RectPrism>  &shape)
   //FIRST ROTATION: X
   RTMat rx = RTMat(rotation(0),0, 0, QVec::vec3(0,0,0));
   
-  rx.print("Rx: ");
+  //rx.print("Rx: ");
   
   //SECOND ROTATION: Y
   QVec y_prima = rx.getR().transpose()*QVec::vec3(0,1,0);
   
-  y_prima.print("y_prima: ");
+  //y_prima.print("y_prima: ");
     
   Eigen::Vector3f k_vector1(y_prima(0),y_prima(1),y_prima(2));
   Eigen::Affine3f rotate1 = (Eigen::Affine3f) Eigen::AngleAxisf(rotation(1), k_vector1);
@@ -118,14 +140,14 @@ void SpecificWorker::fit_cb(const boost::shared_ptr<RectPrism>  &shape)
   
   RTMat rx_y = rx*rotate1_rtmat;
   
-  rx_y.print("rx_y_mat: ");
+  //rx_y.print("rx_y_mat: ");
   
-  rx_y.extractAnglesR().print("rx_y");
+  //rx_y.extractAnglesR().print("rx_y");
   
   //THIRD ROTATION: Z
   QVec z_prima = rx_y.getR().transpose()*QVec::vec3(0,0,1);
   
-  z_prima.print("z_prima: ");
+  //z_prima.print("z_prima: ");
   
   Eigen::Vector3f k_vector2(z_prima(0),z_prima(1),z_prima(2));
   Eigen::Affine3f rotate2 = (Eigen::Affine3f) Eigen::AngleAxisf(rotation(2), k_vector2);
@@ -137,7 +159,7 @@ void SpecificWorker::fit_cb(const boost::shared_ptr<RectPrism>  &shape)
   rotate2_rtmat(3,0)=rotate2(3,0);  rotate2_rtmat(3,1)=rotate2(3,1);  rotate2_rtmat(3,2)= rotate2(3,2); rotate2_rtmat(3,3)= rotate2(3,3);
   
   RTMat rotationresult = rx_y*rotate2_rtmat;
-  rotationresult.print("rotationresult: ");
+  //rotationresult.print("rotationresult: ");
     
   QVec anglesresult = rotationresult.extractAnglesR();
   
@@ -146,8 +168,14 @@ void SpecificWorker::fit_cb(const boost::shared_ptr<RectPrism>  &shape)
   
   
   
-  vvv->setPose("cube_0_t", center, anglesresult , shape->getWidth() );
-  vvv->setScale("cube_0", shape->getWidth()(0)/2, shape->getWidth()(1)/2, shape->getWidth()(2)/2);
+  //vvv->setPose("cube_0_t", center, anglesresult , shape->getWidth() );
+  //vvv->setScale("cube_0", shape->getWidth()(0)/2, shape->getWidth()(1)/2, shape->getWidth()(2)/2);
+ 
+  ///
+  innermodelmanager->setPose("cube_0_t", center, anglesresult , shape->getWidth() );
+  innermodelmanager->setScale("cube_0", shape->getWidth()(0)/2, shape->getWidth()(1)/2, shape->getWidth()(2)/2);
+  ///
+  
   //check this for inconsistency since transofrm might be touching this cloud
   if (new_cloud_available_flag==true)
   {
@@ -173,19 +201,19 @@ void SpecificWorker::compute( )
     //cout<<"Got: "<<points_kinect.size()<<endl;
     for(uint32_t i=0; i<points_kinect.size(); i++)
     {
-    // cout<<points_kinect[i].z<<endl;
-    if(points_kinect[i].z<=10000)
-    {
-      PointT point;
-      point.x=points_kinect[i].x/1000.f;
-      point.y=points_kinect[i].y/1000.f;
-      point.z=points_kinect[i].z/1000.f;
-      point.r=rgbMatrix[i].red;
-      point.g=rgbMatrix[i].green;
-      point.b=rgbMatrix[i].blue;
+      // cout<<points_kinect[i].z<<endl;
+      if(points_kinect[i].z<=10000)
+      {
+	PointT point;
+	point.x=points_kinect[i].x/1000.f;
+	point.y=points_kinect[i].y/1000.f;
+	point.z=points_kinect[i].z/1000.f;
+	point.r=rgbMatrix[i].red;
+	point.g=rgbMatrix[i].green;
+	point.b=rgbMatrix[i].blue;
 
-      cloud->push_back(point);
-    }
+	cloud->push_back(point);
+      }
     }
     //new_cloud_available_flag=true;
   }
@@ -196,13 +224,21 @@ void SpecificWorker::compute( )
 
   translateClouds(final_, cloud);
 
-  vvv->setPointCloud(final_);
+  //vvv->setPointCloud(final_);
+  ///
+  innermodelmanager->setPointCloudData("cloud", final_);
+  ///
   
   pcl::io::savePCDFileASCII ("test_pcd.pcd", *final_);
 
-  vvv->showImage(640,480, (uint8_t *)&rgbMatrix[0]);
+  
+  //vvv->showImage(640,480, (uint8_t *)&rgbMatrix[0]);
+  innermodelviewer->planesHash["back"]->updateBuffer((uint8_t *)&rgbMatrix[0], 640, 480);
+  
 
-  vvv->update();
+  //vvv->update();
+  innermodelviewer->update();
+  world3D->update();
 
   if (first)
   {
@@ -214,6 +250,7 @@ void SpecificWorker::compute( )
     fitter->registerCallback (f);
     fitter->start ();
   }
+  
 
 }
 

@@ -205,9 +205,9 @@ void SpecificWorker::compute( )
       if(points_kinect[i].z<=10000)
       {
 	PointT point;
-	point.x=points_kinect[i].x/1000.f;
-	point.y=points_kinect[i].y/1000.f;
-	point.z=points_kinect[i].z/1000.f;
+	point.x=points_kinect[i].x;
+	point.y=points_kinect[i].y;
+	point.z=points_kinect[i].z;
 	point.r=rgbMatrix[i].red;
 	point.g=rgbMatrix[i].green;
 	point.b=rgbMatrix[i].blue;

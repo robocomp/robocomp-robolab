@@ -1,0 +1,16 @@
+import "../../IDSLs/JointMotor.idsl";
+
+Component faulhaberComp{
+	Communications{
+		implements JointMotor;
+	};
+	RoboCompClasses{
+		//qlog;
+		//qserialport
+		
+	};
+	RoboCompModules{
+		//ipp
+	};
+	language Cpp;
+};

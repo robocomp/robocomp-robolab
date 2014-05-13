@@ -1,0 +1,18 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+GetAprilTagsComp.Endpoints=tcp -p 12210
+CommonBehavior.Endpoints=tcp -p 11258
+
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+CameraProxy = camera:tcp -h localhost -p 10001
+RGBDProxy = rgbd:tcp -h localhost -p 10096
+RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239
+AprilTagsProxy = apriltags:tcp -h localhost -p 10261
+
+#
+# This property is used by the clients to connect to IceStorm.
+#
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

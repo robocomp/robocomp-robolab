@@ -1,0 +1,14 @@
+import "/robocomp/Interfaces/IDSLs/GetAprilTags.idsl";
+import "/robocomp/Interfaces/IDSLs/AprilTags.idsl";
+import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/Interfaces/IDSLs/RGBDBus.idsl";
+import "/robocomp/Interfaces/IDSLs/Camera.idsl";
+
+Component AprilTagsComp{
+	Communications{
+		requires Camera, RGBDBus, RGBD;
+		publishes AprilTags;
+		implements GetAprilTags;
+	};
+	language Cpp;
+};

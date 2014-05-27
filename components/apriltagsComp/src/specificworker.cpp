@@ -22,26 +22,20 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : 
-	GenericWorker(mprx),
-	m_tagDetector(NULL),
-	m_tagCodes(::AprilTags::tagCodes16h5),
-	m_draw(true)
+SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagCodes(::AprilTags::tagCodes16h5)
 {
+	m_tagDetector = NULL;
+	m_draw = true;
+
 /*	try{		camParams = camera_proxy->getCamParams();	}
 	catch(const Ice::Exception &e)	{	std::cout << e << std::endl;}*/
-
  /*  RoboCompRGBD::TRGBDParams rgbdParams;
    try{        rgbdParams = rgbd_proxy->getRGBDParams();   }
    catch(const Ice::Exception &e)  {   std::cout << e << std::endl;}
    qDebug() << rgbdParams.color.focal << rgbdParams.color.width << rgbdParams.color.height;*/
-	
 //	qDebug() << "Read cam params" << camParams.width << camParams.height << camParams.focal;
-	
 	//m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-
-	
-	///FIX ALL THIS MESS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111
+	///FIX ALL THIS MESS!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	
 /*	m_width = camParams.width;
 	m_height = camParams.height;
@@ -164,33 +158,29 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	
 	timer.start(100);
 	
-	innermodel = new InnerModel(innermodel_path);
+// 	innermodel = new InnerModel(innermodel_path);
 //  	m_fx = 400;//innermodel->getCameraFocal(camera_name.c_str());
 //  	m_fy = 400;//innermodel->getCameraFocal(camera_name.c_str());
-	printf("FOCAL LENGHT: %d\n", innermodel->getCameraFocal(camera_name.c_str()) );
+// 	printf("FOCAL LENGHT: %f\n", float(innermodel->getCameraFocal(camera_name.c_str())) );
 
 	return true;
 }
 
-void SpecificWorker::compute()
+void SpecificWorker::getImageGray()
 {
-
-	static int frame = 0;
-	double last_t = tic();
-	
-	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
 	{
-			//For cameras
-			try
-			{
-				camera_proxy->getYImage(0,img, cState, bState);		
-				memcpy(image_gray.data , &img[0], 640*480*sizeof(uchar));
-			}
-			catch(const Ice::Exception &e)
-			{
-				std::cout << "Error reading from Camera" << e << std::endl;
-			}
+		//For cameras
+		RoboCompCamera::imgType img;
+		try
+		{
+			camera_proxy->getYImage(0,img, cState, bState);		
+			memcpy(image_gray.data , &img[0], 640*480*sizeof(uchar));
+		}
+		catch(const Ice::Exception &e)
+		{
+			std::cout << "Error reading from Camera" << e << std::endl;
+		}
 	}
 	else if( INPUTIFACE == RGBD)
 	{
@@ -210,36 +200,42 @@ void SpecificWorker::compute()
 	}
 	else if( INPUTIFACE == RGBDBus)
 	{
-		qDebug() << "Sorry, not implemented yet!";
-		qFatal("Fary");
+		qFatal("Not implemented yet!");
 	}
 	else
 		qFatal("Input device not defined. Please specify one in the config file");
-		
+}
+void SpecificWorker::compute()
+{
+	static int frame = 0;
+	double last_t = tic();
+
+	getImageGray();
+
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
 
 	// print out each detection
 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-// 
-		if (m_draw) 
-		{
-			for (uint i=0; i<detections.size(); i++) 
-			{
-				detections[i].draw(image_gray);
-			}
-			//imshow("AprilTags", image_gray); // OpenCV call
-		}
 
-		// print out the frame rate at which image frames are being processed
-		frame++;
-		if (frame % 10 == 0) 
+	if (m_draw) 
+	{
+		for (uint i=0; i<detections.size(); i++) 
 		{
-			double t = tic();
-			cout << "  " << 1./(t-last_t) << " fps" << endl;
-			last_t = t;
+			detections[i].draw(image_gray);
 		}
+// 		imshow("AprilTags", image_gray); // OpenCV call
+	}
+
+	// print out the frame rate at which image frames are being processed
+	frame++;
+	if (frame % 10 == 0) 
+	{
+		double t = tic();
+		cout << "  " << 1./(t-last_t) << " fps" << endl;
+		last_t = t;
+	}
 }
 
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)

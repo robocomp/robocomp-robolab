@@ -1,0 +1,16 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  vector.cpp
+  cylinder.cpp
+  axis.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  vector.h
+  shapes.h
+)

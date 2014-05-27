@@ -1,0 +1,9 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+CommonBehavior.Endpoints=tcp -p 11215
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+InnerModelManagerProxy = innermodelmanager:tcp -h localhost -p 11175
+RGBDProxy = rgbd:tcp -h 158.49.247.80 -p 10096

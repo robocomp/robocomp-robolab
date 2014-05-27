@@ -1,0 +1,12 @@
+import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/Interfaces/IDSLs/InnerModelManager.idsl";
+
+Component ObjectFittingComp{
+	Communications{
+		requires RGBD, InnerModelManager;
+	};
+	RoboCompModules{
+		"pcl";
+	};
+	language Cpp;
+};

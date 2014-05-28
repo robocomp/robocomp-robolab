@@ -5,11 +5,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <math.h>
+
 #include <algorithm>
 #include <vector>
 #include <string>
 
-#define BIASED_MULT 10000.
+#include <QObject>
+
+#define BIASED_MULT 1000000.
 
 struct BiasedCandidate
 {
@@ -49,6 +53,8 @@ public:
 		totalWeight = other.totalWeight;
 	}
 
+	double getTotalWeight() { return totalWeight; }
+
 	void resize(size_t size, bool initialize=false)
 	{
 		size_t prevSize = candidates.size();
@@ -62,18 +68,29 @@ public:
 			}
 		}
 	}
+	uint32_t getFirst()
+	{
+		return candidates[0].id;
+	}
+	uint32_t getNumber(uint32_t n)
+	{
+		return candidates[n].id;
+	}
 	uint32_t get()
 	{
-		const uint64_t randomValue = ((uint64_t)(rand() * rand()));
-		const uint64_t module = (uint64_t)(floor(totalWeight));
-		const uint64_t result = randomValue % module;
+		if (fabs(totalWeight) <= 0.000000000000000000000000001)
+		{
+			throw std::string("BiasedSelector::Error: No possible choice.");
+		}
+		const long double result = fmodl(qrand()/RAND_MAX, totalWeight);
 		for (size_t i=0; i<candidates.size(); i++)
 		{
 			if (candidates[i].accum >= result)
 				return candidates[i].id;
 		}
-		//printf("BiasedSelector::WTF!? 1\n");
-		throw std::string("BiasedSelector::Error: No possible choice.");
+		return candidates[0].id;
+		//printf("BiasedSelector::WTF!? 1\n");1
+// 		std::cout << "Total: " << totalWeight << "Seeking: " << result  << std::endl;
 	}
 	double getWeight(uint32_t id)
 	{
@@ -86,13 +103,13 @@ public:
 			}
 		}
 		//printf("BiasedSelector::WTF!? 2\n");
-		throw "BiasedSelector::WTF!? 2";
+		throw std::string("BiasedSelector::WTF!? 2");
 	}
 	bool setWeight(uint32_t id, double p, bool perform_sort=true)
 	{
 // 		printf("BiasedSelector:setw %lu", candidates.size());
 		if (p<0.)
-			return false;
+			throw std::string("Me does not allows negatif veilius");
 		for (size_t i=0; i<candidates.size(); ++i)
 		{
 			if (candidates[i].id == id)
@@ -116,6 +133,7 @@ public:
 			accum += candidates[i].weight;
 			candidates[i].accum = accum;
 		}
+		totalWeight = candidates[candidates.size()-1].accum;
 	}
 	void print()
 	{

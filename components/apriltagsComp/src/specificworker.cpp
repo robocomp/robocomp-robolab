@@ -28,49 +28,14 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) :
 	m_tagCodes(::AprilTags::tagCodes16h5),
 	m_draw(true)
 {
-/*	try{		camParams = camera_proxy->getCamParams();	}
-	catch(const Ice::Exception &e)	{	std::cout << e << std::endl;}*/
-
- /*  RoboCompRGBD::TRGBDParams rgbdParams;
-   try{        rgbdParams = rgbd_proxy->getRGBDParams();   }
-   catch(const Ice::Exception &e)  {   std::cout << e << std::endl;}
-   qDebug() << rgbdParams.color.focal << rgbdParams.color.width << rgbdParams.color.height;*/
 	
-//	qDebug() << "Read cam params" << camParams.width << camParams.height << camParams.focal;
-	
-	//m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-
-	
-	///FIX ALL THIS MESS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111
-	
-/*	m_width = camParams.width;
-	m_height = camParams.height;
-	m_tagSize = 0.166;
-	m_fx =camParams.focal;
-	m_fy =camParams.focal;
-	m_px = m_width/2;
-	m_py = m_height/2;*/
-
 	m_width = 640;
 	m_height = 480;
-  
-	//m_tagSize = 0.374;
-	//m_tagSize = 0.397;
-	
-	/*m_fx =480;
-	m_fy =480;
-	*/
-// 	m_fx =583;
-//     m_fy =583;
-	m_fx = 400;
-	m_fy = 400;
 	m_px = m_width/2;
 	m_py = m_height/2;
 
-	//cv::namedWindow("AprilTags", 1);
 	image_gray.create(480,640,CV_8UC1);
 	image_color.create(480,640,CV_8UC3);
-	printf("fin constr\n");
 }
 
 /**
@@ -124,12 +89,57 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);				
 	}
-	catch(std::exception e)
+	catch(std::exception e)	{	qFatal("Error reading config params");}
+	
+	try
 	{
-		qFatal("Error reading config params");
+		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
+		camera_name=par.value;
 	}
+	catch(std::exception e){qFatal("Error reading config params");}
 	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
+		innermodel_path=par.value;
+	}
+	catch(std::exception e)	{qFatal("Error reading config params");}
 	
+	innermodel = new InnerModel(innermodel_path);
+	
+ 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
+  	m_fy = innermodel->getCameraFocal(camera_name.c_str());
+	qDebug() << "FOCAL LENGHT:", innermodel->getCameraFocal(camera_name.c_str());
+
+	//Reading id sets size to create a map 
+	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
+		for(int i=0;i<=10; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
+		for(int i=11;i<=20; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
+		for(int i=21;i<=30; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	
+	//DONE
+	
+	//Default value for IDs not defined before
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
@@ -137,38 +147,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		m_tagSize = QString::fromStdString(par.value).toFloat();
 	}
 	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
-	}
-	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
-		camera_name=par.value;
-	}
-	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
-	}
-	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-		innermodel_path=par.value;
-	}
-	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
+	{	std::cout << e.what() << "Initializing Tag Size to 0.17m" << std::endl;
+		m_tagSize = 0.17;
 	}
 	
 	
-	timer.start(100);
+	timer.start(70);
 	
-	innermodel = new InnerModel(innermodel_path);
-//  	m_fx = 400;//innermodel->getCameraFocal(camera_name.c_str());
-//  	m_fy = 400;//innermodel->getCameraFocal(camera_name.c_str());
-	printf("FOCAL LENGHT: %d\n", innermodel->getCameraFocal(camera_name.c_str()) );
-
 	return true;
 }
 
@@ -223,23 +208,23 @@ void SpecificWorker::compute()
 
 	print_detection(detections);
 // 
-		if (m_draw) 
+	if (m_draw) 
+	{
+		for (uint i=0; i<detections.size(); i++) 
 		{
-			for (uint i=0; i<detections.size(); i++) 
-			{
-				detections[i].draw(image_gray);
-			}
-			//imshow("AprilTags", image_gray); // OpenCV call
+			detections[i].draw(image_gray);
 		}
+		//imshow("AprilTags", image_gray); // OpenCV call
+	}
 
-		// print out the frame rate at which image frames are being processed
-		frame++;
-		if (frame % 10 == 0) 
-		{
-			double t = tic();
-			cout << "  " << 1./(t-last_t) << " fps" << endl;
-			last_t = t;
-		}
+	// print out the frame rate at which image frames are being processed
+	frame++;
+	if (frame % 10 == 0) 
+	{
+		double t = tic();
+		cout << "  " << 1./(t-last_t) << " fps" << endl;
+		last_t = t;
+	}
 }
 
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)
@@ -249,7 +234,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	
 	for(uint i=0; i<detections.size(); i++)
 	{
-		::AprilTags::TagDetection detection = detections[i];
+		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 		
 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
@@ -261,14 +246,16 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		Eigen::Vector3d translation;
 		Eigen::Matrix3d rotation;
-		detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
+		
+		//detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
+		
+		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
+		detection.getRelativeTranslationRotation(tagsSizeMap.value(detection.id, m_tagSize), m_fx, m_fy, m_px, m_py, translation, rotation);
 
 		Eigen::Matrix3d F;
-		F <<
-		1, 0,  0,
-		0,  -1,  0,
-		0,  0,  1;
+		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
 		Eigen::Matrix3d fixed_rot = F*rotation;
+		
 		double yaw, pitch, roll;
 		wRo_to_euler(fixed_rot, yaw, pitch, roll);
 
@@ -300,8 +287,8 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
-		detections2send[i]=t;
-		listaDeMarcas[i]=mar;
+			detections2send[i]=t;
+			listaDeMarcas[i]=mar;
 		mutex->unlock();
 	}
 		
@@ -317,7 +304,6 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	}
 }
 
-		
 /**
 * Normalize angle to be within the interval [-pi,pi].
 */

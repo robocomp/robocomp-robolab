@@ -60,10 +60,12 @@ class SpecificWorker : public GenericWorker
 		::AprilTags::TagDetector* m_tagDetector;
 		::AprilTags::TagCodes m_tagCodes;
 		RoboCompCamera::TCamParams camParams;
-    RoboCompDifferentialRobot::TBaseState bState;
-    RoboCompJointMotor::MotorStateMap hState;
-    RoboCompCommonHead::THeadState cState;
-    enum  {Camera, RGBD, RGBDBus};  
+		RoboCompDifferentialRobot::TBaseState bState;
+		RoboCompJointMotor::MotorStateMap hState;
+		RoboCompCommonHead::THeadState cState;
+		enum  {Camera, RGBD, RGBDBus};  	
+		QMap<int, float> tagsSizeMap;
+
 		
 		vector<RoboCompAprilTags::tag> detections2send;
 		vector<RoboCompGetAprilTags::marca> listaDeMarcas;
@@ -86,11 +88,11 @@ class SpecificWorker : public GenericWorker
 		double tic();
 		
 		/**
-	* Normalize angle to be within the interval [-pi,pi].
-	*/
-	inline double standardRad(double t);
-	void wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double& roll);
-	cv::Mat image_gray, image_color;
-    int INPUTIFACE;
+		* Normalize angle to be within the interval [-pi,pi].
+		*/
+		inline double standardRad(double t);
+		void wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double& roll);
+		cv::Mat image_gray, image_color;
+		int INPUTIFACE;
 };
 #endif

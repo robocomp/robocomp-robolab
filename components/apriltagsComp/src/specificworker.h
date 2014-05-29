@@ -95,4 +95,6 @@ class SpecificWorker : public GenericWorker
 		cv::Mat image_gray, image_color;
 		int INPUTIFACE;
 };
+
 #endif
+

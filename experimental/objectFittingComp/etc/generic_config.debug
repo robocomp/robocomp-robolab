@@ -1,0 +1,10 @@
+# Debug config file
+
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+CommonBehavior.Endpoints=tcp -p 11215# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+InnerModelManagerProxy = innermodelmanager:tcp -h localhost -p 10199
+RGBDProxy = rgbd:tcp -h localhost -p 10096

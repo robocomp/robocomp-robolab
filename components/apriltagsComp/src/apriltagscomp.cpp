@@ -68,8 +68,7 @@
 
 #include <rapplication/rapplication.h>
 #include <qlog/qlog.h>
-// View the config.h file for config options like
-// QtGui, etc...
+
 #include "config.h"
 #include "genericmonitor.h"
 #include "genericworker.h"
@@ -78,17 +77,12 @@
 #include "commonbehaviorI.h"
 #include <getapriltagsI.h>
 
-// Includes for remote proxy example
-// #include <Remote.h>
 #include <Camera.h>
 #include <RGBD.h>
 #include <RGBDBus.h>
 #include <AprilTags.h>
 
 
-// User includes here
-
-// Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
 using namespace RoboCompGetAprilTags;
@@ -101,8 +95,6 @@ using namespace RoboCompAprilTags;
 class AprilTagsComp : public RoboComp::Application
 {
 private:
-	// User private data here
-
 	void initialize();
 	MapPrx mprx;
 
@@ -112,10 +104,9 @@ public:
 
 void AprilTagsComp::initialize()
 {
-	// Config file properties read example
-	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
-	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
+
+
 int AprilTagsComp::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
@@ -125,40 +116,17 @@ int AprilTagsComp::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
 	CameraPrx camera_proxy;
-RGBDPrx rgbd_proxy;
-RGBDBusPrx rgbdbus_proxy;
-AprilTagsPrx apriltags_proxy;
+	RGBDPrx rgbd_proxy;
+	RGBDBusPrx rgbdbus_proxy;
+	AprilTagsPrx apriltags_proxy;
 
 
 	string proxy;
 
-	// User variables
-
-
 	initialize();
 
-	// Remote server proxy creation example
-	// try
-	// {
-	// 	// Load the remote server proxy
-	//	proxy = getProxyString("RemoteProxy");
-	//	remotecomponent_proxy = RemotePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	//	if( !remotecomponent_proxy )
-	//	{
-	//		rInfo(QString("Error loading proxy!"));
-	//		return EXIT_FAILURE;
-	//	}
-	//catch(const Ice::Exception& ex)
-	//{
-	//	cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-	//	return EXIT_FAILURE;
-	//}
-	//rInfo("RemoteProxy initialized Ok!");
-	// 	// Now you can use remote server proxy (remotecomponent_proxy) as local object
-	//Remote server proxy creation example
+
 	try
 	{
 		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("CameraProxy") ) );
@@ -195,13 +163,19 @@ AprilTagsPrx apriltags_proxy;
 	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 	
 	IceStorm::TopicPrx apriltags_topic;
-    while(!apriltags_topic){
-		try {
+    while (!apriltags_topic)
+	{
+		try
+		{
 			apriltags_topic = topicManager->retrieve("AprilTags");
-		}catch (const IceStorm::NoSuchTopic&){
-			try{
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			try
+			{
 				apriltags_topic = topicManager->create("AprilTags");
-			}catch (const IceStorm::TopicExists&){
+			}
+			catch (const IceStorm::TopicExists&){
 				// Another client created the topic.
 			}
 		}
@@ -210,14 +184,16 @@ AprilTagsPrx apriltags_proxy;
 	AprilTagsPrx apriltags = AprilTagsPrx::uncheckedCast(apriltags_pub);
 	mprx["AprilTagsPub"] = (::IceProxy::Ice::Object*)(&apriltags);
 	
-	
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
-	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
-
+	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
+	printf("a\n");
+	usleep(2000000);
+	printf("b\n");
+	worker->setPeriod(50);
 	
 	if ( !monitor->isRunning() )
 		return status;
@@ -271,7 +247,7 @@ int main(int argc, char* argv[])
 	for (int i = 1; i < argc; ++i)
 	{
 		arg = argv[i];
-		if ( arg.find ( "--Ice.Config=", 0 ) != string::npos )
+		if (arg.find ( "--Ice.Config=", 0 ) != string::npos)
 			hasConfig = true;
 	}
 
@@ -280,3 +256,4 @@ int main(int argc, char* argv[])
 	else
 		return app.main(argc, argv, "../etc/generic_config"); // "config" is the default config file name
 }
+

@@ -91,7 +91,7 @@ class SpecificWorker : public GenericWorker
 		* Normalize angle to be within the interval [-pi,pi].
 		*/
 		inline double standardRad(double t);
-		void wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double& roll);
+		void rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz);
 		cv::Mat image_gray, image_color;
 		int INPUTIFACE;
 };

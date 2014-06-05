@@ -23,4 +23,4 @@ Ice.Trace.Protocol=0
 # Faster ACM
 Ice.ACM.Client=10
 Ice.ACM.Server=10
-Ice.MessageSizeMax=20480
+Ice.MessageSizeMax=2000480

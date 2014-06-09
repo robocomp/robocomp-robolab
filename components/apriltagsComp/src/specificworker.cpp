@@ -280,9 +280,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		RoboCompGetAprilTags::marca mar;
 
 		t.id=detection.id;
-		t.tx=T(0);
-		t.ty=T(1);
-		t.tz=T(2);
+		t.tx=T(0)*1000.;
+		t.ty=T(1)*1000.;
+		t.tz=T(2)*1000.;
 		//Change the x,y,z rotation values to match robocomp's way
 		t.rx=rx;
 		t.ry=ry;

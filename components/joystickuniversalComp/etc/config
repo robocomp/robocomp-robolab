@@ -1,0 +1,50 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+JoystickUniversalComp.Endpoints=tcp -p 10104
+CommonBehavior.Endpoints=tcp -p 11104
+
+# Remote servers proxies example
+JoystickAdapterProxy = joystickadapter:tcp -h localhost -p 12345 
+
+
+joystickUniversal.Device=/dev/input/js1
+joystickUniversal.NumAxes=3
+joystickUniversal.NumButtons=11
+joystickUniversal.BasicPeriod = 100
+joystickUniversal.NormalizationValue = 10
+joystickUniversal.VelocityAxis = vel
+joystickUniversal.DirectionAxis = dir 
+
+#joystickUniversal.Params = 	Name,	NegativeRange, Positive Range,	Invert
+joystickUniversal.Axis_0 = 		dir,	-32767, 		32767		,	true
+joystickUniversal.Axis_1 = 		vel,	-32767, 		32767		,	true
+joystickUniversal.Axis_2 = 		mini,	-32767,			32767		,	false
+
+
+
+
+#~ joystickUniversal.Axes_3 = dunker2,12,true,-3.14,3.14,0,0.9,0,0
+#~ joystickUniversal.Axes_4 = dunker3,13,true,-3.14,3.14,0,0.9,0,0
+
+
+
+
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+# User config parameters
+# Example = value
+
+#############################
+### Ice-related properties ##
+#############################
+# Warn about connection exceptions
+Ice.Warn.Connections=0
+# Network Tracing: (0: no network tracing; 1: trace connection establishment and closure; 2: like 1, but more detailed; 3: like 2, but also trace data transfer).
+Ice.Trace.Network=0
+# Protocol Tracing: (0: no protocol tracing; 1: trace protocol messages)
+Ice.Trace.Protocol=0
+
+# Faster ACM
+Ice.ACM.Client=10
+Ice.ACM.Server=10

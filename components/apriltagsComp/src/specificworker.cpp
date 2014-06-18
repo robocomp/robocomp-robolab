@@ -22,49 +22,19 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagCodes(::AprilTags::tagCodes16h5)
+SpecificWorker::SpecificWorker(MapPrx& mprx) : 
+	GenericWorker(mprx),
+	m_tagDetector(NULL),
+	m_tagCodes(::AprilTags::tagCodes16h5),
+	m_draw(true)
 {
-	m_tagDetector = NULL;
-	m_draw = true;
-
-/*	try{		camParams = camera_proxy->getCamParams();	}
-	catch(const Ice::Exception &e)	{	std::cout << e << std::endl;}*/
- /*  RoboCompRGBD::TRGBDParams rgbdParams;
-   try{        rgbdParams = rgbd_proxy->getRGBDParams();   }
-   catch(const Ice::Exception &e)  {   std::cout << e << std::endl;}
-   qDebug() << rgbdParams.color.focal << rgbdParams.color.width << rgbdParams.color.height;*/
-//	qDebug() << "Read cam params" << camParams.width << camParams.height << camParams.focal;
-	//m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-	///FIX ALL THIS MESS!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	
-/*	m_width = camParams.width;
-	m_height = camParams.height;
-	m_tagSize = 0.166;
-	m_fx =camParams.focal;
-	m_fy =camParams.focal;
-	m_px = m_width/2;
-	m_py = m_height/2;*/
-
 	m_width = 640;
 	m_height = 480;
-  
-	//m_tagSize = 0.374;
-	//m_tagSize = 0.397;
-	
-	/*m_fx =480;
-	m_fy =480;
-	*/
-// 	m_fx =583;
-//     m_fy =583;
-	m_fx = 400;
-	m_fy = 400;
 	m_px = m_width/2;
 	m_py = m_height/2;
 
-	//cv::namedWindow("AprilTags", 1);
 	image_gray.create(480,640,CV_8UC1);
 	image_color.create(480,640,CV_8UC3);
-	printf("fin constr\n");
 }
 
 /**
@@ -92,8 +62,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else if ( par.value == "Camera")
 		{
 			INPUTIFACE = Camera;
-		}
-		
+		}	
 		else
 			qFatal("InputInterface");
 	}
@@ -118,12 +87,59 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);				
 	}
-	catch(std::exception e)
+	catch(std::exception e)	{ qFatal("Error reading config params"); }
+	
+	try
 	{
-		qFatal("Error reading config params");
+		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
+		camera_name=par.value;
 	}
+	catch(std::exception e){ qFatal("Error reading config params"); }
 	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
+		innermodel_path=par.value;
+	}
+	catch(std::exception e)	{ qFatal("Error reading config params"); }
 	
+	innermodel = new InnerModel(innermodel_path);
+	
+ 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
+  	m_fy = innermodel->getCameraFocal(camera_name.c_str());
+
+	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
+	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
+
+	//Reading id sets size to create a map 
+	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
+		for(int i=0;i<=10; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
+		for(int i=11;i<=20; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
+		for(int i=21;i<=30; i++)
+			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
+	}
+	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	
+	//DONE
+	
+	//Default value for IDs not defined before
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
@@ -131,47 +147,23 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		m_tagSize = QString::fromStdString(par.value).toFloat();
 	}
 	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
+	{	std::cout << e.what() << "Initializing Tag Size to 0.17m" << std::endl;
+		m_tagSize = 0.17;
 	}
 	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
-		camera_name=par.value;
-	}
-	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
-	}
-	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-		innermodel_path=par.value;
-	}
-	catch(std::exception e)
-	{
-		qFatal("Error reading config params");
-	}
-	
-	
-	timer.start(100);
-	
-// 	innermodel = new InnerModel(innermodel_path);
-//  	m_fx = 400;//innermodel->getCameraFocal(camera_name.c_str());
-//  	m_fy = 400;//innermodel->getCameraFocal(camera_name.c_str());
-// 	printf("FOCAL LENGHT: %f\n", float(innermodel->getCameraFocal(camera_name.c_str())) );
-
 	return true;
 }
 
-void SpecificWorker::getImageGray()
+void SpecificWorker::compute()
 {
+
+	static int frame = 0;
+	double last_t = tic();
+	
+	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
 	{
 		//For cameras
-		RoboCompCamera::imgType img;
 		try
 		{
 			camera_proxy->getYImage(0,img, cState, bState);		
@@ -200,32 +192,27 @@ void SpecificWorker::getImageGray()
 	}
 	else if( INPUTIFACE == RGBDBus)
 	{
-		qFatal("Not implemented yet!");
+		qFatal("Support for RGBDBus is not implemented yet!");
 	}
 	else
 		qFatal("Input device not defined. Please specify one in the config file");
-}
-void SpecificWorker::compute()
-{
-	static int frame = 0;
-	double last_t = tic();
 
-	getImageGray();
-
+	
+	
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
 
 	// print out each detection
 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-
+// 
 	if (m_draw) 
 	{
 		for (uint i=0; i<detections.size(); i++) 
 		{
 			detections[i].draw(image_gray);
 		}
-// 		imshow("AprilTags", image_gray); // OpenCV call
+		//imshow("AprilTags", image_gray); // OpenCV call
 	}
 
 	// print out the frame rate at which image frames are being processed
@@ -243,9 +230,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	detections2send.resize(detections.size());
 	listaDeMarcas.resize(detections.size());
 	
-	for(uint i=0; i<detections.size(); i++)
+	for(uint32_t i=0; i<detections.size(); i++)
 	{
-		::AprilTags::TagDetection detection = detections[i];
+		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 		
 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
@@ -257,24 +244,31 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		Eigen::Vector3d translation;
 		Eigen::Matrix3d rotation;
-		detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
-
+		
+		//detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
+		
+		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
+		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
+		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
+		QVec T(3);
+		T(0) = -translation(1);
+		T(1) =  translation(2);
+		T(2) =  translation(0);
+		
 		Eigen::Matrix3d F;
-		F <<
-		1, 0,  0,
-		0,  -1,  0,
-		0,  0,  1;
+		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
 		Eigen::Matrix3d fixed_rot = F*rotation;
-		double yaw, pitch, roll;
-		wRo_to_euler(fixed_rot, yaw, pitch, roll);
+		
+		double rx, ry, rz;
+		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
-		cout << "  distance=" << translation.norm()
-			 << "m, x=" << translation(0)
-			 << ", y=" << translation(1)
-			 << ", z=" << translation(2)
-			 << ", yaw=" << yaw
-			 << ", pitch=" << pitch
-			 << ", roll=" << roll
+		cout << "  distance=" << T.norm2()
+			 << ", x=" << T(0)
+			 << ", y=" << T(1)
+			 << ", z=" << T(2)
+			 << ", rx=" << rx
+			 << ", ry=" << ry
+			 << ", rz=" << rz
 			 << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
@@ -286,26 +280,24 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		RoboCompGetAprilTags::marca mar;
 
 		t.id=detection.id;
-		t.tx=-translation(1)*1000.;
-		t.ty=translation(2)*1000.;
-		t.tz=translation(0)*1000.;
+		t.tx=T(0)*1000.;
+		t.ty=T(1)*1000.;
+		t.tz=T(2)*1000.;
 		//Change the x,y,z rotation values to match robocomp's way
-		t.rx=-roll;
-		t.ry=-pitch;
-		t.rz=-yaw;
+		t.rx=rx;
+		t.ry=ry;
+		t.rz=rz;
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
-		detections2send[i]=t;
-		listaDeMarcas[i]=mar;
+			detections2send[i]=t;
+			listaDeMarcas[i]=mar;
 		mutex->unlock();
 	}
 		
 	try
 	{
-		printf("<<");
 		apriltags->newAprilTag(detections2send);
-		printf(">>\n");
 	}
 	catch(const Ice::Exception &ex)
 	{
@@ -313,7 +305,6 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	}
 }
 
-		
 /**
 * Normalize angle to be within the interval [-pi,pi].
 */
@@ -327,13 +318,30 @@ double SpecificWorker::standardRad(double t)
 	return t;
 }
 
-void SpecificWorker::wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double& roll) 
+void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz) 
 {
+	QMat v(3,3);
+	for (uint32_t f=0; f<3; f++)
+	{
+		for (uint32_t c=0; c<3; c++)
+		{
+			v(f,c) = R(f,c);
+		}
+	}
+	QVec ret = v.extractAnglesR_min();
+	rx = ret(0)+M_PIl;
+	while (rx >= M_PIl) rx -= 2.*M_PIl;
+	while (rx < -M_PIl) rx += 2.*M_PIl;
+	ry = -ret(1);
+	rz = ret(2);
+
+/*
 	yaw = standardRad(atan2(wRo(1,0), wRo(0,0)));
 	double c = cos(yaw);
 	double s = sin(yaw);
 	pitch = standardRad(atan2(-wRo(2,0), wRo(0,0)*c + wRo(1,0)*s));
 	roll  = standardRad(atan2(wRo(0,2)*s - wRo(1,2)*c, -wRo(0,1)*s + wRo(1,1)*c));
+*/
 }
 
 // utility function to provide current system time (used below in

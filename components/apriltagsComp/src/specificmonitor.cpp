@@ -86,45 +86,32 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-	//Read params from config file
-	//Example
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	configGetString( "InputInterface", aux.value,"Camera");  //Could be RGBD, RGBDBus
+	params["InputInterface"] = aux;
 	
-	  RoboCompCommonBehavior::Parameter aux;
-	  aux.editable = true;
-	  configGetString( "InputInterface", aux.value,"Camera");  //Could be RGBD, RGBDBus
-	  params["InputInterface"] = aux;
-	  
-	  aux.editable = false;
-	  configGetString( "AprilTagsFamily", aux.value,"tagCodes16h5"); 
-	  params["AprilTagsFamily"] = aux;
-	  
-	  aux.editable = false;
-	  configGetString( "AprilTagsSize", aux.value,"0.175"); 
-	  params["AprilTagsSize"] = aux;
-	  
-	 aux.editable = true;
-	 configGetString( "CameraName", aux.value, "rgbd");
-	 params["CameraName"] = aux;
-	 
-	 printf("ac\n");
-	 aux.editable = true;
-	 configGetString( "InnerModelPath", aux.value, "");
-	 printf("ho\n");
-	 params["InnerModelPath"] = aux;
+	aux.editable = false;
+	configGetString( "AprilTagsFamily", aux.value,"tagCodes16h5"); 
+	params["AprilTagsFamily"] = aux;
+	
+	aux.editable = false;
+	configGetString( "AprilTagsSize", aux.value,"0.175"); 
+	params["AprilTagsSize"] = aux;
+	
+	aux.editable = true;
+	configGetString( "CameraName", aux.value, "rgbd");
+	params["CameraName"] = aux;
+	
+	aux.editable = true;
+	configGetString( "InnerModelPath", aux.value, "");
+	params["InnerModelPath"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;
-	//Check parameters
-	//Example
-// 	    if(l["DRobot.Handler"].value != "Robex" and l["DRobot.Handler"].value != "Gazebo" and l["DRobot.Handler"].value != "Player")
-// 		    correct = false;
-	
-	//copy parameters
-// 	if(correct)
-// 		config_params = l;
 	return correct;
 }
 

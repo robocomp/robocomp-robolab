@@ -10,4 +10,7 @@ If it does not finish due to OpenCV error its OK as long as libapriltags.a is ge
 make
 
 5) Install
-sudo cp -r pod-build/* /usr/local/
+sudo cp -r pod-build/* /usr/local/lib
+sudo cp -r pod-build/* /usr/local/include
+
+

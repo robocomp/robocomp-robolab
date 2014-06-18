@@ -16,3 +16,12 @@ AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 # This property is used by the clients to connect to IceStorm.
 #
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+InputInterface = RGBD
+AprilTagsFamily = tagCodes36h11
+#AprilTagsFamily = tagCodes16h5
+AprilTagsSize = 0.17
+ID:0-10 = 0.17   #tag size in meters
+ID:11-20 = 0.17   #tag size in meters
+ID:21-30 = 0.17   #tag size in meters

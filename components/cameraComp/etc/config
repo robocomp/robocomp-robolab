@@ -1,0 +1,112 @@
+#  Configuration file for Component: CameraComp
+
+# This property is used to configure the endpoints of the subscriber adapter.
+CameraComp.Endpoints=tcp -p 10001
+
+#
+# Proxies required by this component
+#
+JointMotorProxy=jointmotor:tcp -p 10067
+DifferentialRobotProxy=differentialrobot:tcp -p 10004
+
+#
+###  Configuration variables and optional values
+###
+### Camera.Name 	: APPLE-ISIGHT, LOGITECH-PRO9000, UNIBRAIN-FIREI,
+### Camera.Driver	: V4L2, FIREWIRE, MPLAYER
+### Camera.Mode	: MODE_640x480_YUV422, MODE_640x480_MONO, MODE_640x480_GREY , MODE_320x240_YUV422 (default)
+### Camera.Device : /dev/video1394/0 (default), /dev/video0
+### Camera.Focal	: in pixels, default 480
+### Camera.NumCameras : Default 1. 2 for stereo heads.
+### Camera.LeftCamera : Default 0.
+### Camera.RightCamera : Default 1.
+### Camera.BothCameras : Default 5.
+### Camera.FPS	: Default 15.
+### Camera.Width	: Default 320.
+### Camera.Height	: Default 240.
+### Camera.TalkToBaseComp : Default true
+### Camera.TalkToJointMotorComp : Default true
+
+
+
+#############################
+# Some usual configurations #
+#############################
+
+#
+# Stereo robotic head with firewire cameras
+#
+#Camera.Device = /dev/video1394/0
+#Camera.Driver = FIREWIRE
+#Camera.Mode = MODE_320x240_YUV422
+#Camera.Focal = 880
+#Camera.FPS = 30
+#Camera.Width = 320
+#Camera.Height = 240
+#Camera.NumCameras = 2
+#Camera.LeftCamera = 0
+#Camera.RightCamera = 1
+#Camera.BothCameras = 5
+#Camera.TalkToBaseComp = true
+#Camera.TalkToJointMotorComp = true
+#
+
+#
+# Single Firewire camera
+#
+#Camera.Name = Fire-i
+#Camera.Device = /dev/video1394/0
+#Camera.Driver = FIREWIRE
+#Camera.Mode = MODE_320x240_YUV422
+#Camera.Mode = MODE_640x480_MONO
+#Camera.Focal = 400
+#Camera.FPS = 30
+#Camera.Width = 320
+#Camera.Height = 240
+#Camera.TalkToBaseComp = false
+#Camera.TalkToJointMotorComp = false
+#Camera.NumCameras = 1
+
+
+#
+# Integrated laptop USB webcam or similar
+#
+Camera.Device = /dev/video0
+Camera.Driver = V4L2
+Camera.Mode = MODE_640x480_YUV422
+Camera.Width = 640
+Camera.Height = 480
+Camera.FPS = 15
+Camera.RightInverted=0
+Camera.LeftInverted=0
+Camera.NumCameras = 1
+Camera.TalkToBaseComp = false
+Camera.TalkToJointMotorComp = false
+Camera.LineFreq = 50 
+
+
+
+#
+# Configuration example for the Gazebo simulator
+#
+#Camera.Device = robot::camera_iface_0,robot::camera_iface_1/default
+#Camera.Driver = GAZEBO
+#Camera.TalkToBaseComp = false
+#Camera.TalkToJointMotorComp = false
+#Camera.NumCameras = 2
+
+
+
+# Ice specific debuging parameters
+#
+# Warn about connection exceptions
+Ice.Warn.Connections=0
+# Network Tracing
+Ice.Trace.Network=0
+# Protocol Tracing
+Ice.Trace.Protocol=0
+# ACM
+Ice.MessageSizeMax=10240
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+

@@ -50,7 +50,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		INPUTIFACE = Camera;
-		RoboCompCommonBehavior::Parameter par = params.at("InputInterface") ;
+		RoboCompCommonBehavior::Parameter par = params.at("InputInterface");
 		if (par.value == "RGBD")
 		{
 			INPUTIFACE = RGBD;
@@ -83,25 +83,25 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else if ( par.value == "tagCodes36h11")
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
 		else if ( par.value == "tagCodes36h9")
-			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);	
+			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
 		else
-			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);				
+			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 	}
-	catch(std::exception e)	{ qFatal("Error reading config params"); }
+	catch(std::exception e) { qFatal("Error reading config params"); }
 	
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
 		camera_name=par.value;
 	}
-	catch(std::exception e){ qFatal("Error reading config params"); }
+	catch(std::exception e) { qFatal("Error reading config params"); }
 	
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		innermodel_path=par.value;
 	}
-	catch(std::exception e)	{ qFatal("Error reading config params"); }
+	catch(std::exception e) { qFatal("Error reading config params"); }
 	
 	innermodel = new InnerModel(innermodel_path);
 	
@@ -119,7 +119,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=0;i<=10; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
 	}
-	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	catch(std::exception e) { std::cout << e.what() << std::endl;}
 	
 	try
 	{
@@ -127,7 +127,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=11;i<=20; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
 	}
-	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 	try
 	{
@@ -135,7 +135,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=21;i<=30; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
 	}
-	catch(std::exception e)	{ std::cout << e.what() << std::endl;}
+	catch(std::exception e) { std::cout << e.what() << std::endl;}
 	
 	//DONE
 	
@@ -166,8 +166,8 @@ void SpecificWorker::compute()
 		//For cameras
 		try
 		{
-			camera_proxy->getYImage(0,img, cState, bState);		
-			memcpy(image_gray.data , &img[0], 640*480*sizeof(uchar));
+			camera_proxy->getYImage(0,img, cState, bState);
+			memcpy(image_gray.data, &img[0], 640*480*sizeof(uchar));
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -280,9 +280,10 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		RoboCompGetAprilTags::marca mar;
 
 		t.id=detection.id;
-		t.tx=T(0)*1000.;
-		t.ty=T(1)*1000.;
-		t.tz=T(2)*1000.;
+		///ASDFASDFAAAAAAAAAAAAAAAAAAAAAAA
+		t.tx=T(0);
+		t.ty=T(1);
+		t.tz=T(2);
 		//Change the x,y,z rotation values to match robocomp's way
 		t.rx=rx;
 		t.ry=ry;

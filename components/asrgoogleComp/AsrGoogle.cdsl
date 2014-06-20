@@ -1,0 +1,7 @@
+import "/robocomp/interfaces/IDSLs/ASRPublish.idsl";
+Component AsrGoogleComp{
+	Communications{
+ 		publishes ASRPublish;
+	};
+	language Cpp;
+};

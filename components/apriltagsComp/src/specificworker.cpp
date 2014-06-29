@@ -113,29 +113,32 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	//Reading id sets size to create a map 
 	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
-		for(int i=0;i<=10; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
-	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
-	
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
-		for(int i=11;i<=20; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
-	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
-
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
-		for(int i=21;i<=30; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() );
-	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
+// 	try
+// 	{
+// 		RoboCompCommonBehavior::Parameter par = params.at("FirstTen");
+// 		Q_ASSERT(par.value > 0 and par.value < 500);
+// 		for(int i=0;i<=10; i++)
+// 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() /1000.);
+// 	}
+// 	catch(std::exception e) {  qFatal("Error reading config params");}
+// 	
+// 	try
+// 	{
+// 		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
+// 		Q_ASSERT(par.value > 0 and par.value < 500);
+// 		for(int i=11;i<=20; i++)
+// 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() /1000.);
+// 	}
+// 	catch(std::exception e) { std::cout << e.what() << std::endl;}
+// 
+// 	try
+// 	{
+// 		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
+// 		Q_ASSERT(par.value > 0 and par.value < 500);
+// 		for(int i=21;i<=30; i++)
+// 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat() /1000. );
+// 	}
+// 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 	
 	//DONE
 	
@@ -143,12 +146,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
-		Q_ASSERT(par.value > 0 and par.value < 5);
+		Q_ASSERT(par.value > 0 and par.value < 500);
 		m_tagSize = QString::fromStdString(par.value).toFloat();
 	}
 	catch(std::exception e)
 	{	std::cout << e.what() << "Initializing Tag Size to 0.17m" << std::endl;
-		m_tagSize = 0.17;
+		m_tagSize = 0.17;  //metros
 	}
 	
 	return true;
@@ -249,6 +252,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		
 		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
 		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
+		qDebug() << "ss" << ss;
 		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
 		QVec T(3);
 		T(0) = -translation(1);

@@ -365,7 +365,6 @@ void Worker::getDepth(RoboCompRGBD::DepthSeq& depth, RoboCompJointMotor::MotorSt
 
 void Worker::getRGB(RoboCompRGBD::ColorSeq& color, RoboCompJointMotor::MotorStateMap &head, RoboCompDifferentialRobot::TBaseState& base )
 {
-    qDebug() << "hola";
 	mutex->lock();
 	color = *d->colorMapR;
 	mutex->unlock();

@@ -1,0 +1,58 @@
+# Debug config file
+
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+#JoyStickComp.Endpoints=tcp -p 10007
+
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+CameraProxy = cammotion:tcp -h localhost -p 10005
+CompassProxy = compass:tcp -h localhost -p 10006
+UltrasoundProxy = ultrasound:tcp -h localhost -p 10008
+
+# User config parameters
+# Example = value
+# Debug = 1
+Device = /dev/js0
+XMotionAxis = 2
+YMotionAxis = 1
+XCameraAxis = 4
+YCameraAxis = 5
+ExchangeMotionCameraAxisButton = 0
+SwitchCompassButton = 5
+SwitchUltrasoundScannerButton = 4
+SampleRate = 10
+
+# Component properties
+#
+#
+# Warn about connection exceptions
+#
+Ice.Warn.Connections=1
+
+#
+#
+# Network Tracing
+#
+# 0 = no network tracing
+# 1 = trace connection establishment and closure
+# 2 = like 1, but more detailed
+# 3 = like 2, but also trace data transfer
+#
+Ice.Trace.Network=3
+
+#
+# Protocol Tracing
+#
+# 0 = no protocol tracing
+# 1 = trace protocol messages
+#
+Ice.Trace.Protocol=1
+
+#
+# We want a faster ACM
+#
+Ice.ACM.Client=10
+Ice.ACM.Server=10

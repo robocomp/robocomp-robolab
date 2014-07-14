@@ -215,8 +215,8 @@ void Worker::compute()
 				d->pointsMap[offset].w = NAN;
 			} else {
 				(*d->depthMapW)[offset] = z;
-				d->pointsMap[offset].x = (z * (x - XN_VGA_X_RES/2) / flength_x) * 1000.;
-				d->pointsMap[offset].y = (z * (y - XN_VGA_Y_RES/2) / flength_y) * 1000.;
+				d->pointsMap[offset].x =  (z * (x - XN_VGA_X_RES/2) / flength_x) * 1000.;
+				d->pointsMap[offset].y = -(z * (y - XN_VGA_Y_RES/2) / flength_y) * 1000.;
 				d->pointsMap[offset].z = z * 1000.;
 				d->pointsMap[offset].w = 1.0;
 			}

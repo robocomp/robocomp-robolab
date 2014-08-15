@@ -1,0 +1,9 @@
+import "/robocomp/interfaces/IDSLs/JoystickAdapter.idsl";
+
+Component JoystickPublishComp{
+	Communications{
+		publishes JoystickAdapter;
+	};
+	
+	language Cpp;
+};

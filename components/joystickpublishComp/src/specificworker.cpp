@@ -205,7 +205,18 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 	}
 }
 
+// float SpecificWorker::normalize(float X, float A, float B, float C, float D)
+// {
+// 	return ((D-C)*(X-A)/(B-A))+C;
+// }
+
 float SpecificWorker::normalize(float X, float A, float B, float C, float D)
 {
-	return ((D-C)*(X-A)/(B-A))+C;
+	QList<QPair<QPointF,QPointF> > intervals;
+	intervals.append(QPair<QPointF,QPointF>(QPointF(A,B),QPointF(C,D))); 
+	//qDebug() << __FUNCTION__ << intervals << "X" << X;
+
+	QMat m = QMat::afinTransformFromIntervals( intervals );
+	return (m * QVec::vec2(X,1))[0];
+	
 }

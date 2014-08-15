@@ -21,6 +21,7 @@
 
 #include <genericworker.h>
 #include <qjoystick/qjoystick.h>
+#include <qmat/QMatAll>
 
 #define CHECK_PERIOD 5000
 #define JOYSTICK_PRECISION 0.05
@@ -36,8 +37,11 @@
 #define JOYSTICK_EVENT_TYPE_AXIS     0x02
 
 /**
-       \brief
+       \brief Polls events from a joystick and publishes them through the JoystickAdapter IDSL.
+       Values from the axis are normalizes to (-1,1)
        @author authorname
+       
+       
 */
 
 class SpecificWorker : public GenericWorker

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 PROJECT( differentialrobotComp )
 
 # Gazebo
-INCLUDE( $ENV{ROBOCOMP}/CMake/gazebo.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/gazebo.cmake )
 IF (GAZEBO_FOUND EQUAL 0)
   MESSAGE(STATUS "\n\nGazebo handler will NOT be built!\n\n")
 ELSE (GAZEBO_FOUND EQUAL 0)
@@ -10,7 +10,7 @@ ELSE (GAZEBO_FOUND EQUAL 0)
 ENDIF (GAZEBO_FOUND EQUAL 0)
 
 # Player
-INCLUDE( $ENV{ROBOCOMP}/CMake/player.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/player.cmake )
 IF (PLAYER_FOUND EQUAL 0)
   MESSAGE(STATUS "\n\nPlayer handler will NOT be built!\n\n")
 ELSE (PLAYER_FOUND EQUAL 0)
@@ -26,8 +26,8 @@ SET ( SOURCES
   commonbehaviorI.cpp
   differentialrobotI.cpp
   worker.cpp
-  $ENV{ROBOCOMP}/Classes/q4serialport/q4serialport.cpp
-  $ENV{ROBOCOMP}/Classes/qlog/qlog.cpp
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
 )
 
 # Headers set
@@ -39,11 +39,11 @@ SET ( HEADERS
   monitor.h
   worker.h
   differentialrobotI.h
-  $ENV{ROBOCOMP}/Classes/q4serialport/q4serialport.h
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.h
 )
 
 # RoboComp
-INCLUDE( $ENV{ROBOCOMP}/CMake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP} )
 ROBOCOMP_WRAP_ICE( DifferentialRobot Logger CommonBehavior)
 

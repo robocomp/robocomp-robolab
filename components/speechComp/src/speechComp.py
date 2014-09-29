@@ -106,22 +106,22 @@ class SpeechHandler (threading.Thread):
 			self.text_queue = Queue.Queue(max_queue)
 		self.text_queue.put(new_text)
 		self.accessLock.release()
-	
+
 	def getFreq(self):
 		return 5
-		
+
 	def setFreq(self, freq):
 		print "Setting freq of acpi"
-	
+
 	def timeAwake(self):
 		timeA=int(time.time()-self.initTime)
 		type(timeA)
 		return timeA
-		
-	
+
+
 	def killYourSelf(self):
 		print "Killing acpi component"
-		
+
 	def getAttrList(self, communicator):
 		#~ attrList = dict()
 		print "Obteniendo property dict"
@@ -144,9 +144,9 @@ class SpeechI (RoboCompSpeech.Speech):
 			self.handler.put(text, force)
 		except:
 			print 'Full queue.'
-	def isBusy(current=None):
+	def isBusy(self, current=None):
 		return 'festival' in subprocess.Popen(["ps", "ax"], stdout=subprocess.PIPE).communicate()[0]
-			
+
 class CommonBehaviorI (RoboCompCommonBehavior.CommonBehavior):
 	def __init__(self, _handler, _communicator):
 		self.handler = _handler
@@ -169,7 +169,7 @@ class CommonBehaviorI (RoboCompCommonBehavior.CommonBehavior):
 			print 'Problem getting getAttrList'
 			traceback.print_exc()
 			status = 1
-			return 
+			return
 
 class Server (Ice.Application):
 	def run (self, argv):

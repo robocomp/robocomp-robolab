@@ -1,4 +1,5 @@
-import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
 Component fitterTestComp{
 	Communications{
 		requires RGBD;

@@ -1,5 +1,5 @@
-import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
-import "/robocomp/Interfaces/IDSLs/InnerModelManager.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/InnerModelManager.idsl";
 
 Component ObjectFittingComp{
 	Communications{

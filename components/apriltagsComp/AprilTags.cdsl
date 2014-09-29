@@ -1,8 +1,8 @@
-import "/robocomp/Interfaces/IDSLs/GetAprilTags.idsl";
-import "/robocomp/Interfaces/IDSLs/AprilTags.idsl";
-import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
-import "/robocomp/Interfaces/IDSLs/RGBDBus.idsl";
-import "/robocomp/Interfaces/IDSLs/Camera.idsl";
+import "/robocomp/interfaces/IDSLs/GetAprilTags.idsl";
+import "/robocomp/interfaces/IDSLs/AprilTags.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
+import "/robocomp/interfaces/IDSLs/Camera.idsl";
 
 Component AprilTagsComp{
 	Communications{

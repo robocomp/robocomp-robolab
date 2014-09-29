@@ -67,8 +67,8 @@ if len(ROBOCOMP)<1:
 	print 'ROBOCOMP environment variable not set! Exiting.'
 	sys.exit()
 
-Ice.loadSlice(ROBOCOMP+"/Interfaces/Speech.ice")
-Ice.loadSlice(ROBOCOMP+"/Interfaces/CommonBehavior.ice")
+Ice.loadSlice(ROBOCOMP+"/interfaces/Speech.ice")
+Ice.loadSlice(ROBOCOMP+"/interfaces/CommonBehavior.ice")
 
 import RoboCompSpeech
 import RoboCompCommonBehavior

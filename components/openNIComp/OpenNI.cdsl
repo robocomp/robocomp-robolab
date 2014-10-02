@@ -1,0 +1,14 @@
+import "/robocomp/Interfaces/IDSLs/HumanTracker.idsl";
+import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+
+Component OpenNIComp{
+	Communications{
+		implements RGBD,HumanTracker;
+	};
+	RoboCompModules{
+		"openni";
+		"qmat";
+		"ipp";		
+		};
+	language Cpp;
+};

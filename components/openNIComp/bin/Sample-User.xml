@@ -1,0 +1,35 @@
+<OpenNI>	
+	<Log writeToConsole="true" writeToFile="false">
+		<!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
+		<LogLevel value="3"/>
+		<Masks>
+			<Mask name="ALL" on="false"/>
+		</Masks>
+	</Log>
+	<ProductionNodes>		
+		<GlobalMirror on="true"/>
+		<Node type="Depth" name="MyDepth">
+			<Configuration>				
+				<MapOutputMode xRes="640" yRes="480" FPS="30"/> 
+			</Configuration>
+		</Node>
+		<Node type="Image" name="MyImage">
+			<Configuration>	
+				<MapOutputMode xRes="640" yRes="480" FPS="30"/> 
+			</Configuration>	
+		</Node>
+		<Node type="User" />
+		
+		<!--Uncomment followings lines, if you want to rec. -->		
+		<!--<Node type="Recorder" name="MyRec">
+		<Configuration>
+			<RecorderDestination name="rec.oni"/>-->
+			<!--Uncomment/comment followings lines. You can add any node to rec. Check names. -->					
+			<!--<AddNodeToRecording name="MyImage" codec="JPEG"/>
+			<AddNodeToRecording name="MyDepth" codec="16zT"/>
+		</Configuration>
+		</Node>-->
+		
+		
+	</ProductionNodes>
+</OpenNI>

@@ -63,8 +63,8 @@ void SpecificWorker::openDevice()
     qFatal("openNi2Comp: OpenNI initialize failed: \n%s\n", OpenNI::getExtendedError());
   }
   
-  //openniRc = device.open(ANY_DEVICE);
-  openniRc = device.open("VideosPruebas/PacoPensando.oni");
+  openniRc = device.open(ANY_DEVICE);
+  //openniRc = device.open("VideosPruebas/PacoPensando.oni");
   if (openniRc != openni::STATUS_OK){
     OpenNI::shutdown();
     qFatal("openNi2Comp: Device open failed: \n%s\n", OpenNI::getExtendedError());

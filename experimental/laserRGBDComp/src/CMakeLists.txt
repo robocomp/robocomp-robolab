@@ -8,9 +8,9 @@ SET ( SOURCES
   monitor.cpp
   commonbehaviorI.cpp
   worker.cpp
-  $ENV{ROBOCOMP}/Classes/extendedRangeSensor/extendedRangeSensor.cpp
-  $ENV{ROBOCOMP}/Classes/rapplication/rapplication.cpp
-  $ENV{ROBOCOMP}/Classes/qlog/qlog.cpp
+  $ENV{ROBOCOMP}/classes/extendedRangeSensor/extendedRangeSensor.cpp
+  $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
 )
 
 # Headers set
@@ -22,7 +22,7 @@ SET ( HEADERS
 )
 
 # RoboComp
-INCLUDE( $ENV{ROBOCOMP}/CMake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( CommonBehavior  Laser DifferentialRobot  JointMotor RGBD JointMotor RGBDBus )
 
@@ -33,11 +33,10 @@ link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib )
 add_definitions(${PCL_DEFINITIONS})
 
 # IPP
-INCLUDE( $ENV{ROBOCOMP}/CMake/ipp.cmake )
-
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/ipp.cmake )
 
 # OPENSG
-INCLUDE ($ENV{ROBOCOMP}/CMake/opensg.cmake )
+INCLUDE ($ENV{ROBOCOMP}/cmake/modules/opensg.cmake )
 
 # OpenMP
 ADD_DEFINITIONS( -fopenmp -msse2 -g )
@@ -57,7 +56,7 @@ QT4_WRAP_UI( UI_HEADERS guiDlg.ui )
 # Specify construction and link process
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 ADD_EXECUTABLE( laserrgbdComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( laserrgbdComp ${QT_LIBRARIES} ${LIBS} ${PCL_LIBRARIES}   ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} ${PCL_LIBRARIES} -lpcl_search ${PCL_USER_LIBRARIES} glut innermodel OpenThreads osgGA osgDB osgUtil osgText)
+TARGET_LINK_LIBRARIES( laserrgbdComp ${QT_LIBRARIES} ${LIBS} ${PCL_LIBRARIES}   ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} ${PCL_LIBRARIES} -lpcl_search ${PCL_USER_LIBRARIES} glut robocomp_innermodel OpenThreads osgGA osgDB osgUtil osgText)
 # TARGET_LINK_LIBRARIES( rcis         ${QT_LIBRARIES} ${LIBS} glut robocomp_innermodel OpenThreads osgGA osgDB osgUtil osgText librapid.a -L${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/laserrgbdComp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

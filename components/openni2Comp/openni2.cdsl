@@ -1,6 +1,6 @@
-import "/robocomp/Interfaces/IDSLs/InnerModelManager.idsl";
-import "/robocomp/Interfaces/IDSLs/HumanTracker.idsl";
-import "/robocomp/Interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/InnerModelManager.idsl";
+import "/robocomp/interfaces/IDSLs/HumanTracker.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
 
 Component openNI2Comp{
 	Communications{
@@ -8,8 +8,8 @@ Component openNI2Comp{
 			requires InnerModelManager;		 
 	};
 	RoboCompClasses{
-		"/Classes/rcdraw/rcdraw.h";
-		"/Classes/rcdraw/rcdraw.cpp";		
+		"/classes/rcdraw/rcdraw.h";
+		"/classes/rcdraw/rcdraw.cpp";		
 	};
 	RoboCompModules{
 		"nite2";

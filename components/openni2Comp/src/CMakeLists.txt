@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 PROJECT( openni2comp )
-IF(NOT EXISTS $ENV{ROBOCOMP}/CMake)
+IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 MESSAGE(FATAL_ERROR "
  ROBOCOMPROOT variable not set, check your bashrc profile!
 ")
-ENDIF(NOT EXISTS $ENV{ROBOCOMP}/CMake)
-INCLUDE( $ENV{ROBOCOMP}/CMake/robocomp.cmake )
+ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set
@@ -15,12 +15,12 @@ SET ( SOURCES
   rgbdI.cpp
 humantrackerI.cpp
 
-  $ENV{ROBOCOMP}/Classes/rcdraw/rcdraw.cpp
+  $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.cpp
   genericmonitor.cpp
   commonbehaviorI.cpp
   genericworker.cpp
-  $ENV{ROBOCOMP}/Classes/rapplication/rapplication.cpp
-  $ENV{ROBOCOMP}/Classes/qlog/qlog.cpp
+  $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
 )
 
 # Headers set
@@ -29,7 +29,7 @@ SET ( HEADERS
   rgbdI.h
 humantrackerI.h
 
-  $ENV{ROBOCOMP}/Classes/rcdraw/rcdraw.h
+  $ENV{ROBOCOMP}/classes/rcdraw/rcdraw.h
   genericmonitor.h
   commonbehaviorI.h
   genericworker.h
@@ -40,11 +40,11 @@ ROBOCOMP_WRAP_ICE( CommonBehavior  RGBD JointMotor DifferentialRobot HumanTracke
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # nite2
-INCLUDE ($ENV{ROBOCOMP}/CMake/nite2.cmake )
+INCLUDE ($ENV{ROBOCOMP}/cmake/modules/nite2.cmake )
 # openni2
-INCLUDE ($ENV{ROBOCOMP}/CMake/openni2.cmake )
+INCLUDE ($ENV{ROBOCOMP}/cmake/modules/openni2.cmake )
 # ipp
-INCLUDE ($ENV{ROBOCOMP}/CMake/ipp.cmake )
+INCLUDE ($ENV{ROBOCOMP}/cmake/modules/ipp.cmake )
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
 FIND_PACKAGE( Qt4 REQUIRED )

@@ -1,0 +1,66 @@
+# Esta es la configuración para los interfaces que va a ofrecer
+laserRGBComp.Endpoints=tcp -p 11176
+CommonBehavior.Endpoints=tcp -p 21476
+
+# proxies para el differential y para el jointmotor
+# el differential en realidad no recuerdo para qué se usa, pero creo que lo puse
+# para que (en el futuro) el láser vaya integrando las medidas
+DifferentialRobotProxy = differentialrobot:tcp -h gualzru3.local -p 10004
+
+
+# el joint se usa porque uno de los rgbd puede estar puesto en un joint (e.g., sobre
+# la cabeza) y para poner los puntos en el sistema de referencia adecuado tenemos
+# que saber las posiciones de los motores
+#JointMotorProxy = jointmotor:tcp -h localhost -p 10067
+
+
+# el innermodel lo usamos para conocer cual es la posición relativa de las cámaras respecto al
+# láser virtual que queremos simular
+# intentemos evitar poner /home/usuarioX y sigamos con lo de /home/robocomp
+InnerModelPath = /home/robocomp/robocomp/Components/Adapta/Files/gualzruMRGBD_real.xml
+
+# el número de cámaras que vamos a tener en el sistema
+RGBDNumber=3
+# esto hace referencia a un nodo del innermodel, donde colocaremos el láser virtual
+LaserBaseID = base
+# altura mínima de los obstáculos, para no considerar el suelo un obstáculo
+MinHeight = 400.
+# altura máxima de los obstáculos,  para no considerar el techo o las lámparas como obstáculos
+MaxHeight = 2000.
+# altura mínima para considerar los puntos obstáculos (para no caernos de unas las escaleras p’abajo)
+MinHeightNeg = -5000.
+# número de muestras del láser
+LaserSize = 200 #628
+# rángo mínimo del láser (distancia)
+MinRange = 300.
+# rango máximo del láser (distancia)
+MaxRange = 2000.
+# ángulo cubierto (no confundir con las medidas que caen en este ángulo, que se define en LaserSize)
+FOV = 3. #6.28318530718 
+#actualizar joint o no
+updateJoint=false
+
+
+RGBDProxy1 = rgbdbus:tcp -h robonuc.local -p 10229
+RGBDID1 = 1208240087
+
+RGBDProxy2 = rgbdbus:tcp -h robonuc.local -p 10229
+RGBDID2 = 1103010046
+
+RGBDProxy3 = rgbdbus:tcp -h gualzru3.local -p 10229
+RGBDID3 = 1105150157
+
+#RGBDProxy4 = rgbd:tcp -h localhost -p 10099
+#RGBDID4 = rgbdRB
+
+
+Ice.MessageSizeMax=20480
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+
+

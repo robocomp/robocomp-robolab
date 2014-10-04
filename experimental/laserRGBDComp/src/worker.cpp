@@ -21,7 +21,7 @@
 * \brief Default constructor
 */
 
-#define USE_EXTENSION
+// #define USE_EXTENSION
 #define EXTENSION_RANGE 6.283185307179586
 // #define EXTENSION_RANGE 3.1
 Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, WorkerConfig &cfg)  : QObject()
@@ -49,7 +49,7 @@ Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot
 	mutex = new QMutex();
 
 	innerModel = new InnerModel(cfg.xmlpath);
-	
+
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
 
 	/// Resize and initialization
@@ -88,7 +88,7 @@ Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot
 	confData.device = "rgbd";
 
 	compute();
-	timer.start(25);
+	timer.start(99);
 }
 
 /**
@@ -143,6 +143,7 @@ int32_t Worker::angle2bin(float ang)
 
 void Worker::compute()
 {
+	printf("--\n");
 	/// Clear laser measurement
 	for (int32_t i=0; i<LASER_SIZE; ++i)
 	{
@@ -161,7 +162,7 @@ void Worker::compute()
 	}
 
 	/// FOR EACH OF THE CONFIGURED PROXIES
-	#pragma omp parallel for
+// 	#pragma omp parallel for
 	for (uint r=0; r<rgbds.size(); ++r)
 	{
 #ifdef STORE_POINTCLOUDS_AND_EXIT
@@ -241,22 +242,24 @@ void Worker::compute()
 
 			uint32_t pw = 640;
 			uint32_t ph = 480;
-			if (points.size() == 320*240) { pw=320; ph=240; }
-			if (points.size() == 160*120) { pw=160; ph=120; }
-			for (uint32_t rr=0; rr<ph; rr+=13)
+			uint32_t step = 13;
+			if (points.size() == 320*240) { pw=320; ph=240; step=11; }
+			if (points.size() == 160*120) { pw=160; ph=120; step=5; }
+			if (points.size() == 80*60) { pw=80; ph=60; step=3; }
+			for (uint32_t rr=0; rr<ph; rr+=step)
 			{
-				for (uint32_t cc=rr%5; cc<pw; cc+=5)
+				for (uint32_t cc=rr%5; cc<pw; cc+=2)
 				{
 					uint32_t ioi = rr*pw+cc;
 					if (ioi<points.size())
 					{
-						QVec p = (TR * QVec::vec4(points[ioi].x, points[ioi].y, points[ioi].z, 1)).fromHomogeneousCoordinates();
+						const QVec p = (TR * QVec::vec4(points[ioi].x, points[ioi].y, points[ioi].z, 1)).fromHomogeneousCoordinates();
 #ifdef STORE_POINTCLOUDS_AND_EXIT
 						cloud->points[ioi].x =  p(0)/1000;
 						cloud->points[ioi].y =  p(1)/1000;
 						cloud->points[ioi].z = -p(2)/1000;
 #endif
-						if ( (p(1)>=minHeight and p(1)<=maxHeight) /*or (p(1)<minHeightNeg)*/ )
+						if ( (p(1)>=minHeight and p(1)<=maxHeight) or (p(1)<minHeightNeg) )
 						{
 // 							p(1) = 0;
 							float d = sqrt(p(0)*p(0) + p(2)*p(2));
@@ -299,7 +302,7 @@ void Worker::compute()
 // 	printf("S ------------   %d       %f\n", extended->size(), re);
 	extended->relax(re, innerModel, "laser", "world");
 #endif
-	
+
 // 	medianFilter();
 	laserDataW = t;
 }
@@ -314,7 +317,7 @@ void Worker::writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 	if (not cloud->empty()) writer.writeASCII(path, *cloud);
 }
 
-RoboCompLaser::TLaserData Worker::getLaserData() 
+RoboCompLaser::TLaserData Worker::getLaserData()
 {
 	QMutexLocker m(mutex);
 #ifdef USE_EXTENSION
@@ -324,7 +327,7 @@ RoboCompLaser::TLaserData Worker::getLaserData()
 #endif
 }
 
-RoboCompLaser::TLaserData Worker::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &baseState) 
+RoboCompLaser::TLaserData Worker::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &baseState)
 {
 	QMutexLocker m(mutex);
 	baseState = bStateOut;
@@ -336,7 +339,7 @@ RoboCompLaser::TLaserData Worker::getLaserAndBStateData(RoboCompDifferentialRobo
 }
 
 RoboCompLaser::LaserConfData Worker::getLaserConfData()
-{ 
+{
 	return confData;
 }
 

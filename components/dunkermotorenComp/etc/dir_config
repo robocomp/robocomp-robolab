@@ -1,0 +1,101 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+#dunkermotorenComp.Endpoints=tcp -p 10094
+dunkermotorenComp.Endpoints=tcp -p 10067
+
+#########SMAR_DRIVE################
+#~ dunkermotoren.NumMotors=4
+#~ dunkermotoren.Device = /dev/ttyUSB0
+#~ dunkermotoren.BaudRate = 125000
+#~ dunkermotoren.BasicPeriod = 100
+
+#########SMAR_DIR################
+dunkermotoren.NumMotors=4
+dunkermotoren.Device = /dev/ttyUSB1
+dunkermotoren.BaudRate = 125000
+dunkermotoren.BasicPeriod = 100
+
+
+
+#########ROBEX 2################
+#dunkermotoren.NumMotors=2
+#dunkermotoren.Device = /dev/ttyUSB0
+#dunkermotoren.BaudRate = 125000
+#dunkermotoren.BasicPeriod = 100
+
+#DunkerMotorens.Params = Name,BusId,InvertedSign,MinPos,MaxPos,ZeroPos,MaxVel
+
+#
+#name: 		Nombre del Motor
+#id:		Identificador del motor
+#invert:	Inbertir el sentido del movimiento
+#MinPos:	Valor de la mínima posicion del motor en radianes
+#MaxPos:	Valor de la máxima posición del motor en radianes
+#zero:		Posición 0 del motor en radianes
+#MaxVel:	Velocidad máxima del motor.
+#deg:		Grados máximo del motor.
+#steps:		Pasos totales del motor.
+#MaxPosErr:	Máximo error permitido en pasos.
+#AccV:		Velocidad de aceleración.
+#AccT:		Tiempo de aceleración.
+#DecV:		Velocidad de deceleración.
+#DecT:		Tiempo de deceleración.
+#########SMAR_DIR################
+#							name		id	invert	MinPos	MaxPos	zero	MaxVel		stepsToRad	ZeroPosRad	MaxPosErr	AccV	AccT	DecV	DecT	GearRev		MotorRev	PosCurLim	NegCurLim	CurPeak	CurContin	CurTime	EncodeRes
+dunkermotoren.Params_0 = 	dunkerdir0,	20,	true,	-1.571,	1.571,	0,		0.1,		159744,		0,			100,		1000,	300,	1000,	300,	72,			1,			15000,		15000,		15000,	15000,		5,		600
+dunkermotoren.Params_1 = 	dunkerdir1,	21,	true,	-1.571,	1.571,	0,		0.1,		159744,		0,			100,		1000,	300,	1000,	300,	72,			1,			15000,		15000,		15000,	15000,		5,		600
+dunkermotoren.Params_2 = 	dunkerdir2,	22,	true,	-1.571,	1.571,	0,		0.1,		159744,		0,			100,		1000,	300,	1000,	300,	72,			1,			15000,		15000,		15000,	15000,		5,		600
+dunkermotoren.Params_3 = 	dunkerdir3,	23,	true,	-1.571,	1.571,	0,		0.1,		159744,		0,			100,		1000,	300,	1000,	300,	72,			1,			15000,		15000,		15000,	15000,		5,		600
+
+#########SMAR_DRIVE################
+#				name		id		invert	MinPos	MaxPos	zero	MaxVel		stepsToRad	ZeroPosRad	MaxPosErr	AccV	AccT	DecV	DecT	GearRev		MotorRev	PosCurLim	NegCurLim	CurPeak	CurContin	CurTime	EncodeRes
+#dunkermotoren.Params_0 = 	dunkerdrv0,	10,	true,	-1.00,	1.00,	0,	0.1,		318.47,		0,		500,		1000,	300,	1000,	300,	72,		1,		15000,		15000,		15000,	15000,		5,	600
+#dunkermotoren.Params_1 = 	dunkerdrv1,	11,	false,	-1.00,	1.00,	0,	0.1,		318.47,		0,		500,		1000,	300,	1000,	300,	72,		1,		15000,		15000,		15000,	15000,		5,	600
+#dunkermotoren.Params_2 = 	dunkerdrv2,	12,	true,	-1.00,	1.00,	0,	0.1,		318.47,		0,		500,		1000,	300,	1000,	300,	72,		1,		15000,		15000,		15000,	15000,		5,	600
+#dunkermotoren.Params_3 = 	dunkerdrv3,	13,	false,	-1.00,	1.00,	0,	0.1,		318.47,		0,		500,		1000,	300,	1000,	300,	72,		1,		15000,		15000,		15000,	15000,		5,	600
+
+#########ROBEX 2################
+# stepRange		degreRange		
+#				name		id	invert	MinPos	MaxPos	ZeroRad	MaxVel		stepsToRad	ZeroPosRad	MaxPosErr	AccV	AccT	DecV	DecT	GearRev	MotorRev	PosCurLim	NegCurLim	CurPeak	CurContin	CurTime	EncodeRes
+#dunkermotoren.Params_0 = 	right,		10,	true,	-3.14,	3.14,	0,	100,		318.47,		0,		10000,		1000,	300,	1000,	300,	25,	703,		15000,		15000,		15000,	9000,		5	200
+#dunkermotoren.Params_1 = 	left,		11,	false,	-3.14,	3.14,	0,	100,		318.47,		0,		10000,		1000,	300,	1000,	300,	25,	703,		15000,		15000,		15000,	9000,		5	200
+
+# Remote servers proxies example
+
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+
+# User config parameters
+# Example = value
+
+# Component properties
+#
+#
+# Warn about connection exceptions
+#
+Ice.Warn.Connections=0
+
+#
+#
+# Network Tracing
+#
+# 0 = no network tracing
+# 1 = trace connection establishment and closure
+# 2 = like 1, but more detailed
+# 3 = like 2, but also trace data transfer
+#
+Ice.Trace.Network=0
+
+#
+# Protocol Tracing
+#
+# 0 = no protocol tracing
+# 1 = trace protocol messages
+#
+Ice.Trace.Protocol=0
+
+#
+# We want a faster ACM
+#
+Ice.ACM.Client=10
+Ice.ACM.Server=10

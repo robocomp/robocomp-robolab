@@ -20,7 +20,7 @@
 
 Worker::Worker(QObject *parent) : QThread(parent)
 {
- 	frequency = 100;
+ 	frequency = 50;
 	active = false;
 	handler = NULL;
 	w_mutex = new QMutex(QMutex::Recursive);
@@ -30,32 +30,22 @@ Worker::Worker(QObject *parent) : QThread(parent)
 
 Worker::~Worker()
 {
-	if(handler != NULL)
-		delete handler;
-	delete w_mutex;
-	delete monitor_mutex;
+	if (handler) delete handler;
+	if (w_mutex) delete w_mutex;
+	if (monitor_mutex) delete monitor_mutex;
 }
 
 void Worker::run( )
 {
 	std::cout << "dunkermotoren::run() Starting update loop." << std::endl;
-	forever
+	for (;;)
 	{
 		if (active)
 		{
-			//~ qDebug()<<"Worker::run";
 			handler->update();
-			this->usleep(busParams.basicPeriod*1000);
+			usleep(busParams.basicPeriod*1000);
 		}
-		//~ qDebug()<<"Worker::run2";
 	}
-	//qDebug() << "Waiting for condition";
-	//~ std::cout << "Worker.run() PARAMETERS_SET_WAIT_CONDITION->wait(mutex) 2" << std::endl;
-	//~ PARAMETERS_SET_WAIT_CONDITION->wait(mutex);
-	//~ std::cout << "Worker.run() PARAMETERS_SET_WAIT_CONDITION->wait(mutex) OK" << std::endl;
-
-	//qDebug() << "Setting Parameters ";
-
 }
 
 void Worker::setFrequency(int freq)
@@ -78,10 +68,9 @@ void Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 
 	qDebug() << "dunkermotorenComp::Worker::setParams()";
 
-	if(_params["dunkermotoren.Device"].value != busParams.device)
+	if (_params["dunkermotoren.Device"].value != busParams.device)
 	{
-		if(handler!= NULL)
-			delete handler;
+		if(handler!= NULL) delete handler;
 		busParams.device = _params["dunkermotoren.Device"].value;
 		busParams.handler = _params["dunkermotoren.Handler"].value;
 		busParams.numMotors = QString::fromStdString(_params["dunkermotoren.NumMotors"].value).toInt();
@@ -119,8 +108,7 @@ void Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 			dpar.velKp =  QString::fromStdString(_params["dunkermotoren.Params_" + s +".velKp"].value).toInt();
 			dpar.velKi =  QString::fromStdString(_params["dunkermotoren.Params_" + s +".velKi"].value).toInt();
 			dpar.velKd =  QString::fromStdString(_params["dunkermotoren.Params_" + s +".velKd"].value).toInt();
-			
-			
+
 			params.push_back(mpar);
 			dunkerParams[mpar.busId] = dpar;
 		}
@@ -137,7 +125,6 @@ void Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 			qDebug()<<"ERROR trying to initialize.";
 		}
 		this->start();
-		
 	}
 	active = true;
 }
@@ -147,43 +134,43 @@ void Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 /// Servant methods
 ///
 
-void Worker::setPosition( const RoboCompJointMotor::MotorGoalPosition & goalPosition )
+void Worker::setPosition(const RoboCompJointMotor::MotorGoalPosition & goalPosition)
 {
 	try
 	{
-		handler->setPosition( QString::fromStdString( goalPosition.name) , goalPosition.position, goalPosition.maxSpeed);
+		handler->setPosition(QString::fromStdString( goalPosition.name) , goalPosition.position, goalPosition.maxSpeed);
 	}
-	catch( const MotorHandlerErrorWritingToPortException &ex )
+	catch (const MotorHandlerErrorWritingToPortException &ex)
 	{
-	  qDebug()<<"ERROR setting position";
-	  RoboCompJointMotor::HardwareFailedException ex2;
-	  ex2.what = std::string("Exception: JointMotorComp::Worker::setPosition::") + ex.what();
+		qDebug()<<"ERROR setting position";
+		RoboCompJointMotor::HardwareFailedException ex2;
+		ex2.what = std::string("Exception: JointMotorComp::Worker::setPosition::HardwareFailedException ") + ex.what();
 	}
-	catch( const MotorHandlerUnknownMotorException &ex )
+	catch (const MotorHandlerUnknownMotorException &ex)
 	{
-	  qDebug()<<"ERROR setting position";
-	  RoboCompJointMotor::UnknownMotorException ex2;
-	  ex2.what = std::string("Exception: JointMotorComp::Worker::setPosition::") + ex.what();
+		qDebug()<<"ERROR setting position";
+		RoboCompJointMotor::UnknownMotorException ex2;
+		ex2.what = std::string("Exception: JointMotorComp::Worker::setPosition::UnknownMotorException ") + ex.what();
 	}
 }
 
-void Worker::setVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity )
+void Worker::setVelocity(const RoboCompJointMotor::MotorGoalVelocity & goalVelocity)
 {
 	try
 	{
-	  if( handler->setVelocity( QString::fromStdString( goalVelocity.name) , goalVelocity.velocity));
+	  handler->setVelocity(QString::fromStdString( goalVelocity.name) , goalVelocity.velocity);
 	}
 	catch( const MotorHandlerErrorWritingToPortException &ex )
 	{
 	  qDebug()<<"ERROR setting velocity";
 	  RoboCompJointMotor::HardwareFailedException ex2;
-	  ex2.what = std::string("Exception: JointMotorComp::Worker::setVelocity::") + ex.what();
+	  ex2.what = std::string("Exception: JointMotorComp::Worker::setVelocity::HardwareFailedException ") + ex.what();
 	}
 	catch( const MotorHandlerUnknownMotorException &ex )
 	{
       qDebug()<<"ERROR setting velocity";
 	  RoboCompJointMotor::UnknownMotorException ex2;
-	  ex2.what= std::string("Exception: JointMotorComp::Worker::setVelocity::") + ex.what();
+	  ex2.what= std::string("Exception: JointMotorComp::Worker::setVelocity::UnknownMotorException") + ex.what();
 	}
 }
 

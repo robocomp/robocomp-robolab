@@ -21,8 +21,7 @@
 JointMotorI::JointMotorI( Worker *_worker)
 {
 	worker = _worker;
-	mutex = worker->w_mutex;                   //share worker mutex
-	// Component initialization ...
+	mutex = worker->w_mutex;
 }
 
 
@@ -35,145 +34,71 @@ JointMotorI::~JointMotorI()
 
 void JointMotorI::setPosition( const MotorGoalPosition & goalPos, const Ice::Current&)
 {
-	try
-	{
-		worker->setPosition( goalPos );
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex;
-	}
-	catch( RoboCompJointMotor::HardwareFailedException & ex)
-	{
-		throw ex;
-	}
+	worker->setPosition( goalPos );
 }
 
 void JointMotorI::setSyncPosition( const MotorGoalPositionList & goalPosList, const Ice::Current &)        
 {
-	try
-	{
-		worker->setSyncPosition( goalPosList);
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex; 
-	}
+	worker->setSyncPosition( goalPosList);
 }
 
 void JointMotorI::setSyncVelocity(const MotorGoalVelocityList & goalVelList, const Ice::Current &)
 {
-	try
-	{
-		worker->setSyncVelocity( goalVelList);
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex; 
-	}
+	worker->setSyncVelocity( goalVelList);
 }
 
 void JointMotorI::setVelocity( const MotorGoalVelocity & goalVel, const Ice::Current&)
 {
-	try
-	{
-		worker->setReferenceVelocity(goalVel);
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex; 
-	}
+	worker->setReferenceVelocity(goalVel);
 }
-
-//~ void JointMotorI::setReferenceVelocity( const MotorGoalVelocity & goalVel, const Ice::Current&)
-//~ {
-	//~ try
-	//~ {
-		//~ worker->setReferenceVelocity( goalVel);
-	//~ }
-	//~ catch( RoboCompJointMotor::UnknownMotorException & ex)
-	//~ {
-		//~ throw ex; 
-	//~ }
-//~ }
 
 MotorParams JointMotorI::getMotorParams( const ::std::string& motor , const Ice::Current &)
 {
 	MotorParams mp;
-
-	try
-	{
-		worker->getMotorParams( QString::fromStdString( motor ) , mp);
-		return mp;
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex;
-	}
+	worker->getMotorParams(QString::fromStdString(motor), mp);
+	return mp;
 }
 
 BusParams JointMotorI::getBusParams( const Ice::Current & )
 {
-  return worker->getBusParams();
+	return worker->getBusParams();
 }
 
 MotorState JointMotorI::getMotorState( const ::std::string & motor , const Ice::Current &)
 {
 	MotorState state;
-	try
-	{
-		worker->getState( QString::fromStdString( motor ) , state);
-		return state;
-	}
-	catch( RoboCompJointMotor::UnknownMotorException & ex)
-	{
-		throw ex;
-	}
+	worker->getState(QString::fromStdString(motor), state);
+	return state;
 }
 
 MotorStateMap JointMotorI::getMotorStateMap( const MotorList &motorList, const ::Ice::Current&)
 {
 	MotorStateMap stateMap;
 	MotorState state;
-	foreach(std::string motor, motorList)
+	for (auto motor: motorList)
 	{
-		try
-		{
 			worker->getState( QString::fromStdString( motor ) , state);
 			stateMap[motor] = state ;
-		}
-		catch(RoboCompJointMotor::UnknownMotorException & ex)
-		{
-			throw ex;
-		}
 	}
 	return stateMap;
 }
 
 MotorParamsList JointMotorI::getAllMotorParams( const ::Ice::Current& )
 {
-	MotorParamsList list(0);
+	MotorParamsList list = worker->getAllMotorParams();
 
-	list = worker->getAllMotorParams();
-	if( list.empty() == false )
+	if (list.empty() == false)
 		return list;
 	else
-	{
-		RoboCompJointMotor::UnknownMotorException ex("JointMotor::getAllMotorParams - Empty List");
-		throw ex;
-	}
+		throw RoboCompJointMotor::UnknownMotorException("JointMotor::getAllMotorParams - Empty List");
 }
 
 void JointMotorI::getAllMotorState(MotorStateMap &mstateMap, const ::Ice::Current&)
 {
-  mstateMap = worker->getAllMotorState();
-  qDebug()<<mstateMap["dunkerdrv0"].p;
-  qDebug()<<mstateMap["dunkerdrv1"].p;
-  qDebug()<<mstateMap["dunkerdrv2"].p;
-  qDebug()<<mstateMap["dunkerdrv3"].p;
+	mstateMap = worker->getAllMotorState();
 }
 
-void JointMotorI::setZeroPos(const std::string& name, const Ice::Current&)
+void JointMotorI::setZeroPos(const std::string &name, const Ice::Current&)
 {
 	worker->setZeroPos(name);
 }
@@ -182,35 +107,38 @@ void JointMotorI::setSyncZeroPos(const Ice::Current&)
 {
 	worker->setSyncZeroPos();
 }
+
 void JointMotorI::stopAllMotors(const Ice::Current&)
 {
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
-}
-void JointMotorI::stopMotor(const ::std::string &motor, const Ice::Current& )
-{
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
-}
-void JointMotorI::releaseBrakeAllMotors(const Ice::Current& )
-{
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
-}
-void JointMotorI::releaseBrakeMotor(const ::std::string &motor, const Ice::Current& )
-{
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
-}
-void JointMotorI::enableBrakeAllMotors(const Ice::Current& )
-{
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
-}
-void JointMotorI::enableBrakeMotor(const ::std::string &motor, const Ice::Current& )
-{
-	RoboCompJointMotor::HardwareFailedException hfailed("Not implemented yet");
-	throw hfailed;	
+	throw RoboCompJointMotor::HardwareFailedException("Not implemented yet");
 }
 
-	
+void JointMotorI::stopMotor(const ::std::string &motor, const Ice::Current& )
+{
+	RoboCompJointMotor::MotorGoalVelocity goalVel;
+	goalVel.velocity = 0.;
+	goalVel.maxAcc = 10.;
+	goalVel.name = motor;
+	worker->setReferenceVelocity(goalVel);
+}
+
+void JointMotorI::releaseBrakeAllMotors(const Ice::Current& )
+{
+	throw RoboCompJointMotor::HardwareFailedException("Not implemented yet");
+}
+
+void JointMotorI::releaseBrakeMotor(const ::std::string &motor, const Ice::Current& )
+{
+	throw RoboCompJointMotor::HardwareFailedException("Not implemented yet");
+}
+
+void JointMotorI::enableBrakeAllMotors(const Ice::Current& )
+{
+	throw RoboCompJointMotor::HardwareFailedException("Not implemented yet");
+}
+
+void JointMotorI::enableBrakeMotor(const ::std::string &motor, const Ice::Current& )
+{
+	throw RoboCompJointMotor::HardwareFailedException("Not implemented yet");
+}
+

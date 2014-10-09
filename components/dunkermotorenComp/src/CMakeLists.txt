@@ -10,29 +10,30 @@ SET ( SOURCES
   dunkermotoren_api.cpp
   monitor.cpp
   servo.cpp
-  $ENV{ROBOCOMP}/Classes/qlog/qlog.cpp
-  $ENV{ROBOCOMP}/Classes/rapplication/rapplication.cpp
-  $ENV{ROBOCOMP}/Classes/q4serialport/q4serialport.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
+  $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
 )
 
 # Headers set
 SET ( HEADERS
   worker.h
   monitor.h
-  $ENV{ROBOCOMP}/Classes/q4serialport/q4serialport.h
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.h
 )
 
+
+ADD_DEFINITIONS( -std=c++11 )
+
 # RoboComp
-INCLUDE( $ENV{ROBOCOMP}/CMake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( JointMotor CommonBehavior )
 
 #~ # DUNKERMOTOREN
-INCLUDE( $ENV{ROBOCOMP}/CMake/dunker.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/dunker.cmake )
 IF (DUNKER_FOUND EQUAL 0)
-  MESSAGE(STATUS "\n\nDunker motor handle will NOT be built!\n\n")
-ELSE (DUNKER_FOUND EQUAL 0)
-  MESSAGE(STATUS "\n\nDunker motor handle WILL be built!\n\n")
+  error("\n\nDunker motor not found. You must set the DUNKERROOT environment vairable!\n\n")
 ENDIF (DUNKER_FOUND EQUAL 0)
 
 # Qt4

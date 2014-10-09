@@ -37,48 +37,49 @@
 
 class Worker : public QThread
 {
-  Q_OBJECT
-  public:
+Q_OBJECT
+public:
 	Worker(QObject *parent = 0);
 	~Worker();
-	QMutex *monitor_mutex; // Control access for monitor-related resources
-	QMutex *w_mutex;                //Shared mutex with servant
+	QMutex *monitor_mutex; // Control access to monitor-related resources
+	QMutex *w_mutex;       // Control access to Worker resources
 	RoboCompJointMotor::MotorParamsList params;
 	RoboCompJointMotor::BusParams busParams;
 	QHash<int,DunkerParams> dunkerParams;
 	QVector<QString> motor_names;
 
 
-	void setParams( );
+	// State
 	void getState(const QString & motor, RoboCompJointMotor::MotorState & state);
-	void setPosition( const RoboCompJointMotor::MotorGoalPosition & goalPosition);
-	void setVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity);
-	void setReferenceVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity);
-	void setSyncPosition( const RoboCompJointMotor::MotorGoalPositionList & goalPosList );
-	void setSyncVelocity( const RoboCompJointMotor::MotorGoalVelocityList & goalVelList);
-	//CommonBehavior
-	void setFrequency(int freq);
-	int getFrequency();
-	void setParams(RoboCompCommonBehavior::ParameterList _params);
 	RoboCompJointMotor::BusParams getBusParams();
 	void getMotorParams( const QString & motor, RoboCompJointMotor::MotorParams & mp);
 	RoboCompJointMotor::MotorParamsList getAllMotorParams();
 	RoboCompJointMotor::MotorStateMap getAllMotorState();
+
+	// Velocity
+	void setVelocity(const RoboCompJointMotor::MotorGoalVelocity & goalVelocity);
+	void setReferenceVelocity(const RoboCompJointMotor::MotorGoalVelocity & goalVelocity);
+	void setSyncVelocity(const RoboCompJointMotor::MotorGoalVelocityList & goalVelList);
+
+	// Position
+	void setPosition(const RoboCompJointMotor::MotorGoalPosition & goalPosition);
+	void setSyncPosition(const RoboCompJointMotor::MotorGoalPositionList & goalPosList);
 	void setZeroPos(const std::string &name);
 	void setSyncZeroPos();
 
+	// CommonBehavior
+	void setParams();
+	void setFrequency(int freq);
+	void setParams(RoboCompCommonBehavior::ParameterList _params);
+	int getFrequency();
 	void run();
 
-  private:
+private:
 	QTimer timer;
 
 	Dunkermotoren *handler;
 	bool active;
 	int frequency;
-	
-
-
-  public slots:
 
 };
 

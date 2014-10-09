@@ -19,14 +19,11 @@
 #ifndef JOINTMOTORI_H
 #define JOINTMOTORI_H
 
-// QT includes
 #include <QtCore>
 
-// ICE includes
 #include <Ice/Ice.h>
 #include <JointMotor.h>
 
-// User includes...
 #include "worker.h"
 
 using namespace RoboCompJointMotor;
@@ -34,36 +31,33 @@ using namespace RoboCompJointMotor;
 class JointMotorI : public virtual RoboCompJointMotor::JointMotor
 {
 public:
-	JointMotorI( Worker *_worker);
+	JointMotorI(Worker *_worker);
 	~JointMotorI();
 
 	QMutex *mutex;
 	
-    void setPosition( const MotorGoalPosition & goalPos, const Ice::Current& = ::Ice::Current());         // Send servo to position
-	void setVelocity( const MotorGoalVelocity & goalVel, const Ice::Current& = ::Ice::Current());         // Sets servo to given velocity
+	void setPosition(const MotorGoalPosition & goalPos, const Ice::Current& = ::Ice::Current());
+	void setVelocity(const MotorGoalVelocity & goalVel, const Ice::Current& = ::Ice::Current());
 	void setZeroPos(const std::string& name, const Ice::Current& = ::Ice::Current());
-    void setSyncZeroPos(const Ice::Current& = ::Ice::Current());
-	//~ void setReferenceVelocity( const MotorGoalVelocity & goalVel, const Ice::Current& = ::Ice::Current());         // Sets servo to given velocity
+	void setSyncZeroPos(const Ice::Current& = ::Ice::Current());
 	void setSyncPosition(const MotorGoalPositionList & goalPosList, const Ice::Current & = ::Ice::Current());    
 	void setSyncVelocity(const MotorGoalVelocityList & goalVelList, const Ice::Current & = ::Ice::Current());    
-    MotorParams getMotorParams( const ::std::string & motor , const Ice::Current& = ::Ice::Current());
-	BusParams getBusParams( const Ice::Current & = ::Ice::Current());
-    MotorState getMotorState( const ::std::string & motor , const Ice::Current& = ::Ice::Current());
-	MotorStateMap getMotorStateMap( const MotorList & motorList, const ::Ice::Current& = ::Ice::Current());
-	MotorParamsList getAllMotorParams( const ::Ice::Current& = ::Ice::Current());
-	void getAllMotorState( MotorStateMap & mstateMap, const ::Ice::Current& = ::Ice::Current());
-   
+	MotorParams getMotorParams( const ::std::string & motor , const Ice::Current& = ::Ice::Current());
+	BusParams getBusParams(const Ice::Current & = ::Ice::Current());
+	MotorState getMotorState(const ::std::string & motor , const Ice::Current& = ::Ice::Current());
+	MotorStateMap getMotorStateMap(const MotorList & motorList, const ::Ice::Current& = ::Ice::Current());
+	MotorParamsList getAllMotorParams(const ::Ice::Current& = ::Ice::Current());
+	void getAllMotorState(MotorStateMap & mstateMap, const ::Ice::Current& = ::Ice::Current());
+
 	void stopAllMotors(const Ice::Current& = ::Ice::Current());
 	void stopMotor(const ::std::string &motor, const Ice::Current& = ::Ice::Current());
 	void releaseBrakeAllMotors(const Ice::Current& = ::Ice::Current());
 	void releaseBrakeMotor(const ::std::string &motor, const Ice::Current& = ::Ice::Current());
 	void enableBrakeAllMotors(const Ice::Current& = ::Ice::Current());
 	void enableBrakeMotor(const ::std::string &motor, const Ice::Current& = ::Ice::Current());
-	
+
 private:
 	Worker *worker;
-	
-
 };
 
 #endif

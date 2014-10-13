@@ -161,6 +161,7 @@ void SpecificWorker::compute()
 		{
 			camera_proxy->getYImage(0,img, cState, bState);
 			memcpy(image_gray.data, &img[0], 640*480*sizeof(uchar));
+			searchTags(image_gray);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -177,10 +178,11 @@ void SpecificWorker::compute()
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], 640*480*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY); 
+			searchTags(image_gray);
 		}
 		catch(const Ice::Exception &e)
 		{
-			std::cout << "Error reading form RGBD" << e << std::endl;
+			std::cout << "Error reading form RGBD " << e << std::endl;
 		}
 	}
 	else if( INPUTIFACE == RGBDBus)
@@ -191,7 +193,7 @@ void SpecificWorker::compute()
 		qFatal("Input device not defined. Please specify one in the config file");
 
 	
-	
+	/*
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
 
 	// print out each detection
@@ -206,7 +208,7 @@ void SpecificWorker::compute()
 			detections[i].draw(image_gray);
 		}
 		//imshow("AprilTags", image_gray); // OpenCV call
-	}
+	}*/
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
@@ -218,6 +220,27 @@ void SpecificWorker::compute()
 	}
 }
 
+
+void SpecificWorker::searchTags(const cv::Mat &image_gray)
+{
+	
+	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
+
+	// print out each detection
+	cout << detections.size() << " tags detected:" << endl;
+
+	print_detection(detections);
+// 
+// 	if (m_draw) 
+// 	{
+// 		for (uint i=0; i<detections.size(); i++) 
+// 		{
+// 			detections[i].draw(image_gray);
+// 		}
+// 		//imshow("AprilTags", image_gray); // OpenCV call
+//	}
+
+}
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)
 {
 	detections2send.resize(detections.size());

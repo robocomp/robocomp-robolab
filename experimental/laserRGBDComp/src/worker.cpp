@@ -88,7 +88,7 @@ Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot
 	confData.device = "rgbd";
 
 	compute();
-	timer.start(99);
+	timer.start(200);
 }
 
 /**

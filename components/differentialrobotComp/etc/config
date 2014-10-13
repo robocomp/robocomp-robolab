@@ -17,8 +17,8 @@ DifferentialRobotComp.Endpoints=tcp -p 10004
 #DRobot.Handler= Player
 
 #Robex configuration
-#DRobot.Device=/dev/ttyUSB0
-#DRobot.Handler = Robex
+DRobot.Device=/dev/ttyUSB0
+DRobot.Handler = Robex
 
 DRobot.Logger = local
 DRobot.maxVelAdv = 300

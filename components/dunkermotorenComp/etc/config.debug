@@ -1,39 +1,24 @@
+# Debug config file
+
 #
 # This property is used to configure the endpoints of the subscriber adapter.
 #
-DifferentialRobotComp.Endpoints=tcp -p 10004
+dunkermotorenComp.Endpoints=tcp -p 10094
 
 # Remote servers proxies example
 
 #RemoteProxy = remote:tcp -h remotehost -p 10001
 
 # User config parameters
-#Gazebo configuration
-#DRobot.Device= robot::position_iface_0 
-#DRobot.Handler= Gazebo
-
-#Player configuracion
-#DRobot.Device= localhost:6665
-#DRobot.Handler= Player
-
-#Robex configuration
-DRobot.Device=/dev/ttyUSB0
-DRobot.Handler = Robex
-
-DRobot.Logger = local
-DRobot.maxVelAdv = 300
-DRobot.maxVelRot = 0.8
-
-#Pulguita usa Maxon
-#Speedy usa Faulhaber
-
+# Example = value
+# Debug = 1
 
 # Component properties
 #
 #
 # Warn about connection exceptions
 #
-Ice.Warn.Connections=0
+Ice.Warn.Connections=1
 
 #
 #
@@ -44,7 +29,7 @@ Ice.Warn.Connections=0
 # 2 = like 1, but more detailed
 # 3 = like 2, but also trace data transfer
 #
-Ice.Trace.Network=0
+Ice.Trace.Network=3
 
 #
 # Protocol Tracing
@@ -52,7 +37,7 @@ Ice.Trace.Network=0
 # 0 = no protocol tracing
 # 1 = trace protocol messages
 #
-Ice.Trace.Protocol=0
+Ice.Trace.Protocol=1
 
 #
 # We want a faster ACM

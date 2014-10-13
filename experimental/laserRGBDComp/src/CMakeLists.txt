@@ -21,6 +21,10 @@ SET ( HEADERS
   worker.h
 )
 
+
+ADD_DEFINITIONS( -std=c++11 )
+
+
 # RoboComp
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )

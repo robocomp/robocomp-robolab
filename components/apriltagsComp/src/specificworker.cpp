@@ -313,13 +313,16 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		mutex->unlock();
 	}
 		
-	try
+	if (detections2send.size() > 0)
 	{
-		apriltags->newAprilTag(detections2send);
-	}
-	catch(const Ice::Exception &ex)
-	{
-		std::cout << ex << std::endl;
+		try
+		{
+			apriltags->newAprilTag(detections2send);
+		}
+		catch(const Ice::Exception &ex)
+		{
+			std::cout << ex << std::endl;
+		}
 	}
 }
 

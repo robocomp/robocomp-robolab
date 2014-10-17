@@ -18,9 +18,9 @@
  */
 #include "servo.h"
 
-Servo::Servo( RoboCompJointMotor::MotorParams params )
+Servo::Servo( RoboCompJointMotor::MotorParams params_ )
 {
-  this->params = params;
+  params = params_;
   data.name = QString::fromStdString(params.name);
   data.busId = params.busId;
   data.targetVelocityRads = 0.f;
@@ -62,7 +62,7 @@ bool Servo::pendiente()
 
 float Servo::steps2Rads(int p)
 {
-	if (  params.invertedSign )
+	if (params.invertedSign)
 		 return ((float)(p-params.zeroPos)) * (RAW_RADIANS_RANGE/RAW_STEPS_RANGE);
 	else
 		return ((float)(p-params.zeroPos)) * (-RAW_RADIANS_RANGE/RAW_STEPS_RANGE);
@@ -71,16 +71,25 @@ float Servo::steps2Rads(int p)
 
 int Servo::rads2Steps(float r)
 {
-	if (  params.invertedSign)
+	if (params.invertedSign)
 		return( (int)rint((RAW_STEPS_RANGE / RAW_RADIANS_RANGE) * r + params.zeroPos)) ;
 	else 
 		return( (int)rint(-(RAW_STEPS_RANGE / RAW_RADIANS_RANGE) * r + params.zeroPos)) ;
+}
+
+int Servo::rads2StepsVel(float r)
+{
+	if (params.invertedSign)
+		return (int)rint((RAW_STEPS_RANGE / RAW_RADIANS_RANGE) * r);
+	else 
+		return (int)rint(-(RAW_STEPS_RANGE / RAW_RADIANS_RANGE) * r);
 }
 
  int Servo::radsPerSec2Steps(float rs)
  {
 	//Max speed
 	printf("Servo::radsPerSec2Steps: NOT IMPLEMENTED");
+	exit(-1);
 	return 1024;
 	// int res = (int)rint((RAW_SPEED_STEPS_RANGE / MAX_SPEED_RADS) * r );
 	// if (res > 1024) return 1024  ;

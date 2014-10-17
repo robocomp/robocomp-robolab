@@ -48,7 +48,6 @@ public:
 	QHash<int,DunkerParams> dunkerParams;
 	QVector<QString> motor_names;
 
-
 	// State
 	void getState(const QString & motor, RoboCompJointMotor::MotorState & state);
 	RoboCompJointMotor::BusParams getBusParams();

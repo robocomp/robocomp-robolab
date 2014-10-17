@@ -158,44 +158,42 @@ void Worker::setVelocity(const RoboCompJointMotor::MotorGoalVelocity & goalVeloc
 {
 	try
 	{
-	  handler->setVelocity(QString::fromStdString( goalVelocity.name) , goalVelocity.velocity);
+		printf("Worker::setVelocity() --> %f\n", goalVelocity.velocity);
+		handler->setVelocity(QString::fromStdString( goalVelocity.name) , goalVelocity.velocity);
 	}
 	catch( const MotorHandlerErrorWritingToPortException &ex )
 	{
-	  qDebug()<<"ERROR setting velocity";
-	  RoboCompJointMotor::HardwareFailedException ex2;
-	  ex2.what = std::string("Exception: JointMotorComp::Worker::setVelocity::HardwareFailedException ") + ex.what();
+		qDebug()<<"ERROR setting velocity";
+		RoboCompJointMotor::HardwareFailedException ex2;
+		ex2.what = std::string("Exception: JointMotorComp::Worker::setVelocity::HardwareFailedException ") + ex.what();
 	}
 	catch( const MotorHandlerUnknownMotorException &ex )
 	{
-      qDebug()<<"ERROR setting velocity";
-	  RoboCompJointMotor::UnknownMotorException ex2;
-	  ex2.what= std::string("Exception: JointMotorComp::Worker::setVelocity::UnknownMotorException") + ex.what();
+		qDebug()<<"ERROR setting velocity";
+		RoboCompJointMotor::UnknownMotorException ex2;
+		ex2.what= std::string("Exception: JointMotorComp::Worker::setVelocity::UnknownMotorException") + ex.what();
 	}
 }
 
+
 void Worker::setReferenceVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity )
 {
-	QString motorName = QString::fromStdString(goalVelocity.name);
-	w_mutex->lock();
-	if (handler->motors.contains(motorName))
+	try
 	{
-		Servo *servo = handler->motors[motorName];
-		printf("Worker::setReferenceVelocity() --> servo->rads2Steps( goalVelocity.velocity) = %d\n", servo->rads2Steps( goalVelocity.velocity));
-		if (handler->setReferenceVelocity( motorName , servo->rads2Steps(goalVelocity.velocity)) == false)
+		QMutexLocker lo(w_mutex);
+		const QString motorName = QString::fromStdString(goalVelocity.name);
+		const uint32_t rpms = goalVelocity.velocity * (60./(2.*M_PI)) * 72.;
+		if (handler->setReferenceVelocity(motorName, rpms) == false)
 		{
 			qDebug()<<"ERROR setting reference velocity.";
 			RoboCompJointMotor::HardwareFailedException ex(goalVelocity.name);
-			w_mutex->unlock();
 		}
 	}
-	else
+	catch(...)
 	{
-		qDebug()<<"ERROR setting reference velocity. Unknown motor: "<<motorName;
+		qDebug()<<"ERROR setting reference velocity. Unknown motor: "<<goalVelocity.name.c_str();
 		RoboCompJointMotor::UnknownMotorException ex(goalVelocity.name);
-		w_mutex->unlock();
 	}
-	w_mutex->unlock();
 }
 
 
@@ -236,10 +234,9 @@ void Worker::setSyncPosition( const RoboCompJointMotor::MotorGoalPositionList & 
 
 void Worker::setSyncVelocity( const RoboCompJointMotor::MotorGoalVelocityList & goalVelList)
 {
-	qDebug()<<"setSyncVelocity";
 	QVector<Dunkermotoren::GoalVelocity> VelocityList;
 	w_mutex->lock();
-	for(uint i=0; i< goalVelList.size() ; i++)
+	for (uint i=0; i< goalVelList.size() ; i++)
 	{
 		QString motorName = QString::fromStdString( goalVelList[i].name);
 		if ( handler->motors.contains( motorName )  == false )
@@ -258,7 +255,6 @@ void Worker::setSyncVelocity( const RoboCompJointMotor::MotorGoalVelocityList & 
 	}
 	try
 	{
-		qDebug()<<"setting setSyncReferenceVelocity";
 		handler->setSyncReferenceVelocity( VelocityList );
 	}
 	catch( QString &s)
@@ -307,7 +303,7 @@ RoboCompJointMotor::MotorParamsList Worker::getAllMotorParams( )
 
 RoboCompJointMotor::MotorStateMap Worker::getAllMotorState( )
 {
-	qDebug()<<"worker::getAllMotorState()";
+// 	qDebug()<<"worker::getAllMotorState()";
 	RoboCompJointMotor::MotorStateMap map;
 	RoboCompJointMotor::MotorState state;
 	w_mutex->lock();
@@ -317,10 +313,8 @@ RoboCompJointMotor::MotorStateMap Worker::getAllMotorState( )
 		state.pos = s->data.currentPosRads;
 		state.v = s->data.currentVelocityRads;
 		state.p = s->data.currentPos;
-		//~ qDebug()<<"worker::getAllMotorState()"<<QString::fromStdString(s->params.name)<<" "<<s->data.currentPos<<" "<<state.p;
 		state.isMoving = s->data.isMoving;
 		map[s->params.name] = state ;
-		qDebug()<<"worker::getAllMotorState()"<<QString::fromStdString(s->params.name)<<" "<<s->data.currentPos<<" "<<map[s->params.name].p;
 	}
 	w_mutex->unlock();
 	return map;
@@ -329,7 +323,7 @@ RoboCompJointMotor::MotorStateMap Worker::getAllMotorState( )
 void Worker::getState(const QString & motor, RoboCompJointMotor::MotorState & state)
 {
 	w_mutex->lock();
-	if ( handler->motors.contains( motor ) )
+	if (handler->motors.contains(motor))
 	{
 		state.pos = handler->motors[motor]->data.currentPosRads;
 		state.v = handler->motors[motor]->data.currentVelocityRads;
@@ -337,7 +331,7 @@ void Worker::getState(const QString & motor, RoboCompJointMotor::MotorState & st
 	}
 	else
 	{
-		qDebug()<<"ERROR trying to get state from unknown motor: "<<motor;
+		qDebug() << "ERROR trying to get state from unknown motor: " << motor;
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
 		w_mutex->unlock();
 		throw ex;
@@ -346,7 +340,7 @@ void Worker::getState(const QString & motor, RoboCompJointMotor::MotorState & st
 	w_mutex->unlock();
 }
 
-void Worker::setZeroPos(const std::string& name)
+void Worker::setZeroPos(const std::string &name)
 {
 	w_mutex->lock();
 	handler->setZeroPos(QString::fromStdString(name));
@@ -359,3 +353,5 @@ void Worker::setSyncZeroPos()
 	handler->setSyncZeroPos();
 	w_mutex->unlock();
 }
+
+

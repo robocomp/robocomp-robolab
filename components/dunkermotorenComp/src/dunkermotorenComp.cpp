@@ -57,18 +57,14 @@
  * ...
  *
  */
-// QT includes
 #include <QtCore>
 #include <QtGui>
 
-// ICE includes
 #include <Ice/Ice.h>
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
 
-// View the config.h file for config options like
-// QtGui, etc...
 #include "config.h"
 
 #include "worker.h"
@@ -76,24 +72,13 @@
 
 #include "jointmotorI.h"
 
-
-// Includes for remote proxy example
-// #include <Remote.h>
-
-
-// User includes here
-
-// Namespaces
 using namespace std;
 using namespace RoboCompJointMotor;
-
 
 
 class dunkermotorenComp : public RoboComp::Application
 {
 private:
-	// User private data here
-
 	void initialize();
 	int numMotors;
 	string paramsStr;

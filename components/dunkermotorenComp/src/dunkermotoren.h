@@ -17,8 +17,6 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if COMPILE_DUNKER==1
-
 #ifndef DUNKER_H
 #define DUNKER_H
 
@@ -46,7 +44,7 @@
 #define ALL_RESPONSE
 
 
-typedef struct
+struct DunkerParams
 {
 		int maxPosErr;
 		int accV;
@@ -65,44 +63,45 @@ typedef struct
 		int velKp;
 		int velKi;
 		int velKd;
-}DunkerParams;
+};
 
 class MotorHandlerUnknownMotorException: public std::exception
 {
-  public:
+public:
 	MotorHandlerUnknownMotorException()
 	{
-	  s = "Illegal Motor Number: "; 
-	}; 
+		s = "Illegal Motor Number: "; 
+	} 
 	MotorHandlerUnknownMotorException( const std::string &c)
 	{ 
-	  s = "Illegal Motor Number: " + c; 
+		s = "Illegal Motor Number: " + c; 
 	}
 	virtual ~MotorHandlerUnknownMotorException() throw(){};
 	void say(const std::string c)
 	{
-	  s+=c;
+		s += c;
 	}
-  private:
+private:
 	std::string s;
 };
+
 class MotorHandlerErrorWritingToPortException : public std::exception
 {
-  public:
+public:
 	MotorHandlerErrorWritingToPortException()
 	{
-	  s = "Error writing to port: "; 
+		s = "Error writing to port: "; 
 	}
 	MotorHandlerErrorWritingToPortException(const std::string &c)
 	{
-	  s = "Error writing to port: " + c; 
-	};
+		s = "Error writing to port: " + c; 
+	}
 	~MotorHandlerErrorWritingToPortException() throw(){};
 	void say(const std::string c)
 	{
-	  s+=c;
+		s+=c;
 	}
-  private:
+private:
 	std::string s;
 };
 
@@ -115,7 +114,7 @@ class Dunkermotoren
 typedef char* Packet;
 public:
     Dunkermotoren( RoboCompJointMotor::BusParams  *busParams, RoboCompJointMotor::MotorParamsList *params, QHash<int, DunkerParams> *dunkerParams, QMutex *m);
-    ~Dunkermotoren();
+    virtual ~Dunkermotoren();
 
 	struct GoalPosition
 	{
@@ -232,6 +231,5 @@ public:
 	
 };
 
-#endif
 #endif
 

@@ -79,6 +79,7 @@ class Servo
 	bool pendiente();
 	float steps2Rads(int p);
 	int rads2Steps(float r);
+	int rads2StepsVel(float r);
 	int radsPerSec2Steps(float rs);
 
 	RoboCompJointMotor::MotorParams params;

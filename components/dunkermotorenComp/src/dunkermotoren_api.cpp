@@ -1,5 +1,3 @@
-
-#if COMPILE_DUNKER==1
 #include "dunkermotoren_api.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -24,13 +22,13 @@ void Dunker_printMessageData(VSCAN_MSG msg)
     msg.Data[7] );
 }
 
-UINT8 Dunker_getCommandSpecifier(bool _write, bool _expedited, bool _sizeSpecified)
+uint8_t Dunker_getCommandSpecifier(bool _write, bool _expedited, bool _sizeSpecified)
 {
-	UINT8 commandSpecifier = 0x00;
-	UINT8 write = 0x20;
-	UINT8 read = 0x40;
-	UINT8 expedited = 0x02;
-	UINT8 sizeSpecified = 0x01;
+	uint8_t commandSpecifier = 0x00;
+	uint8_t write = 0x20;
+	uint8_t read = 0x40;
+	uint8_t expedited = 0x02;
+	uint8_t sizeSpecified = 0x01;
 	if(_write)
 		commandSpecifier|=write;
 	else
@@ -42,10 +40,10 @@ UINT8 Dunker_getCommandSpecifier(bool _write, bool _expedited, bool _sizeSpecifi
 	return commandSpecifier;
 }
 
-UINT8 Dunker_getDefaultReadCommandSpecifier(void)
+uint8_t Dunker_getDefaultReadCommandSpecifier(void)
 {
-	UINT8 commandSpecifier = 0x00;
-	UINT8 read = 0x40;
+	uint8_t commandSpecifier = 0x00;
+	uint8_t read = 0x40;
 	commandSpecifier|=read;
 	return commandSpecifier;
 }
@@ -60,19 +58,19 @@ int Dunker_getReadedData(VSCAN_MSG msg)
 	return result;
 }
 
-UINT8 Dunker_getDefaultWriteCommandSpecifier(void)
+uint8_t Dunker_getDefaultWriteCommandSpecifier(void)
 {
-	UINT8 commandSpecifier = 0x00;
-	UINT8 write = 0x20;
-	UINT8 expedited = 0x02;
-	UINT8 sizeSpecified = 0x01;
+	uint8_t commandSpecifier = 0x00;
+	uint8_t write = 0x20;
+	uint8_t expedited = 0x02;
+	uint8_t sizeSpecified = 0x01;
 	commandSpecifier|=write;
 	commandSpecifier|=expedited;
 	commandSpecifier|=sizeSpecified;
 	return commandSpecifier;
 }
 
-VSCAN_MSG Dunker_getMessageData(UINT8 nodeId, UINT8 CommandSpecifier, UINT16 obj_id, UINT8 obj_subid, UINT32 obj_data)
+VSCAN_MSG Dunker_getMessageData(uint8_t nodeId, uint8_t CommandSpecifier, uint16_t obj_id, uint8_t obj_subid, uint32_t obj_data)
 {
 	VSCAN_MSG msg;
 	msg.Flags = VSCAN_FLAGS_STANDARD;
@@ -157,7 +155,7 @@ int Dunker_multiWriteWaitReadMessage(VSCAN_HANDLE Handle, VSCAN_MSG* msgs, int m
 	int ok_readed=0;
 	DWORD   written;
 	char string[100];
-	UINT8 mcount;
+	uint8_t mcount;
 	int read_result=0;
 	//~ printf("------------------------------------\n");
 	
@@ -288,7 +286,7 @@ int Dunker_setBaudRate(VSCAN_HANDLE Handle, int baudRate)
 }
 
 
-int Dunker_disablePower(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_disablePower(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	//Disable power stage
 	VSCAN_MSG msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3004,0x00,0x00000000);
@@ -296,7 +294,7 @@ int Dunker_disablePower(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_enablePower(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_enablePower(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	//Enable power stage
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3004, 0x00, 0x00000001);
@@ -304,7 +302,7 @@ int Dunker_enablePower(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_openBreak(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_openBreak(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	//~if the motor has a brake, this command opens the brake (just in case)
 	VSCAN_MSG msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3150,0x00,0x00000001);
@@ -312,7 +310,7 @@ int Dunker_openBreak(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_clearError(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_clearError(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	//clear error (just in case)
 	VSCAN_MSG msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3000,0x00,0x00000001);
@@ -321,7 +319,7 @@ int Dunker_clearError(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_setOperationMode(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 mode)
+int Dunker_setOperationMode(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t mode)
 {
 	//set operation mode
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3003,0x00,mode);
@@ -331,7 +329,7 @@ int Dunker_setOperationMode(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 mode)
 	return status;
 }
 
-int Dunker_getOperationMode(VSCAN_HANDLE Handle, UINT8 NodeId, int* mode)
+int Dunker_getOperationMode(VSCAN_HANDLE Handle, uint8_t NodeId, int* mode)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3003, 0x00);
@@ -340,7 +338,7 @@ int Dunker_getOperationMode(VSCAN_HANDLE Handle, UINT8 NodeId, int* mode)
 	return status;
 }
 
-//~ int Dunker_setDinamicLimitations(VSCAN_HANDLE Handle, UINT8 NodeId)
+//~ int Dunker_setDinamicLimitations(VSCAN_HANDLE Handle, uint8_t NodeId)
 //~ {
 	//~ VSCAN_MSG msgs[7];
 	//~ //Current Dynamic limitation
@@ -364,7 +362,7 @@ int Dunker_getOperationMode(VSCAN_HANDLE Handle, UINT8 NodeId, int* mode)
 
 
 
-int Dunker_setPositiveCurrentLimit(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
+int Dunker_setPositiveCurrentLimit(VSCAN_HANDLE Handle, uint8_t NodeId, int limit)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3221, 0x00, limit);
@@ -373,7 +371,7 @@ int Dunker_setPositiveCurrentLimit(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
 }
 
 
-int Dunker_syncPositiveCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limit)
+int Dunker_syncPositiveCurrentLimit(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limit)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -385,7 +383,7 @@ int Dunker_syncPositiveCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* 
 	return status;
 }
 
-int Dunker_setNegativeCurrentLimit(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
+int Dunker_setNegativeCurrentLimit(VSCAN_HANDLE Handle, uint8_t NodeId, int limit)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3223,0x00, limit);
@@ -393,7 +391,7 @@ int Dunker_setNegativeCurrentLimit(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
 	return status;
 }
 
-int Dunker_syncNegativeCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limit)
+int Dunker_syncNegativeCurrentLimit(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limit)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -406,7 +404,7 @@ int Dunker_syncNegativeCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* 
 }
 
 
-int Dunker_setDynCurrentLimitOff(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_setDynCurrentLimitOff(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3224, 0x00, 0x00000000);
@@ -414,7 +412,7 @@ int Dunker_setDynCurrentLimitOff(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_syncDynCurrentLimitOff(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncDynCurrentLimitOff(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -426,7 +424,7 @@ int Dunker_syncDynCurrentLimitOff(VSCAN_HANDLE Handle, int node_count, UINT8* No
 	return status;
 }
 
-int Dunker_setDynCurrentLimitOn(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_setDynCurrentLimitOn(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3224, 0x00, 0x00000001);
@@ -434,7 +432,7 @@ int Dunker_setDynCurrentLimitOn(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_syncDynCurrentLimitOn(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncDynCurrentLimitOn(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -447,7 +445,7 @@ int Dunker_syncDynCurrentLimitOn(VSCAN_HANDLE Handle, int node_count, UINT8* Nod
 }
 
 
-int Dunker_setDynCurrentLimitPeak(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
+int Dunker_setDynCurrentLimitPeak(VSCAN_HANDLE Handle, uint8_t NodeId, int limit)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3224, 0x01, limit);
@@ -455,7 +453,7 @@ int Dunker_setDynCurrentLimitPeak(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
 	return status;
 }
 
-int Dunker_syncDynCurrentLimitPeak(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limit)
+int Dunker_syncDynCurrentLimitPeak(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limit)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -468,7 +466,7 @@ int Dunker_syncDynCurrentLimitPeak(VSCAN_HANDLE Handle, int node_count, UINT8* N
 }
 
 
-int Dunker_setDynCurrentLimitContinous(VSCAN_HANDLE Handle, UINT8 NodeId, int limit)
+int Dunker_setDynCurrentLimitContinous(VSCAN_HANDLE Handle, uint8_t NodeId, int limit)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3224, 0x02, limit);
@@ -476,7 +474,7 @@ int Dunker_setDynCurrentLimitContinous(VSCAN_HANDLE Handle, UINT8 NodeId, int li
 	return status;
 }
 
-int Dunker_syncDynCurrentLimitContinous(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limit)
+int Dunker_syncDynCurrentLimitContinous(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limit)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -489,7 +487,7 @@ int Dunker_syncDynCurrentLimitContinous(VSCAN_HANDLE Handle, int node_count, UIN
 }
 
 
-int Dunker_setDynCurrentLimitTime(VSCAN_HANDLE Handle, UINT8 NodeId, int time)
+int Dunker_setDynCurrentLimitTime(VSCAN_HANDLE Handle, uint8_t NodeId, int time)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3224, 0x03, time);
@@ -497,7 +495,7 @@ int Dunker_setDynCurrentLimitTime(VSCAN_HANDLE Handle, UINT8 NodeId, int time)
 	return status;
 }
 
-int Dunker_syncDynCurrentLimitTime(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* time)
+int Dunker_syncDynCurrentLimitTime(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* time)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -509,7 +507,7 @@ int Dunker_syncDynCurrentLimitTime(VSCAN_HANDLE Handle, int node_count, UINT8* N
 	return status;
 }
 
-int Dunker_syncSetEncoderRes(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* resol)
+int Dunker_syncSetEncoderRes(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* resol)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -522,7 +520,7 @@ int Dunker_syncSetEncoderRes(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds
 }
 
 
-int Dunker_configureErrorsAndFeedback(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_configureErrorsAndFeedback(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	printf("dunkermotoren_api::configureErrorsAndFeedback()\n");
 	VSCAN_MSG msgs[11];
@@ -562,7 +560,7 @@ int Dunker_configureErrorsAndFeedback(VSCAN_HANDLE Handle, UINT8 NodeId)
 
 
 //set the maximum deviation between command and actual position
-int Dunker_setMaxPosFollowingError(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 max_err)
+int Dunker_setMaxPosFollowingError(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t max_err)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3732, 0x00, max_err);
@@ -572,7 +570,7 @@ int Dunker_setMaxPosFollowingError(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 max
 
 
 
-int Dunker_setActualPosition(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 pos)
+int Dunker_setActualPosition(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t pos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3762, 0x00, pos);
@@ -580,14 +578,14 @@ int Dunker_setActualPosition(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 pos)
 	return status;
 }
 
-int Dunker_clearActualPosition(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_clearActualPosition(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	int status = Dunker_setActualPosition(Handle, NodeId, 0);
 	printf("dunkermotoren_api::clearActualPosition()\n");
 	return status;
 }
 
-int Dunker_resetModule(VSCAN_HANDLE Handle, UINT8 NodeId)
+int Dunker_resetModule(VSCAN_HANDLE Handle, uint8_t NodeId)
 {
 	int status=0;
 	//~ status = Dunker_setDinamicLimitations(Handle, NodeId);
@@ -603,7 +601,7 @@ int Dunker_resetModule(VSCAN_HANDLE Handle, UINT8 NodeId)
 	return status;
 }
 
-int Dunker_syncResetModule(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncResetModule(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	int count;
 	int status=0;
@@ -636,7 +634,7 @@ int Dunker_syncResetModule(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
 	return status;
 }
 
-int Dunker_moveToAbsolutePosition(VSCAN_HANDLE Handle, UINT8 NodeId, int pos)
+int Dunker_moveToAbsolutePosition(VSCAN_HANDLE Handle, uint8_t NodeId, int pos)
 {
 	VSCAN_MSG msg;
 	printf("dunkermotoren_api::moveToAbsolutePosition(): Handle %d, node %#x to pos %d:\n",Handle, NodeId, pos);
@@ -646,7 +644,7 @@ int Dunker_moveToAbsolutePosition(VSCAN_HANDLE Handle, UINT8 NodeId, int pos)
 	return status;
 }
 
-int Dunker_moveToRelativePosition(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 pos)
+int Dunker_moveToRelativePosition(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t pos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3791, 0x00, pos);
@@ -654,7 +652,7 @@ int Dunker_moveToRelativePosition(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 pos)
 	return status;
 }
 
-int Dunker_setAcceleration(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 deltaV, UINT32 deltaT)
+int Dunker_setAcceleration(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t deltaV, uint32_t deltaT)
 {
 	VSCAN_MSG msgs[2];
 	msgs[0] = Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3340, 0x00, deltaV);
@@ -663,7 +661,7 @@ int Dunker_setAcceleration(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 deltaV, UIN
 	return status;
 }
  
-int Dunker_setDecceleration(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 deltaV, UINT32 deltaT)
+int Dunker_setDecceleration(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t deltaV, uint32_t deltaT)
 {
 	VSCAN_MSG msgs[2];
 	msgs[0] = Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3342, 0x00, deltaV);
@@ -672,7 +670,7 @@ int Dunker_setDecceleration(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 deltaV, UI
 	return status;
 }
 
-int Dunker_getAcceleration(VSCAN_HANDLE Handle, UINT8 NodeId, int* deltaV, int* deltaT)
+int Dunker_getAcceleration(VSCAN_HANDLE Handle, uint8_t NodeId, int* deltaV, int* deltaT)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3340, 0x00);
@@ -684,7 +682,7 @@ int Dunker_getAcceleration(VSCAN_HANDLE Handle, UINT8 NodeId, int* deltaV, int* 
 	return status;
 }
  
-int Dunker_getDecceleration(VSCAN_HANDLE Handle, UINT8 NodeId, int* deltaV, int* deltaT)
+int Dunker_getDecceleration(VSCAN_HANDLE Handle, uint8_t NodeId, int* deltaV, int* deltaT)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3342, 0x00);
@@ -697,7 +695,7 @@ int Dunker_getDecceleration(VSCAN_HANDLE Handle, UINT8 NodeId, int* deltaV, int*
 }
 
 
-int Dunker_getPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
+int Dunker_getPos(VSCAN_HANDLE Handle, uint8_t NodeId, int* pos)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3762, 0x00);
@@ -706,7 +704,7 @@ int Dunker_getPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
 	return status;
 }
 
-int Dunker_getActualCurrent(VSCAN_HANDLE Handle, UINT8 NodeId, int* curr)
+int Dunker_getActualCurrent(VSCAN_HANDLE Handle, uint8_t NodeId, int* curr)
 {
 	//actual current
 	VSCAN_MSG msg;
@@ -716,7 +714,7 @@ int Dunker_getActualCurrent(VSCAN_HANDLE Handle, UINT8 NodeId, int* curr)
 	return status;
 }
 
-int Dunker_getVel(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
+int Dunker_getVel(VSCAN_HANDLE Handle, uint8_t NodeId, int* vel)
 {
 	//actual Velocity
 	VSCAN_MSG msg;
@@ -726,16 +724,18 @@ int Dunker_getVel(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
 	return status;
 }
 
-int Dunker_setVel(VSCAN_HANDLE Handle, UINT8 NodeId, int velocity)
+int Dunker_setVel(VSCAN_HANDLE Handle, uint8_t NodeId, int velocity)
 {
 	//set desired velocity "rpm"
+// 	const int32_t vel = 30;
+// 	printf("vel %d\n", velocity);
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3300, 0x00, velocity);
 	int status = Dunker_writeWaitReadMessage(Handle, &msg);
 	return status;
 }
 
 //Decimas de grado
-int Dunker_getMotorTemperature(VSCAN_HANDLE Handle, UINT8 NodeId, int* temp)
+int Dunker_getMotorTemperature(VSCAN_HANDLE Handle, uint8_t NodeId, int* temp)
 {
 	//actual Velocity
 	VSCAN_MSG msg;
@@ -747,7 +747,7 @@ int Dunker_getMotorTemperature(VSCAN_HANDLE Handle, UINT8 NodeId, int* temp)
 }
 
 //Decimas de grado
-int Dunker_getPowerStageTemperature(VSCAN_HANDLE Handle, UINT8 NodeId, int* stemp)
+int Dunker_getPowerStageTemperature(VSCAN_HANDLE Handle, uint8_t NodeId, int* stemp)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3114, 0x00);
@@ -756,7 +756,7 @@ int Dunker_getPowerStageTemperature(VSCAN_HANDLE Handle, UINT8 NodeId, int* stem
 	return status;
 }
 
-int Dunker_changeNodeId(VSCAN_HANDLE Handle, UINT8 NodeId, UINT8 newNodeId)
+int Dunker_changeNodeId(VSCAN_HANDLE Handle, uint8_t NodeId, uint8_t newNodeId)
 {
 	VSCAN_MSG msgs[2];
 	msgs[0] = Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x2000, 0x01, 0x6E657277);
@@ -766,7 +766,7 @@ int Dunker_changeNodeId(VSCAN_HANDLE Handle, UINT8 NodeId, UINT8 newNodeId)
 	return status;
 }
 
-int Dunker_setMaxPos(VSCAN_HANDLE Handle, UINT8 NodeId, int maxPos)
+int Dunker_setMaxPos(VSCAN_HANDLE Handle, uint8_t NodeId, int maxPos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3720, 0x01, maxPos);
@@ -774,7 +774,7 @@ int Dunker_setMaxPos(VSCAN_HANDLE Handle, UINT8 NodeId, int maxPos)
 	return status;
 }
 
-int Dunker_syncSetMaxPos(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* maxPos)
+int Dunker_syncSetMaxPos(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* maxPos)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -786,7 +786,7 @@ int Dunker_syncSetMaxPos(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_getMaxPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
+int Dunker_getMaxPos(VSCAN_HANDLE Handle, uint8_t NodeId, int* pos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3720, 0x01);
@@ -795,7 +795,7 @@ int Dunker_getMaxPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
 	return status;
 }
 
-int Dunker_setMinPos(VSCAN_HANDLE Handle, UINT8 NodeId, int minPos)
+int Dunker_setMinPos(VSCAN_HANDLE Handle, uint8_t NodeId, int minPos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3720, 0x00, minPos);
@@ -803,7 +803,7 @@ int Dunker_setMinPos(VSCAN_HANDLE Handle, UINT8 NodeId, int minPos)
 	return status;
 }
 
-int Dunker_syncSetMinPos(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* minPos)
+int Dunker_syncSetMinPos(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* minPos)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -815,7 +815,7 @@ int Dunker_syncSetMinPos(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_getMinPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
+int Dunker_getMinPos(VSCAN_HANDLE Handle, uint8_t NodeId, int* pos)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3720, 0x00);
@@ -826,7 +826,7 @@ int Dunker_getMinPos(VSCAN_HANDLE Handle, UINT8 NodeId, int* pos)
 
 //-------------------
 
-int Dunker_setMaxVelPositive(VSCAN_HANDLE Handle, UINT8 NodeId, int vel)
+int Dunker_setMaxVelPositive(VSCAN_HANDLE Handle, uint8_t NodeId, int vel)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3321, 0x00, vel);
@@ -834,7 +834,7 @@ int Dunker_setMaxVelPositive(VSCAN_HANDLE Handle, UINT8 NodeId, int vel)
 	return status;
 }
 
-int Dunker_syncSetMaxVelPositive(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* vels)
+int Dunker_syncSetMaxVelPositive(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* vels)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -846,7 +846,7 @@ int Dunker_syncSetMaxVelPositive(VSCAN_HANDLE Handle, int node_count, UINT8* Nod
 	return status;
 }
 
-int Dunker_getMaxVelPositive(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
+int Dunker_getMaxVelPositive(VSCAN_HANDLE Handle, uint8_t NodeId, int* vel)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3321, 0x00);
@@ -855,7 +855,7 @@ int Dunker_getMaxVelPositive(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
 	return status;
 }
 
-int Dunker_setMaxVelNegative(VSCAN_HANDLE Handle, UINT8 NodeId, int vel)
+int Dunker_setMaxVelNegative(VSCAN_HANDLE Handle, uint8_t NodeId, int vel)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultWriteCommandSpecifier(), 0x3323, 0x00, vel);
@@ -863,7 +863,7 @@ int Dunker_setMaxVelNegative(VSCAN_HANDLE Handle, UINT8 NodeId, int vel)
 	return status;
 }
 
-int Dunker_syncSetMaxVelNegative(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* vels)
+int Dunker_syncSetMaxVelNegative(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* vels)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -875,7 +875,7 @@ int Dunker_syncSetMaxVelNegative(VSCAN_HANDLE Handle, int node_count, UINT8* Nod
 	return status;
 }
 
-int Dunker_getMaxVelNegative(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
+int Dunker_getMaxVelNegative(VSCAN_HANDLE Handle, uint8_t NodeId, int* vel)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3323, 0x00);
@@ -884,7 +884,7 @@ int Dunker_getMaxVelNegative(VSCAN_HANDLE Handle, UINT8 NodeId, int* vel)
 	return status;
 }
 
-int Dunker_getMaxMotorVoltage(VSCAN_HANDLE Handle, UINT8 NodeId, int* vol)
+int Dunker_getMaxMotorVoltage(VSCAN_HANDLE Handle, uint8_t NodeId, int* vol)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3031, 0x00);
@@ -893,7 +893,7 @@ int Dunker_getMaxMotorVoltage(VSCAN_HANDLE Handle, UINT8 NodeId, int* vol)
 	return status;
 }
 
-int Dunker_getPower(VSCAN_HANDLE Handle, UINT8 NodeId, int* pow)
+int Dunker_getPower(VSCAN_HANDLE Handle, uint8_t NodeId, int* pow)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3111, 0x00);
@@ -902,7 +902,7 @@ int Dunker_getPower(VSCAN_HANDLE Handle, UINT8 NodeId, int* pow)
 	return status;
 }
 
-int Dunker_syncMoveToAbsolutePosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* pos)
+int Dunker_syncMoveToAbsolutePosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* pos)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -914,7 +914,7 @@ int Dunker_syncMoveToAbsolutePosition(VSCAN_HANDLE Handle, int node_count, UINT8
 	return status;
 }
 
-int Dunker_syncMoveToRelativePosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* pos)
+int Dunker_syncMoveToRelativePosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* pos)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -926,7 +926,7 @@ int Dunker_syncMoveToRelativePosition(VSCAN_HANDLE Handle, int node_count, UINT8
 	return status;
 }
 
-int Dunker_syncDisablePower(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncDisablePower(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -938,7 +938,7 @@ int Dunker_syncDisablePower(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
 	return status;
 }
 
-int Dunker_syncEnablePower(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncEnablePower(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -950,7 +950,7 @@ int Dunker_syncEnablePower(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
 	return status;
 }
 
-int Dunker_syncOpenBreak(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncOpenBreak(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -962,7 +962,7 @@ int Dunker_syncOpenBreak(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
 	return status;
 }
 
-int Dunker_syncClearError(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncClearError(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	printf("dunkermotoren_api::syncClearError()\n");
 	VSCAN_MSG msgs[2*node_count];
@@ -982,7 +982,7 @@ int Dunker_syncClearError(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
 	return status;
 }
 
-int Dunker_syncSetOperationMode(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, UINT32 mode)
+int Dunker_syncSetOperationMode(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, uint32_t mode)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -994,7 +994,7 @@ int Dunker_syncSetOperationMode(VSCAN_HANDLE Handle, int node_count, UINT8* Node
 	return status;
 }
 
-int Dunker_syncSetVel(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* velocity)
+int Dunker_syncSetVel(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* velocity)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1006,12 +1006,12 @@ int Dunker_syncSetVel(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* 
 	return status;
 }
 
-//~ int Dunker_getVel(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* vel)
+//~ int Dunker_getVel(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* vel)
 //~ {
 	//~ 
 //~ }
 
-//~ int Dunker_syncSetDinamicLimitations(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+//~ int Dunker_syncSetDinamicLimitations(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 //~ {
 	//~ VSCAN_MSG msgs[7*node_count];
 	//~ int count;
@@ -1037,7 +1037,7 @@ int Dunker_syncSetVel(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* 
 	//~ return status;
 //~ }
 
-int Dunker_syncSetCurrentLimitPos(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limits)
+int Dunker_syncSetCurrentLimitPos(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limits)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1049,7 +1049,7 @@ int Dunker_syncSetCurrentLimitPos(VSCAN_HANDLE Handle, int node_count, UINT8* No
 	return status;
 }
 
-int Dunker_syncSetCurrentLimitNeg(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limits)
+int Dunker_syncSetCurrentLimitNeg(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limits)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1062,7 +1062,7 @@ int Dunker_syncSetCurrentLimitNeg(VSCAN_HANDLE Handle, int node_count, UINT8* No
 }
 
 //POSITIVE AND NEGATIVE
-int Dunker_syncSetCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* limits)
+int Dunker_syncSetCurrentLimit(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* limits)
 {
 	printf("dunkermotoren_api::syncSetCurrentLimit(): \n");
 	VSCAN_MSG msgs[2*node_count];
@@ -1080,7 +1080,7 @@ int Dunker_syncSetCurrentLimit(VSCAN_HANDLE Handle, int node_count, UINT8* NodeI
 }
 
 
-int Dunker_syncConfigureErrorsAndFeedback(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncConfigureErrorsAndFeedback(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	printf("dunkermotoren_api::syncConfigureErrorsAndFeedback():%d\n", node_count);
 	VSCAN_MSG msgs[11*node_count];
@@ -1124,7 +1124,7 @@ int Dunker_syncConfigureErrorsAndFeedback(VSCAN_HANDLE Handle, int node_count, U
 }
 
 //set the maximum deviation between command and actual position
-int Dunker_syncSetMaxPosFollowingError(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, UINT32 max_err)
+int Dunker_syncSetMaxPosFollowingError(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, uint32_t max_err)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1136,7 +1136,7 @@ int Dunker_syncSetMaxPosFollowingError(VSCAN_HANDLE Handle, int node_count, UINT
 	return status;
 }
 
-int Dunker_syncSetActualPosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, UINT32* pos)
+int Dunker_syncSetActualPosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, uint32_t* pos)
 {
 	printf("dunkermotoren_api::syncSetActualPosition()\n");
 	VSCAN_MSG msgs[node_count];
@@ -1151,10 +1151,10 @@ int Dunker_syncSetActualPosition(VSCAN_HANDLE Handle, int node_count, UINT8* Nod
 }
 
 
-int Dunker_syncClearActualPosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds)
+int Dunker_syncClearActualPosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds)
 {
 	printf("dunkermotoren_api::syncClearActualPosition()\n");
-	UINT32 poss[node_count];
+	uint32_t poss[node_count];
 	int count;
 	for(count=0;count<node_count;count++)
 	{
@@ -1164,7 +1164,8 @@ int Dunker_syncClearActualPosition(VSCAN_HANDLE Handle, int node_count, UINT8* N
 	return status;
 }
 
-int Dunker_syncSetAcceleration(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* deltaV, int* deltaT)
+
+int Dunker_syncSetAcceleration(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* deltaV, int* deltaT)
 {
 	VSCAN_MSG msgs[node_count*2];
 	int count;
@@ -1180,7 +1181,7 @@ int Dunker_syncSetAcceleration(VSCAN_HANDLE Handle, int node_count, UINT8* NodeI
 	return status;
 }
  
-int Dunker_syncSetDecceleration(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* deltaV, int* deltaT)
+int Dunker_syncSetDecceleration(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* deltaV, int* deltaT)
 {
 	VSCAN_MSG msgs[node_count*2];
 	int count;
@@ -1197,7 +1198,7 @@ int Dunker_syncSetDecceleration(VSCAN_HANDLE Handle, int node_count, UINT8* Node
 }
 
 
-int Dunker_getStatusWord(VSCAN_HANDLE Handle, UINT8 NodeId, int* status_word)
+int Dunker_getStatusWord(VSCAN_HANDLE Handle, uint8_t NodeId, int* status_word)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3002, 0x00);
@@ -1213,7 +1214,7 @@ int Dunker_getStatusWord(VSCAN_HANDLE Handle, UINT8 NodeId, int* status_word)
 	return status;
 }
 
-int Dunker_syncGetStatusWord(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* status_words)
+int Dunker_syncGetStatusWord(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* status_words)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1229,7 +1230,7 @@ int Dunker_syncGetStatusWord(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds
 	return status;
 }
 
-int Dunker_getErrorRegister(VSCAN_HANDLE Handle, UINT8 NodeId, int* error_register)
+int Dunker_getErrorRegister(VSCAN_HANDLE Handle, uint8_t NodeId, int* error_register)
 {
 	VSCAN_MSG msg;
 	msg = Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3001, 0x00);
@@ -1241,41 +1242,42 @@ int Dunker_getErrorRegister(VSCAN_HANDLE Handle, UINT8 NodeId, int* error_regist
 	return status;
 }
 
-#define BIT0 (UINT32)1
-#define BIT1 (UINT32)2
-#define BIT2 (UINT32)4
-#define BIT3 (UINT32)8
-#define BIT4 (UINT32)16
-#define BIT5 (UINT32)32
-#define BIT6 (UINT32)64
-#define BIT7 (UINT32)128
-#define BIT8 (UINT32)256
-#define BIT9 (UINT32)512
-#define BIT10 (UINT32)1024
-#define BIT11 (UINT32)2048
-#define BIT12 (UINT32)4096
-#define BIT13 (UINT32)8192
-#define BIT14 (UINT32)16384
-#define BIT15 (UINT32)32768
-#define BIT16 (UINT32)65536
-#define BIT17 (UINT32)131072
-#define BIT18 (UINT32)262144
-#define BIT19 (UINT32)524288
-#define BIT20 (UINT32)1048576
-#define BIT21 (UINT32)2097152
-#define BIT22 (UINT32)4194304
-#define BIT23 (UINT32)8388608
-#define BIT24 (UINT32)16777216
-#define BIT25 (UINT32)33554432
-#define BIT26 (UINT32)67108864
-#define BIT27 (UINT32)134217728
-#define BIT28 (UINT32)268435456
-#define BIT29 (UINT32)536870912
-#define BIT30 (UINT32)1073741824
-#define BIT31 (UINT32)2147483648
+
+#define BIT0 ((uint32_t)1)
+#define BIT1 ((uint32_t)2)
+#define BIT2 ((uint32_t)4)
+#define BIT3 ((uint32_t)8)
+#define BIT4 ((uint32_t)16)
+#define BIT5 ((uint32_t)32)
+#define BIT6 ((uint32_t)64)
+#define BIT7 ((uint32_t)128)
+#define BIT8 ((uint32_t)256)
+#define BIT9 ((uint32_t)512)
+#define BIT10 ((uint32_t)1024)
+#define BIT11 ((uint32_t)2048)
+#define BIT12 ((uint32_t)4096)
+#define BIT13 ((uint32_t)8192)
+#define BIT14 ((uint32_t)16384)
+#define BIT15 ((uint32_t)32768)
+#define BIT16 ((uint32_t)65536)
+#define BIT17 ((uint32_t)131072)
+#define BIT18 ((uint32_t)262144)
+#define BIT19 ((uint32_t)524288)
+#define BIT20 ((uint32_t)1048576)
+#define BIT21 ((uint32_t)2097152)
+#define BIT22 ((uint32_t)4194304)
+#define BIT23 ((uint32_t)8388608)
+#define BIT24 ((uint32_t)16777216)
+#define BIT25 ((uint32_t)33554432)
+#define BIT26 ((uint32_t)67108864)
+#define BIT27 ((uint32_t)134217728)
+#define BIT28 ((uint32_t)268435456)
+#define BIT29 ((uint32_t)536870912)
+#define BIT30 ((uint32_t)1073741824)
+#define BIT31 ((uint32_t)2147483648)
 
 
-void Dunker_printStatusWordInfo(UINT16 status_word)
+void Dunker_printStatusWordInfo(uint16_t status_word)
 {
 	printf("dunkermotoren_api::printStatusWordInfo(): \n\t");
 	qDebug()<<"\t"+QString("0000000000000000"+QString::number(status_word,2)).mid(QString::number(status_word,2).size());
@@ -1313,12 +1315,12 @@ void Dunker_printStatusWordInfo(UINT16 status_word)
 	printf("\tSVelocity was limited. = %d\n", (status_word & BIT15)!=0);
 }
 
-bool Dunker_errorFlag(UINT32 status_word)
+bool Dunker_errorFlag(uint32_t status_word)
 {
 	return (status_word & BIT1)!=0;
 }
 
-int Dunker_setRampType(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 type)
+int Dunker_setRampType(VSCAN_HANDLE Handle, uint8_t NodeId, uint32_t type)
 {
 	//set operation mode
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x334C,0x00, type);
@@ -1328,7 +1330,7 @@ int Dunker_setRampType(VSCAN_HANDLE Handle, UINT8 NodeId, UINT32 type)
 	return status;
 }
 
-int Dunker_syncSetRampType(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, UINT32 type)
+int Dunker_syncSetRampType(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, uint32_t type)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1341,7 +1343,7 @@ int Dunker_syncSetRampType(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, 
 }
 
 
-int Dunker_getGearSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int* revol)
+int Dunker_getGearSaftRevolution(VSCAN_HANDLE Handle, uint8_t NodeId,  int* revol)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3B19, 0x01);
@@ -1350,7 +1352,7 @@ int Dunker_getGearSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int* revol)
 	return status;
 }
 
-int Dunker_getMotorSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int* revol)
+int Dunker_getMotorSaftRevolution(VSCAN_HANDLE Handle, uint8_t NodeId,  int* revol)
 {
 	VSCAN_MSG msg;
 	msg=Dunker_getMessageData(NodeId, Dunker_getDefaultReadCommandSpecifier(), 0x3B19, 0x00);
@@ -1359,14 +1361,14 @@ int Dunker_getMotorSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int* revol
 	return status;
 }
 
-int Dunker_setGearSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int revol)
+int Dunker_setGearSaftRevolution(VSCAN_HANDLE Handle, uint8_t NodeId,  int revol)
 {
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3B19, 0x01, revol);
 	int status = Dunker_writeWaitReadMessage(Handle, &msg);
 	return status;
 }
 
-int Dunker_setMotorSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int revol)
+int Dunker_setMotorSaftRevolution(VSCAN_HANDLE Handle, uint8_t NodeId,  int revol)
 {
 	VSCAN_MSG msg = Dunker_getMessageData(NodeId,Dunker_getDefaultWriteCommandSpecifier(),0x3B19, 0x00, revol);
 	int status = Dunker_writeWaitReadMessage(Handle, &msg);
@@ -1374,7 +1376,7 @@ int Dunker_setMotorSaftRevolution(VSCAN_HANDLE Handle, UINT8 NodeId,  int revol)
 }
 
 
-int Dunker_syncGetPosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* positions)
+int Dunker_syncGetPosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* positions)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1390,7 +1392,7 @@ int Dunker_syncGetPosition(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, 
 	return status;
 }
 
-int Dunker_syncGetVelocity(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* velocities)
+int Dunker_syncGetVelocity(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* velocities)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1406,7 +1408,7 @@ int Dunker_syncGetVelocity(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, 
 	return status;
 }
 
-int Dunker_syncGetMotorVoltages(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* volts)
+int Dunker_syncGetMotorVoltages(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* volts)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1422,7 +1424,7 @@ int Dunker_syncGetMotorVoltages(VSCAN_HANDLE Handle, int node_count, UINT8* Node
 	return status;
 }
 
-int Dunker_syncSetVelKps(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kps)
+int Dunker_syncSetVelKps(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kps)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1436,7 +1438,7 @@ int Dunker_syncSetVelKps(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_syncSetVelKis(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kis)
+int Dunker_syncSetVelKis(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kis)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1448,7 +1450,7 @@ int Dunker_syncSetVelKis(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_syncSetVelKds(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kds)
+int Dunker_syncSetVelKds(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1460,7 +1462,7 @@ int Dunker_syncSetVelKds(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_syncGetVelKps(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kps)
+int Dunker_syncGetVelKps(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kps)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1476,7 +1478,7 @@ int Dunker_syncGetVelKps(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_syncGetVelKis(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kis)
+int Dunker_syncGetVelKis(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kis)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1492,7 +1494,7 @@ int Dunker_syncGetVelKis(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, in
 	return status;
 }
 
-int Dunker_syncGetVelKds(VSCAN_HANDLE Handle, int node_count, UINT8* NodeIds, int* kds)
+int Dunker_syncGetVelKds(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds, int* kds)
 {
 	VSCAN_MSG msgs[node_count];
 	int count;
@@ -1517,74 +1519,73 @@ int Dunker_JoseMateos(VSCAN_HANDLE Handle)
 		//msgs[(11*count)+1]=Dunker_getMessageData(NodeIds[count], Dunker_getDefaultWriteCommandSpecifier(), 0x3311, 0x00, kis[count]);
 		
 	}*/
-	
+
 	int ID = 0x7e5;
 	int Size2 = 2;
 	int Size3 = 3;
 	msgs[0].Flags = VSCAN_FLAGS_STANDARD;
-    msgs[0].Id = ID;
-    msgs[0].Size = Size2;
-    msgs[0].Data[0] = 0x04;
-    msgs[0].Data[1] = 0x01;
-    msgs[0].Data[2] = 0x00;
-    msgs[0].Data[3] = 0x00;
-    msgs[0].Data[4] = 0x00;
-    msgs[0].Data[5] = 0x00;
-    msgs[0].Data[6] = 0x00;
-    msgs[0].Data[7] = 0x00;
-    
-    
-    msgs[1].Flags = VSCAN_FLAGS_STANDARD;
-    msgs[1].Id = ID;
-    msgs[1].Size = Size3;
-    msgs[1].Data[0] = 0x13;
-    msgs[1].Data[1] = 0x00;
-    msgs[1].Data[2] = 0x04;
-    msgs[1].Data[3] = 0x00;
-    msgs[1].Data[4] = 0x00;
-    msgs[1].Data[5] = 0x00;
-    msgs[1].Data[6] = 0x00;
-    msgs[1].Data[7] = 0x00;
-    
-    msgs[2].Flags = VSCAN_FLAGS_STANDARD;
-    msgs[2].Id = ID;
-    msgs[2].Size = Size3;
-    msgs[2].Data[0] = 0x15;
-    msgs[2].Data[1] = 0xAA;
-    msgs[2].Data[2] = 0xAA;
-    msgs[2].Data[3] = 0x00;
-    msgs[2].Data[4] = 0x00;
-    msgs[2].Data[5] = 0x00;
-    msgs[2].Data[6] = 0x00;
-    msgs[2].Data[7] = 0x00;
-    
-    msgs[3].Flags = VSCAN_FLAGS_STANDARD;
-    msgs[3].Id = ID;
-    msgs[3].Size = Size2;
-    msgs[3].Data[0] = 0x04;
-    msgs[3].Data[1] = 0x00;
-    msgs[3].Data[2] = 0x00;
-    msgs[3].Data[3] = 0x00;
-    msgs[3].Data[4] = 0x00;
-    msgs[3].Data[5] = 0x00;
-    msgs[3].Data[6] = 0x00;
-    msgs[3].Data[7] = 0x00;
-    
-    msgs[4].Flags = VSCAN_FLAGS_STANDARD;
-    msgs[4].Id = ID;
-    msgs[4].Size = Size2;
-    msgs[4].Data[0] = 0x04;
-    msgs[4].Data[1] = 0x00;
-    msgs[4].Data[2] = 0x00;
-    msgs[4].Data[3] = 0x00;
-    msgs[4].Data[4] = 0x00;
-    msgs[4].Data[5] = 0x00;
-    msgs[4].Data[6] = 0x00;
-    msgs[4].Data[7] = 0x00;
-	
-	int status = Dunker_multiWriteWaitReadMessage(Handle,msgs, 5);
+	msgs[0].Id = ID;
+	msgs[0].Size = Size2;
+	msgs[0].Data[0] = 0x04;
+	msgs[0].Data[1] = 0x01;
+	msgs[0].Data[2] = 0x00;
+	msgs[0].Data[3] = 0x00;
+	msgs[0].Data[4] = 0x00;
+	msgs[0].Data[5] = 0x00;
+	msgs[0].Data[6] = 0x00;
+	msgs[0].Data[7] = 0x00;
+
+
+	msgs[1].Flags = VSCAN_FLAGS_STANDARD;
+	msgs[1].Id = ID;
+	msgs[1].Size = Size3;
+	msgs[1].Data[0] = 0x13;
+	msgs[1].Data[1] = 0x00;
+	msgs[1].Data[2] = 0x04;
+	msgs[1].Data[3] = 0x00;
+	msgs[1].Data[4] = 0x00;
+	msgs[1].Data[5] = 0x00;
+	msgs[1].Data[6] = 0x00;
+	msgs[1].Data[7] = 0x00;
+
+	msgs[2].Flags = VSCAN_FLAGS_STANDARD;
+	msgs[2].Id = ID;
+	msgs[2].Size = Size3;
+	msgs[2].Data[0] = 0x15;
+	msgs[2].Data[1] = 0xAA;
+	msgs[2].Data[2] = 0xAA;
+	msgs[2].Data[3] = 0x00;
+	msgs[2].Data[4] = 0x00;
+	msgs[2].Data[5] = 0x00;
+	msgs[2].Data[6] = 0x00;
+	msgs[2].Data[7] = 0x00;
+
+	msgs[3].Flags = VSCAN_FLAGS_STANDARD;
+	msgs[3].Id = ID;
+	msgs[3].Size = Size2;
+	msgs[3].Data[0] = 0x04;
+	msgs[3].Data[1] = 0x00;
+	msgs[3].Data[2] = 0x00;
+	msgs[3].Data[3] = 0x00;
+	msgs[3].Data[4] = 0x00;
+	msgs[3].Data[5] = 0x00;
+	msgs[3].Data[6] = 0x00;
+	msgs[3].Data[7] = 0x00;
+
+	msgs[4].Flags = VSCAN_FLAGS_STANDARD;
+	msgs[4].Id = ID;
+	msgs[4].Size = Size2;
+	msgs[4].Data[0] = 0x04;
+	msgs[4].Data[1] = 0x00;
+	msgs[4].Data[2] = 0x00;
+	msgs[4].Data[3] = 0x00;
+	msgs[4].Data[4] = 0x00;
+	msgs[4].Data[5] = 0x00;
+	msgs[4].Data[6] = 0x00;
+	msgs[4].Data[7] = 0x00;
+
+	int status = Dunker_multiWriteWaitReadMessage(Handle, msgs, 5);
 	return status;
 }
 
 
-#endif

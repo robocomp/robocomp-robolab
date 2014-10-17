@@ -16,15 +16,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#if COMPILE_DUNKER==1
-
 #include "dunkermotoren.h"
 #include "dunkermotoren_api.h"
 #include <qlog/qlog.h>
 
 
-
-Dunkermotoren::Dunkermotoren(  RoboCompJointMotor::BusParams  *busParams , RoboCompJointMotor::MotorParamsList *params, QHash<int, DunkerParams> *_dunkerParams, QMutex *m) 
+Dunkermotoren::Dunkermotoren(RoboCompJointMotor::BusParams *busParams, RoboCompJointMotor::MotorParamsList *params, QHash<int, DunkerParams> *_dunkerParams, QMutex *m) 
 {
 	this->busParams = busParams;
 	this->params = params;
@@ -58,10 +55,13 @@ void Dunkermotoren::initialize() throw (QString)
 	qDebug()<<"Setting 125K speed";
 
 	// SETTING BAUDRATE
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 	Dunker_setBaudRate(devHandler, busParams->baudRate);
 	
-	Dunker_JoseMateos(devHandler);
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+// 	Dunker_JoseMateos(devHandler);
 
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 
 	///Create servos instances in a QMap indexed by name
 	for (int i = 0; i < busParams->numMotors; i++)
@@ -74,6 +74,8 @@ void Dunkermotoren::initialize() throw (QString)
 		motors[name]->setMotorRanges(params->operator[](i).stepsRange, 360, 500, 2.f);
 	}
 
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
 	std::cout <<"Dunkermotoren::initialize(): - Motor Map created with " << busParams->numMotors << " motors: " << std::endl;
 	foreach( Servo * s, motors)
 	{
@@ -81,13 +83,14 @@ void Dunkermotoren::initialize() throw (QString)
 	}
 	
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 
 	// CONSTRUCT MOTORID ARRAY
 	///Initialize motor params
 	
 	int numMotors = motors.size();
-	UINT8 NodeIds[numMotors];
+	uint8_t NodeIds[numMotors];
 	int k=0;
 	foreach( Servo *s, motors)
 	{
@@ -116,6 +119,9 @@ void Dunkermotoren::initialize() throw (QString)
 	 * Dunker_clearError(Handle, NodeId);
 	 */
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
+
 	//TODO: desglosar llamadas del reserModule
 	qDebug() <<"Dunkermotoren::initialize(): Reseting motors OK.";
 	if( (ret  = Dunker_syncResetModule(this->devHandler, motors.size(), NodeIds )) != 0 )
@@ -142,6 +148,8 @@ void Dunkermotoren::initialize() throw (QString)
 	int velKis[motors.size()];
 	int velKds[motors.size()];
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
 	k=0;
 	foreach( Servo *s, motors )
 	{
@@ -182,10 +190,10 @@ void Dunkermotoren::initialize() throw (QString)
 		velKds[k] = dparams.velKd;
 		std::cout <<"velKds "<<velKds[k]<<std::endl;
 		
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 		
-		if((ret=Dunker_setOperationMode(this->devHandler, params.busId, MODE_POS)) != 0)
+		if ((ret=Dunker_setOperationMode(this->devHandler, params.busId, MODE_POS)) != 0)
 		{
-			//~ qDebug << "Dunkermotoren::setPosition() - Error changing mode (" << ((int)MODE_POS) << "): ";
 			throw QString("Dunkermotoren::setPosition() - Error changing mode ("+QString::number(MODE_POS)+"): "+QString::number(ret));
 		}
 		else
@@ -195,7 +203,9 @@ void Dunkermotoren::initialize() throw (QString)
 		k++;
 	}
 	
-	for(int patata=0;patata<4;patata++)
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
+	for (int patata=0; patata<4; patata++)
 	{
 		qDebug()<<"maxVelPos[k]"<<QString::number(maxVelPos[patata]);
 		qDebug()<<"maxVelNeg[k]"<<QString::number(maxVelNeg[patata]);
@@ -208,6 +218,8 @@ void Dunkermotoren::initialize() throw (QString)
 		qDebug()<<"-------------";
 	}
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
 	//TODO: CHAPUZA, HABRIA QUE COMPROBARLO PARA CADA MOTOR
 	if(setPID[0]!=0)
 	{
@@ -333,13 +345,37 @@ void Dunkermotoren::initialize() throw (QString)
 	qDebug() << "#######################################################";
 	if((ret = Dunker_syncSetAcceleration(this->devHandler, motors.size(), NodeIds, velAcc, timeAcc)) == 0)
 	{
+		qDebug() << "Dunkermotoren::initialize(): Sync Acceleration set.";
+	}
+	else
+	{
+		qDebug() << "Dunkermotoren::initialize(): ERROR setting sync Acceleration"<<ret;
+	}
+	if((ret = Dunker_syncSetDecceleration(this->devHandler, motors.size(), NodeIds, velDec, timeDec)) == 0)
+	{
+		qDebug() << "Dunkermotoren::initialize(): Sync Deceleration set.";
+	}
+	else
+	{
+		qDebug() << "Dunkermotoren::initialize(): ERROR setting sync Deceleration"<<ret;
+	}
+	
+
+	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+foreach( Servo *s, motors)
+{
+	uint8_t id = s->params.busId;
+	if ((ret = Dunker_setAcceleration(this->devHandler, id, 500, 100)) == 0)
+	{
 		qDebug() << "Dunkermotoren::initialize(): Acceleration set.";
 	}
 	else
 	{
 		qDebug() << "Dunkermotoren::initialize(): ERROR setting Acceleration"<<ret;
 	}
-	if((ret = Dunker_syncSetDecceleration(this->devHandler, motors.size(), NodeIds, velDec, timeDec)) == 0)
+	if ((ret = Dunker_setDecceleration(this->devHandler, id, 50, 10)) == 0)
 	{
 		qDebug() << "Dunkermotoren::initialize(): Deceleration set.";
 	}
@@ -347,6 +383,12 @@ void Dunkermotoren::initialize() throw (QString)
 	{
 		qDebug() << "Dunkermotoren::initialize(): ERROR setting Deceleration"<<ret;
 	}
+}
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+	
+
+	
 	//~ if((ret = Dunker_syncSetEncoderRes(this->devHandler, motors.size(), NodeIds, encoderRes)) == 0)
 	//~ {
 		//~ qDebug() << "Dunkermotoren::initialize(): Encoder resolution set.";
@@ -357,6 +399,8 @@ void Dunkermotoren::initialize() throw (QString)
 	//~ }
 	
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
 	foreach(Servo *s, motors)
 	{
 		int pos = -1;
@@ -366,7 +410,7 @@ void Dunkermotoren::initialize() throw (QString)
 		qDebug() << "Motor" << QString::fromStdString(params.name);
 		if((ret = Dunker_getPos(this->devHandler, params.busId, &pos)) == 0)
 		{
-			qDebug() << "	Current position (readed): " << pos;
+			qDebug() << "	Current position (read): " << pos;
 			data.currentPos = pos;
 			qDebug() << "	Current position: " << data.currentPos;
 		}
@@ -378,7 +422,7 @@ void Dunkermotoren::initialize() throw (QString)
 		pos=-1;
 		if((ret = Dunker_getMaxPos(this->devHandler, params.busId, &pos)) == 0)
 		{
-			qDebug() << "	Max position readed (steps): " << pos;
+			qDebug() << "	Max position read (steps): " << pos;
 		}
 		else
 		{
@@ -387,7 +431,7 @@ void Dunkermotoren::initialize() throw (QString)
 		pos=-1;
 		if(Dunker_getMinPos(this->devHandler, params.busId, &pos ) == 0)
 		{
-			qDebug() << "	Min position readed (steps): " << pos;
+			qDebug() << "	Min position read (steps): " << pos;
 		}
 		else
 		{
@@ -401,7 +445,7 @@ void Dunkermotoren::initialize() throw (QString)
 		{
 			if(Dunker_getMaxVelNegative(this->devHandler, params.busId, &IncVelNegative ) == 0)
 			{
-				qDebug() << "	Max Velocity readed (steps): "<< IncVelPositive <<" <<==|==>> " << IncVelNegative;
+				qDebug() << "	Max Velocity read (steps): "<< IncVelPositive <<" <<==|==>> " << IncVelNegative;
 			}
 			else
 			{
@@ -416,6 +460,7 @@ void Dunkermotoren::initialize() throw (QString)
 	
 	
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 	
 	if((ret = Dunker_syncDisablePower(this->devHandler, motors.size(), NodeIds)) == 0)
@@ -462,6 +507,8 @@ void Dunkermotoren::initialize() throw (QString)
 		qDebug() << "Dunkermotoren::initialize(): ERROR configuring error & feedback:"<<ret;
 	}
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
+
 	//TODO: cargar del fichero de config
 	if((ret = Dunker_syncSetMaxPosFollowingError(this->devHandler, motors.size(), NodeIds,10000)) == 0)
 	{
@@ -527,6 +574,7 @@ void Dunkermotoren::initialize() throw (QString)
 		}
 	}
 	
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 	//~ UINT32 accV[4]={900, 920, 930, 940};
 	//~ UINT32 accT[4]={110, 120, 130, 140};
@@ -558,6 +606,8 @@ void Dunkermotoren::initialize() throw (QString)
 	{
 		qDebug() << "Dunkermotoren::initialize(): ERROR enabling Power:"<<ret;
 	}
+
+printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 }
 
@@ -587,10 +637,7 @@ bool Dunkermotoren::reset(uchar motor)
 
 void Dunkermotoren::update() throw(MotorHandlerUnknownMotorException, MotorHandlerErrorWritingToPortException)
 {
-	//~ printf("Dunkermotoren::Update.\n");
-	
 	bool isMotorMoving;
-	int ret = -1;
 	int positions[motors.size()];
 	int velocities[motors.size()];
 	int status_words[motors.size()];
@@ -610,20 +657,19 @@ void Dunkermotoren::update() throw(MotorHandlerUnknownMotorException, MotorHandl
 	getSyncVelKps(motors.keys(), kps);
 	getSyncVelKis(motors.keys(), kis);
 	getSyncVelKds(motors.keys(), kds);
-	
+
 	int cnt=0;
-	qDebug()<<"--------------------";
+// 	qDebug()<<"--------------------";
 	foreach( Servo *s, motors)
 	{
 		Servo::TMotorData &data = s->data;
-		ret=-1;
-		if(data.status_word != status_words[cnt])
+		if (data.status_word != status_words[cnt])
 		{
 			qDebug() << "status word: "<<data.status_word<<" "<<status_words[cnt];
-			Dunker_printStatusWordInfo(data.status_word );
+// 			Dunker_printStatusWordInfo(data.status_word );
 		}
 		
-		std::cout << "motor "<<s->data.name.toStdString()<<" at position " << positions[cnt]<<std::endl;
+// 		std::cout << "motor "<<s->data.name.toStdString()<<" at position " << positions[cnt]<<std::endl;
 		//~ std::cout << "motor at velocity " << velocities[cnt]<<std::endl;
 		//~ std::cout << "motor voltage " << voltages[cnt]<<std::endl;
 		//~ std::cout << "motor kp " << kps[cnt]<<std::endl;
@@ -640,8 +686,8 @@ void Dunkermotoren::update() throw(MotorHandlerUnknownMotorException, MotorHandl
 		isMotorMoving=(velocities[cnt] != 0);
 		memory_mutex->lock();
 			data.antPosRads = data.currentPosRads;
-			data.currentPos = positions[cnt];
-			data.currentPosRads = s->steps2Rads(positions[cnt]);
+			data.currentPos = positions[cnt]*((M_PIl*2.)/(1024.*72.));
+			data.currentPosRads = positions[cnt]*((M_PIl*2.)/(1024.*72.));
 			data.isMoving = isMotorMoving;
 			data.status_word = status_words[cnt];
 		memory_mutex->unlock();
@@ -692,9 +738,10 @@ void Dunkermotoren::getPosition(const QString &motor,float &fpos) throw(MotorHan
 void Dunkermotoren::getSyncPosition(const QList<QString> &in_motors,int* pos) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
-	foreach(QString motor_name, in_motors)
+
+	foreach (QString motor_name, in_motors)
 	{
 		if(motors.contains(motor_name))
 		{
@@ -706,7 +753,8 @@ void Dunkermotoren::getSyncPosition(const QList<QString> &in_motors,int* pos) th
 		}
 		k++;
 	}
-	if(Dunker_syncGetPosition(this->devHandler, motors.size(), NodeIds, pos) != 0)
+
+	if (Dunker_syncGetPosition(this->devHandler, motors.size(), NodeIds, pos) != 0)
 	{
 		qDebug()<<"DunkerMotoren::getSyncPosition: Error getting positions from motors";
 	}
@@ -797,7 +845,7 @@ void Dunkermotoren::setSyncPosition( const QVector<Dunkermotoren::GoalPosition> 
 	
 	int numMotors = goals.size();
 	int poss[numMotors];
-	UINT8 NodeIds[numMotors];
+	uint8_t NodeIds[numMotors];
 	int ret;
 	
 	//~ 
@@ -850,7 +898,7 @@ void Dunkermotoren::setSyncRelativePosition( const QVector<Dunkermotoren::GoalPo
 	
 	int numMotors = goals.size();
 	int poss[numMotors];
-	UINT8 NodeIds[numMotors];
+	uint8_t NodeIds[numMotors];
 	
 	int k=0;
 	for(k=0;k<goals.size();k++)
@@ -898,7 +946,7 @@ bool Dunkermotoren::getVelocity( uchar motor, float & vel )
 void Dunkermotoren::getSyncVoltages(const QList<QString> &in_motors,int* voltages) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -911,7 +959,7 @@ void Dunkermotoren::getSyncVoltages(const QList<QString> &in_motors,int* voltage
 void Dunkermotoren::getSyncVelKps(const QList<QString> &in_motors,int* kps) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -924,7 +972,7 @@ void Dunkermotoren::getSyncVelKps(const QList<QString> &in_motors,int* kps) thro
 void Dunkermotoren::getSyncVelKis(const QList<QString> &in_motors,int* kis) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -937,7 +985,7 @@ void Dunkermotoren::getSyncVelKis(const QList<QString> &in_motors,int* kis) thro
 void Dunkermotoren::getSyncVelKds(const QList<QString> &in_motors,int* kds) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -954,7 +1002,7 @@ void Dunkermotoren::getSyncVelKds(const QList<QString> &in_motors,int* kds) thro
 void Dunkermotoren::getSyncVelocities(const QList<QString> &in_motors,int* vel) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
 	QMutexLocker locker(hardware_mutex);
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -999,7 +1047,7 @@ bool Dunkermotoren::setReferenceVelocity(const QString &motor, float vel)
 	QMutexLocker locker(hardware_mutex);
 	int ret=-1;
 	qDebug() << "Dunkermotoren::setReferenceVelocity(): Device "<<this->devHandler<<" motor "<<motors[motor]->params.busId<<" mode "<< motors[motor]->data.mode;
-	if(motors[motor]->data.mode!=MODE_VEL)
+	if (motors[motor]->data.mode!=MODE_VEL)
 	{
 		printf("Dunkermotoren::setReferenceVelocity() Changing mode to MODE_VEL\n");
 		if((ret=Dunker_setOperationMode(this->devHandler, motors[motor]->params.busId, MODE_VEL)) != 0)
@@ -1032,7 +1080,7 @@ bool Dunkermotoren::setSyncReferenceVelocity( const QVector<Dunkermotoren::GoalV
 	QMutexLocker locker(hardware_mutex);
 	int numMotors = goals.size();
 	int vels[numMotors];
-	UINT8 NodeIds[numMotors];
+	uint8_t NodeIds[numMotors];
 	
 	int k=0;
 	for(k=0;k<goals.size();k++)
@@ -1181,7 +1229,7 @@ bool Dunkermotoren::getStatusWord( uchar motor, int & status_word )
 
 void Dunkermotoren::getSyncStatusWords(const QList<QString> &in_motors, int* status_words) throw(MotorHandlerUnknownMotorException,MotorHandlerErrorWritingToPortException)
 {
-	UINT8 NodeIds[motors.size()];
+	uint8_t NodeIds[motors.size()];
 	int k=0;
 	foreach(QString motor_name, in_motors)
 	{
@@ -1450,7 +1498,7 @@ void Dunkermotoren::setSyncZeroPos()
 {
 	QMutexLocker locker(hardware_mutex);
 	int numMotors = motors.size();
-	UINT8 NodeIds[numMotors];
+	uint8_t NodeIds[numMotors];
 	int k=0;
 	foreach( Servo *s, motors)
 	{
@@ -1459,8 +1507,4 @@ void Dunkermotoren::setSyncZeroPos()
 	}
 	Dunker_syncClearActualPosition(this->devHandler, numMotors,NodeIds);
 }
-
-
-
-#endif
 

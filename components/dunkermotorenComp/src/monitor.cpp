@@ -37,7 +37,7 @@ void Monitor::run()
 	forever
 	{
 		qDebug()<<"JointMotor::Monitor::run()";
-		this->sleep(50);
+		this->sleep(15);
 	}
 }
 
@@ -148,6 +148,7 @@ void Monitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		std::string s= QString::number(i).toStdString();
 		configGetString( "dunkermotoren.Params_" + s, aux.value , "");
 		params["dunkermotoren.Params_" + s] = aux;
+		qDebug() << QString::fromStdString(aux.value);
 		QStringList list = QString::fromStdString(aux.value).split(",");
 		if (list.size() != 26) qFatal("ERROR Dunkermotoren::Monitor::readConfig(): error reading motor. Only %d (of 26) parameters for motor %d.", list.size(), i);
 		
@@ -169,59 +170,38 @@ void Monitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		params["dunkermotoren.Params_" + s +".stepsToRadsRatio"]= aux;
 		aux.value=list[8].toStdString();	
 		params["dunkermotoren.Params_" + s +".zeroPosRads"]= aux;
-		
-		
-		
-		
-		//MaxPosErr
 		aux.value=list[9].toStdString();	
 		params["dunkermotoren.Params_" + s +".maxPosErr"]= aux;
-		//AccV
 		aux.value=list[10].toStdString();	
 		params["dunkermotoren.Params_" + s +".accV"]= aux;
-		//AccT
 		aux.value=list[11].toStdString();	
 		params["dunkermotoren.Params_" + s +".accT"]= aux;
-		//DecV
 		aux.value=list[12].toStdString();	
 		params["dunkermotoren.Params_" + s +".decV"]= aux;
-		//DecT
 		aux.value=list[13].toStdString();	
 		params["dunkermotoren.Params_" + s +".decT"]= aux;
-		//GearRev
 		aux.value=list[14].toStdString();	
 		params["dunkermotoren.Params_" + s +".gearRev"]= aux;
-		//MotorRev
 		aux.value=list[15].toStdString();	
 		params["dunkermotoren.Params_" + s +".motorRev"]= aux;
-		//PosCurLim
 		aux.value=list[16].toStdString();	
 		params["dunkermotoren.Params_" + s +".posCurLim"]= aux;
-		//NegCurLim
 		aux.value=list[17].toStdString();	
 		params["dunkermotoren.Params_" + s +".negCurLim"]= aux;
-		//CurPeak
 		aux.value=list[18].toStdString();	
 		params["dunkermotoren.Params_" + s +".curPeak"]= aux;
-		//CurContin
 		aux.value=list[19].toStdString();	
 		params["dunkermotoren.Params_" + s +".curContin"]= aux;
-		//CurTime	
 		aux.value=list[20].toStdString();	
 		params["dunkermotoren.Params_" + s +".curTime"]= aux;
-		//CurTime	
 		aux.value=list[21].toStdString();	
 		params["dunkermotoren.Params_" + s +".encodeRes"]= aux;
-		//setPID
 		aux.value=list[22].toStdString();	
 		params["dunkermotoren.Params_" + s +".setPID"]= aux;
-		//kp	
 		aux.value=list[23].toStdString();	
 		params["dunkermotoren.Params_" + s +".velKp"]= aux;
-		//ki
 		aux.value=list[24].toStdString();	
 		params["dunkermotoren.Params_" + s +".velKi"]= aux;
-		//kd	
 		aux.value=list[25].toStdString();	
 		params["dunkermotoren.Params_" + s +".velKd"]= aux;
 	}

@@ -154,10 +154,17 @@ void Worker::compute()
 	if (updateJoint)
 	{
 		RoboCompJointMotor::MotorStateMap motorMap;
-		jointmotor->getAllMotorState(motorMap);
-		for (RoboCompJointMotor::MotorStateMap::iterator it=motorMap.begin(); it!=motorMap.end(); ++it)
+		try
 		{
-			innerModel->updateRotationValues(it->first.c_str(),0,0, it->second.pos);
+			jointmotor->getAllMotorState(motorMap);
+			for (RoboCompJointMotor::MotorStateMap::iterator it=motorMap.begin(); it!=motorMap.end(); ++it)
+			{
+				innerModel->updateRotationValues(it->first.c_str(),0,0, it->second.pos);
+			}
+		}
+		catch (const Ice::Exception &ex)
+		{
+			cout << "Can't connect to jointMotor: " << ex << endl;
 		}
 	}
 
@@ -182,10 +189,18 @@ void Worker::compute()
 					clist[0] = iter->first;
 					RoboCompRGBDBus::ImageMap images;
 
-					if (DECIMATION_LEVEL == 0)
-						rgbds[r].proxyRGBDBus->getImages(clist,images);
-					else
-						rgbds[r].proxyRGBDBus->getDecimatedImages(clist, DECIMATION_LEVEL, images);
+					try
+					{
+						if (DECIMATION_LEVEL == 0)
+							rgbds[r].proxyRGBDBus->getImages(clist,images);
+						else
+							rgbds[r].proxyRGBDBus->getDecimatedImages(clist, DECIMATION_LEVEL, images);
+					}
+					catch (const Ice::Exception &ex)
+					{
+						cout << "Can't connect to rgbd: " << ex << endl;
+						continue;
+					}
 
 					/// Get the corresponding (stored) protocloud
 					RoboCompRGBDBus::PointCloud pointCloud = rgbds[r].protoPointClouds[clist[0]];
@@ -233,7 +248,15 @@ void Worker::compute()
 		else /// If the proxy is a good old RGBD interface
 		{
 			RoboCompRGBD::PointSeq points;
-			rgbds[r].proxyRGBD->getXYZ(points, hState, bState);
+			try
+			{
+				rgbds[r].proxyRGBD->getXYZ(points, hState, bState);
+			}
+			catch (const Ice::Exception &ex)
+			{
+				cout << "Can't connect to rgbd: " << ex << endl;
+				continue;
+			}
 			RTMat TR = innerModel->getTransformationMatrix(base, QString::fromStdString(rgbds[r].id));
 #ifdef STORE_POINTCLOUDS_AND_EXIT
 			cloud->points.resize(points.size());

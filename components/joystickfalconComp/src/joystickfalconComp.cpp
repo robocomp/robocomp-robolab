@@ -170,23 +170,23 @@ int JoystickFalconComp::run(int argc, char* argv[])
 	rInfo("JoystickAdapterProxy initialized Ok!");
 
 
-	try
-	{
-		// Load the remote server proxy
-		proxy = getProxyString("JoystickAdapterProxy2");
-		joystickadapter_proxy2 = JoystickAdapterPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-		if( !joystickadapter_proxy2 )
-		{
-			rInfo(QString("Error loading proxy!"));
-			return EXIT_FAILURE;
-		}
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-		return EXIT_FAILURE;
-	}
-	rInfo("JoystickAdapterProxy2 initialized Ok!");
+// 	try
+// 	{
+// 		// Load the remote server proxy
+// 		proxy = getProxyString("JoystickAdapterProxy2");
+// 		joystickadapter_proxy2 = JoystickAdapterPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+// 		if( !joystickadapter_proxy2 )
+// 		{
+// 			rInfo(QString("Error loading proxy!"));
+// 			return EXIT_FAILURE;
+// 		}
+// 	}
+// 	catch(const Ice::Exception& ex)
+// 	{
+// 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+// 		return EXIT_FAILURE;
+// 	}
+// 	rInfo("JoystickAdapterProxy2 initialized Ok!");
 	
 
 	Worker *worker = new Worker( 0, joystickadapter_proxy,joystickadapter_proxy2 );

@@ -178,11 +178,18 @@ void Worker::setVelocity(const RoboCompJointMotor::MotorGoalVelocity & goalVeloc
 
 void Worker::setReferenceVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity )
 {
+	printf("setRefVel\n");
 	try
 	{
 		QMutexLocker lo(w_mutex);
 		const QString motorName = QString::fromStdString(goalVelocity.name);
-		const uint32_t rpms = goalVelocity.velocity * (60./(2.*M_PI)) * 72.;
+		int32_t rpms = goalVelocity.velocity * (60./(2.*M_PI)) * 72.;
+		RoboCompJointMotor::MotorParams mp;
+		getMotorParams(motorName, mp);
+		if (mp.invertedSign)
+		{
+			rpms = -rpms;
+		}
 		if (handler->setReferenceVelocity(motorName, rpms) == false)
 		{
 			qDebug()<<"ERROR setting reference velocity.";

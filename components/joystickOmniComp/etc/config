@@ -1,20 +1,22 @@
 #
 # This property is used to configure the endpoints of the subscriber adapter.
 #
-JoyStickComp.Endpoints=tcp -p 10002
+JoyStickComp.Endpoints=tcp -p 15002
 
 # Remote servers proxies example
 #RemoteProxy = remote:tcp -h remotehost -p 10001
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
 
 # User config parameters
 # Example = value
 Joy.Device = /dev/input/js0
-Joy.XMotionAxis = 0
+Joy.XMotionAxis = 2 
 Joy.YMotionAxis = 1
+Joy.ZMotionAxis = 0
 Joy.SampleRate = 5
-Joy.MaxSteering = 2.
-Joy.MaxAdvance = 750
+Joy.MaxSteering = 1 
+Joy.MaxAdvanceX = 450
+Joy.MaxAdvanceZ = 450
 
 # Component properties
 #

@@ -1,3 +1,4 @@
+
 /*
  *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
  *
@@ -175,12 +176,12 @@ int JoyStickComp::run(int argc, char* argv[])
 			return EXIT_FAILURE;
 		}
 		
-		// Server adapter creation and publication
+	// Server adapter creation and publication
 		Ice::ObjectAdapterPtr adapter = communicator()->createObjectAdapter("JoyStickComp");
 		JoyStickI *joystickI = new JoyStickI();
 		adapter->add(joystickI, communicator()->stringToIdentity("joystick"));
 		adapter->activate();
-
+	
  		cout << "RobolabMod::JoyStick started" << endl;
 		a.exec();
 

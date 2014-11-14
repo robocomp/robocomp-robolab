@@ -33,8 +33,6 @@ Worker::Worker( unsigned int numDev, RoboCompJoystickAdapter::JoystickAdapterPrx
 	falcon.start();
 }
 
-
-
 /**
 * \brief Default destructor
 */
@@ -42,18 +40,14 @@ Worker::~Worker()
 {
 
 }
+
 ///Common Behavior
-
-
-
 void Worker::killYourSelf()
 {
 	rDebug("Killing myself");
 	emit kill();
 	exit(1);
 }
-
-
 
 /**
 * \brief Change compute period
@@ -64,8 +58,6 @@ void Worker::setPeriod(int p)
 	rDebug("Period changed"+QString::number(p));
 	Period = p*1000;
 }
-
-
 
 /**
 * \brief
@@ -80,8 +72,6 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList params_)
 	this->start();
 	return true;
 }
-
-
 
 /**
 * \brief Thread method
@@ -128,7 +118,6 @@ void Worker::run()
 		try 
 		{
 			joystickAdapter->sendData( data );
-			//joystickAdapter2->sendData( data );
 		}
 		catch( const Ice::Exception& e ) 
 		{

@@ -18,12 +18,13 @@
  */
 #include "joystickhandler.h"
 
-JoyStickHandler::JoyStickHandler(qjh_cfg_t cfg,RoboCompDifferentialRobot::DifferentialRobotPrx base_proxy, QString joystick_device )
+JoyStickHandler::JoyStickHandler(qjh_cfg_t cfg,RoboCompOmniRobot::OmniRobotPrx _base_proxy, QString joystick_device )
 {
 	config = cfg;
-	_base_proxy = base_proxy;
-	try{
-//		RoboCompDifferentialRobot::TMechParams mparams;
+	base_proxy = _base_proxy;
+	try
+	{
+//		RoboCompOmniRobot::TMechParams mparams;
 //		mparams = base_proxy->getParams();
 // 		if(mparams.maxVelAdv < config.maxAdv)
 // 			config.maxAdv = mparams.maxVelAdv;
@@ -37,33 +38,34 @@ JoyStickHandler::JoyStickHandler(qjh_cfg_t cfg,RoboCompDifferentialRobot::Differ
 	// Set the base joystick axis initial data
 	base_joy_axis.actualX = 0.;
 	base_joy_axis.actualY = 0.;
+	base_joy_axis.actualZ = 0.;
 
-	joystick = new QJoyStick( joystick_device );
-	jtimer = new QTimer( );
+	joystick = new QJoyStick(joystick_device, 3);
+	jtimer = new QTimer();
 	sendSpeed = false;
 
 	// Connect signals
 	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoyStickEvent(int, int, int) ) );
 	connect( jtimer, SIGNAL( timeout() ), this, SLOT( sendJoyStickEvent() ) );
-	qWarning("[%s]: New JoyStick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", PROGRAM_NAME, config.XMotionAxis, config.YMotionAxis);
-	qWarning("[%s]: Max advance speed: [%i], Max steering speed: [%f]",PROGRAM_NAME,config.maxAdv,config.maxRot);
+	qWarning("[%s]: New JoyStick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d], ZMotionAxis [%2d]", PROGRAM_NAME, config.XMotionAxis, config.YMotionAxis, config.ZMotionAxis);
+	qWarning("[%s]: Max advance speed: [%i, %i], Max steering speed: [%f]",PROGRAM_NAME, config.maxAdvX, config.maxAdvZ, config.maxRot);
 }
 
 JoyStickHandler::~JoyStickHandler()
 {
 	jtimer->stop();
 	joystick->stop();
-
+	
 	disconnect ( joystick );
 	disconnect ( jtimer );
-
+	
 	delete jtimer;
 	delete joystick;
 }
 
 bool JoyStickHandler::open()
 {
-	if ( joystick->openQJoy() )
+	if (joystick->openQJoy())
 	{
 		joystick->start();
 		if (config.SampleRate < 1) config.SampleRate = 1;
@@ -76,23 +78,31 @@ bool JoyStickHandler::open()
 
 void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 {
-	if ( type == JOYSTICK_EVENT_TYPE_AXIS )
+	if (type == JOYSTICK_EVENT_TYPE_AXIS)
 	{
-		if ( number == config.XMotionAxis )
-		{
-			if( fabs(value) > JOYSTICK_CENTER )
+		if (number == config.XMotionAxis)
+		{	
+			if (fabs(value) > JOYSTICK_CENTER)
 				base_joy_axis.actualX = JOYtoROBOT_ROT * value;
 			else
 				base_joy_axis.actualX = 0.f;
-			cout << "[" << PROGRAM_NAME << "]: Motion in axis X: "<< base_joy_axis.actualX<<endl;
+// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis X: "<< base_joy_axis.actualX<<endl;
 		}
-		else if ( number == config.YMotionAxis )
+		else if (number == config.YMotionAxis)
 		{
-			if( fabs(value) > JOYSTICK_CENTER )
+			if (fabs(value) > JOYSTICK_CENTER)
 				base_joy_axis.actualY = JOYtoROBOT_ROT * -value;
 			else
 				base_joy_axis.actualY = 0.f;
-			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
+// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
+		}
+		else if (number == config.ZMotionAxis)
+		{
+			if (fabs(value) > JOYSTICK_CENTER)
+				base_joy_axis.actualZ = JOYtoROBOT_ROT * value;
+			else
+				base_joy_axis.actualZ = 0.f;
+// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Z: "<< base_joy_axis.actualZ<<endl;
 		}
 		sendSpeed = true;
 	}
@@ -100,12 +110,18 @@ void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 
 void JoyStickHandler::sendJoyStickEvent()
 {
+	const float xv = base_joy_axis.actualX*config.maxAdvX;
+	const float zv = base_joy_axis.actualY*config.maxAdvZ;
+	const float rv = base_joy_axis.actualZ*config.maxRot;
+	printf("%d (%f %f) (%f)\n", sendSpeed, xv, zv, rv);
+// 	return;
+
 	try
 	{
-		if(sendSpeed)
+		if (sendSpeed)
 		{
-			_base_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
-			if(fabs(base_joy_axis.actualX) < 0.1 and fabs(base_joy_axis.actualY) < 0.1 )
+			base_proxy->setSpeedBase(xv, zv, rv);
+			if (fabs(xv)<50 and fabs(zv)<50 and fabs(rv)<0.05)
 				sendSpeed = false;
 		}
 	}

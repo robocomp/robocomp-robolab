@@ -53,10 +53,10 @@ JoyStickHandler::~JoyStickHandler()
 {
 	jtimer->stop();
 	joystick->stop();
-	
+
 	disconnect ( joystick );
 	disconnect ( jtimer );
-	
+
 	delete jtimer;
 	delete joystick;
 }
@@ -79,7 +79,7 @@ void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 	if ( type == JOYSTICK_EVENT_TYPE_AXIS )
 	{
 		if ( number == config.XMotionAxis )
-		{	
+		{
 			if( fabs(value) > JOYSTICK_CENTER )
 				base_joy_axis.actualX = JOYtoROBOT_ROT * value;
 			else

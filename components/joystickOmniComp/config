@@ -1,0 +1,23 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+JoyStickComp.Endpoints=tcp -p 10002
+
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+
+# User config parameters
+# Example = value
+Joy.Device = /dev/input/js0
+Joy.XMotionAxis = 0
+Joy.YMotionAxis = 1
+Joy.ZMotionAxis = 2
+Joy.SampleRate = 5
+Joy.MaxSteering = 0.1
+Joy.MaxAdvanceX = 150
+Joy.MaxAdvanceZ = 150
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10

@@ -1,11 +1,11 @@
-import "/robocomp/Interfaces/IDSLs/JointMotor.idsl";
-import "/robocomp/Interfaces/IDSLs/CommonHead.idsl";
-import "/robocomp/Interfaces/IDSLs/MuecasJoint.idsl";
-import "/robocomp/Interfaces/IDSLs/faulhaberComp.idsl";
-import "/robocomp/Interfaces/IDSLs/Camera.idsl";
-import "/robocomp/Interfaces/IDSLs/muecasheadcontrol.idsl";
-import "/robocomp/Interfaces/IDSLs/JoystickAdapter.idsl";
-import "/robocomp/Interfaces/IDSLs/IMU.idsl";
+import "/robocomp/interfaces/IDSLs/JointMotor.idsl";
+import "/robocomp/interfaces/IDSLs/CommonHead.idsl";
+import "/robocomp/interfaces/IDSLs/MuecasJoint.idsl";
+import "/robocomp/interfaces/IDSLs/faulhaberComp.idsl";
+import "/robocomp/interfaces/IDSLs/Camera.idsl";
+import "/robocomp/interfaces/IDSLs/muecasheadcontrol.idsl";
+import "/robocomp/interfaces/IDSLs/JoystickAdapter.idsl";
+import "/robocomp/interfaces/IDSLs/IMU.idsl";
 
 Component muecasheadcontrolComp{
 	Communications{

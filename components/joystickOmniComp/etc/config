@@ -1,0 +1,51 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+JoyStickComp.Endpoints=tcp -p 15002
+
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+
+# User config parameters
+# Example = value
+Joy.Device = /dev/input/js0
+Joy.XMotionAxis = 2 
+Joy.YMotionAxis = 1
+Joy.ZMotionAxis = 0
+Joy.SampleRate = 5
+Joy.MaxSteering = 1 
+Joy.MaxAdvanceX = 450
+Joy.MaxAdvanceZ = 450
+
+# Component properties
+#
+#
+# Warn about connection exceptions
+#
+Ice.Warn.Connections=0
+
+#
+#
+# Network Tracing
+#
+# 0 = no network tracing
+# 1 = trace connection establishment and closure
+# 2 = like 1, but more detailed
+# 3 = like 2, but also trace data transfer
+#
+Ice.Trace.Network=0
+
+#
+# Protocol Tracing
+#
+# 0 = no protocol tracing
+# 1 = trace protocol messages
+#
+Ice.Trace.Protocol=0
+
+#
+# We want a faster ACM
+#
+Ice.ACM.Client=10
+Ice.ACM.Server=10

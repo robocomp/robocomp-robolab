@@ -65,7 +65,6 @@ class SpecificWorker : public GenericWorker
 		RoboCompCommonHead::THeadState cState;
 		enum  {Camera, RGBD, RGBDBus};  	
 		QMap<int, float> tagsSizeMap;
-
 		
 		vector<RoboCompAprilTags::tag> detections2send;
 		vector<RoboCompGetAprilTags::marca> listaDeMarcas;
@@ -92,6 +91,7 @@ class SpecificWorker : public GenericWorker
 		*/
 		inline double standardRad(double t);
 		void rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz);
+		void searchTags(const cv::Mat &image_gray);
 		cv::Mat image_gray, image_color;
 		int INPUTIFACE;
 };

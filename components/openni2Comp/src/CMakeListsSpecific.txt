@@ -1,0 +1,22 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+#INCLUDE_DIRECTORIES( $ENV{OPENNI2}/Include )
+#LINK_DIRECTORIES($ENV{OPENNI2}/Redist)
+#LIST ( APPEND CMAKE_CXX_FLAGS "-Wall -O3 -Wl,-rpath=$ENV{OPENNI2}/Redist" )
+#LIST ( APPEND LIBS OpenNI2 )
+
+#INCLUDE_DIRECTORIES( $ENV{NITE2}/Include )
+#LINK_DIRECTORIES($ENV{NITE2}/Redist)
+#LIST ( APPEND CMAKE_CXX_FLAGS "-Wall -O3 -Wl,-rpath=$ENV{NITE2}/Redist" )
+#LIST ( APPEND LIBS NiTE2 )

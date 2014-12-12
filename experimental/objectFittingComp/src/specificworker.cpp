@@ -99,7 +99,7 @@ SpecificWorker::~SpecificWorker()
   
 }
 
-void SpecificWorker::compute( )
+void SpecificWorker::compute()
 { 
   //ICE
  RoboCompInnerModelManager::PointCloudVector pointcloud;
@@ -174,7 +174,7 @@ void SpecificWorker::compute( )
     qDebug()<<"Error talking to inermodelmanager_proxy: "<<e.what();
   }
 
-  rectprismfitting->run(cloud_cup,transform, rotation, width);
+  rectprismfitting->run(cloud_cup, transform, rotation, width);
   pose.x=transform(0);
   pose.y=transform(1);
   pose.z=transform(2);

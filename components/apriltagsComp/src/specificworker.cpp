@@ -28,13 +28,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) :
 	m_tagCodes(::AprilTags::tagCodes16h5),
 	m_draw(true)
 {
-	m_width = 640;
-	m_height = 480;
-	m_px = m_width/2;
-	m_py = m_height/2;
-
-	image_gray.create(480,640,CV_8UC1);
-	image_color.create(480,640,CV_8UC3);
 }
 
 /**
@@ -47,6 +40,10 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	//Default value
+	m_width = 640;
+	m_height = 480;
+	
 	try
 	{
 		INPUTIFACE = Camera;
@@ -62,6 +59,22 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else if ( par.value == "Camera")
 		{
 			INPUTIFACE = Camera;
+			try
+			{
+				RoboCompCommonBehavior::Parameter par = params.at("CameraResolution");
+				if ( par.value == "320x240" )
+				{
+					m_width = 320;
+					m_height = 240;
+				}
+				if ( par.value == "640x480" )
+				{
+					m_width = 640;
+					m_height = 480;
+				}
+			}
+			catch(std::exception e)
+			{}
 		}	
 		else
 			qFatal("InputInterface");
@@ -102,6 +115,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		innermodel_path=par.value;
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
+	
+	m_px = m_width/2;
+	m_py = m_height/2;
+
+	image_gray.create(m_height,m_width,CV_8UC1);
+	image_color.create(m_height,m_width,CV_8UC3);
 	
 	innermodel = new InnerModel(innermodel_path);
 	
@@ -160,7 +179,7 @@ void SpecificWorker::compute()
 		try
 		{
 			camera_proxy->getYImage(0,img, cState, bState);
-			memcpy(image_gray.data, &img[0], 640*480*sizeof(uchar));
+			memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
 			searchTags(image_gray);
 		}
 		catch(const Ice::Exception &e)
@@ -176,7 +195,7 @@ void SpecificWorker::compute()
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
-			memcpy(image_color.data , &colorseq[0], 640*480*3);
+			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY); 
 			searchTags(image_gray);
 		}

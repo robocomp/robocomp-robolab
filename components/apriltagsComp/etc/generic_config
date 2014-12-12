@@ -19,6 +19,9 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
 InputInterface = RGBD
+
+#CameraResolution = 320x240
+
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
 AprilTagsSize = 0.17

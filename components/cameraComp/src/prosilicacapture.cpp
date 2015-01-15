@@ -312,7 +312,6 @@ bool ProsilicaCapture::CameraSetup()
 	{
 		printf("%s: %d\n", __FILE__, __LINE__);
 		printf("%ld\n", GCamera[i].UID);
-// 		if (PvCameraOpen(GCamera[i].UID, ePvAccessMaster, &(GCamera[i].Handle)) != ePvErrSuccess)
 		tPvErr errCode = PvCameraOpen(GCamera[i].UID, ePvAccessMaster, &(GCamera[i].Handle));
 		if (errCode == ePvErrSuccess)
 		{

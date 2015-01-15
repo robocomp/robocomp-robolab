@@ -69,7 +69,7 @@ class ProsilicaCapture :public Capturador
 	void getRGBPackedPtr(uchar*, uchar, RoboCompCommonHead::THeadState&,RoboCompDifferentialRobot::TBaseState&);
 
   private:
-	void  Sleep(unsigned int time);
+	void Sleep(unsigned int time);
 	// wait for a camera to be plugged
 	void WaitForCamera();
 	// wait forever (at least until there is no more camera

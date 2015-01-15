@@ -284,7 +284,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		
 		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
 		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
-		qDebug() << "ss" << ss;
+
 		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
 		QVec T(3);
 		T(0) = -translation(1);
@@ -298,14 +298,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
-		cout << "  distance=" << T.norm2()
-			 << ", x=" << T(0)
-			 << ", y=" << T(1)
-			 << ", z=" << T(2)
-			 << ", rx=" << rx
-			 << ", ry=" << ry
-			 << ", rz=" << rz
-			 << endl;
+		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in
@@ -316,7 +309,6 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		RoboCompGetAprilTags::marca mar;
 
 		t.id=detection.id;
-		///ASDFASDFAAAAAAAAAAAAAAAAAAAAAAA
 		t.tx=T(0);
 		t.ty=T(1);
 		t.tz=T(2);

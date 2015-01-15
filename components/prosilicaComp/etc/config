@@ -1,0 +1,57 @@
+prosilicaComp.Endpoints=tcp -p 10107
+CommonBehavior.Endpoints=tcp -p 11107
+
+DifferentialRobotProxy = differentialrobot:tcp -h host -p 10004
+JointMotorProxy = jointmotor:tcp -h host -p 10067
+
+
+
+#
+###  Configuration variables and optional values
+###
+### Prosilica.captureMode		: YUV422Mode (default)
+### Prosilica.Device 			: /dev/video0 (default), /dev/video1
+### Prosilica.Focal			: in pixels, default 480
+### Prosilica.NumCameras 		: Default 1. 2 for stereo heads
+### Prosilica.FPS				: Default 15.
+### Prosilica.Width			: Default 320.
+### Prosilica.Height			: Default 240.
+### Prosilica.TalkToBase 		: Default false
+### Prosilica.TalkToCommonHead : Default false
+
+#Prosilica.Params = Name,BusId,InvertedH,InvertedV,FocalX,FocalY,Saturation,LineFreq
+Prosilica.Params_0 = camera1,1,false,false,420,420,50,50
+Prosilica.Params_1 = camera2,2,false,false,420,420,50,50
+
+#############################
+# Some usual configurations #
+#############################
+
+#
+# Integrated laptop USB webcam or similar
+#
+Prosilica.Device = /dev/video0
+Prosilica.captureMode = YUV422Mode
+Prosilica.Width = 640
+Prosilica.Height = 480
+Prosilica.FPS = 15
+Prosilica.NumCameras = 1
+Prosilica.TalkToBase = false
+
+
+#############################
+### Ice-related properties ##
+#############################
+# Warn about connection exceptions
+Ice.Warn.Connections=0
+# Network Tracing: (0: no network tracing; 1: trace connection establishment and closure; 2: like 1, but more detailed; 3: like 2, but also trace data transfer).
+Ice.Trace.Network=0
+# Protocol Tracing: (0: no protocol tracing; 1: trace protocol messages)
+Ice.Trace.Protocol=0
+
+# Faster ACM
+Ice.MessageSizeMax=10240
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+

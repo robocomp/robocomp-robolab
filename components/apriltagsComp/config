@@ -15,6 +15,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 InnerModelPath=/home/robocomp/robocomp/files/innermodel/genericRobot.xml
 CameraName=rgb
 
+CameraResolution=640x480
 InputInterface = Camera
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
@@ -29,3 +30,5 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
+
+

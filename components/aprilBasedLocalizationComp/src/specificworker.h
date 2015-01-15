@@ -21,6 +21,8 @@
 
 #include <genericworker.h>
 
+#include <innermodel/innermodel.h>
+
 /**
        \brief
        @author authorname
@@ -38,6 +40,9 @@ public:
 
 public slots:
  	void compute(); 	
+
+private:
+	InnerModel *innerModel;
 };
 
 #endif

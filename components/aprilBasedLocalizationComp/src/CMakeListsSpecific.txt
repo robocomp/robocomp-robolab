@@ -10,3 +10,7 @@ SET ( HEADERS
   specificworker.h
   specificmonitor.h
 )
+
+
+ADD_DEFINITIONS( -std=c++11 )
+

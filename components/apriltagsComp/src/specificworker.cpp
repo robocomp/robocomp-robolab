@@ -22,11 +22,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : 
-	GenericWorker(mprx),
-	m_tagDetector(NULL),
-	m_tagCodes(::AprilTags::tagCodes16h5),
-	m_draw(true)
+SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
 }
 

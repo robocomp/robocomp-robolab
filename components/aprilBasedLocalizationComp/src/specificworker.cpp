@@ -59,10 +59,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::newAprilTag(const tagsList &l)
 {
+	// Initial checks
 	if (l.size()==0 or innerModel==NULL) return;
-
+	// Tag selection
 	static int lastID = -1;
-
 	int indexToUse = 0;
 	for (uint i=0; i<l.size(); i++)
 	{
@@ -71,59 +71,30 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 			indexToUse = i;
 		}
 	}
-
 	lastID = l[indexToUse].id;
-	int i = indexToUse;
-	printf("---------------------------------------\n");
-	printf("---------------------------------------\n");
-	printf("newAprilTag %d\n", (int)l.size());
+	const RoboCompAprilTags::tag  &tag = l[indexToUse];
 
-
-
-	//
-	// Compute relative position of the robot from the point of view of the tag.
-	//
-	// T
-	const RoboCompAprilTags::tag  &tag = l[i];
-
+	// Localization-related node identifiers
 	const QString robot_name("robot");
 	const QString tagSeenPose("aprilOdometryReference_seen_pose");
 	const QString tagReference = QString("aprilOdometryReference%1_pose").arg(tag.id);
 
-	try
-	{
-		innerModel->updateTransformValues(tagSeenPose, tag.tx, tag.ty, tag.tz, tag.rx, tag.ry, tag.rz);
-	}
-	catch (...)
-	{
-		printf("eeee %d\n", __LINE__);
-	}
+	// Update seen tag in InnerModel
+	try { innerModel->updateTransformValues(tagSeenPose, tag.tx, tag.ty, tag.tz, tag.rx, tag.ry, tag.rz); }
+	catch (...) { printf("Can't update node %s (%s:%d)\n", tagSeenPose.toStdString().c_str(), __FILE__, __LINE__); }
 
+	// Compute the two ways to get to the tag, the difference-based error and the corrected odometry matrix
+	const auto M_T2C = innerModel->getTransformationMatrix("root", tagReference);
+	const auto M_t2C = innerModel->getTransformationMatrix("root", tagSeenPose);
+	const auto err = M_T2C * M_t2C.invert();
+	const auto M_W2R = innerModel->getTransformationMatrix(robot_name, innerModel->getParentIdentifier(robot_name));
+	const auto correctOdometry = err * M_W2R;
 
-	auto M_T2C = innerModel->getTransformationMatrix("root", tagReference);
-	auto M_t2C = innerModel->getTransformationMatrix("root", tagSeenPose);
-	auto err = M_T2C * M_t2C.invert();
-	auto M_W2R = innerModel->getTransformationMatrix(robot_name, innerModel->getParentIdentifier(robot_name));
-
-	auto correctOdometry = err * M_W2R;
-
-	auto new_T = correctOdometry.getCol(3).fromHomogeneousCoordinates();
-	//new_T.print("new T");
-	auto new_R = correctOdometry.extractAnglesR_min();
-	//new_R.print("new R");
-
-
-	///
-	/// Send corrected odometry to the robot platform
-	///
-	try
-	{
-		differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1));
-	}
-	catch( Ice::Exception e)
-	{
-		fprintf(stderr, "Can't connect to DifferentialRobot\n");
-	}
+	// Extract the scalar values from the pose matrix and send the correction
+	const auto new_T = correctOdometry.getCol(3).fromHomogeneousCoordinates();
+	const auto new_R = correctOdometry.extractAnglesR_min();
+	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
+	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
 }
 
 

@@ -19,10 +19,10 @@ CameraResolution=640x480
 InputInterface = Camera
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
-AprilTagsSize = 0.17
-ID:0-10 = 0.17   #tag size in meters
-ID:11-20 = 0.17   #tag size in meters
-ID:21-30 = 0.17   #tag size in meters
+AprilTagsSize = 162
+ID:0-10 = 162   #tag size in meters
+ID:11-20 = 162   #tag size in meters
+ID:21-30 = 162   #tag size in meters
 
 
 Ice.Warn.Connections=0

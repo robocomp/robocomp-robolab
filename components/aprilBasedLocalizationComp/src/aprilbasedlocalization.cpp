@@ -80,7 +80,6 @@
 
 // Includes for remote proxy example
 // #include <Remote.h>
-#include <OmniRobot.h>
 #include <DifferentialRobot.h>
 
 
@@ -90,7 +89,6 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 using namespace RoboCompAprilTags;
-using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
 
 
@@ -124,8 +122,7 @@ int AprilBasedLocalization::run(int argc, char* argv[])
 
 	// Remote server proxy access example
 	// RemoteComponentPrx remotecomponent_proxy;
-	OmniRobotPrx omnirobot_proxy;
-DifferentialRobotPrx differentialrobot_proxy;
+	DifferentialRobotPrx differentialrobot_proxy;
 
 
 	string proxy;
@@ -154,17 +151,6 @@ DifferentialRobotPrx differentialrobot_proxy;
 	//rInfo("RemoteProxy initialized Ok!");
 	// 	// Now you can use remote server proxy (remotecomponent_proxy) as local object
 	//Remote server proxy creation example
-	try
-	{
-		omnirobot_proxy = OmniRobotPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("OmniRobotProxy") ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("OmniRobotProxy initialized Ok!");
-	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 	try
 	{
 		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("DifferentialRobotProxy") ) );

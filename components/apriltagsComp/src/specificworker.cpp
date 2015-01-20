@@ -119,10 +119,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	image_color.create(m_height,m_width,CV_8UC3);
 
 	innermodel = new InnerModel(innermodel_path);
-printf("%s: %d %s\n", __FILE__, __LINE__, camera_name.c_str());
  	m_fx = innermodel->getCameraFocal(camera_name.c_str());
   	m_fy = innermodel->getCameraFocal(camera_name.c_str());
-printf("%s: %d\n", __FILE__, __LINE__);
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
 	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
@@ -165,9 +163,8 @@ printf("%s: %d\n", __FILE__, __LINE__);
 
 void SpecificWorker::compute()
 {
-
 	static int frame = 0;
-	double last_t = tic();
+	static double last_t = tic();
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -231,7 +228,7 @@ void SpecificWorker::compute()
 	if (frame % 10 == 0)
 	{
 		double t = tic();
-		cout << "  " << 1./(t-last_t) << " fps" << endl;
+		cout << "  " << 10./(t-last_t) << " fps" << endl;
 		last_t = t;
 	}
 }
@@ -243,7 +240,7 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
 
 	// print out each detection
-	cout << detections.size() << " tags detected:" << endl;
+// 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
 //
@@ -266,7 +263,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 
-		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
+// 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
 		// recovering the relative pose of a tag:
 
@@ -295,7 +292,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
-		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+// 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in

@@ -16,7 +16,7 @@ InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus-rockin/files/ma
 CameraName=RGBDCeiling
 
 CameraResolution=640x480
-InputInterface = RGBD
+InputInterface = Camera
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
 AprilTagsSize = 162

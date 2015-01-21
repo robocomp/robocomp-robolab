@@ -1,3 +1,4 @@
+
 /*
  *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
@@ -86,34 +87,6 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
-	aux.editable = true;
-	configGetString( "InputInterface", aux.value,"Camera");  //Could be RGBD, RGBDBus
-	params["InputInterface"] = aux;
-	
-	aux.editable = false;
-	configGetString( "AprilTagsFamily", aux.value,"tagCodes36h11"); 
-	params["AprilTagsFamily"] = aux;
-	
-// 	aux.editable = false;
-// 	configGetString( "AprilTagsSize", aux.value,"0.175"); 
-// 	params["AprilTagsSize"] = aux;
-// 	
-	
-	aux.editable = false;
-	configGetString( "ID:0-10", aux.value,"86"); //MILLIMETERS 
-	params["ID:0-10"] = aux;
-	
-	aux.editable = false;
-	configGetString( "ID:11-20", aux.value,"86"); //MILLIMETERS 
-	params["ID:11-20"] = aux;
-
-	aux.editable = false;
-	configGetString( "ID:21-30", aux.value,"86"); //MILLIMETERS 
-	params["ID:21-30"] = aux;
-
-	aux.editable = true;
-	configGetString( "CameraName", aux.value, "rgbd");
-	params["CameraName"] = aux;
 	
 	aux.editable = true;
 	configGetString( "InnerModelPath", aux.value, "");
@@ -124,6 +97,14 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;
+	//Check parameters
+	//Example
+// 	    if(l["DRobot.Handler"].value != "Robex" and l["DRobot.Handler"].value != "Gazebo" and l["DRobot.Handler"].value != "Player")
+// 		    correct = false;
+	
+	//copy parameters
+// 	if(correct)
+// 		config_params = l;
 	return correct;
 }
 

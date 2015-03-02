@@ -7,7 +7,6 @@ AprilTagsTopic.Endpoints=tcp -p 10261
 # Remote servers proxies example
 #RemoteProxy = remote:tcp -h remotehost -p 10001
 
-OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 
 #

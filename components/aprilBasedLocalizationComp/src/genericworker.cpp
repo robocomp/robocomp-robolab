@@ -22,7 +22,6 @@
 */
 GenericWorker::GenericWorker(MapPrx& mprx, QObject *parent) : QObject(parent)
 {
-	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
 	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
 
 	mutex = new QMutex();

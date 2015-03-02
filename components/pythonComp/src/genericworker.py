@@ -25,8 +25,11 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
-#include <DifferentialRobot.h>
+#include <Camera.h>
+#include <RGBD.h>
+#include <RGBDBus.h>
 #include <AprilTags.h>
+#include <GetAprilTags.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -39,7 +42,10 @@ using namespace std;
        \brief
        @author authorname
 */
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompCamera;
+using namespace RoboCompRGBD;
+using namespace RoboCompRGBDBus;
+using namespace RoboCompGetAprilTags;
 using namespace RoboCompAprilTags;
 
 class GenericWorker : public QObject
@@ -54,9 +60,11 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;                //Shared mutex with servant
 
-	DifferentialRobotPrx differentialrobot_proxy;
-	virtual void  newAprilTag(const tagsList& tags) = 0;
-
+	CameraPrx camera_proxy;
+	RGBDPrx rgbd_proxy;
+	RGBDBusPrx rgbdbus_proxy;
+	AprilTagsPrx apriltags;
+	virtual listaMarcas checkMarcas() = 0;
 protected:
 	QTimer timer;
 	int Period;

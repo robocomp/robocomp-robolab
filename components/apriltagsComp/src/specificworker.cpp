@@ -16,7 +16,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
  #include "specificworker.h"
 
 /**
@@ -31,7 +31,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetecto
 */
 SpecificWorker::~SpecificWorker()
 {
-	
+
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -39,7 +39,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	//Default value
 	m_width = 640;
 	m_height = 480;
-	
+
 	try
 	{
 		INPUTIFACE = Camera;
@@ -71,7 +71,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			}
 			catch(std::exception e)
 			{}
-		}	
+		}
 		else
 			qFatal("InputInterface");
 	}
@@ -97,37 +97,36 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
-	
+
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
 		camera_name=par.value;
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
-	
+
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		innermodel_path=par.value;
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
-	
+
 	m_px = m_width/2;
 	m_py = m_height/2;
 
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
-	
+
 	innermodel = new InnerModel(innermodel_path);
-	
  	m_fx = innermodel->getCameraFocal(camera_name.c_str());
   	m_fy = innermodel->getCameraFocal(camera_name.c_str());
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
 	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
 
-	//Reading id sets size to create a map 
-	
+	//Reading id sets size to create a map
+
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
@@ -136,7 +135,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) {  qFatal("Error reading config params");}
-	
+
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
@@ -154,9 +153,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
-	
+
 	//DONE
-	
+
 	//Default value for IDs not defined before
 
 	return true;
@@ -164,10 +163,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-
 	static int frame = 0;
-	double last_t = tic();
-	
+	static double last_t = tic();
+
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
 	{
@@ -192,7 +190,7 @@ void SpecificWorker::compute()
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
-			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY); 
+			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);
 		}
 		catch(const Ice::Exception &e)
@@ -207,18 +205,18 @@ void SpecificWorker::compute()
 	else
 		qFatal("Input device not defined. Please specify one in the config file");
 
-	
+
 	/*
-	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
+	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
 
 	// print out each detection
 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-// 
-	if (m_draw) 
+//
+	if (m_draw)
 	{
-		for (uint i=0; i<detections.size(); i++) 
+		for (uint i=0; i<detections.size(); i++)
 		{
 			detections[i].draw(image_gray);
 		}
@@ -227,10 +225,10 @@ void SpecificWorker::compute()
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
-	if (frame % 10 == 0) 
+	if (frame % 10 == 0)
 	{
 		double t = tic();
-		cout << "  " << 1./(t-last_t) << " fps" << endl;
+		cout << "  " << 10./(t-last_t) << " fps" << endl;
 		last_t = t;
 	}
 }
@@ -238,17 +236,17 @@ void SpecificWorker::compute()
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
 {
-	
-	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray); 
+
+	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
 
 	// print out each detection
-	cout << detections.size() << " tags detected:" << endl;
+// 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-// 
-// 	if (m_draw) 
+//
+// 	if (m_draw)
 // 	{
-// 		for (uint i=0; i<detections.size(); i++) 
+// 		for (uint i=0; i<detections.size(); i++)
 // 		{
 // 			detections[i].draw(image_gray);
 // 		}
@@ -260,12 +258,12 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 {
 	detections2send.resize(detections.size());
 	listaDeMarcas.resize(detections.size());
-	
+
 	for(uint32_t i=0; i<detections.size(); i++)
 	{
 		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
-		
-		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
+
+// 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
 		// recovering the relative pose of a tag:
 
@@ -275,9 +273,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		Eigen::Vector3d translation;
 		Eigen::Matrix3d rotation;
-		
+
 		//detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
-		
+
 		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
 		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
 
@@ -286,15 +284,15 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		T(0) = -translation(1);
 		T(1) =  translation(2);
 		T(2) =  translation(0);
-		
+
 		Eigen::Matrix3d F;
 		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
 		Eigen::Matrix3d fixed_rot = F*rotation;
-		
+
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
-		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+// 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in
@@ -319,7 +317,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 			listaDeMarcas[i]=mar;
 		mutex->unlock();
 	}
-		
+
 	if (detections2send.size() > 0)
 	{
 		try
@@ -346,7 +344,7 @@ double SpecificWorker::standardRad(double t)
 	return t;
 }
 
-void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz) 
+void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz)
 {
 	QMat v(3,3);
 	for (uint32_t f=0; f<3; f++)
@@ -374,7 +372,7 @@ void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, do
 
 // utility function to provide current system time (used below in
 // determining frame rate at which images are being processed)
-double SpecificWorker::tic() 
+double SpecificWorker::tic()
 {
 	struct timeval t;
 	gettimeofday(&t, NULL);

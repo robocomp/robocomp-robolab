@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2011 by RoboLab - University of Extremadura
+ *    Copyright (C) 2015 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,45 +16,51 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef WORKER_H
-#define WORKER_H
+#ifndef GENERICWORKER_H
+#define GENERICWORKER_H
 
-// #include <ipp.h>
+#include "config.h"
 #include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
+
+
 #include <CommonBehavior.h>
 #include <JoystickAdapter.h>
 
-#include "falconhandler.h"
 
-
+#define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
+
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-/**
-       \brief
-       @author authorname
-*/
-class Worker  : public QThread
+using namespace RoboCompJoystickAdapter;
+
+class GenericWorker : 
+public QObject
 {
 Q_OBJECT
 public:
-	Worker( unsigned int numDev, RoboCompJoystickAdapter::JoystickAdapterPrx joystickAdapterPrx, RoboCompJoystickAdapter::JoystickAdapterPrx joystickAdapterPrx2 );
-	~Worker();
-	//CommonBehavior
-	void killYourSelf();
-	void setPeriod(int p);
-	bool setParams(RoboCompCommonBehavior::ParameterList params_);
-	void run(); //Thread
-	QMutex *mutex;                //Shared mutex with servant
+	GenericWorker(MapPrx& mprx);
+	virtual ~GenericWorker();
+	virtual void killYourSelf();
+	virtual void setPeriod(int p);
+	
+	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
+	QMutex *mutex;
 
-private:
+
+	JoystickAdapterPrx joystickadapter;
+
+
+
+protected:
+	QTimer timer;
 	int Period;
-	RoboCompJoystickAdapter::JoystickAdapterPrx joystickAdapter,joystickAdapter2;
-	FalconHandler falcon;
-
+public slots:
+	virtual void compute() = 0;
 signals:
 	void kill();
 };

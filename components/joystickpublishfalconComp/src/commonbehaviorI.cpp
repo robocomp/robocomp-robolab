@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2011 by RoboLab - University of Extremadura
+ *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -20,7 +20,7 @@
 /**
 * \brief Default constructor
 */
-CommonBehaviorI::CommonBehaviorI(Monitor *_monitor, QObject *parent) : QObject(parent)
+CommonBehaviorI::CommonBehaviorI(GenericMonitor *_monitor, QObject *parent) : QObject(parent)
 {
 	monitor = _monitor;
 	//mutex = worker->mutex;       // Shared worker mutex

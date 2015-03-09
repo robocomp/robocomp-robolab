@@ -18,8 +18,7 @@
 DOXYFILE_ENCODING      = UTF-8
 
 # ROBOCOMP
-PROJECT_NAME           = joystickfalconComp
-
+PROJECT_NAME           = JoystickPublishFalcon 
 PROJECT_NUMBER         =
 
 
@@ -200,7 +199,8 @@ DISTRIBUTE_GROUP_DOC   = NO
 # the same type (for instance a group of public functions) to be put as a
 # subgroup of that type (e.g. under the Public Functions section). Set it to
 # NO to prevent subgrouping. Alternatively, this can be done per class using
-# the \nosubgrouping command.
+# the 
+osubgrouping command.
 
 SUBGROUPING            = YES
 
@@ -352,13 +352,13 @@ SORT_GROUP_NAMES       = NO
 SORT_BY_SCOPE_NAME     = NO
 
 # The GENERATE_TODOLIST tag can be used to enable (YES) or
-# disable (NO) the todo list. This list is created by putting \todo
+# disable (NO) the todo list. This list is created by putting 	odo
 # commands in the documentation.
 
 GENERATE_TODOLIST      = YES
 
 # The GENERATE_TESTLIST tag can be used to enable (YES) or
-# disable (NO) the test list. This list is created by putting \test
+# disable (NO) the test list. This list is created by putting 	est
 # commands in the documentation.
 
 GENERATE_TESTLIST      = YES
@@ -948,7 +948,7 @@ PDF_HYPERLINKS         = YES
 
 USE_PDFLATEX           = YES
 
-# If the LATEX_BATCHMODE tag is set to YES, doxygen will add the \\batchmode.
+# If the LATEX_BATCHMODE tag is set to YES, doxygen will add the \batchmode.
 # command to the generated LaTeX files. This will instruct LaTeX to keep
 # running if errors occur, instead of asking the user for help.
 # This option is also used when generating formulas in HTML.

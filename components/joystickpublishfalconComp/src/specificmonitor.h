@@ -1,5 +1,6 @@
+
 /*
- *    Copyright (C) 2006-2011 by RoboLab - University of Extremadura
+ *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,26 +17,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "joystickfalconI.h"
-/**
-* \brief Default constructor
-*/
-JoystickfalconI::JoystickfalconI(Worker *_worker, QObject *parent) : QObject(parent)
-{
-	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
-}
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
+
+#include "genericmonitor.h"
 
 /**
-* \brief Default destructor
+       \brief
+       @author authorname
 */
-JoystickfalconI::~JoystickfalconI()
+class SpecificMonitor : public GenericMonitor
 {
-	// Free component resources here
-}
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+};
 
-// Component functions, implementation
-
-// :-) @-@-@ INTERFACE FUNCTIONS IMPLEMENTATION  @-@-@ :-)
-
+#endif // GENERICMONITOR_H

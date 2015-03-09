@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2011 by RoboLab - University of Extremadura
+ *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -28,8 +28,8 @@
 
 #include <config.h>
 
-#include "worker.h"
-#include "monitor.h"
+#include "genericworker.h"
+#include "genericmonitor.h"
 
 using namespace RoboCompCommonBehavior;
 /**
@@ -39,7 +39,7 @@ class CommonBehaviorI : public QObject , public virtual RoboCompCommonBehavior::
 {
 Q_OBJECT
 public:
-	CommonBehaviorI( Monitor *_monitor, QObject *parent = 0 );
+	CommonBehaviorI( GenericMonitor *_monitor, QObject *parent = 0 );
 	~CommonBehaviorI();
 
 	int getPeriod( const Ice::Current & = Ice::Current());
@@ -53,7 +53,7 @@ public:
 // 	QMutex *mutex;
 private:
 
-	Monitor *monitor;	///*<monitor Pointer to access monitor methods. It's used to set or read component configuration.
+	GenericMonitor *monitor;	///*<monitor Pointer to access monitor methods. It's used to set or read component configuration.
 public slots:
 
 

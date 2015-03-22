@@ -51,7 +51,6 @@ public slots:
 	void compute(); 	
 
 private:
-	std::list<std::string> cameraList;
 	VideoCapture grabber; // open the default camera
 	std::vector<uchar> writeBuffer, readBuffer, auxBuffer;
 	RoboCompRGBDBus::CameraParamsMap cameraParamsMap;

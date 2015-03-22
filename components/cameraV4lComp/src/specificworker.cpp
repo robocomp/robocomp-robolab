@@ -37,19 +37,37 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	
-	cameraList.push_back("default");
-	
-	grabber.open(0);
-	
-	
-    if(grabber.isOpened() == false)  // check if we succeeded
-        qFatal("Aborting. Could not open default camera");
+	RoboCompRGBDBus::CameraParams camParams;
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("CameraV4L.Device0.Name");
+		camParams.name = par.value;
+		par = params.at("CameraV4L.Device0.FPS");
+		camParams.colorFPS = atoi(par.value.c_str());
+		par = params.at("CameraV4L.Device0.Width");
+		camParams.colorWidth = atoi(par.value.c_str());
+		par = params.at("CameraV4L.Device0.Height");
+		camParams.colorHeight = atoi(par.value.c_str());
+	}
+	catch(std::exception e) 
+	{ qFatal("\nAborting. Error reading config params"); }
+
+	std::array<string, 6> list = { "0", "1", "2", "3", "4", "5" };
+	qDebug() << __FUNCTION__ << "Opening device:" << camParams.name.c_str();
+	if( camParams.name == "default")
+		grabber.open(0);
+	else if	( find( begin(list), end(list), camParams.name) != end(list)) 
+			grabber.open(atoi(camParams.name.c_str()));
 	else
-		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(cameraList.front()) << " opened!";
+		grabber.open(camParams.name);
+	
+	if(grabber.isOpened() == false)  // check if we succeeded
+        qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
+	else
+		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
 	
 	//Setting grabber
-	RoboCompRGBDBus::CameraParams camParams;
+	
 	camParams.colorFPS = 20;
 	grabber.set(CV_CAP_PROP_FPS, camParams.colorFPS);
 	camParams.colorFocal = 400;
@@ -67,11 +85,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	camParams.name = "default"; 
 	writeBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
 	readBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
-	cameraParamsMap[cameraList.front()] = camParams;
+	cameraParamsMap[camParams.name] = camParams;
 
-	//namedWindow("img",1);
+	namedWindow("img",1);
 	sleep(1);
-	timer.start(10);
+	timer.start(30);
 
 	return true;
 }
@@ -97,16 +115,17 @@ void SpecificWorker::compute()
 
 CameraParamsMap SpecificWorker::getAllCameraParams()
 {
-	
+	return cameraParamsMap;
 }
 
 void SpecificWorker::getPointClouds(const CameraList &cameras, PointCloudMap &clouds)
 {
+	//Not implemented
 }
 
 void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 {
-	if( cameras.size() <= MAX_CAMERAS and cameras.front() == cameraList.front() )
+	if( cameras.size() <= MAX_CAMERAS and ( cameraParamsMap.find(cameras.front()) != cameraParamsMap.end()))
 	{
 		uint size = cameraParamsMap[cameras.front()].colorHeight * cameraParamsMap[cameras.front()].colorWidth * 3;
 		RoboCompRGBDBus::Image img;
@@ -116,12 +135,12 @@ void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 		img.colorImage.swap( readBuffer );
 		images.insert( std::pair<std::string, RoboCompRGBDBus::Image>("default", img));
 		std::cout << "camera name " <<cameras.front() << " " << img.colorImage.size() << " " << images.empty() << std::endl;
-		
 	}
 }
 
 void SpecificWorker::getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds)
 {
+		//Not implemented
 }
 
 void SpecificWorker::getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images)

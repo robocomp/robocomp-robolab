@@ -22,6 +22,8 @@ import sys, os, Ice, traceback
 from PySide import *
 from genericworker import *
 import cv2
+from cv2 import cv
+import numpy as np
 
 ROBOCOMP = ''
 try:
@@ -41,7 +43,7 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 1000
+		self.Period = 100
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
@@ -60,17 +62,18 @@ class SpecificWorker(GenericWorker):
 		print 'SpecificWorker.compute...'
 		try:
 			images = self.rgbdbus_proxy.getImages( ["default"])
-			print images.keys(), len(images)
-			if "default" in images.keys():
-				cv2.imshow("img", images["default"])
+			if len(images) > 0:
+				image = images["default"]
+				#nparr = np.fromstring(image.colorImage, np.uint8).reshape( image.camera.colorHeight, image.camera.colorWidth, 3 )
+				#img = cv2.imdecode(nparr, cv2.CV_LOAD_IMAGE_COLOR)
+				header = cv.CreateMatHeader(image.camera.colorHeight, image.camera.colorWidth, cv.CV_8UC3)
+				cv.SetData(header, image.colorImage, cv.CV_AUTOSTEP)
+				cv2.imshow("img", np.asarray(header))
 			else:
 				print "Camera not found in server"
 		except Ice.Exception, e:
 			traceback.print_exc()
 			print e
-			
-		
-		
 		return True
 
 

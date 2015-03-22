@@ -57,18 +57,17 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		#print 'SpecificWorker.compute...'
-		#try:
-			#images = RoboCompRGBDBus.ImageMap()
-			#self.rgbdbus_proxy.getImages( ["default"], images)
-			#print images.keys(), len(images)
-			#if "default" in images.keys():
-				#cv2.imshow("img", images["default"])
-			#else:
-				#print "Camera not found in server"
-		#except Ice.Exception, e:
-			#traceback.print_exc()
-			#print e
+		print 'SpecificWorker.compute...'
+		try:
+			images = self.rgbdbus_proxy.getImages( ["default"])
+			print images.keys(), len(images)
+			if "default" in images.keys():
+				cv2.imshow("img", images["default"])
+			else:
+				print "Camera not found in server"
+		except Ice.Exception, e:
+			traceback.print_exc()
+			print e
 			
 		
 		

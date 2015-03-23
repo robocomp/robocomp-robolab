@@ -12,16 +12,17 @@ AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
-InnerModelPath=/home/robocomp/robocomp/files/innermodel/genericRobot.xml
-CameraName=rgb
+InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus-rockin/files/makeMeCoffee/simulation.xml
+CameraName=RGBDCeiling
 
+CameraResolution=640x480
 InputInterface = Camera
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
-AprilTagsSize = 0.17
-ID:0-10 = 0.17   #tag size in meters
-ID:11-20 = 0.17   #tag size in meters
-ID:21-30 = 0.17   #tag size in meters
+AprilTagsSize = 162
+ID:0-10 = 162   #tag size in meters
+ID:11-20 = 162   #tag size in meters
+ID:21-30 = 162   #tag size in meters
 
 
 Ice.Warn.Connections=0
@@ -29,3 +30,5 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
+
+

@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
+
+Component CameraTest
+{
+	Communications
+	{
+		requires RGBDBus;
+	};
+	language Python;
+};
+

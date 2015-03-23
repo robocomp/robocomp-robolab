@@ -1,0 +1,21 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv.cmake )
+
+ADD_DEFINITIONS( -I/usr/include/eigen3 -I/usr/local/include/eigen3)
+MESSAGE(STATUS, ${LIBS} )
+
+ADD_LIBRARY(apriltags STATIC IMPORTED)
+SET_TARGET_PROPERTIES(apriltags PROPERTIES IMPORTED_LOCATION /usr/local/lib/libapriltags.a)
+SET (STATIC_LIBS ${STATIC_LIBS} apriltags)

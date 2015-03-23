@@ -21,26 +21,23 @@
 #include "prosilicacapture.h"
 
 // callback called when the camera is plugged/unplugged
-void static CameraEventCB(void* Context,
-                             tPvInterface Interface,
-                             tPvLinkEvent Event,
-                             unsigned long UniqueId)
+void static CameraEventCB(void* Context, tPvInterface Interface, tPvLinkEvent Event, unsigned long UniqueId)
 {
-    switch(Event)
-    {
-        case ePvLinkAdd:
-        {
-            printf("camera %lu plugged\n",UniqueId);
-            break;
-        }
-        case ePvLinkRemove:
-        {
-            printf("camera %lu unplugged\n",UniqueId);
-            break;
-        }
-        default:
-            break;
-    }
+	switch(Event)
+	{
+		case ePvLinkAdd:
+		{
+			printf("camera %lu plugged\n",UniqueId);
+			break;
+		}
+		case ePvLinkRemove:
+		{
+			printf("camera %lu unplugged\n",UniqueId);
+			break;
+		}
+		default:
+			break;
+	}
 }
 
 ProsilicaCapture::ProsilicaCapture()
@@ -55,7 +52,6 @@ ProsilicaCapture::~ProsilicaCapture()
 
 	// uninitialise the API
 	PvUnInitialize();
-	printf("bye!\n");
 }
 
 bool ProsilicaCapture::init(RoboCompCamera::TCamParams & params_, RoboCompJointMotor::JointMotorPrx head_ , RoboCompDifferentialRobot::DifferentialRobotPrx base_ )
@@ -66,97 +62,106 @@ bool ProsilicaCapture::init(RoboCompCamera::TCamParams & params_, RoboCompJointM
 
 	GCamera = new tCamera[params.numCams];
 
-  // initialise the Prosilica API
-  if(!PvInitialize())
-  {
-	memset(GCamera,0,sizeof(tCamera)*params.numCams);
-
-	PvLinkCallbackRegister(CameraEventCB,ePvLinkAdd,NULL);
-	PvLinkCallbackRegister(CameraEventCB,ePvLinkRemove,NULL);
-
-	// wait for a camera to be plugged
-	WaitForCamera();
-	if( numCameras < params.numCams) return false;
-	else
-	  params.numCams = numCameras;
-	// grab a camera from the list
-	if(CameraGrab() && !GCamera[0].Abort)
+	// initialise the Prosilica API
+	if (!PvInitialize())
 	{
-		// setup the camera
-		if(CameraSetup())
+		memset(GCamera, 0, sizeof(tCamera)*params.numCams);
+
+		PvLinkCallbackRegister(CameraEventCB,ePvLinkAdd,NULL);
+		PvLinkCallbackRegister(CameraEventCB,ePvLinkRemove,NULL);
+
+		// wait for a camera to be plugged
+		WaitForCamera();
+		if (numCameras < params.numCams)
+			return false;
+		else
+			params.numCams = numCameras;
+		// grab a camera from the list
+		if (CameraGrab() && !GCamera[0].Abort)
 		{
-			for(int i=0;i<params.numCams;i++)
+			printf("%s: %d\n", __FILE__, __LINE__);
+			// setup the camera
+			if (CameraSetup())
 			{
-			  PvAttrUint32Set(GCamera[i].Handle, "Width", params.width);
-			  PvAttrUint32Set(GCamera[i].Handle, "Height", params.height);
-			  PvAttrEnumSet(GCamera[i].Handle, "PixelFormat", "Yuv422");
-			  PvAttrEnumSet(GCamera[i].Handle, "FrameStartTriggerMode", "FixedRate");
-			  PvAttrFloat32Set(GCamera[i].Handle, "FrameRate", 15.f);
-
-			  tPvUint32 attr;
-			  qDebug()<< "Camera number " << i;
-			  PvAttrUint32Get(GCamera[i].Handle, "Width", &attr);
-			  qDebug() << "Camera Frame Width set to: " << attr;
-			  PvAttrUint32Get(GCamera[i].Handle, "Height", &attr);
-			  qDebug() << "Camera Frame 	Height set to: " << attr;
-			  tPvFloat32 attrf;
-			  PvAttrFloat32Get(GCamera[i].Handle, "FrameRate", &attrf);
-			  qDebug() << "Camera Frame FPS set to: " << attrf;
-			  char f[10];
-			  PvAttrEnumGet(GCamera[i].Handle, "PixelFormat", f, 10,NULL);
-			  qDebug() << "Image format set to: " << f;
-			}
-
-			// start streaming from the camera
-			if(CameraStart())
-			{
-				//tPvAttrListPtr pListPtr;
-				//long unsigned int pLength;
-				//PvAttrList(GCamera.Handle, &pListPtr, &pLength);
-// 				for(int i=0;i<pLength;i++)
-// 				{
-// 				  PvAttrUint32Get(GCamera.Handle, pListPtr[i], &attr);
-//  				  qDebug()<< QString(pListPtr[i])+ " " + QString::number(attr);
-// 				}
-
-
-				qDebug() << "ProsilicaCapture::init() - Camara streaming now ...";
-				///Buffers de imagen
-				qDebug() << "BUFFERS DE IMAGEN ------------------------------------------";
-				for ( int i=0; i < numCameras; i++ )
+				for (int i=0; i<params.numCams; i++)
 				{
-					AimgBuffer[i] = ( Ipp8u * ) ippsMalloc_8u ( params.size * 9 );
-					BimgBuffer[i] = ( Ipp8u * ) ippsMalloc_8u ( params.size * 9 );
-					img8u_lum[i] = AimgBuffer[i];
-					img8u_YUV[i] = &(AimgBuffer[i][params.size]);
-					localYRGBImgBufferPtr[i] = BimgBuffer[i];
-					qDebug() << "Reservando" << params.size * 9 <<" para localYRGBImgBufferPtr["<<i<<"]";
+					PvAttrUint32Set(GCamera[i].Handle, "Width", params.width);
+					PvAttrUint32Set(GCamera[i].Handle, "Height", params.height);
+					PvAttrEnumSet(GCamera[i].Handle, "PixelFormat", "Yuv422");
+					PvAttrEnumSet(GCamera[i].Handle, "FrameStartTriggerMode", "FixedRate");
+					PvAttrFloat32Set(GCamera[i].Handle, "FrameRate", float(params.FPS));
+
+					tPvUint32 attr;
+					qDebug()<< "Camera number " << i;
+					PvAttrUint32Get(GCamera[i].Handle, "Width", &attr);
+					qDebug() << "Camera Frame Width set to: " << attr;
+					PvAttrUint32Get(GCamera[i].Handle, "Height", &attr);
+					qDebug() << "Camera Frame 	Height set to: " << attr;
+					tPvFloat32 attrf;
+					PvAttrFloat32Get(GCamera[i].Handle, "FrameRate", &attrf);
+					qDebug() << "Camera Frame FPS set to: " << attrf;
+					char f[10];
+					PvAttrEnumGet(GCamera[i].Handle, "PixelFormat", f, 10,NULL);
+					qDebug() << "Image format set to: " << f;
 				}
 
-				planos[0]=BimgBuffer[0]+params.size*3;
-				planos[1]=BimgBuffer[0]+ ( params.size*4 );
-				planos[2]=BimgBuffer[0]+ ( params.size*5 );
-				//img8u_aux = BimgBuffer[0]+(params.size*6);
+				// start streaming from the camera
+				if(CameraStart())
+				{
+					//tPvAttrListPtr pListPtr;
+					//long unsigned int pLength;
+					//PvAttrList(GCamera.Handle, &pListPtr, &pLength);
+	// 				for(int i=0;i<pLength;i++)
+	// 				{
+	// 				  PvAttrUint32Get(GCamera.Handle, pListPtr[i], &attr);
+	//  				  qDebug()<< QString(pListPtr[i])+ " " + QString::number(attr);
+	// 				}
 
-				imgSize_ipp.width=params.width;
-				imgSize_ipp.height=params.height;
-				return true;
+
+					qDebug() << "ProsilicaCapture::init() - Camara streaming now ...";
+					///Buffers de imagen
+					qDebug() << "BUFFERS DE IMAGEN ------------------------------------------";
+					for ( int i=0; i < numCameras; i++ )
+					{
+						AimgBuffer[i] = ( Ipp8u * ) ippsMalloc_8u ( params.size * 9 );
+						BimgBuffer[i] = ( Ipp8u * ) ippsMalloc_8u ( params.size * 9 );
+						img8u_lum[i] = AimgBuffer[i];
+						img8u_YUV[i] = &(AimgBuffer[i][params.size]);
+						localYRGBImgBufferPtr[i] = BimgBuffer[i];
+						qDebug() << "Reservando" << params.size * 9 <<" para localYRGBImgBufferPtr["<<i<<"]";
+					}
+
+					planos[0]=BimgBuffer[0]+params.size*3;
+					planos[1]=BimgBuffer[0]+ ( params.size*4 );
+					planos[2]=BimgBuffer[0]+ ( params.size*5 );
+					//img8u_aux = BimgBuffer[0]+(params.size*6);
+
+					imgSize_ipp.width=params.width;
+					imgSize_ipp.height=params.height;
+					return true;
+				}
+				else
+				{
+					printf("ProsilicaCapture::init() - failed to start streaming\n");
+	// 			CameraUnsetup();
+				}
 			}
 			else
-				printf("ProsilicaCapture::init() - failed to start streaming\n");
-
-// 			CameraUnsetup();
+			{
+				printf("ProsilicaCapture::init() - failed to setup the camera\n");
+			}
 		}
 		else
-			printf("ProsilicaCapture::init() - failed to setup the camera\n");
+		{
+			printf("ProsilicaCapture::init() - failed to find a camera\n");
+		}
 	}
 	else
-		printf("ProsilicaCapture::init() - failed to find a camera\n");
-  }
-  else
-	  printf("ProsilicaCapture::init() - failed to initialise the API\n");
+	{
+		printf("ProsilicaCapture::init() - failed to initialise the API\n");
+	}
 
-  return false;
+	return false;
 }
 
 void ProsilicaCapture::cleanup()
@@ -199,18 +204,32 @@ bool ProsilicaCapture::grab()
 	}
 
 	for (i=0; i<params.numCams; i++)
-
 	{
-	    // we tell it to capture
-       if(PvCaptureQueueFrame(GCamera[i].Handle,&(GCamera[i].Frame),NULL) != 0)
-		 qFatal("1");
-		 //return false;
-       else
-	   { //and wait until done
-         if (PvCaptureWaitForFrameDone(GCamera[i].Handle,&(GCamera[i].Frame),PVINFINITE) != 0)
-		   qFatal("2");
- 		  // return false;
-       }
+		tPvErr err;
+		// we tell it to capture
+		err = PvCaptureQueueFrame(GCamera[i].Handle,&(GCamera[i].Frame), NULL);
+		if (err == ePvErrUnplugged)
+		{
+			printf("camera was unplugged\n");
+			return 0;
+		}
+		else if (err == ePvErrBadSequence)
+		{
+			printf("bad sequence\n");
+			return 1;
+		}
+		else if (err == ePvErrQueueFull)
+			printf("full\n");
+		
+		if (err == ePvErrSuccess or err == ePvErrQueueFull)
+		{
+			//and wait until done
+			if (PvCaptureWaitForFrameDone(GCamera[i].Handle,&(GCamera[i].Frame), PVINFINITE) != 0)
+			{
+				printf("PvCaptureWaitForFrameDone error\n");
+				return false;
+			}
+		}
 		capBuff = (uchar*)(GCamera[i].Frame.ImageBuffer);
 		p8u_lum = img8u_lum[i];
 		p8u_YUV = img8u_YUV[i];
@@ -274,7 +293,7 @@ void ProsilicaCapture::WaitForCamera()
 {
 	static QTime lapse = QTime::currentTime();
     printf("waiting for a camera ...\n");
-    while(PvCameraCount()==0 && GCamera[0].Abort==0 && lapse.elapsed()<5000)
+    while (PvCameraCount()==0 && GCamera[0].Abort==0 && lapse.elapsed()<5000)
 	{
 	  Sleep(250);
 	}
@@ -285,35 +304,49 @@ void ProsilicaCapture::WaitForCamera()
 // get the first camera found
 bool ProsilicaCapture::CameraGrab()
 {
-    tPvUint32 count,connected;
-    tPvCameraInfo list[numCameras];
+	tPvUint32 count,connected;
+	tPvCameraInfo list[numCameras];
 
-    count = PvCameraList(list,numCameras,&connected);
-    if(count == (uint)numCameras)
-    {
-		for(int i=0; i<numCameras;i++)
+	count = PvCameraList(list, numCameras,  &connected);
+	if (count == (uint)numCameras)
+	{
+		for (int i=0; i<numCameras;i++)
 		{
 		  GCamera[i].UID = list[i].UniqueId;
-		  printf("grabbing camera %s\n",list[i].SerialString);
+		  printf("grabbing camera %s %ld\n",list[i].SerialString, GCamera[i].UID);
 		}
-        return true;
-    }
-    else
-        return false;
+		return true;
+	}
+	return false;
 }
 
 // open the camera
 bool ProsilicaCapture::CameraSetup()
 {
-  for(int i=0; i<numCameras;i++)
-	 if( PvCameraOpen(GCamera[i].UID,ePvAccessMaster,&(GCamera[i].Handle)) != ePvErrSuccess)
-	 {
-		qDebug() << "CameraSetUp Fail" << i;
-		return false;
-	 }
-	 else
-	   qDebug() << "CameraSetUp Ok" << i;
-   return true;
+	for (int i=0; i<numCameras; i++)
+	{
+		printf("%s: %d\n", __FILE__, __LINE__);
+		printf("%ld\n", GCamera[i].UID);
+		tPvErr errCode = PvCameraOpen(GCamera[i].UID, ePvAccessMaster, &(GCamera[i].Handle));
+		if (errCode == ePvErrSuccess)
+		{
+			qDebug() << "CameraSetUp Ok" << i;
+		}
+		else if (errCode == ePvErrAccessDenied)
+		{
+			qDebug() << "CameraSetUp Failed: Access denied" << i;
+		}
+		else if (errCode == ePvErrNotFound)
+		{
+			qDebug() << "CameraSetUp Failed: Camera not found" << i;
+		}
+		else
+		{
+			qDebug() << "CameraSetUp Failed: unknown error" << i;
+			return false;
+		}
+	}
+	return true;
 }
 
 // setup and start streaming

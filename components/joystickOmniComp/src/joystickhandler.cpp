@@ -114,15 +114,13 @@ void JoyStickHandler::sendJoyStickEvent()
 	const float zv = base_joy_axis.actualY*config.maxAdvZ;
 	const float rv = base_joy_axis.actualZ*config.maxRot;
 	printf("%d (%f %f) (%f)\n", sendSpeed, xv, zv, rv);
-// 	return;
 
 	try
 	{
 		if (sendSpeed)
 		{
-			base_proxy->setSpeedBase(xv, zv, rv);
-			if (fabs(xv)<50 and fabs(zv)<50 and fabs(rv)<0.05)
-				sendSpeed = false;
+			if (fabs(xv)>10 or fabs(zv)>10 or fabs(rv)>0.02)
+				base_proxy->setSpeedBase(xv, zv, rv);
 		}
 	}
 	catch(const Ice::Exception& ex)

@@ -110,23 +110,42 @@ void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 
 void JoyStickHandler::sendJoyStickEvent()
 {
-	const float xv = base_joy_axis.actualX*config.maxAdvX;
-	const float zv = base_joy_axis.actualY*config.maxAdvZ;
-	const float rv = base_joy_axis.actualZ*config.maxRot;
-	printf("%d (%f %f) (%f)\n", sendSpeed, xv, zv, rv);
+	// return if there was no joystick event
+	if (not sendSpeed) return;
+	
+	float xv = base_joy_axis.actualX*config.maxAdvX;
+	float zv = base_joy_axis.actualY*config.maxAdvZ;
+	float rv = base_joy_axis.actualZ*config.maxRot;
+
+	static float bxv = xv;
+	static float bzv = zv;
+	static float brv = rv;
+
+	// If there is small difference from the last sent velocity, return
+	if (fabs(xv-bxv)<8 and fabs(zv-bzv)<8 and fabs(rv-brv)<0.02)
+	{
+		//printf("ignoring small diff (%f %f) (%f)\n", fabs(xv-bxv), fabs(zv-bzv), fabs(rv-brv));
+		return;
+	}
+
+	if (fabs(xv)<8)    xv = 0;
+	if (fabs(zv)<8)    zv = 0;
+	if (fabs(rv)<0.02) rv = 0;
+	
 
 	try
 	{
-		if (sendSpeed)
-		{
-			if (fabs(xv)>10 or fabs(zv)>10 or fabs(rv)>0.02)
-				base_proxy->setSpeedBase(xv, zv, rv);
-		}
+		//printf("send: (%f %f) %f\n", xv, zv, rv);
+		base_proxy->setSpeedBase(xv, zv, rv);
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Fallo la comunicacion a traves del proxy (base). Waiting" << endl;
 		cout << "[" << PROGRAM_NAME << "]: Motivo: " << endl << ex << endl;
 	}
+	
+	bxv = xv;
+	bzv = zv;
+	brv = rv;
 }
 

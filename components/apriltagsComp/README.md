@@ -1,4 +1,4 @@
-#AprilTagsComp: wrapping AprilTags in RoboComp
+#aprilTagsComp: wrapping E. Olson's AprilTags in RoboComp
 
 AprilTags is an augmented reality tag system developed by E. Olson at U. of Michigan, USA. A complete explanation and related papers can be found [here](http://april.eecs.umich.edu/wiki/index.php/AprilTags). There is a C++ version written by Michael Kaes [here](http://people.csail.mit.edu/kaess/apriltags/) which is the one we use.
 
@@ -31,7 +31,7 @@ Once downloaded, *apriltagsComp* can be found in:
 
     ~/robocomp/components/robocomp-robolab/components/apriltagsComp
     
-First, read the *README.TXT* file and follow instructions thereby. Once the library has been installed in /usr/local, we can proceed to compile the component:
+First, read the *INSTALL_APRILTAGS_LIB.TXT* file and follow instructions thereby. Once the library has been installed in /usr/local, we can proceed to compile the component:
 
     cd ~/robocomp/components/robocomp-robolab/components/apriltagsComp
     cmake .

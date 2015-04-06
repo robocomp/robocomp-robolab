@@ -17,7 +17,7 @@ AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 #
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 InputInterface = RGBD
 
 #CameraResolution = 320x240

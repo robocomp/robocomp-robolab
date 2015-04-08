@@ -23,21 +23,21 @@
 // callback called when the camera is plugged/unplugged
 void static CameraEventCB(void* Context, tPvInterface Interface, tPvLinkEvent Event, unsigned long UniqueId)
 {
-    switch(Event)
-    {
-        case ePvLinkAdd:
-        {
-            printf("camera %lu plugged\n",UniqueId);
-            break;
-        }
-        case ePvLinkRemove:
-        {
-            printf("camera %lu unplugged\n",UniqueId);
-            break;
-        }
-        default:
-            break;
-    }
+	switch(Event)
+	{
+		case ePvLinkAdd:
+		{
+			printf("camera %lu plugged\n",UniqueId);
+			break;
+		}
+		case ePvLinkRemove:
+		{
+			printf("camera %lu unplugged\n",UniqueId);
+			break;
+		}
+		default:
+			break;
+	}
 }
 
 ProsilicaCapture::ProsilicaCapture()
@@ -89,7 +89,7 @@ bool ProsilicaCapture::init(RoboCompCamera::TCamParams & params_, RoboCompJointM
 					PvAttrUint32Set(GCamera[i].Handle, "Height", params.height);
 					PvAttrEnumSet(GCamera[i].Handle, "PixelFormat", "Yuv422");
 					PvAttrEnumSet(GCamera[i].Handle, "FrameStartTriggerMode", "FixedRate");
-					PvAttrFloat32Set(GCamera[i].Handle, "FrameRate", 15.f);
+					PvAttrFloat32Set(GCamera[i].Handle, "FrameRate", float(params.FPS));
 
 					tPvUint32 attr;
 					qDebug()<< "Camera number " << i;
@@ -205,16 +205,31 @@ bool ProsilicaCapture::grab()
 
 	for (i=0; i<params.numCams; i++)
 	{
-	    // we tell it to capture
-       if(PvCaptureQueueFrame(GCamera[i].Handle,&(GCamera[i].Frame),NULL) != 0)
-		 qFatal("1");
-		 //return false;
-       else
-	   { //and wait until done
-         if (PvCaptureWaitForFrameDone(GCamera[i].Handle,&(GCamera[i].Frame),PVINFINITE) != 0)
-		   qFatal("2");
- 		  // return false;
-       }
+		tPvErr err;
+		// we tell it to capture
+		err = PvCaptureQueueFrame(GCamera[i].Handle,&(GCamera[i].Frame), NULL);
+		if (err == ePvErrUnplugged)
+		{
+			printf("camera was unplugged\n");
+			return 0;
+		}
+		else if (err == ePvErrBadSequence)
+		{
+			printf("bad sequence\n");
+			return 1;
+		}
+		else if (err == ePvErrQueueFull)
+			printf("full\n");
+		
+		if (err == ePvErrSuccess or err == ePvErrQueueFull)
+		{
+			//and wait until done
+			if (PvCaptureWaitForFrameDone(GCamera[i].Handle,&(GCamera[i].Frame), PVINFINITE) != 0)
+			{
+				printf("PvCaptureWaitForFrameDone error\n");
+				return false;
+			}
+		}
 		capBuff = (uchar*)(GCamera[i].Frame.ImageBuffer);
 		p8u_lum = img8u_lum[i];
 		p8u_YUV = img8u_YUV[i];

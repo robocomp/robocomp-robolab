@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
-#include <OmniRobot.h>
 #include <DifferentialRobot.h>
 #include <AprilTags.h>
 
@@ -40,7 +39,6 @@ using namespace std;
        \brief
        @author authorname
 */
-using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompAprilTags;
 
@@ -56,7 +54,6 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;                //Shared mutex with servant
 
-	OmniRobotPrx omnirobot_proxy;
 	DifferentialRobotPrx differentialrobot_proxy;
 	virtual void  newAprilTag(const tagsList& tags) = 0;
 

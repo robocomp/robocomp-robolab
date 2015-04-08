@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
+
+Component CameraV4l 
+{
+	Communications
+	{
+		implements RGBDBus;
+	};
+	language Cpp;
+};
+

@@ -190,10 +190,7 @@ int AprilTagsComp::run(int argc, char* argv[])
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
-	printf("a\n");
-	usleep(2000000);
-	printf("b\n");
-	worker->setPeriod(50);
+	worker->setPeriod(100);
 	
 	if ( !monitor->isRunning() )
 		return status;

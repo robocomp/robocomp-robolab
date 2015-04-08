@@ -1,0 +1,21 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  falconhandler.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  falconhandler.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+
+ADD_DEFINITIONS( -std=c++11 )
+
+# Novint Falcon
+SET( SPECIFIC_LIBS "/usr/local/lib/libnifalcon.a" usb-1.0 pthread rt )

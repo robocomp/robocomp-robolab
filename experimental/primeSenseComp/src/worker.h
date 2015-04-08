@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <QMutex>
 #include <QTimer>
+
 #include <ipp.h>
 
 // using namespace RoboCompKinect;

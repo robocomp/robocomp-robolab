@@ -20,6 +20,8 @@
 
 JoyStickHandler::JoyStickHandler(qjh_cfg_t cfg,RoboCompOmniRobot::OmniRobotPrx _base_proxy, QString joystick_device )
 {
+	mutex = new QMutex(QMutex::Recursive);
+	buttonPressed = false;
 	config = cfg;
 	base_proxy = _base_proxy;
 	try
@@ -78,38 +80,51 @@ bool JoyStickHandler::open()
 
 void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 {
+// 	printf("a\n");
+	QMutexLocker locker(mutex);
 	if (type == JOYSTICK_EVENT_TYPE_AXIS)
 	{
-		if (number == config.XMotionAxis)
+		if (fabs(value) < JOYSTICK_CENTER) value = 0;
+
+		if (number == config.XMotionAxis and (not buttonPressed))
 		{	
-			if (fabs(value) > JOYSTICK_CENTER)
-				base_joy_axis.actualX = JOYtoROBOT_ROT * value;
-			else
-				base_joy_axis.actualX = 0.f;
-// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis X: "<< base_joy_axis.actualX<<endl;
+			base_joy_axis.actualX = JOYtoROBOT_ROT * value;
 		}
 		else if (number == config.YMotionAxis)
 		{
-			if (fabs(value) > JOYSTICK_CENTER)
-				base_joy_axis.actualY = JOYtoROBOT_ROT * -value;
-			else
-				base_joy_axis.actualY = 0.f;
-// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
+			base_joy_axis.actualY = JOYtoROBOT_ROT * -value;
 		}
-		else if (number == config.ZMotionAxis)
+		else if (number == config.ZMotionAxis or (number == config.XMotionAxis and buttonPressed))
 		{
-			if (fabs(value) > JOYSTICK_CENTER)
-				base_joy_axis.actualZ = JOYtoROBOT_ROT * value;
-			else
-				base_joy_axis.actualZ = 0.f;
-// 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Z: "<< base_joy_axis.actualZ<<endl;
+			base_joy_axis.actualZ = JOYtoROBOT_ROT * value;
 		}
 		sendSpeed = true;
 	}
+	else if (type == JOYSTICK_EVENT_TYPE_BUTTON)
+	{
+		if (number==0)
+		{
+			buttonPressed = (value == 1);
+			if (buttonPressed)
+			{
+				base_joy_axis.actualZ = base_joy_axis.actualX;
+				base_joy_axis.actualX = 0;
+			}
+			else
+			{
+				base_joy_axis.actualX = base_joy_axis.actualZ;
+				base_joy_axis.actualZ = 0;
+			}
+			sendSpeed = true;
+		}
+	}
+// 	printf("z\n");
 }
 
 void JoyStickHandler::sendJoyStickEvent()
 {
+	QMutexLocker locker(mutex);
+
 	// return if there was no joystick event
 	if (not sendSpeed) return;
 	

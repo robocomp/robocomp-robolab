@@ -177,15 +177,15 @@ DifferentialRobotPrx differentialrobot_proxy;
 	rInfo("DifferentialRobotProxy initialized Ok!");
 	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);
 	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
-	
-	
+
+
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
 	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
 	monitor->start();
-	
+
 	if ( !monitor->isRunning() )
 		return status;
 	try

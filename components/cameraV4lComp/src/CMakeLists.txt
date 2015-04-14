@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 2.6)
-PROJECT( joystickpublishcomp )
+PROJECT( camerav4l )
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 MESSAGE(FATAL_ERROR "
- ROBOCOMP variable not set, check your bashrc profile!
+ ROBOCOMPROOT variable not set, check your bashrc profile!
 ")
 ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv2.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set
 SET ( SOURCES
   ${SOURCES}
-  joystickpublishcomp.cpp
-  
+  camerav4l.cpp
+  rgbdbusI.cpp
+
   genericmonitor.cpp
   commonbehaviorI.cpp
   genericworker.cpp
@@ -23,14 +25,15 @@ SET ( SOURCES
 # Headers set
 SET ( HEADERS
   ${HEADERS}
-  
+  rgbdbusI.h
+
   genericmonitor.h
   commonbehaviorI.h
   genericworker.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior   JoystickAdapter)
+ROBOCOMP_WRAP_ICE( CommonBehavior   RGBDBus)
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # Qt4
@@ -45,6 +48,6 @@ INCLUDE( ${QT_USE_FILE} )
 QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
 
 # Specify construction and link process
-ADD_EXECUTABLE( joystickpublishcomp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( joystickpublishcomp ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
-INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/joystickpublishcomp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+ADD_EXECUTABLE( camerav4l ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
+TARGET_LINK_LIBRARIES( camerav4l ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
+INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/camerav4l DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

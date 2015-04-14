@@ -93,6 +93,8 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 	// Extract the scalar values from the pose matrix and send the correction
 	const auto new_T = correctOdometry.getCol(3).fromHomogeneousCoordinates();
 	const auto new_R = correctOdometry.extractAnglesR_min();
+	
+
 	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
 	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
 	

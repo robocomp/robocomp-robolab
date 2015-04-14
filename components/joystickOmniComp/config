@@ -3,7 +3,7 @@
 #
 JoyStickComp.Endpoints=tcp -p 10002
 
-OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 # User config parameters
 # Example = value
@@ -12,9 +12,9 @@ Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
 Joy.ZMotionAxis = 2
 Joy.SampleRate = 5
-Joy.MaxSteering = 0.1
-Joy.MaxAdvanceX = 150
-Joy.MaxAdvanceZ = 150
+Joy.MaxSteering = 0.3
+Joy.MaxAdvanceX = 300
+Joy.MaxAdvanceZ = 300
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

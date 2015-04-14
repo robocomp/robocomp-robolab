@@ -1,0 +1,11 @@
+# Debug config file
+
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+RGBDBusComp.Endpoints=tcp -p 10239
+CommonBehavior.Endpoints=tcp -p 12247
+
+# Remote servers proxies example
+#RemoteProxy = remote:tcp -h remotehost -p 10001
+

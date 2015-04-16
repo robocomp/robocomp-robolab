@@ -1,0 +1,22 @@
+import "/robocomp/interfaces/IDSLs/InnerModelManager.idsl";
+import "/robocomp/interfaces/IDSLs/HumanTracker.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component openNI2Comp{
+	Communications{
+			implements RGBD,HumanTracker;	
+			requires InnerModelManager;		 
+	};
+	RoboCompClasses{
+		"/classes/rcdraw/rcdraw.h";
+		"/classes/rcdraw/rcdraw.cpp";		
+	};
+	RoboCompModules{
+		"nite2";
+		"openni2";
+		"ipp";
+		
+	};
+	language Cpp;
+	gui Qt (QWidget);
+};

@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/Beacons.idsl";
+
+Component Beacons
+{
+	Communications
+	{
+		implements Beacons;
+	};
+	language Python;
+};
+

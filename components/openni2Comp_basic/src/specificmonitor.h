@@ -1,3 +1,4 @@
+
 /*
  *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
@@ -16,23 +17,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef CONST_H
-#define CONST_H
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-#define PROGRAM_NAME        "JoyStickHandler"
-#define PROGRAM_FILE_NAME   "joystickhandler"
+#include "genericmonitor.h"
 
-//OJO tiene que ser simétrico de momento
-#define JOYSTICK_MAX_RAW 32767.
-#define JOYSTICK_MIN_RAW -32767.
-#define JOYtoROBOT_ROT	( 1 / JOYSTICK_MAX_RAW)
-#define JOYtoROBOT_ADV	( 1 / JOYSTICK_MAX_RAW)
-#define JOYSTICK_CENTER  0.1
-#define DEFAULT_BASE_SERVER_PROXY_STRING       "OmniRobotProxy"
+/**
+       \brief
+       @author authorname
+*/
+class SpecificMonitor : public GenericMonitor
+{
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+};
 
-#define JOYSTICK_EVENT_TYPE_NULL     0x00
-#define JOYSTICK_EVENT_TYPE_BUTTON   JS_EVENT_BUTTON
-#define JOYSTICK_EVENT_TYPE_AXIS     JS_EVENT_AXIS
-
-
-#endif
+#endif // GENERICMONITOR_H

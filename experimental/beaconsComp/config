@@ -1,5 +1,5 @@
-# Proxies for required interfaces
-RGBDBusProxy = rgbdbus:tcp -h robonuc2.local -p 13239 
+# Endpoints for implemented interfaces
+Beacons.Endpoints=tcp -p 0
 
 
 
@@ -14,4 +14,3 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 
-Ice.MessageSizeMax=1000000

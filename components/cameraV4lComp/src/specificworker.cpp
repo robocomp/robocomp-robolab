@@ -33,7 +33,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	qDebug() << "GoodBye";
+	qDebug() << "CameraV4L exiting...";
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -58,12 +58,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	if( camParams.name == "default")
 		grabber.open(0);
 	else if	( find( begin(list), end(list), camParams.name) != end(list)) 
-			grabber.open(atoi(camParams.name.c_str()));
+		grabber.open(atoi(camParams.name.c_str()));
 	else
 		grabber.open(camParams.name);
 	
 	if(grabber.isOpened() == false)  // check if we succeeded
-        qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
+		qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
 	else
 		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
 	
@@ -72,15 +72,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	camParams.colorFPS = 20;
 	grabber.set(CV_CAP_PROP_FPS, camParams.colorFPS);
 	camParams.colorFocal = 400;
-	grabber.set(CV_CAP_PROP_FRAME_HEIGHT, 640);  //Get from PARAMS
-	grabber.set(CV_CAP_PROP_FRAME_WIDTH, 480);
+	grabber.set(CV_CAP_PROP_FRAME_HEIGHT, 480);  //Get from PARAMS
+	grabber.set(CV_CAP_PROP_FRAME_WIDTH, 640);
 
 	//One frame to get real sizes
 	Mat frame;
 	grabber >> frame; 		// get a new frame from camera
 	Size s = frame.size();
 	double rate = grabber.get(CV_CAP_PROP_FPS);
-	qDebug() << __FUNCTION__ << "Current frame size:" << s.height << "x" << s.width << ". RGB 8 bits format at" << rate << "fps";
+	qDebug() << __FUNCTION__ << "Current frame size:" << s.width << "x" << s.height << ". RGB 8 bits format at" << rate << "fps";
 	camParams.colorWidth = s.width;
 	camParams.colorHeight = s.height;
 	writeBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
@@ -94,16 +94,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	
 	Mat frame, frameRGB;
 	grabber >> frame; 	
 	cvtColor( frame, frameRGB, CV_BGR2RGB );
 	memcpy( &writeBuffer[0], frameRGB.data, frameRGB.size().area() * 3);
-	qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
+	//qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
 	//imshow("img", frame);
 	QMutexLocker ml(mutex);
 	readBuffer.swap( writeBuffer);
-	
 }
 
 ////////////////////////////////////////////////////////////
@@ -125,7 +123,7 @@ void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 {
 	if( cameras.size() <= MAX_CAMERAS and ( cameraParamsMap.find(cameras.front()) != cameraParamsMap.end()))
 	{
-		uint size = cameraParamsMap[cameras.front()].colorHeight * cameraParamsMap[cameras.front()].colorWidth * 3;
+		//uint size = cameraParamsMap[cameras.front()].colorHeight * cameraParamsMap[cameras.front()].colorWidth * 3;
 		RoboCompRGBDBus::Image img;
 		img.camera = cameraParamsMap[cameras.front()];
 		QMutexLocker ml(mutex);

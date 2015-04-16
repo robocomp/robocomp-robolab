@@ -43,7 +43,7 @@ INCLUDE( $ENV{ROBOCOMP}/cmake/modules/ipp.cmake )
 INCLUDE ($ENV{ROBOCOMP}/cmake/modules/opensg.cmake )
 
 # OpenMP
-ADD_DEFINITIONS( -fopenmp -msse2 -g )
+ADD_DEFINITIONS( -fopenmp -g )
 SET(LIBS ${LIBS} -lgomp)
 
 # Qt4

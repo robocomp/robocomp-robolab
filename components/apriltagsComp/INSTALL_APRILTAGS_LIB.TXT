@@ -2,7 +2,7 @@ Download and install MIT's C++ port of E. Olson's AprilTags, [at](http://people.
 
 1. First we need to install *libv4l-dev* from the Ubuntu repositories
 
-	sudo apt-get install libv4l-dev
+    sudo apt-get install libv4l-dev
 
 2. Now checkout AprilTags code from subversion to your favourite software directory:
     
@@ -10,7 +10,7 @@ Download and install MIT's C++ port of E. Olson's AprilTags, [at](http://people.
 
 3. cd apriltags 
 
-4. `make`  (don't run cmake)
+4. make  (don't run cmake)
     
 If it does not finish due to OpenCV error its OK as long as libapriltags.a is generated.
 

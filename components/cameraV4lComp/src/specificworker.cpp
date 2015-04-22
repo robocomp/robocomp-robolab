@@ -25,6 +25,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+	namedWindow("img",1);
 }
 
 /**
@@ -82,13 +83,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	qDebug() << __FUNCTION__ << "Current frame size:" << s.width << "x" << s.height << ". RGB 8 bits format at" << rate << "fps";
 	camParams.colorWidth = s.width;
 	camParams.colorHeight = s.height;
-	camParams.name = "default"; 
 	writeBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
 	readBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
 	cameraParamsMap[camParams.name] = camParams;
 
-	//inamedWindow("img",1);
-	sleep(1);
 	timer.start(30);
 
 	return true;

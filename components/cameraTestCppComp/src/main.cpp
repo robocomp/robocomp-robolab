@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2015 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,23 +16,25 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** \mainpage RoboComp::genericComp
+
+
+/** \mainpage RoboComp::CameraTestCpp
  *
  * \section intro_sec Introduction
  *
- * The genericComp component...
+ * The CameraTestCpp component...
  *
  * \section interface_sec Interface
  *
- * genericComp interface...
+ * interface...
  *
  * \section install_sec Installation
  *
  * \subsection install1_ssec Software depencences
- * genericComp ...
+ * ...
  *
  * \subsection install2_ssec Compile and install
- * cd genericComp
+ * cd CameraTestCpp
  * <br>
  * cmake . && make
  * <br>
@@ -45,12 +47,12 @@
  * \subsection config_ssec Configuration file
  *
  * <p>
- * The configuration file genericComp/etc/specific_config and genericComp/etc/generic_config...
+ * The configuration file etc/config...
  * </p>
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/genericComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/CameraTestCpp --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -68,19 +70,16 @@
 
 #include <rapplication/rapplication.h>
 #include <qlog/qlog.h>
-// View the config.h file for config options like
-// QtGui, etc...
+
 #include "config.h"
 #include "genericmonitor.h"
 #include "genericworker.h"
 #include "specificworker.h"
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
-#include <apriltagsI.h>
 
-// Includes for remote proxy example
-// #include <Remote.h>
-#include <DifferentialRobot.h>
+
+#include <RGBDBus.h>
 
 
 // User includes here
@@ -88,30 +87,32 @@
 // Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
-using namespace RoboCompAprilTags;
-using namespace RoboCompDifferentialRobot;
+
+using namespace RoboCompRGBDBus;
 
 
-class AprilBasedLocalization : public RoboComp::Application
+
+class CameraTestCpp : public RoboComp::Application
 {
+public:
+	CameraTestCpp (QString prfx) { prefix = prfx.toStdString(); }
 private:
-	// User private data here
-
 	void initialize();
+	std::string prefix;
 	MapPrx mprx;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void AprilBasedLocalization::initialize()
+void CameraTestCpp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int AprilBasedLocalization::run(int argc, char* argv[])
+int CameraTestCpp::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -120,56 +121,35 @@ int AprilBasedLocalization::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
-	DifferentialRobotPrx differentialrobot_proxy;
+	RGBDBusPrx rgbdbus_proxy;
 
-
-	string proxy;
-
-	// User variables
-
-
+	string proxy, tmp;
 	initialize();
 
-	// Remote server proxy creation example
-	// try
-	// {
-	// 	// Load the remote server proxy
-	//	proxy = getProxyString("RemoteProxy");
-	//	remotecomponent_proxy = RemotePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	//	if( !remotecomponent_proxy )
-	//	{
-	//		rInfo(QString("Error loading proxy!"));
-	//		return EXIT_FAILURE;
-	//	}
-	//catch(const Ice::Exception& ex)
-	//{
-	//	cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-	//	return EXIT_FAILURE;
-	//}
-	//rInfo("RemoteProxy initialized Ok!");
-	// 	// Now you can use remote server proxy (remotecomponent_proxy) as local object
-	//Remote server proxy creation example
+
 	try
 	{
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("DifferentialRobotProxy") ) );
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBusProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBusProxy\n";
+		}
+		rgbdbus_proxy = RGBDBusPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);
-	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+	rInfo("RGBDBusProxy initialized Ok!");
+	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);//Remote server proxy creation example
+
 
 
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
-	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
+	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
@@ -177,32 +157,21 @@ int AprilBasedLocalization::run(int argc, char* argv[])
 	try
 	{
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapter("CommonBehavior");
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		}
+		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
+
+
+
+
+
+
 		// Server adapter creation and publication
-    	Ice::ObjectAdapterPtr AprilTags_adapter = communicator()->createObjectAdapter("AprilTagsTopic");
-    	AprilTagsPtr apriltagsI_ = new AprilTagsI(worker);
-    	Ice::ObjectPrx apriltags_proxy = AprilTags_adapter->addWithUUID(apriltagsI_)->ice_oneway();
-    	IceStorm::TopicPrx apriltags_topic;
-    	if(!apriltags_topic){
-	    	try {
-	    		apriltags_topic = topicManager->create("AprilTags");
-	    	}
-	    	catch (const IceStorm::TopicExists&) {
-	    	  	//Another client created the topic
-	    	  	try{
-	       			apriltags_topic = topicManager->retrieve("AprilTags");
-	    	  	}catch(const IceStorm::NoSuchTopic&){
-	    	  	  	//Error. Topic does not exist
-				}
-	    	}
-	    	IceStorm::QoS qos;
-	      	apriltags_topic->subscribeAndGetPublisher(qos, apriltags_proxy);
-    	}
-    	AprilTags_adapter->activate();
-    	// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
@@ -235,18 +204,36 @@ int main(int argc, char* argv[])
 {
 	bool hasConfig = false;
 	string arg;
-	AprilBasedLocalization app;
 
-	// Search in argument list for --Ice.Config= argument
+	// Search in argument list for --Ice.Config= and --prefix= argument (if exist)
+	QString prefix("");
 	for (int i = 1; i < argc; ++i)
 	{
 		arg = argv[i];
-		if ( arg.find ( "--Ice.Config=", 0 ) != string::npos )
+		if (arg.find("--Ice.Config=", 0) != string::npos)
+		{
 			hasConfig = true;
+		}
+		QString prfx = QString("--prefix=");
+		if (arg.find(prfx.toStdString(), 0) == 0)
+		{
+			prefix = QString::fromStdString(arg).remove(0, prfx.size());
+			if (prefix.size()>0)
+				prefix += QString(".");
+			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+		}
 	}
+	CameraTestCpp app(prefix);
 
-	if ( hasConfig )
-		return app.main( argc, argv );
+
+// 	app.prefix = 
+	if (hasConfig)
+	{
+		return app.main(argc, argv);
+	}
 	else
-		return app.main(argc, argv, "../etc/generic_config"); // "config" is the default config file name
+	{
+		return app.main(argc, argv, "etc/config"); // "config" is the default config file name
+	}
 }
+

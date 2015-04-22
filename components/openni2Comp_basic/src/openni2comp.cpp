@@ -63,7 +63,7 @@
 
 // ICE includes
 #include <Ice/Ice.h>
-#include <IceStorm/IceStorm.h>
+
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
@@ -76,11 +76,10 @@
 #include "specificworker.h"
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
-#include <apriltagsI.h>
+#include <rgbdI.h>
+#include <humantrackerI.h>
 
-// Includes for remote proxy example
-// #include <Remote.h>
-#include <DifferentialRobot.h>
+#include <InnerModelManager.h>
 
 
 // User includes here
@@ -88,11 +87,12 @@
 // Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
-using namespace RoboCompAprilTags;
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompHumanTracker;
+using namespace RoboCompRGBD;
+using namespace RoboCompInnerModelManager;
 
 
-class AprilBasedLocalization : public RoboComp::Application
+class openNI2Comp : public RoboComp::Application
 {
 private:
 	// User private data here
@@ -104,25 +104,20 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void AprilBasedLocalization::initialize()
+void openNI2Comp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
-
-int AprilBasedLocalization::run(int argc, char* argv[])
+int openNI2Comp::run(int argc, char* argv[])
 {
-#ifdef USE_QTGUI
-	QApplication a(argc, argv);  // GUI application
-#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
-#endif
 	int status=EXIT_SUCCESS;
 
 	// Remote server proxy access example
 	// RemoteComponentPrx remotecomponent_proxy;
-	DifferentialRobotPrx differentialrobot_proxy;
+	InnerModelManagerPrx innermodelmanager_proxy;
 
 
 	string proxy;
@@ -153,25 +148,23 @@ int AprilBasedLocalization::run(int argc, char* argv[])
 	//Remote server proxy creation example
 	try
 	{
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("DifferentialRobotProxy") ) );
+		innermodelmanager_proxy = InnerModelManagerPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("InnerModelManagerProxy") ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);
-	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
-
-
+	rInfo("InnerModelManagerProxy initialized Ok!");
+	mprx["InnerModelManagerProxy"] = (::IceProxy::Ice::Object*)(&innermodelmanager_proxy);
+	
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
 	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
 	monitor->start();
-
+	
 	if ( !monitor->isRunning() )
 		return status;
 	try
@@ -182,27 +175,16 @@ int AprilBasedLocalization::run(int argc, char* argv[])
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
 		// Server adapter creation and publication
-    	Ice::ObjectAdapterPtr AprilTags_adapter = communicator()->createObjectAdapter("AprilTagsTopic");
-    	AprilTagsPtr apriltagsI_ = new AprilTagsI(worker);
-    	Ice::ObjectPrx apriltags_proxy = AprilTags_adapter->addWithUUID(apriltagsI_)->ice_oneway();
-    	IceStorm::TopicPrx apriltags_topic;
-    	if(!apriltags_topic){
-	    	try {
-	    		apriltags_topic = topicManager->create("AprilTags");
-	    	}
-	    	catch (const IceStorm::TopicExists&) {
-	    	  	//Another client created the topic
-	    	  	try{
-	       			apriltags_topic = topicManager->retrieve("AprilTags");
-	    	  	}catch(const IceStorm::NoSuchTopic&){
-	    	  	  	//Error. Topic does not exist
-				}
-	    	}
-	    	IceStorm::QoS qos;
-	      	apriltags_topic->subscribeAndGetPublisher(qos, apriltags_proxy);
-    	}
-    	AprilTags_adapter->activate();
-    	// Server adapter creation and publication
+		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapter("RGBDComp");
+		RGBDI *rgbd = new RGBDI(worker);
+		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
+
+		adapterRGBD->activate();
+		Ice::ObjectAdapterPtr adapterHumanTracker = communicator()->createObjectAdapter("HumanTrackerComp");
+		HumanTrackerI *humantracker = new HumanTrackerI(worker);
+		adapterHumanTracker->add(humantracker, communicator()->stringToIdentity("humantracker"));
+
+		adapterHumanTracker->activate();
 		cout << SERVER_FULL_NAME " started" << endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
@@ -235,7 +217,7 @@ int main(int argc, char* argv[])
 {
 	bool hasConfig = false;
 	string arg;
-	AprilBasedLocalization app;
+	openNI2Comp app;
 
 	// Search in argument list for --Ice.Config= argument
 	for (int i = 1; i < argc; ++i)

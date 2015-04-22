@@ -1,30 +1,46 @@
 #
 # This property is used to configure the endpoints of the subscriber adapter.
 #
-GetAprilTagsComp.Endpoints=tcp -p 12210
-CommonBehavior.Endpoints=tcp -p 11258
 
-# Remote servers proxies example
-#RemoteProxy = remote:tcp -h remotehost -p 10001
+#Port where GetAprilTags iface is served  
+GetAprilTagsComp.Endpoints=tcp -p 12210	
 
+#Port where CommonBehavior management interface is served  
+CommonBehavior.Endpoints=tcp -p 11258			
+
+#Port where a camera is located
 CameraProxy = camera:tcp -h localhost -p 10001
+#Port where a RGBD camera is located
 RGBDProxy = rgbd:tcp -h localhost -p 10096
+#Port where a RGBD bus of cameras  is located
 RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239
+#Not for user
 AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 
 #
-# This property is used by the clients to connect to IceStorm.
+# This property is used by the clients to connect to IceStorm. Port where STORM is locates
 #
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+#
+#Additional parameters passed to the component
+#
 
+#Path to the InnerModel file
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
+#Current interface to be used
 InputInterface = RGBD
 
+#Camera resolution. Default 640x480
 #CameraResolution = 320x240
 
+#April tags family. See paper on AprilTags
 AprilTagsFamily = tagCodes36h11
-#AprilTagsFamily = tagCodes16h5
+#Tag's default  size in meters
 AprilTagsSize = 0.17
-ID:0-10 = 0.17   #tag size in meters
-ID:11-20 = 0.17   #tag size in meters
-ID:21-30 = 0.17   #tag size in meters
+#Tag's size if ID between 0 and 10 in meters
+ID:0-10 = 0.17 
+#Tag's size if ID between 11 and 20 in meters
+ID:11-20 = 0.17
+#Tag's size if ID between 21 and 30 in meters
+ID:21-30 = 0.17 

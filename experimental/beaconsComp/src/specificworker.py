@@ -43,6 +43,8 @@ from RoboCompBeacons import *
 from beaconsI import *
 
 class SpecificWorker(GenericWorker):
+  	potord = []
+	indexord = []
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
@@ -63,11 +65,9 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print 'SpecificWorker.compute...'
 		potencia, indice = self.funcion()
-		print "potencia"
-		print potencia
-		indexord, potord = self.ordenar(indice, potencia)
+		self.indexord, self.potord = self.ordenar(indice, potencia)
 		print "potenciaorde"
-		print potord
+		print self.potord
 		return True
 
 
@@ -78,8 +78,7 @@ class SpecificWorker(GenericWorker):
 		#
 		# YOUR CODE HERE
 		#
-		bdata = beaconsarray()
-		return bdata
+		return self.indexord, self.potord
 		
 	def dicc(self, major, minor, idc):
             c=0

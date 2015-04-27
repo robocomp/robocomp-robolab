@@ -48,6 +48,7 @@ public:
 	};
 
 private:
+	QMutex *mutex;
 	struct qjh_joy_axis
 	{
 		float actualX;
@@ -62,6 +63,7 @@ private:
 	QJoyStick *joystick;
 	qjh_cfg_t config;
 
+	bool buttonPressed;
 	bool sendSpeed;
 public:
 	JoyStickHandler(qjh_cfg_t cfg, RoboCompOmniRobot::OmniRobotPrx base_proxy, QString joystick_device);

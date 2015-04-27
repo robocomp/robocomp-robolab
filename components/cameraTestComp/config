@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239 
+RGBDBusProxy = rgbdbus:tcp -h robonuc2.local -p 13239 
 
 
 

@@ -1,0 +1,12 @@
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
+
+Component CameraTestCpp
+{
+	Communications
+	{
+		requires RGBDBus;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

@@ -1,0 +1,13 @@
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
+
+
+Component Visor3D
+{
+	Communications
+	{
+		requires RGBDBus;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

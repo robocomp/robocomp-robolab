@@ -143,7 +143,6 @@ int32_t Worker::angle2bin(float ang)
 
 void Worker::compute()
 {
-	printf("--\n");
 	/// Clear laser measurement
 	for (int32_t i=0; i<LASER_SIZE; ++i)
 	{

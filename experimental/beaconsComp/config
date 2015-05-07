@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces
-Beacons.Endpoints=tcp -p 0
+Beacons.Endpoints=tcp -p 11000
 
 
 

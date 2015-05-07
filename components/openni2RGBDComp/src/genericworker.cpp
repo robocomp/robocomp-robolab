@@ -24,9 +24,7 @@ GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
 
-
 	mutex = new QMutex();
-
 		
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

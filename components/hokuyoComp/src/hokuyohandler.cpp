@@ -282,7 +282,7 @@ bool HokuyoHandler::readLaserData()
 		if ( (ra<ERROR_C) || (ra>ERROR_L) )
 		{
 			aux = SiguienteNoNulo ( wdataW, k, 0, wdataW.size());
-			wdataW[k].dist = 0; //(short)aux;
+			wdataW[k].dist = (short)aux;
 			// std::cout << "error measurements, dist, angle: " << ra << ", " << wdataW[k].angle*180/M_PI << std::endl;
 		}
 

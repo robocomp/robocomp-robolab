@@ -209,29 +209,14 @@ void SpecificWorker::compute()
 		rgbdbus_proxy->getImages(cameraList, images);
 	}
 	else
-		qFatal("Input device not defined. Please specify one in the config file");
-
-
-	/*
-	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
-
-	// print out each detection
-	cout << detections.size() << " tags detected:" << endl;
-
-	print_detection(detections);
-//
-	if (m_draw)
 	{
-		for (uint i=0; i<detections.size(); i++)
-		{
-			detections[i].draw(image_gray);
-		}
-		//imshow("AprilTags", image_gray); // OpenCV call
-	}*/
+		qFatal("Input device not defined. Please specify one in the config file");
+	}
+
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
-	if (frame % 10 == 0)
+	if (frame % 30 == 0)
 	{
 		double t = tic();
 		cout << "  " << 10./(t-last_t) << " fps" << endl;
@@ -246,7 +231,7 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
 
 	// print out each detection
-// 	cout << detections.size() << " tags detected:" << endl;
+ 	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
 //
@@ -269,7 +254,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 
-// 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
+ 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
 		// recovering the relative pose of a tag:
 
@@ -298,7 +283,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
-// 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+ 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in

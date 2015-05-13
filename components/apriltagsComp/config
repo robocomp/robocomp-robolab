@@ -12,11 +12,14 @@ AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
-InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus-rockin/files/makeMeCoffee/simulation.xml
-CameraName=RGBDCeiling
+#InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus-rockin/files/makeMeCoffee/simulation.xml
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/genericRobot.xml
+
+#CameraName=RGBDCeiling
+CameraName=rgb
 
 CameraResolution=640x480
-InputInterface = Camera
+InputInterface = RGBD 
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
 AprilTagsSize = 162

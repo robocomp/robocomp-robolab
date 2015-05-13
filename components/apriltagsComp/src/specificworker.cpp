@@ -263,7 +263,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 
-// 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
+ 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
 		// recovering the relative pose of a tag:
 

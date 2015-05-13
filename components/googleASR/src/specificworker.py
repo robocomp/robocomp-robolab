@@ -24,6 +24,9 @@ import time
 from PySide import *
 from genericworker import *
 
+# SpeechRecognition: https://pypi.python.org/pypi/SpeechRecognition/
+import speech_recognition as sr
+
 ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
@@ -46,7 +49,6 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
-		self.number = 0
 	def setParams(self, params):
 		return True
 
@@ -54,14 +56,24 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print 'SpecificWorker.compute...'
 		try:
-			self.asrpublish.newText(str(self.number))
+			# Optional Params: laguage. Example --> language = "en-US"
+			#                  API key. Example --> key = "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"             For get a API key: http://www.chromium.org/developers/how-tos/api-keys
+			# Google Speech Recognition API requires an API key. This library defaults to using 
+			# one that was reverse engineered out of Chrome, but it is not recommended that you use this API key for anything other than personal or testing purposes.
+			
+			# Example to spanish
+			# r = sr.Recognizer(language = "es-ES")
+			r = sr.Recognizer(language = "es-ES")
+			with sr.Microphone() as source:                # use the default microphone as the audio source
+			  audio = r.adjust_for_ambient_noise(source) # listen for 1 second to calibrate the energy threshold for ambient noise levels
+			  audio = r.listen(source)                   # now when we listen, the energy threshold is already set to a good value, and we can reliably catch speech right away
+			  
+			try:
+			  command = r.recognize(audio)
+			  print command
+			  self.asrpublish.newText(command)
+			except LookupError:                            # speech is unintelligible
+			  self.asrpublish.newText("Error, could not understand audio")
 		except Ice.Exception, e:
 			traceback.print_exc()
-			print e
-		self.number += 1
-		time.sleep(1)
-
-
-
-
-
+			print e		

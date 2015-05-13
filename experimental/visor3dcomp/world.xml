@@ -1,0 +1,9 @@
+<innerModel>
+	<transform id="world">
+		<transform id="image">
+		    <plane id="back" nz="1" pz="500" size="500,500,10" texture="#1010ff" /> 
+		</transform>
+	</transform>		
+</innerModel>
+
+

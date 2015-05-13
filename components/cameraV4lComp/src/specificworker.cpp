@@ -94,14 +94,28 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static QTime reloj = QTime::currentTime();
+	static int fps=0;
+	
 	Mat frame, frameRGB;
-	grabber >> frame; 	
+	grabber.read(frame); 	
 	cvtColor( frame, frameRGB, CV_BGR2RGB );
 	memcpy( &writeBuffer[0], frameRGB.data, frameRGB.size().area() * 3);
 	//qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
 	//imshow("img", frame);
 	QMutexLocker ml(mutex);
 	readBuffer.swap( writeBuffer);
+	
+	if( reloj.elapsed() > 1000)
+	{
+		qDebug() << "Grabbing at"<< fps << "FPS ";
+		fps=0;
+		reloj.restart();
+	}
+	fps++;
+	
+	//if(waitKey(30) >= 0) exit(-1);
+	
 }
 
 ////////////////////////////////////////////////////////////

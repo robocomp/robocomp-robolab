@@ -21,10 +21,22 @@
 * \brief Default constructor
 */
 GenericWorker::GenericWorker(MapPrx& mprx) :
+#ifdef USE_QTGUI
+Ui_guiDlg()
+#else
 QObject()
+#endif
+
 {
+	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
+
 
 	mutex = new QMutex();
+
+#ifdef USE_QTGUI
+		setupUi(this);
+		show();
+	#endif
 		
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

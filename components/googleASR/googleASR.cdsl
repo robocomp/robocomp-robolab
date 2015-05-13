@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/ASRPublish.idsl";
+
+Component GoogleASR
+{
+	Communications
+	{
+		publishes ASRPublish;
+	};
+	language Python;
+};
+

@@ -6,7 +6,7 @@ MESSAGE(FATAL_ERROR "
 ")
 ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
-INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv2.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set

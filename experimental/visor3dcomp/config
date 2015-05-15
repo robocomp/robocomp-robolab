@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 11000
 
 
 # Proxies for required interfaces
-RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239
+RGBDBusProxy = rgbdbus:tcp -h localhost -p 10596
 
 Visor3D.InnerModelPath=/home/robocomp/robocomp/components/robocomp-robolab/experimental/visor3dcomp/world.xml
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2015 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,23 +16,25 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** \mainpage RoboComp::genericComp
+
+
+/** \mainpage RoboComp::peopleCounterRGBD
  *
  * \section intro_sec Introduction
  *
- * The genericComp component...
+ * The peopleCounterRGBD component...
  *
  * \section interface_sec Interface
  *
- * genericComp interface...
+ * interface...
  *
  * \section install_sec Installation
  *
  * \subsection install1_ssec Software depencences
- * genericComp ...
+ * ...
  *
  * \subsection install2_ssec Compile and install
- * cd genericComp
+ * cd peopleCounterRGBD
  * <br>
  * cmake . && make
  * <br>
@@ -45,12 +47,12 @@
  * \subsection config_ssec Configuration file
  *
  * <p>
- * The configuration file genericComp/etc/specific_config and genericComp/etc/generic_config...
+ * The configuration file etc/config...
  * </p>
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/genericComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/peopleCounterRGBD --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -63,23 +65,21 @@
 
 // ICE includes
 #include <Ice/Ice.h>
-
+#include <IceStorm/IceStorm.h>
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
 #include <qlog/qlog.h>
-// View the config.h file for config options like
-// QtGui, etc...
+
 #include "config.h"
 #include "genericmonitor.h"
 #include "genericworker.h"
 #include "specificworker.h"
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
-#include <rgbdI.h>
-#include <humantrackerI.h>
 
-#include <InnerModelManager.h>
+
+#include <RGBD.h>
 
 
 // User includes here
@@ -87,104 +87,91 @@
 // Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
-using namespace RoboCompHumanTracker;
+
 using namespace RoboCompRGBD;
-using namespace RoboCompInnerModelManager;
 
 
-class openNI2Comp : public RoboComp::Application
+
+class peopleCounterRGBD : public RoboComp::Application
 {
+public:
+	peopleCounterRGBD (QString prfx) { prefix = prfx.toStdString(); }
 private:
-	// User private data here
-
 	void initialize();
+	std::string prefix;
 	MapPrx mprx;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void openNI2Comp::initialize()
+void peopleCounterRGBD::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
-int openNI2Comp::run(int argc, char* argv[])
+
+int peopleCounterRGBD::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
 	int status=EXIT_SUCCESS;
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
-	InnerModelManagerPrx innermodelmanager_proxy;
+	RGBDPrx rgbd_proxy;
 
-
-	string proxy;
-
-	// User variables
-
-
+	string proxy, tmp;
 	initialize();
 
-	// Remote server proxy creation example
-	// try
-	// {
-	// 	// Load the remote server proxy
-	//	proxy = getProxyString("RemoteProxy");
-	//	remotecomponent_proxy = RemotePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	//	if( !remotecomponent_proxy )
-	//	{
-	//		rInfo(QString("Error loading proxy!"));
-	//		return EXIT_FAILURE;
-	//	}
-	//catch(const Ice::Exception& ex)
-	//{
-	//	cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-	//	return EXIT_FAILURE;
-	//}
-	//rInfo("RemoteProxy initialized Ok!");
-	// 	// Now you can use remote server proxy (remotecomponent_proxy) as local object
-	//Remote server proxy creation example
+
 	try
 	{
-		innermodelmanager_proxy = InnerModelManagerPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("InnerModelManagerProxy") ) );
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
+		}
+		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("InnerModelManagerProxy initialized Ok!");
-	mprx["InnerModelManagerProxy"] = (::IceProxy::Ice::Object*)(&innermodelmanager_proxy);
-	
+	rInfo("RGBDProxy initialized Ok!");
+	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+
+
+
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
-	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
+	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
-	
+
 	if ( !monitor->isRunning() )
 		return status;
 	try
 	{
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapter("CommonBehavior");
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		}
+		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
+
+
+
+
+
+
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapter("RGBDComp");
-		RGBDI *rgbd = new RGBDI(worker);
-		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
-
-		adapterRGBD->activate();
-		Ice::ObjectAdapterPtr adapterHumanTracker = communicator()->createObjectAdapter("HumanTrackerComp");
-		HumanTrackerI *humantracker = new HumanTrackerI(worker);
-		adapterHumanTracker->add(humantracker, communicator()->stringToIdentity("humantracker"));
-
-		adapterHumanTracker->activate();
 		cout << SERVER_FULL_NAME " started" << endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
@@ -215,20 +202,40 @@ int openNI2Comp::run(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	bool hasConfig = false;
 	string arg;
-	openNI2Comp app;
 
-	// Search in argument list for --Ice.Config= argument
-	for (int i = 1; i < argc; ++i)
+	// Set config file
+	std::string configFile = "config";
+	if (argc > 1)
 	{
-		arg = argv[i];
-		if ( arg.find ( "--Ice.Config=", 0 ) != string::npos )
-			hasConfig = true;
+		std::string initIC("--Ice.Config=");
+		size_t pos = std::string(argv[1]).find(initIC);
+		if (pos == 0)
+		{
+			configFile = std::string(argv[1]+initIC.size());
+		}
+		else
+		{
+			configFile = std::string(argv[1]);
+		}
 	}
 
-	if ( hasConfig )
-		return app.main( argc, argv );
-	else
-		return app.main(argc, argv, "../etc/generic_config"); // "config" is the default config file name
+	// Search in argument list for --prefix= argument (if exist)
+	QString prefix("");
+	QString prfx = QString("--prefix=");
+	for (int i = 2; i < argc; ++i)
+	{
+		arg = argv[i];
+		if (arg.find(prfx.toStdString(), 0) == 0)
+		{
+			prefix = QString::fromStdString(arg).remove(0, prfx.size());
+			if (prefix.size()>0)
+				prefix += QString(".");
+			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+		}
+	}
+	peopleCounterRGBD app(prefix);
+
+	return app.main(argc, argv, configFile.c_str());
 }
+

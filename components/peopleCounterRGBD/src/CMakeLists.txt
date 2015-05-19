@@ -1,5 +1,6 @@
+
 cmake_minimum_required(VERSION 2.6)
-PROJECT( openni2comp )
+PROJECT(  peopleCounterRGBD )
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 MESSAGE(FATAL_ERROR "
  ROBOCOMP variable not set, check your bashrc profile!
@@ -11,35 +12,29 @@ INCLUDE ( CMakeListsSpecific.txt)
 # Sources set
 SET ( SOURCES
   ${SOURCES}
-  openni2comp.cpp
-  rgbdI.cpp
-  humantrackerI.cpp
-  genericmonitor.cpp
-  commonbehaviorI.cpp
-  genericworker.cpp
   $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
   $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
+  main.cpp
+  genericmonitor.cpp
+  specificmonitor.cpp
+  commonbehaviorI.cpp
+  genericworker.cpp
+  specificworker.cpp
 )
 
 # Headers set
 SET ( HEADERS
   ${HEADERS}
-  rgbdI.h
-  humantrackerI.h
-
   genericmonitor.h
+  specificmonitor.h
   commonbehaviorI.h
   genericworker.h
+  specificworker.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior  RGBD JointMotor DifferentialRobot HumanTracker  InnerModelManager)
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor DifferentialRobot )
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
-
-# nite2
-#INCLUDE ($ENV{ROBOCOMP}/cmake/modules/nite2.cmake )
-# openni2
-INCLUDE ($ENV{ROBOCOMP}/cmake/modules/openni2.cmake )
 
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
@@ -50,9 +45,11 @@ SET( QT_USE_QTXML TRUE )
 SET( QT_USE_QTSTATE TRUE )
 SET( QT_USE_QTSTATEMACHINE TRUE )
 INCLUDE( ${QT_USE_FILE} )
+
+QT4_WRAP_UI( UI_HEADERS mainUI.ui )
 QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
 
 # Specify construction and link process
-ADD_EXECUTABLE( openni2comp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( openni2comp ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
-INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/openni2comp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+ADD_EXECUTABLE( peopleCounterRGBD ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
+TARGET_LINK_LIBRARIES( peopleCounterRGBD ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
+INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/peopleCounterRGBD DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

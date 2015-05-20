@@ -1,0 +1,12 @@
+import "/robocomp/interfaces/IDSLs/ASRPublish.idsl";
+
+Component googleASRClientUrsus
+{
+	Communications
+	{
+		subscribesTo ASRPublish;
+	};
+	language Python;
+	gui Qt (QWidget);	
+};
+

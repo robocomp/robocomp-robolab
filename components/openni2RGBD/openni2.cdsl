@@ -1,0 +1,8 @@
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component openNI2Comp{
+	Communications{
+			implements RGBD;
+	};
+	language Cpp;
+};

@@ -2,13 +2,11 @@
 # This property is used to configure the endpoints of the subscriber adapter.
 #
 RGBDComp.Endpoints=tcp -p 10096
-HumanTrackerComp.Endpoints=tcp -p 10183
 CommonBehavior.Endpoints=tcp -p 12213
 
 # Remote servers proxies example
 #RemoteProxy = remote:tcp -h remotehost -p 10001
 
-InnerModelManagerProxy = innermodelmanager:tcp -h localhost -p 11175
 #############################
 ### Ice-related properties ##
 #############################
@@ -22,3 +20,6 @@ Ice.Trace.Protocol=0
 # Faster ACM
 Ice.ACM.Client=10
 Ice.ACM.Server=10
+
+Ice.MessageSizeMax=102400
+

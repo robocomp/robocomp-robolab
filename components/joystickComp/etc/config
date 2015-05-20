@@ -12,7 +12,7 @@ DifferentialRobotProxy = differentialrobot:tcp -h odroid.local -p 10004
 Joy.Device = /dev/input/js0
 Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
-Joy.SampleRate = 5
+Joy.SampleRate = 1
 Joy.MaxSteering = 10.
 Joy.MaxAdvance = 1024
 

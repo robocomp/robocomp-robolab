@@ -26,10 +26,17 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	innerModel = new InnerModel("world.xml");
 	
 	osgView = new OsgView (frame);
-	// 	osgView->setCameraManipulator(new osgGA::TrackballManipulator); 	
-	//osgView->getCameraManipulator()->setHomePosition(osg::Vec3(0.,0.,-2.),osg::Vec3(0.,0.,4.),osg::Vec3(0.,1,0.));
+	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
+  osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
+  osg::Vec3d center(osg::Vec3(0.,0.,-0.));
+  osg::Vec3d up(osg::Vec3(0.,1.,0.));
+  tb->setHomePosition(eye, center, up, true);
+  tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
+  osgView->setCameraManipulator(tb);
 	innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
+	
 	imvPointCloud = innerModelViewer->pointCloudsHash["cloud"];
+	
 }
 
 /**
@@ -58,6 +65,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static bool firstTime = true;
  	try
  	{
 		static RoboCompDifferentialRobot::TBaseState bState;
@@ -66,8 +74,14 @@ void SpecificWorker::compute()
 		
  		rgbd_proxy->getXYZ(points, hState, bState);
 		qDebug() << points.size();
-		updatePointCloud(points);
 		
+		if ( firstTime )
+		{
+			computeBackground(points);
+			firstTime = false; 
+		}
+		updatePointCloud(points);
+
  	}
  	catch(const Ice::Exception &e)
  	{
@@ -79,27 +93,74 @@ void SpecificWorker::compute()
 	osgView->frame();
 }
 
-
-void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
+void SpecificWorker::computeBackground(RoboCompRGBD::PointSeq &points)
 {
-	imvPointCloud->points->resize(points.size());
-	imvPointCloud->colors->resize(points.size());
-	for (size_t i = 0; i < points.size (); ++i)
-	{
-		imvPointCloud->points->operator[](i) = QVecToOSGVec(QVec::vec3(
-		  points[i].x,
-		  points[i].y,
-		  points[i].z)
-		);
- 		imvPointCloud->colors->operator[](i) = osg::Vec4(
- 		  1.,
- 		  0.,
- 		  0.,
- 		  1
- 		);
-	}
-	imvPointCloud->update();
+		static RoboCompDifferentialRobot::TBaseState bState;
+		static RoboCompJointMotor::MotorStateMap hState;
+		rgbd_proxy->getXYZ(points, hState, bState);
+		rgbd_proxy->getXYZ(points, hState, bState);
+	
+		data.resize(3,points.size()/4);
+		imvPointCloud->points->resize(points.size()/4);
+		imvPointCloud->colors->resize(points.size()/4);
+		int j=0;
+		for (size_t i = 0; i < points.size (); i+=4)
+		{
+			osg::Vec3f d = QVecToOSGVec(innerModel->transform("world",QVec::vec3(points[i].x, points[i].y, points[i].z),"rgbd"));
+			data( 0, j ) = d.x();
+			data( 1, j ) = d.y();
+			data( 2, j++ ) = d.z();
+		}	
+		nns = NNSearchF::createKDTreeLinearHeap( data );	
+}
 
+void SpecificWorker::storeBackground()
+{
+		
+// 		VectorXi indices(K);
+// 		VectorXf dists2(K);
+// 		
+// 		int j=0;
+// 		for (size_t i = 0; i < points.size (); i+=4)
+// 		{
+// 			nns->knn( , indices, dist2, imvPointCloud );
+// 		}
+// 		
 }
 
 
+
+void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
+{
+	imvPointCloud->points->clear();
+	imvPointCloud->colors->clear();
+	for (size_t i = 0; i < points.size (); i+=4)
+	{
+		 osg::Vec3f p = QVecToOSGVec(innerModel->transform("world",QVec::vec3(points[i].x, points[i].y, points[i].z),"rgbd"));
+		 if( filterP( p , points[i] ) )
+		 {
+				imvPointCloud->points->push_back(p);
+				imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
+		 }
+	}
+	imvPointCloud->update();
+}
+
+
+bool SpecificWorker::filterP( const osg::Vec3f &p, const RoboCompRGBD::PointXYZ &point )
+{
+	const int K = 1;
+	VectorXi indices(K);
+	VectorXf dists2(K);
+
+	VectorXf eq(3);
+	eq(0) = p.x(); eq(1) = p.y(); eq(2) = p.z();
+	//nns->knn(eq, indices, dists2, K);
+	
+	
+	//if(   dists2.coeff(0) > ( point.z/2.f  ))
+	if(   point.z < 3500 and p.y() > 1000)
+		return true;
+	else 
+		return false;
+}

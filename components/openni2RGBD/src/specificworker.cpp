@@ -176,7 +176,7 @@ void SpecificWorker::readFrame()
 void SpecificWorker::computeCoordinates()
 {
 	QMutexLocker l(pointsMutex);
-	const float fov = 540;
+	const float fov = 485;
 	const float flength_x = IMAGE_WIDTH / (2.f * tan( fov / 2.0 ) );
 	const float flength_y = IMAGE_HEIGHT / (2.f * tan( fov / 2.0 ) );
 	
@@ -198,7 +198,7 @@ void SpecificWorker::computeCoordinates()
 			{
 				//(*depthImage)[offset] = z;
 				pointsMap[offset].x =  (z * (x - IMAGE_WIDTH/2) / flength_x) * 1000.;
-				pointsMap[offset].y = -(z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
+				pointsMap[offset].y =  (z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
 				pointsMap[offset].z = z * 1000.;
 				pointsMap[offset].w = 1.0;
 			}

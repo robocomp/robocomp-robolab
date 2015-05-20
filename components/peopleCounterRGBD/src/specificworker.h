@@ -29,6 +29,11 @@
 #include <innermodel/innermodel.h>
 #include <innermodel/innermodelviewer.h>
 #include <osgviewer/osgview.h>
+#include <nabo/nabo.h>
+
+using namespace Nabo;
+using namespace Eigen;
+
 
 class SpecificWorker : public GenericWorker
 {
@@ -48,7 +53,14 @@ private:
 	OsgView 			*osgView;			
 	IMVPointCloud *imvPointCloud;
 	
+  //libnabo	
+	NNSearchF* nns;
+	MatrixXf data;
+	
 	void updatePointCloud(const PointSeq &points);
+	void storeBackground();
+	void computeBackground(PointSeq& points);
+	bool filterP( const osg::Vec3f& p, const PointXYZ& point);
 	
 };
 

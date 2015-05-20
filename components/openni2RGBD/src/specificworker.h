@@ -37,16 +37,6 @@
 #define PI 3.14159265359
 
 ///DEFINICIONES TEMPORALES, A ESPERA DE INTERFAZ DE TRACKING
-/*typedef nite::SkeletonState trackingState;
-
-struct TPerson{			//Tipo Persona
-  trackingState state; 		//Estado de un usuario
-  jointListType joints;		//Lista posiciones del cuerpo
-  RTMatrixList rotations;    	//Lista Rotaciones
-};
-//Lista de Usuarios
-typedef map <short int,TPerson> PersonList; //NO VECTOR PARA NO DEVOLVER TODOS LOS USUARIOS, Y CON ID ALTERNADOS
-*/
 ///TEMPORAL
 struct TRadRotations{
   double rx;
@@ -62,8 +52,6 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
       ///ATRIBUTOS GENERALES
-//      map<JointType,string> jointNames; //TABLA ENUM JOINT CON SUS RESPECTIVOS STRING
-  //    map<JointType,string>::iterator jointNamesIt;
       int IMAGE_WIDTH, IMAGE_HEIGHT;
       
       ///ATRIBUTOS NECESARIOS PARA LA LECTURA DE FLUJOS
@@ -74,13 +62,6 @@ Q_OBJECT
       VideoFrameRef depthFrame;
       VideoFrameRef colorFrame;
       
-      ///ATRIBUTOS NECESARIOS PARA EL TRACKINGN DE NiTE
-/*      bool g_visibleUsers[MAX_USERS];	//VECTOR DE USUARIOS VISIBLES
-      SkeletonState g_skeletonStates[MAX_USERS]; //VECTOR DE ESTADOS DE LOS USUARIOS
-      UserTracker userTracker;
-      nite::Status niteRc;
-      UserTrackerFrameRef userTrackerFrame;   
-  */    
       ///ATRIBUTOS PARA LA OBTENCIÓN DE COLOR Y PROFUNDIDAD CON OPENNI
       VideoStream* pStream;
       int changedStreamDummy;
@@ -90,21 +71,12 @@ Q_OBJECT
       imgType* colorImage;
       depthType* depthImage;
 
-      ///ATRIBUTOS PARA LA GESTIÓN DE TRACKING DE USUARIOS DE NiTE
-/*      SkeletonJoint  bodyJoint; //PARTE DEL CUERPO
-      joint position;	//POSICION PARA PARTE DEL CUERPO
-      RTMatrix rotation;
-      TPerson person;
-      PersonList trackedUsers; //IDENTIFICADOR DE USUARIO + TPerson
-      PersonList finalTrackedUsers;
-      map<string,RTMat> mapJointRotations;
- */
       ///MUTEX
-      QMutex *usersMutex, *RGBMutex, *depthMutex;
+      QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
       
       ///ATRIBUTOS PARA PINTAR       
       vector<short> normalDepth;
-      RCDraw *drawRGB,*drawDepth;
+//      RCDraw *drawRGB;
       uint16_t *mColor;
       uint8_t *auxDepth;
       //IppiSize ippSizeImage;      
@@ -117,29 +89,19 @@ Q_OBJECT
       void openDevice();
       bool openStream(SensorType sensorType, VideoStream *stream);
       void initializeStreams();
-      void initializeTracking();
       void readFrame();
+      void computeCoordinates();
       void readColor();
       void readDepth();
-      void updateUsersData();
       
-//      void calculateJointRotations(TPerson &p);
-  //    RTMat rtMatFromJointPosition(RTMat rS, joint p1, joint p2, joint translation, int axis);
-    //  bool rotarTorso(const QVec & hombroizq,const QVec & hombroder);
-      //void setPersonRotations(TPerson &p);
-           
-//      void updateUserState(const nite::UserData& user, unsigned long long ts);
-      void paintDepth();
       void normalizeDepth();
-//      void drawLimb(short int id, string eJoint1, string eJoint2);
-  //    void drawBody(short int id);      
       
-private slots:
-      void clickStartButton();
-      void clickStopButton();
-      
+      RoboCompRGBD::PointSeq pointsMap;
+      RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
+           
 public:
-	SpecificWorker(MapPrx& mprx, QObject *parent = 0);	
+//	SpecificWorker(MapPrx& mprx, QObject *parent = 0);	
+	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	
@@ -153,16 +115,6 @@ public:
 	void getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState );
 	void getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
 	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-
-	///HUMAN TRACKER INTERFACE
-	void  getJointsPosition(int id, jointListType& jointList);	//Devuelve lista de joints
- 	void  getRTMatrixList(int id, RTMatrixList& RTMatList);		//Devuelve lista de rotaciones
-	void  getUserState(int id, TrackingState &state);		//Devuelve estado de un usuario
-	void  getUser(int id, TPerson &user);				//Devuelve un usuario
-	void  getUsersList(PersonList &users);		//Devuelve una lista de usuarios
-
-	
- 	
 
 public slots:
  	void compute(); 	

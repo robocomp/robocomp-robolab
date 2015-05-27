@@ -25,21 +25,51 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     innerModel = new InnerModel("world.xml");
   
+//     PlaneFilter::PlaneFilterParams filterParams;
+//     filterParams.maxPoints = 2000;
+//     filterParams.numSamples = 10000;
+//     filterParams.numLocalSamples = 50;
+//     filterParams.maxDepthDiff = 1800;    
+//     filterParams.planeSize = 100;
+//     filterParams.WorldPlaneSize = 50;
+//     
+//     filterParams.maxError = 30;
+//     filterParams.minInlierFraction = 0.80;
+//     filterParams.numRetries = 2;
+//   
+//     // Parameters for polygonization
+//     filterParams.runPolygonization = false;
+//     filterParams.minConditionNumber = 0.1;
+    
     PlaneFilter::PlaneFilterParams filterParams;
+    
     filterParams.maxPoints = 2000;
-    filterParams.numSamples = 10000;
-    filterParams.numLocalSamples = 50;
-    filterParams.maxDepthDiff = 1800;    
+    filterParams.numSamples = 20000;    
+    filterParams.numLocalSamples = 80;
     filterParams.planeSize = 100;
     filterParams.WorldPlaneSize = 50;
-    ;
-    filterParams.maxError = 30;
-    filterParams.minInlierFraction = 0.80;
+    filterParams.minInlierFraction = 0.8;
+    
+    filterParams.maxError = 20;
     filterParams.numRetries = 2;
   
+    
+    filterParams.maxDepthDiff = 1800;
+    
+    
+    
+    
+    
     // Parameters for polygonization
     filterParams.runPolygonization = false;
     filterParams.minConditionNumber = 0.1;
+    
+    
+    
+    
+    
+    
+    
     
     //Thresholds for polygon merging
     //double maxCosineError;

@@ -247,6 +247,7 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
         PlanePolygon poly(neighborhoodInliers,neighborhoodPixelLocs);
         if(poly.validPolygon)
 	{
+	  print 'aaaaaa'
           polygons.push_back(poly);
 	  n = Vector3f(V3COMP(poly.normal));
 	}

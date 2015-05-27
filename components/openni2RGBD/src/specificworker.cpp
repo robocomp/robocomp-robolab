@@ -172,42 +172,7 @@ void SpecificWorker::readFrame()
 	}
 }
 
-<<<<<<< HEAD
-=======
-void SpecificWorker::computeCoordinates()
-{
-	QMutexLocker l(pointsMutex);
-	const float fov = 485;
-	const float flength_x = IMAGE_WIDTH / (2.f * tan( fov / 2.0 ) );
-	const float flength_y = IMAGE_HEIGHT / (2.f * tan( fov / 2.0 ) );
-	
-	for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
-	{
-		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
-		{
-			const int offset = y*IMAGE_WIDTH + x;
-			const float z = float((*depthImage)[offset]) / 1000.0;
-			if( z < 0.1 ) 
-			{
-				(*depthImage)[offset] = NAN;
-				pointsMap[offset].x = NAN;
-				pointsMap[offset].y = NAN;
-				pointsMap[offset].z = NAN;
-				pointsMap[offset].w = NAN;
-			} 
-			else 
-			{
-				//(*depthImage)[offset] = z;
-				pointsMap[offset].x =  (z * (x - IMAGE_WIDTH/2) / flength_x) * 1000.;
-				pointsMap[offset].y =  (z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
-				pointsMap[offset].z = z * 1000.;
-				pointsMap[offset].w = 1.0;
-			}
-		}
-	}
-}
 
->>>>>>> 1e83abafafe6189ab4aabb4c5ddebff41505c4ba
 void SpecificWorker::readDepth()
 {
 	openniRc = depth.readFrame(&depthFrame);

@@ -36,12 +36,15 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
+
 	///INICIALIZACION ATRIBUTOS PARA PINTAR
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	qImgDepth = new QImage(IMAGE_WIDTH,IMAGE_HEIGHT,QImage::Format_Indexed8);
 	printf("\nStart moving around to get detected...\n(PSI pose may be required for skeleton calibration, depending on the configuration)\n");
-	setPeriod(15);
+	setPeriod(33);
+
+
 }
 
 void SpecificWorker::openDevice()
@@ -79,7 +82,7 @@ void SpecificWorker::initializeStreams()
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
 	
 	//RESIZE POINTMAP
-	pointsBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+	pointsMap.resize( IMAGE_WIDTH*IMAGE_HEIGHT);
 
 	depthBuffer = new vector<float>(IMAGE_WIDTH*IMAGE_HEIGHT);
 	colorBuffer = new vector<ColorRGB>(IMAGE_WIDTH*IMAGE_HEIGHT*3);
@@ -137,20 +140,21 @@ void SpecificWorker::compute( )
 	static int fps = 0;
 	static QTime reloj = QTime::currentTime();
 	readFrame();
-	computeCoordinates();
-	pointsBuff.swap();
-        if (reloj.elapsed() > 1000)
-        {
-           qDebug()<<"Grabbing at:"<<fps/2<<"fps";
+     computeCoordinates();
+
+      if (reloj.elapsed() > 1000)
+      {
+           qDebug()<<"Grabbing at:"<<fps<<"fps";
            reloj.restart();
            fps=0;
-       }
-       fps++;
+      }
+      fps++;
 }
 
 void SpecificWorker::readFrame()
 {
 	openni::Status rc = openni::STATUS_OK;
+
 	openni::VideoStream* streams[] = {&depth, &color};
 
 	int changedIndex = -1;
@@ -172,6 +176,49 @@ void SpecificWorker::readFrame()
 	}
 }
 
+
+void SpecificWorker::computeCoordinates()
+{
+	QMutexLocker l(pointsMutex);
+	const float fov = 540;
+	const float flength_x = IMAGE_WIDTH / (2.f * tan( fov / 2.0 ) );
+	const float flength_y = IMAGE_HEIGHT / (2.f * tan( fov / 2.0 ) );
+	QVec aux(3), res(3);	
+
+	
+		for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
+		{
+			for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
+			{
+				const int offset = y*IMAGE_WIDTH + x;
+				const float z = float((*depthImage)[offset]) / 1000.0;
+				if( z < 0.1 ) 
+				{
+					(*depthImage)[offset] = NAN;
+					pointsMap[offset].x = NAN;
+					pointsMap[offset].y = NAN;
+					pointsMap[offset].z = NAN;
+					pointsMap[offset].w = NAN;
+				} 
+				else 
+				{
+					//(*depthImage)[offset] = z;
+					aux[0] =  (z * (x - IMAGE_WIDTH/2) / flength_x) * 1000.;
+					aux[1] = -(z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
+					aux[2] = z * 1000.;
+					pointsMap[offset].w = 1.0;
+			
+					res = innerModel->transform("world", aux, "rgbd");
+					pointsMap[offset].x = res.x();
+					pointsMap[offset].y = res.y();
+					pointsMap[offset].z = res.z();
+					 
+				}
+			}
+		}
+
+}
+
 void SpecificWorker::readDepth()
 {
 	openniRc = depth.readFrame(&depthFrame);
@@ -188,6 +235,12 @@ void SpecificWorker::readDepth()
 	}
 
 	pixDepth = (DepthPixel*)depthFrame.getData();
+
+	for(int i=0;i<IMAGE_WIDTH*IMAGE_HEIGHT;i++)
+		depthBuffer->operator[](i)=pixDepth[i];
+	depthMutex->lock();
+	depthImage=depthBuffer;
+	depthMutex->unlock();
 }
 
 void SpecificWorker::readColor()
@@ -215,46 +268,17 @@ void SpecificWorker::readColor()
 	RGBMutex->unlock();
 }
 
-void SpecificWorker::computeCoordinates()
-{
-	//QMutexLocker l(pointsMutex); 57.00 43.00
-	static const float fovW = 521;
-	static const float fovH = 521;
-	static const float flength_x = IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
-	static const float flength_y = IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
-	
-	for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
-	{
-		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
-		{
-			const int offset = y*IMAGE_WIDTH + x;
-			const float z = float(pixDepth[offset]) / 1000.0;
-		
-			if( z < 0.1 ) 
-			{
-				//pixDepth[offset] = 8;
-				pointsBuff[offset].x = NAN;
-				pointsBuff[offset].y = NAN;
-				pointsBuff[offset].z = NAN;
-				pointsBuff[offset].w = NAN;
-			} 
-			else 
-			{
-				//(*depthImage)[offset] = z;
-				pointsBuff[offset].x = (z * (x - IMAGE_WIDTH/2) / flength_x) * 1000.;
-				pointsBuff[offset].y = (z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
-				pointsBuff[offset].z = z * 1000.;
-				pointsBuff[offset].w = 1.0;
-			}
-		}
-		
-	}
-}
-
-
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	///INNERMODEL
+	try
+        {
+                RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
+                innerModel = new InnerModel(par.value);
+        }
+        catch(std::exception e) { qFatal("Error reading config params"); }
+
 	timer.start(Period);
 	return true;
 }
@@ -343,6 +367,10 @@ void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &
 
 void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
-	//QMutexLocker l(pointsMutex);
-	pointsBuff.copy(points);
+	QMutexLocker l(pointsMutex);
+	for (auto p : pointsMap)
+	{
+		printf("%f %f %f\n", p.x, p.y, p.z);
+	}
+	points = pointsMap;
 }

@@ -1,0 +1,19 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+
+SET (LIBS ${LIBS} -losgViewer -lnabo -lgomp  )
+ADD_DEFINITIONS( -std=c++11 )
+
+

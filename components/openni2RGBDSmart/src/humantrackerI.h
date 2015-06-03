@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,33 +16,33 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef RGBDBUS_H
-#define RGBDBUS_H
+#ifndef HUMANTRACKERI_H
+#define HUMANTRACKERI_H
 
 // QT includes
 #include <QtCore/QObject>
 
 // Ice includes
 #include <Ice/Ice.h>
-#include <RGBDBus.h>
+#include <HumanTracker.h>
 
 #include <config.h>
 #include "genericworker.h"
 
-using namespace RoboCompRGBDBus;
+using namespace RoboCompHumanTracker;
 
-class RGBDBusI : public QObject , public virtual RoboCompRGBDBus::RGBDBus
+class HumanTrackerI : public QObject , public virtual RoboCompHumanTracker::HumanTracker
 {
 Q_OBJECT
 public:
-	RGBDBusI( GenericWorker *_worker, QObject *parent = 0 );
-	~RGBDBusI();
-	
-	CameraParamsMap getAllCameraParams(const Ice::Current&);
-	void getPointClouds(const CameraList &cameras, PointCloudMap &clouds, const Ice::Current&);
-	void getImages(const CameraList &cameras, ImageMap &images, const Ice::Current&);
-	void getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds, const Ice::Current&);
-	void getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images, const Ice::Current&);
+	HumanTrackerI( GenericWorker *_worker, QObject *parent = 0 );
+	~HumanTrackerI();
+	void  getJointsPosition(Ice::Int id, jointListType& jointList, const Ice::Current& = Ice::Current());
+void  getRTMatrixList(Ice::Int id, RTMatrixList& RTMatList, const Ice::Current& = Ice::Current());
+void  getUserState(Ice::Int id, TrackingState& state, const Ice::Current& = Ice::Current());
+void  getUser(Ice::Int id, TPerson& user, const Ice::Current& = Ice::Current());
+void  getUsersList(PersonList& users, const Ice::Current& = Ice::Current());
+
 
 	QMutex *mutex;
 private:

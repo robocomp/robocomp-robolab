@@ -2,7 +2,6 @@ CommonBehavior.Endpoints=tcp -p 1
 
 
 # Endpoints for implemented interfaces
-RGBDBus.Endpoints=tcp -p 0
 RGBD.Endpoints=tcp -p 0
 
 

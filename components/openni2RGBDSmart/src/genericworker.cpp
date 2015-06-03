@@ -1,6 +1,5 @@
-
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2015 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -17,29 +16,41 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SPECIFICMONITOR_H
-#define SPECIFICMONITOR_H
+#include "genericworker.h"
+/**
+* \brief Default constructor
+*/
+GenericWorker::GenericWorker(MapPrx& mprx) :
+QObject()
+{
 
-#include "genericmonitor.h"
+
+	mutex = new QMutex();
+
+		
+	Period = BASIC_PERIOD;
+	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+}
 
 /**
-       \brief
-       @author authorname
+* \brief Default destructor
 */
-class SpecificMonitor : public GenericMonitor
+GenericWorker::~GenericWorker()
 {
-  Q_OBJECT
-  
-  public:
-	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
-	~SpecificMonitor();
-	
-	void readConfig(RoboCompCommonBehavior::ParameterList &params );
-	void run();
-	void initialize();
-    
-	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
-	bool checkParams(RoboCompCommonBehavior::ParameterList l);
-};
 
-#endif // GENERICMONITOR_H
+}
+void GenericWorker::killYourSelf()
+{
+	rDebug("Killing myself");
+	emit kill();
+}
+/**
+* \brief Change compute period
+* @param per Period in ms
+*/
+void GenericWorker::setPeriod(int p)
+{
+	rDebug("Period changed"+QString::number(p));
+	Period = p;
+	timer.start(Period);
+}

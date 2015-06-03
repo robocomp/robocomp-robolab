@@ -48,6 +48,44 @@ struct TRadRotations{
 using namespace openni;
 using namespace std;
 
+struct DoubleBuffer
+{
+	//ATRIBUTOS DE LA struct
+	QMutex bufferMutex;
+	RoboCompRGBD::PointSeq bufferA;
+	RoboCompRGBD::PointSeq *writer, *reader, *aux;
+	int size;
+	RoboCompRGBD::PointSeq bufferB;
+
+	DoubleBuffer(){};
+	void resize(int size_)
+	{
+		bufferA.resize(size_);
+		writer = &bufferA;
+		bufferB.resize(size_);
+		reader = &bufferB;
+		size = size_;
+	}
+
+	void swap()
+	{
+		bufferMutex.lock();
+		 	aux = writer;
+			writer = reader;
+			reader = aux;
+		bufferMutex.unlock();
+	}
+
+	inline RoboCompRGBD::PointXYZ& operator[](int i){ return (*writer)[i]; };
+
+	void copy(RoboCompRGBD::PointSeq &points)
+	{
+		points.resize(size);
+		bufferMutex.lock();
+			points = *reader;
+		bufferMutex.unlock();
+}
+};
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
@@ -96,7 +134,7 @@ Q_OBJECT
       
       void normalizeDepth();
       
-      RoboCompRGBD::PointSeq pointsMap;
+      DoubleBuffer pointsBuff;
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
            
 public:

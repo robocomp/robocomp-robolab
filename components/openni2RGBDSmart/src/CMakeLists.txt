@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 2.6)
-PROJECT(  OpenNI2RGBDComp )
+PROJECT(  openNI2Comp )
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 MESSAGE(FATAL_ERROR "
  ROBOCOMP variable not set, check your bashrc profile!
@@ -20,7 +20,6 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
-  rgbdbusI.cpp
   rgbdI.cpp
 )
 
@@ -32,12 +31,11 @@ SET ( HEADERS
   commonbehaviorI.h
   genericworker.h
   specificworker.h
-  rgbdbusI.h
   rgbdI.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior RGBDBus RGBD JointMotor DifferentialRobot )
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor DifferentialRobot )
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # Qt4
@@ -53,6 +51,6 @@ INCLUDE( ${QT_USE_FILE} )
 QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
 
 # Specify construction and link process
-ADD_EXECUTABLE( OpenNI2RGBDComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( OpenNI2RGBDComp ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
-INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/OpenNI2RGBDComp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+ADD_EXECUTABLE( openNI2Comp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
+TARGET_LINK_LIBRARIES( openNI2Comp ${QT_LIBRARIES} ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS})
+INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/openNI2Comp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

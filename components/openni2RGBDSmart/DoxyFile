@@ -18,7 +18,7 @@
 DOXYFILE_ENCODING      = UTF-8
 
 # ROBOCOMP
-PROJECT_NAME           = OpenNI2RGBDComp 
+PROJECT_NAME           = openNI2Comp 
 PROJECT_NUMBER         =
 
 

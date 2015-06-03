@@ -1,3 +1,4 @@
+
 /*
  *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
@@ -24,6 +25,7 @@ SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _co
 {
 
 }
+
 /**
 * \brief Default destructor
 */
@@ -65,6 +67,7 @@ void SpecificMonitor::initialize()
 	}
 	state = RoboCompCommonBehavior::Running;
 }
+
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)
 {
 	if(checkParams(params))
@@ -80,22 +83,32 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 	return false;
 
 }
+
 ///Local Component parameters read at start
 ///Reading parameters from config file or passed in command line, with Ice machinery
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-// 	RoboCompCommonBehavior::Parameter aux;
-// 
-// 	aux.editable = true;
-// 	configGetString( "InnerModelPath", aux.value, "");
-// 	params["InnerModelPath"] = aux;
+	//Read params from config file
+	//Example
+	    RoboCompCommonBehavior::Parameter aux;
+	    aux.editable = true;
+	    configGetString( "InnerModelPath", aux.value,"./");
+	    params["InnerModelPath"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;
+	//Check parameters
+	//Example
+// 	    if(l["DRobot.Handler"].value != "Robex" and l["DRobot.Handler"].value != "Gazebo" and l["DRobot.Handler"].value != "Player")
+// 		    correct = false;
+	
+	//copy parameters
+// 	if(correct)
+// 		config_params = l;
 	return correct;
 }
 

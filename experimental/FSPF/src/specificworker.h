@@ -50,9 +50,11 @@ private:
 	InnerModelViewer *innerModelViewer;
 	OsgView 			*osgView;			
 	IMVPointCloud *imvPointCloud;
-	void updatePointCloud(const PointSeq &points);	
-	void updatePointCloud2( const vector< vector3f > &points);
 	
+	void updatePointCloud(const PointSeq &points);	
+	void updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons);
+	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
+	bool removeNode(InnerModelViewer *innerViewer, const QString &item);
 	PlaneFilter *planeFilter;
 	RoboCompRGBD::PointSeq points;		
 	

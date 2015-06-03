@@ -33,11 +33,6 @@ PlaneFilter::PlaneFilter()
   lastRand = 0;
 }
 
-// PlaneFilter::PlaneFilter(DepthCam *_depthCam, PlaneFilterParams &_filterParams)
-// {
-//   setParameters(_depthCam, _filterParams);
-// }
-
 PlaneFilter::PlaneFilter(const RoboCompRGBD::PointSeq &points, PlaneFilterParams &_filterParams)
 {
 //  setParameters(points, _filterParams);  
@@ -75,17 +70,16 @@ inline bool PlaneFilter::sampleLocation(const RoboCompRGBD::PointSeq &points, in
   while( !valid && retries<=filterParams.numRetries){
     row = rMin + (lcgRand()%height);
     col = cMin + (lcgRand()%width);
-//    index = row*depthCam->width + col;
-    index = row*320 + col;
-    x = points[index].x;
-    y = points[index].y;
-    z = points[index].z;
+    index = row*320 + col;    
+
+      x = points[index].x;
+      y = points[index].y;
+      z = points[index].z;
+
     valid = !(isnan(x) or isnan(y) or isnan(z));       
-    //valid = depthCam->isValidDepth(index,depthImage);
     numSampledLocations++;
     retries++;
   }
-  //if(valid) p = Vector3f(V3COMP(depthCam->depthPixelTo3D(index,depthImage)));
   if(valid) p = Vector3f(x,y,z);
   return valid;
 }
@@ -94,14 +88,12 @@ void PlaneFilter::GenerateCompletePointCloud(const RoboCompRGBD::PointSeq &point
 {
   pointCloud.clear();
   pixelLocs.clear();
-  //int numPixels = depthCam->height*depthCam->width;
   int numPixels = 320*240;
   float x,y,z;  
   for (int index=0; index<numPixels; index++) {
     x = points[index].x;
     y = points[index].y;
     z = points[index].z;    
-    //if(!depthCam->isValidDepth(i,depthImage)){
     if(!(isnan(x) or isnan(y) or isnan(z))){
       continue;
     }
@@ -122,25 +114,26 @@ void PlaneFilter::GenerateSampledPointCloud(const RoboCompRGBD::PointSeq &points
   }
 }
 
-// void PlaneFilter::PointCloudFromRaster(void* depth, vector< vector3f >& pointCloud, unsigned int raster)
-// {
-//   static const bool debug = false;
-//   float row, col;
-//   vector3f p;
-//   pointCloud.clear();
-//   if(raster>depthCam->height-1)
-//     return;
-//   for(unsigned int i=0; i<depthCam->width; i++){
-//     row = raster;
-//     col = i;
-//     int index = row*depthCam->width + col;
-//     if(!depthCam->isValidDepth(index,depth))
-//       continue;
-//     p = depthCam->depthPixelTo3D(index, depth);
-//     pointCloud.push_back(p);
-//     if(debug) printf("%f, %f, %f\n",V3COMP(p));
-//   }
-// }
+void PlaneFilter::PointCloudFromRaster(const RoboCompRGBD::PointSeq &points, vector< vector3f >& pointCloud, unsigned int raster)
+{
+  static const bool debug = false;
+  float row, col;
+  vector3f p;
+  pointCloud.clear();
+  if(raster>240-1)
+    return;
+  for(unsigned int i=0; i< 320; i++){
+    row = raster;
+    col = i;
+    int index = row* 320 + col;
+    if(!(isnan(points[index].x) or isnan(points[index].y) or isnan(points[index].z))){
+      continue;
+    }
+    p = vector3f(points[index].x,points[index].y,points[index].z);
+    pointCloud.push_back(p);
+    if(debug) printf("%f, %f, %f\n",V3COMP(p));
+  }
+}
 
 void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &points, vector< vector3f >& filteredPointCloud, vector< vector2i >& pixelLocs, vector< vector3f >& pointCloudNormals, vector< vector3f >& outlierCloud, vector< PlanePolygon >& polygons)
 { 
@@ -225,13 +218,16 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
     int inliers = 0, outliers = 0;
     neighborhoodInliers.clear();
     neighborhoodPixelLocs.clear();
-    for(unsigned int j=0; outliers<maxOutliers && j<filterParams.numLocalSamples; j++){
+    for(unsigned int j=0; outliers<maxOutliers && j<filterParams.numLocalSamples; j++)
+    {
       //generate random point p within max distance params.planeSize from p1
       int r,c,ind;
       if(!sampleLocation(points, ind, l.y, l.x, p, rMin, dR, cMin, dC))
         continue;
       
       float err = fabs(n.dot(p) - d);
+      
+
       if(err<filterParams.maxError && p.x()<meanDepth+filterParams.maxDepthDiff && p.x()>meanDepth-filterParams.maxDepthDiff){
         inliers++;
         neighborhoodInliers.push_back(EIG2GV3(p));
@@ -247,8 +243,12 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
         PlanePolygon poly(neighborhoodInliers,neighborhoodPixelLocs);
         if(poly.validPolygon)
 	{
-	  print 'aaaaaa'
-          polygons.push_back(poly);
+          polygons.push_back(poly);	  
+	}
+	if(!(isnan(poly.normal.x) or isnan(poly.normal.y) or isnan(poly.normal.z))){
+	  n = Vector3f(0,0,0);
+	}
+	else {
 	  n = Vector3f(V3COMP(poly.normal));
 	}
       }
@@ -282,14 +282,15 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
       outlierCloud.push_back(EIG2GV3(p3));
     }
   }
-  if(filterParams.runPolygonization && filterParams.filterOutliers){
+  if(filterParams.runPolygonization && filterParams.filterOutliers)
+  {
     //Remove planar points from outlier cloud
     static const float MaxPlanarDist = filterParams.maxError;
     bool planar = false;
     for(unsigned int i=0; i<outlierCloud.size(); i++){ 
       planar = false;
       for(unsigned int j=0; !planar && j<polygons.size(); j++){ 
-        planar = fabs(polygons[j].normal.dot(outlierCloud[i])+polygons[j].offset)<MaxPlanarDist;
+         planar = fabs(polygons[j].normal.dot(outlierCloud[i])+polygons[j].offset)<MaxPlanarDist;
       }
       if(planar){
         //Need to remove this point
@@ -304,47 +305,47 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
 }
 
 
-// vector<PlanePolygon> PlaneFilter::findUniqueDepthPlanes(vector< PlanePolygon > planes)
-// {
-//   static const float MaxCosError = cos(RAD(20.0));
-//   static const float MaxPlaneDist = 0.02;
-//   static const float MinPlaneSize = 0.05;
-//   static const float MinConditionNumber = 0.2;
-//   vector<PlanePolygon> unique3DPlanes;
-//   
-//   for(unsigned int i=0; i<planes.size(); i++){
-//     
-//     if(planes[i].height<MinPlaneSize || planes[i].width<MinPlaneSize)
-//       continue;
-//     
-//     if(planes[i].conditionNumber<MinConditionNumber)
-//       continue;
-//     
-//     bool matchFound = false;
-//     for(unsigned int j=0; !matchFound && j<unique3DPlanes.size(); j++){
-//       matchFound = fabs(unique3DPlanes[j].normal.dot(planes[i].normal))<MaxCosError && fabs(unique3DPlanes[j].normal.dot(planes[i].p0)+unique3DPlanes[j].offset)<MaxPlaneDist ;
-//     }
-//     if(!matchFound)
-//       unique3DPlanes.push_back(planes[i]);
-//   }
-//   unsigned int numUniquePlanes = unique3DPlanes.size();
-//   
-//   return unique3DPlanes;
-// }
-// 
-// void PlaneFilter::GenerateLabelledDepthImage(void* depthImage, int*& labelledDepth, const std::vector< PlanePolygon >& planes)
-// {
-//   fprintf(stderr,"PlaneFilter::GenerateLabelledDepthImage not implemented yet!\n");
-//   exit(1);
-// }
-// 
-// bool PlaneFilter::pointIsPlanar(void* depthImage, vector< PlanePolygon>& planes, int ind, float MaxError)
-// {
-//   vector3f p = depthCam->depthPixelTo3D(ind,depthImage);
-//   
-//   for(unsigned int k=0; k<planes.size(); k++){
-//     if(fabs(planes[k].normal.dot(p)+planes[k].offset)<MaxError)
-//       return true;
-//   }
-//   return false;
-// }
+vector<PlanePolygon> PlaneFilter::findUniqueDepthPlanes(vector< PlanePolygon > planes)
+{
+  static const float MaxCosError = cos(RAD(20.0));
+  static const float MaxPlaneDist = 0.02;
+  static const float MinPlaneSize = 0.05;
+  static const float MinConditionNumber = 0.2;
+  vector<PlanePolygon> unique3DPlanes;
+  
+  for(unsigned int i=0; i<planes.size(); i++){
+    
+    if(planes[i].height<MinPlaneSize || planes[i].width<MinPlaneSize)
+      continue;
+    
+    if(planes[i].conditionNumber<MinConditionNumber)
+      continue;
+    
+    bool matchFound = false;
+    for(unsigned int j=0; !matchFound && j<unique3DPlanes.size(); j++){
+      matchFound = fabs(unique3DPlanes[j].normal.dot(planes[i].normal))<MaxCosError && fabs(unique3DPlanes[j].normal.dot(planes[i].p0)+unique3DPlanes[j].offset)<MaxPlaneDist ;
+    }
+    if(!matchFound)
+      unique3DPlanes.push_back(planes[i]);
+  }
+  unsigned int numUniquePlanes = unique3DPlanes.size();
+  
+  return unique3DPlanes;
+}
+
+void PlaneFilter::GenerateLabelledDepthImage(const RoboCompRGBD::PointSeq &points, int*& labelledDepth, const std::vector< PlanePolygon >& planes)
+{
+  fprintf(stderr,"PlaneFilter::GenerateLabelledDepthImage not implemented yet!\n");
+  exit(1);
+}
+
+bool PlaneFilter::pointIsPlanar(const RoboCompRGBD::PointSeq &points, vector< PlanePolygon>& planes, int ind, float MaxError)
+{
+  vector3f p = vector3f(points[ind].x,points[ind].y,points[ind].z);
+  
+  for(unsigned int k=0; k<planes.size(); k++){
+    if(fabs(planes[k].normal.dot(p)+planes[k].offset)<MaxError)
+      return true;
+  }
+  return false;
+}

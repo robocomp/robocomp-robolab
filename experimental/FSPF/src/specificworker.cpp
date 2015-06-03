@@ -24,6 +24,11 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     innerModel = new InnerModel("world.xml");
+    
+    //leer el fichero de líneas
+    // InnerModelPlane *plano = InnerModelPlane("id", );
+//     innerModel->getNode("floor")->addChild(InnerModelPlane("id", ));
+    
   
 //     PlaneFilter::PlaneFilterParams filterParams;
 //     filterParams.maxPoints = 2000;
@@ -41,6 +46,26 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 //     filterParams.runPolygonization = false;
 //     filterParams.minConditionNumber = 0.1;
     
+//     PlaneFilter::PlaneFilterParams filterParams;
+//     
+//     filterParams.maxPoints = 2000;
+//     filterParams.numSamples = 20000;    
+//     filterParams.numLocalSamples = 80;
+//     filterParams.planeSize = 500;
+//     filterParams.WorldPlaneSize = 20;
+//     filterParams.minInlierFraction = 0.8;
+//     
+//     filterParams.maxError = 10;
+//     filterParams.numRetries = 2;
+//   
+//     filterParams.maxDepthDiff = 1800;
+//     
+//     
+//     // Parameters for polygonization
+//     filterParams.runPolygonization = false;
+//     filterParams.minConditionNumber = 0.1;
+    
+    
     PlaneFilter::PlaneFilterParams filterParams;
     
     filterParams.maxPoints = 2000;
@@ -53,21 +78,12 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     filterParams.maxError = 20;
     filterParams.numRetries = 2;
   
-    
     filterParams.maxDepthDiff = 1800;
-    
-    
-    
     
     
     // Parameters for polygonization
     filterParams.runPolygonization = false;
     filterParams.minConditionNumber = 0.1;
-    
-    
-    
-    
-    
     
     
     
@@ -136,8 +152,9 @@ void SpecificWorker::compute()
 		vector< PlanePolygon > polygons;
 		
 		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointCloudNormals, outlierCloud, polygons);
+
+		updatePointCloud2(filteredPointCloud,polygons);
 		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
-		updatePointCloud2(filteredPointCloud);
 
  	}
  	catch(const Ice::Exception &e)
@@ -145,9 +162,9 @@ void SpecificWorker::compute()
  		std::cout << "Error reading from Camera" << e << std::endl;
  	}
  	 	
- 	innerModelViewer->update();
-	osgView->autoResize();
-	osgView->frame();
+//  	innerModelViewer->update();
+// 	osgView->autoResize();
+// 	osgView->frame();
 
 	co++;
 	if( reloj.elapsed() > 1000)
@@ -179,11 +196,121 @@ void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
 	imvPointCloud->update();
 }
 
-void SpecificWorker::updatePointCloud2( const vector< vector3f > &points)
+bool SpecificWorker::addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size)
 {
+// 	printf("%s %d\n",__FUNCTION__, __LINE__);
+	InnerModelNode *parent = innerViewer->innerModel->getNode(base);
+	if (parent == NULL)
+	{
+		printf("%s: parent not exists\n", __FUNCTION__);
+		return false;
+	}
+// 	qDebug() << __PRETTY_FUNCTION__<< __LINE__;
+
+	
+	
+	try
+	{
+	  InnerModelPlane *plane = innerViewer->innerModel->newPlane(item, parent, texture, size(0), size(1), size(2), 1, n(0), n(1), n(2), p(0), p(1), p(2));
+	  parent->addChild(plane);
+// 	qDebug() << __PRETTY_FUNCTION__<< __LINE__;
+	  
+	  innerViewer->recursiveConstructor(plane, innerViewer->mts[parent->id], innerViewer->mts, innerViewer->meshHash);
+// 	  qDebug() << __PRETTY_FUNCTION__<< __LINE__;
+	}
+	catch (QString err)
+	{
+		printf("%s:%s:%d: Exception: %s\n", __FILE__, __FUNCTION__, __LINE__, err.toStdString().c_str());
+		throw;
+	}		
+	return true;
+}
+
+
+bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)
+{
+	if (item=="floor")
+	{
+		qDebug() << "Can't remove root elements" << item;
+		return false;
+	}
+
+	InnerModelNode *node = innerViewer->innerModel->getNode(item);
+	if (node == NULL)
+	{
+		qDebug() << "Can't remove not existing elements" << item;
+		return false;
+	}
+
+	QStringList l;
+	innerViewer->innerModel->getSubTree(node, &l);
+	innerViewer->innerModel->removeSubTree(node, &l);
+
+	/// Replicate InnerModel node removals in the InnerModelViewer tree. And in handlers Lists
+	foreach(QString n, l)
+	{
+		/// Replicate mesh removals
+		if (innerViewer->meshHash.contains(n))
+		{
+			while (innerViewer->meshHash[n].osgmeshPaths->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshPaths->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshPaths);			
+			while(innerViewer->meshHash[n].osgmeshes->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshes->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshes);
+			while(innerViewer->meshHash[n].meshMts->getNumParents() > 0)	
+				innerViewer->meshHash[n].meshMts->getParent(0)->removeChild(innerViewer->meshHash[n].meshMts);			
+			innerViewer->meshHash.remove(n);
+		}
+		/// Replicate transform removals
+		if (innerViewer->mts.contains(n))
+		{
+ 			while (innerViewer->mts[n]->getNumParents() > 0)
+				innerViewer->mts[n]->getParent(0)->removeChild(innerViewer->mts[n]);
+ 			innerViewer->mts.remove(n);
+		}
+		/// Replicate plane removals
+		if (innerViewer->planeMts.contains(n))
+		{
+			while(innerViewer->planeMts[n]->getNumParents() > 0)
+				((osg::Group *)(innerViewer->planeMts[n]->getParent(0)))->removeChild(innerViewer->planeMts[n]);
+			innerViewer->planeMts.remove(n);
+			innerViewer->planesHash.remove(n);
+		}
+		
+	}
+
+	return true;
+}
+
+void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons)
+{
+// addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size)
 	imvPointCloud->points->clear();
 	imvPointCloud->colors->clear();
-	
+
+	for(unsigned int i; i<polygons.size() && i%2==0;i++) {
+// 	  qDebug() << polygons[i].vertices.size();
+	      if (innerModelViewer->innerModel->getNode("poly"+i))
+	      {
+// 		      removeNode(innerModelViewer, "poly"+i);
+		      qDebug() << "remove node";
+	      }
+	      else {
+ 		addPlane_notExisting(innerModelViewer,"poly"+i,"floor",QVec::vec3(polygons[i].p0.x,polygons[i].p0.y,polygons[i].p0.z),QVec::vec3(polygons[i].normal.x,polygons[i].normal.y,polygons[i].normal.z), "#00A0A0",QVec::vec3(polygons[i].width,polygons[i].height,200));
+//  		qDebug() << polygons[i].vertices.size();
+//  		for(unsigned int j=0;j<polygons[i].vertices.size()-1;j++) {  
+// 		  QVec p1 = QVec::vec3(polygons[i].vertices[j].x,polygons[i].vertices[j].y,polygons[i].vertices[j].z);
+// 		  QVec p2 = QVec::vec3(polygons[i].vertices[j+1].x,polygons[i].vertices[j+1].y,polygons[i].vertices[j+1].z);
+// 		  qDebug() << "aaaaaaaaa" << p1 << p2;
+// 		  addPlane_notExisting(innerModelViewer, 
+// 				       "line"+j,
+// 					"floor", p1,
+// 				       QVec::vec3(polygons[i].normal.x,polygons[i].normal.y,polygons[i].normal.z), "#00A0A0", 
+// 				       QVec::vec3(100, (p1-p2).norm2(), 100));
+//  		}
+// 
+   	      }
+	}
+
 	QMat m = innerModel->getTransformationMatrix("world","rgbd");
 	
 	for (size_t i = 0; i < points.size (); i++)
@@ -192,15 +319,32 @@ void SpecificWorker::updatePointCloud2( const vector< vector3f > &points)
 		imvPointCloud->points->push_back(p);
 		imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
 	}
-	imvPointCloud->update();
+	imvPointCloud->update();	
 }
 
 
 
 
 
-
-
-
-
-
+// void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons)
+// {
+// 	imvPointCloud->points->clear();
+// 	imvPointCloud->colors->clear();
+// 	for(unsigned int i; i<polygons.size();i++) {
+// 	  InnerModelNode *parent = innerModelViewer->innerModel->getNode("floor");
+// 			static bool addPlane_ignoreExisting(InnerModelViewer *innerViewer, const QString &a, const QString &b, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
+// 	  InnerModelPlane *plane = innerModelViewer->innerModel->newPlane("polys"+i, parent, "#00A0A0", polygons[i].width, polygons[i].height, 100, 1, polygons[i].normal.x, polygons[i].normal.y, polygons[i].normal.z, polygons[i].p0.x, polygons[i].p0.y, polygons[i].p0.z);
+// 	  parent->addChild(plane);
+// 	  innerModelViewer->recursiveConstructor(plane,innerModelViewer->mts[parent->id],innerModelViewer->mts,innerModelViewer->meshHash);
+// 	}
+// 	
+// 	QMat m = innerModel->getTransformationMatrix("world","rgbd");
+// 	
+// 	for (size_t i = 0; i < points.size (); i++)
+// 	{
+// 		osg::Vec3f p = QVecToOSGVec( m * QVec::vec4(points[i].x, points[i].y, points[i].z,1.f));
+// 		imvPointCloud->points->push_back(p);
+// 		imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
+// 	}
+// 	imvPointCloud->update();
+// }

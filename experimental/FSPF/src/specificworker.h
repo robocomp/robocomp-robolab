@@ -29,10 +29,8 @@
 #include <innermodel/innermodel.h>
 #include <innermodel/innermodelviewer.h>
 #include <osgviewer/osgview.h>
-#include <nabo/nabo.h>
-
-using namespace Nabo;
-using namespace Eigen;
+#include <omp.h>
+#include "plane_filtering.h"
 
 
 class SpecificWorker : public GenericWorker
@@ -53,15 +51,14 @@ private:
 	OsgView 			*osgView;			
 	IMVPointCloud *imvPointCloud;
 	
-  //libnabo	
-	NNSearchF* nns;
-	MatrixXf data;
+	void updatePointCloud(const PointSeq &points);	
+	void updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons);
+	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
+	bool removeNode(InnerModelViewer *innerViewer, const QString &item);
+	PlaneFilter *planeFilter;
+	RoboCompRGBD::PointSeq points;		
 	
-	void updatePointCloud(const PointSeq &points);
-	void storeBackground();
-	void computeBackground(PointSeq& points);
-	bool filterP( const osg::Vec3f& p, const PointXYZ& point);
-	
+
 };
 
 #endif

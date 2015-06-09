@@ -1,0 +1,12 @@
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component FSPF
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

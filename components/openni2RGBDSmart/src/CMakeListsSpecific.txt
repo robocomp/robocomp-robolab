@@ -12,8 +12,7 @@ SET ( HEADERS
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/openni2.cmake)
 
-SET (LIBS ${LIBS} -losgViewer -lnabo -lgomp  )
 ADD_DEFINITIONS( -std=c++11 )
-
 

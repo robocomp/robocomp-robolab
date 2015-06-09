@@ -1,0 +1,12 @@
+import "/robocomp/interfaces/IDSLs/FSPF.idsl";
+
+Component CGR
+{
+	Communications
+	{
+		implements FSPF;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

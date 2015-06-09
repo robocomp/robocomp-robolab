@@ -311,7 +311,7 @@ void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector<
 	}
 	imvPointCloud->update();	
 }
-RoboCompRGBD::PointSeq SpecificWorker::getFilteresPoints()
+RoboCompRGBD::PointSeq SpecificWorker::getFilteredPoints()
 {
 	//QMutexLocker l(pointsMutex);
 	return points;

@@ -40,7 +40,7 @@ public:
 	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	RoboCompRGBD::PointSeq getFilteresPoints();
+	RoboCompRGBD::PointSeq getFilteredPoints();
 
 public slots:
 	void compute(); 	

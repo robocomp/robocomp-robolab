@@ -1,10 +1,9 @@
-CommonBehavior.Endpoints=tcp -p 11000
+CommonBehavior.Endpoints=tcp -p 1
 
 
 # Proxies for required interfaces
-RGBDBusProxy = rgbdbus:tcp -h localhost -p 10596
+RGBDProxy = rgbd:tcp -h localhost -p 0
 
-Visor3D.InnerModelPath=/home/robocomp/robocomp/components/robocomp-robolab/experimental/visor3dcomp/world.xml
 
 
 # This property is used by the clients to connect to IceStorm.

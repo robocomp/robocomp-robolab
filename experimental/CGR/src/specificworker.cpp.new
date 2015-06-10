@@ -53,20 +53,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-static RoboCompLaser::TLaserData laserData;
-
- 		//rgbd_proxy->getXYZ(points, hState, bState);
-		laserData = laser_proxy->getLaserData();
-			int j=0;
-			for(auto i : laserData)
-		{
-			//pasar a xyz añadiendo w QVec p1 = QVec::vec3(x,y,z); 
-			//points[j].x=0;
-			//points[j].y=0;
-			//points[j].z=0;
-			//points[j].w=0;
-			//j++;
-		}
 // 	try
 // 	{
 // 		camera_proxy->getYImage(0,img, cState, bState);
@@ -78,7 +64,6 @@ static RoboCompLaser::TLaserData laserData;
 // 		std::cout << "Error reading from Camera" << e << std::endl;
 // 	}
 }
-
 
 
 

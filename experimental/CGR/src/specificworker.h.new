@@ -37,7 +37,6 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	//PointSeq getFilteresPoints();
 
 public slots:
 	void compute(); 	

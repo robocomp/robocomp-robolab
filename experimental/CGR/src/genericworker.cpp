@@ -28,9 +28,10 @@ QObject()
 #endif
 
 {
+	laser_proxy = (*(LaserPrx*)mprx["LaserProxy"]);
 
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
 
 #ifdef USE_QTGUI
 		setupUi(this);

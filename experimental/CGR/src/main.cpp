@@ -78,9 +78,8 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <fspfI.h>
 
-#include <FSPF.h>
+#include <Laser.h>
 
 
 // User includes here
@@ -89,7 +88,7 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-using namespace RoboCompFSPF;
+using namespace RoboCompLaser;
 
 
 
@@ -122,9 +121,27 @@ int CGR::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
+	LaserPrx laser_proxy;
 
 	string proxy, tmp;
 	initialize();
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "LaserProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy LaserProxy\n";
+		}
+		laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("LaserProxy initialized Ok!");
+	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
 
 
 
@@ -150,17 +167,6 @@ int CGR::run(int argc, char* argv[])
 		adapterCommonBehavior->activate();
 
 
-
-
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPF.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPF";
-		}
-		Ice::ObjectAdapterPtr adapterFSPF = communicator()->createObjectAdapterWithEndpoints("FSPF", tmp);
-		FSPFI *fspf = new FSPFI(worker);
-		adapterFSPF->add(fspf, communicator()->stringToIdentity("fspf"));
-		adapterFSPF->activate();
 
 
 

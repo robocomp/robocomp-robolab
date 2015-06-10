@@ -27,7 +27,8 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
-#include <FSPF.h>
+#include <DifferentialRobot.h>
+#include <Laser.h>
 
 
 #define CHECK_PERIOD 5000
@@ -37,7 +38,8 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompFSPF;
+using namespace RoboCompDifferentialRobot;
+using namespace RoboCompLaser;
 
 class GenericWorker : 
 #ifdef USE_QTGUI
@@ -56,8 +58,8 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
 
+	LaserPrx laser_proxy;
 
-	virtual PointSeq getFilteresPoints() = 0;
 
 
 protected:

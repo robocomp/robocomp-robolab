@@ -27,7 +27,7 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-
+#include <innermodel/innermodelviewer.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -43,6 +43,8 @@ public slots:
 	void compute(); 	
 
 private:
+InnerModelViewer *imv;
+InnerModel *innerModel;
 };
 
 #endif

@@ -190,6 +190,7 @@ void SpecificWorker::compute()
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
+//			memset(image_color.data, 127, m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);
 		}
@@ -228,15 +229,9 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
  	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-//
-// 	if (m_draw)
-// 	{
-// 		for (uint i=0; i<detections.size(); i++)
-// 		{
-// 			detections[i].draw(image_gray);
-// 		}
-// 		//imshow("AprilTags", image_gray); // OpenCV call
-//	}
+
+//imshow("AprilTags", image_gray); // OpenCV call
+//cv::waitKey(1);
 
 }
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)

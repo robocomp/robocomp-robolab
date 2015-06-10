@@ -20,6 +20,7 @@
 #include "util.h"
 #include <xmmintrin.h>
 #include <smmintrin.h>
+#include <tmmintrin.h>
 
 #define V3COMP(p) (p).x,(p).y,(p).z
 #define V2COMP(p) (p).x,(p).y
@@ -72,37 +73,38 @@ template <> inline double sse_sqrt<double>(double xin)
 template <typename num>
 inline num sse_dot_product(const num* fv1, const num* fv2, const int mask)
 {
-  __m128 v1 = _mm_set_ps(float(fv1[3]),float(fv1[2]),float(fv1[1]),float(fv1[0]));
-  __m128 v2 = _mm_set_ps(float(fv2[3]),float(fv2[2]),float(fv2[1]),float(fv2[0]));
-  __m128 dp = _mm_dp_ps(v1,v2,mask);
-  float res;
-  _mm_store_ss(&res,dp);
+//   __m128 v1 = _mm_set_ps(float(fv1[3]),float(fv1[2]),float(fv1[1]),float(fv1[0]));
+//   __m128 v2 = _mm_set_ps(float(fv2[3]),float(fv2[2]),float(fv2[1]),float(fv2[0]));
+//   __m128 dp = _mm_dp_ps(v1,v2,mask);
+   float res = fv1[0]*fv2[0] + fv1[1]*fv2[1] + fv1[2]*fv2[2]; 
+//   _mm_store_ss(&res,dp);
+   
   return res;
 }
 
-template <>
-inline float sse_dot_product(const float* fv1, const float* fv2, const int mask)
-{
-  __m128 v1 = _mm_load_ps(fv1);
-  __m128 v2 = _mm_load_ps(fv2);
-  __m128 dp = _mm_dp_ps(v1,v2,mask);
-  float res;
-  _mm_store_ss(&res,dp);
-  return res;
-}
+ template <>
+ inline float sse_dot_product(const float* fv1, const float* fv2, const int mask)
+ {
+//   __m128 v1 = _mm_load_ps(fv1);
+//   __m128 v2 = _mm_load_ps(fv2);
+//   __m128 dp = _mm_dp_ps(v1,v2,mask);
+//   _mm_store_ss(&res,dp);
+   float res = fv1[0]*fv2[0] + fv1[1]*fv2[1] + fv1[2]*fv2[2]; 
+   return res;
+ }
 
 template <>
 inline double sse_dot_product(const double* fv1, const double* fv2, const int mask)
 {
-  __m128d v1 = _mm_load_pd(fv1);
-  __m128d v2 = _mm_load_pd(fv2);
-  __m128d dp1 = _mm_dp_pd(v1,v2,0x31);
-  v1 = _mm_load_pd(&fv1[2]);
-  v2 = _mm_load_pd(&fv2[2]);
-  __m128d dp2 = _mm_dp_pd(v1,v2,mask);
-  __m128d dp = _mm_add_sd(dp1,dp2);
-  double res;
-  _mm_store_sd(&res,dp);
+ // __m128d v1 = _mm_load_pd(fv1);
+//   __m128d v2 = _mm_load_pd(fv2);
+//   __m128d dp1 = _mm_dp_pd(v1,v2,0x31);
+//   v1 = _mm_load_pd(&fv1[2]);
+//   v2 = _mm_load_pd(&fv2[2]);
+//   __m128d dp2 = _mm_dp_pd(v1,v2,mask);
+//   __m128d dp = _mm_add_sd(dp1,dp2);
+   double res  = fv1[0]*fv2[0] + fv1[1]*fv2[1] + fv1[2]*fv2[2]; 
+//   _mm_store_sd(&res,dp);
   return res;
 }
 

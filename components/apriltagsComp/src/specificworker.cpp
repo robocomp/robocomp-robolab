@@ -46,14 +46,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("InputInterface");
 		if (par.value == "RGBD")
 		{
+			printf("INTERFACE RGBD selected\n");
 			INPUTIFACE = RGBD;
 		}
 		else if ( par.value == "RGBDBus")
 		{
+			printf("INTERFACE RGBDBus selected\n");
 			INPUTIFACE = RGBDBus;
 		}
 		else if ( par.value == "Camera")
 		{
+			printf("INTERFACE Camera selected\n");
 			INPUTIFACE = Camera;
 			try
 			{
@@ -201,7 +204,10 @@ void SpecificWorker::compute()
 	}
 	else if( INPUTIFACE == RGBDBus)
 	{
-		qFatal("Support for RGBDBus is not implemented yet!");
+		RoboCompRGBDBus::ImageMap images;
+		CameraList cameraList;
+		cameraList.push_back(std::string("default"));
+		rgbdbus_proxy->getImages(cameraList, images);
 	}
 	else
 	{

@@ -25,6 +25,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     innerModel = new InnerModel("world.xml");
     
+	    
     //leer el fichero de líneas
     // InnerModelPlane *plano = InnerModelPlane("id", );
 //     innerModel->getNode("floor")->addChild(InnerModelPlane("id", ));
@@ -107,7 +108,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
     
     imvPointCloud = innerModelViewer->pointCloudsHash["cloud"];
-      
+      loadLines();
+
 }
 
 /**
@@ -153,7 +155,7 @@ void SpecificWorker::compute()
 		
 		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointCloudNormals, outlierCloud, polygons);
 
-		updatePointCloud2(filteredPointCloud,polygons);
+		//updatePointCloud2(filteredPointCloud,polygons);
 		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
 
  	}
@@ -162,9 +164,9 @@ void SpecificWorker::compute()
  		std::cout << "Error reading from Camera" << e << std::endl;
  	}
  	 	
-//  	innerModelViewer->update();
-// 	osgView->autoResize();
-// 	osgView->frame();
+  	innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
 
 	co++;
 	if( reloj.elapsed() > 1000)
@@ -188,7 +190,7 @@ void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
 	
 	for (size_t i = 0; i < points.size (); i+=4)
 	{
-		osg::Vec3f p = QVecToOSGVec( m * QVec::vec4(points[i].x, points[i].y, points[i].z,1.f));
+		osg::Vec3f p = QVecToOSGVec( m * QVec::vec4(points[i].x, 10/*points[i].y*/, points[i].z,1.f));
 		imvPointCloud->points->push_back(p);
 		imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
 
@@ -287,29 +289,17 @@ void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector<
 	imvPointCloud->points->clear();
 	imvPointCloud->colors->clear();
 
-	for(unsigned int i; i<polygons.size() && i%2==0;i++) {
-// 	  qDebug() << polygons[i].vertices.size();
+/*	for(unsigned int i; i<polygons.size() && i%2==0;i++) {
 	      if (innerModelViewer->innerModel->getNode("poly"+i))
 	      {
-// 		      removeNode(innerModelViewer, "poly"+i);
+ 		      //removeNode(innerModelViewer, "poly"+i);
 		      qDebug() << "remove node";
 	      }
 	      else {
- 		addPlane_notExisting(innerModelViewer,"poly"+i,"floor",QVec::vec3(polygons[i].p0.x,polygons[i].p0.y,polygons[i].p0.z),QVec::vec3(polygons[i].normal.x,polygons[i].normal.y,polygons[i].normal.z), "#00A0A0",QVec::vec3(polygons[i].width,polygons[i].height,200));
-//  		qDebug() << polygons[i].vertices.size();
-//  		for(unsigned int j=0;j<polygons[i].vertices.size()-1;j++) {  
-// 		  QVec p1 = QVec::vec3(polygons[i].vertices[j].x,polygons[i].vertices[j].y,polygons[i].vertices[j].z);
-// 		  QVec p2 = QVec::vec3(polygons[i].vertices[j+1].x,polygons[i].vertices[j+1].y,polygons[i].vertices[j+1].z);
-// 		  qDebug() << "aaaaaaaaa" << p1 << p2;
-// 		  addPlane_notExisting(innerModelViewer, 
-// 				       "line"+j,
-// 					"floor", p1,
-// 				       QVec::vec3(polygons[i].normal.x,polygons[i].normal.y,polygons[i].normal.z), "#00A0A0", 
-// 				       QVec::vec3(100, (p1-p2).norm2(), 100));
-//  		}
-// 
+ 		addPlane_notExisting(innerModelViewer,"poly"+i,"floor",QVec::vec3(polygons[i].p0.x,polygons[i].p0.y,polygons[i].p0.z),QVec::vec3(polygons[i].normal.x,polygons[i].normal.y,polygons[i].normal.z), 			"#00A0A0",QVec::vec3(polygons[i].width,polygons[i].height,200));
    	      }
 	}
+*/
 
 	QMat m = innerModel->getTransformationMatrix("world","rgbd");
 	
@@ -321,10 +311,56 @@ void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector<
 	}
 	imvPointCloud->update();	
 }
+RoboCompRGBD::PointSeq SpecificWorker::getFilteredPoints()
+{
+	//QMutexLocker l(pointsMutex);
+	return points;
+}
+void SpecificWorker::loadLines()
+{
+	char buffer[100];
+	char *ptr;
+	ifstream fichero;
+	int i =0;
+	float width;
+	QVec p1,p2;
+	fichero.open("points");
+	fichero.getline(buffer,100,'\n');
+	ptr = strtok(buffer, " ");
+	while(ptr!=NULL)
+	{
+		for(int j=0;j<3;j++)
+		{
+			p1(j) = atof(ptr);
+			ptr = strtok(NULL, " ");
+		}
+	}
+	fichero.getline(buffer,100,'\n');
+	while(!fichero.eof())
+	{
+		
+		ptr = strtok(buffer, " ");
+		while(ptr!=NULL)
+		{
+			for(int j=0;j<3;j++)
+			{
+				p2(j) = atof(ptr);
+				ptr = strtok(NULL, " ");
+			}
+		}
+		qDebug()<<p2(0)<<p2(1)<<p2(2);
+		QVec n = QVec::vec3(p2(0)-p1(0),p2(1)-p1(1),p2(2)-p1(2));
+		width = (QVec::vec2(p2(0)-p1(0),p2(2)-p1(2))).norm2();
+		addPlane_notExisting(innerModelViewer,"LINEA_"+i,"floor",QVec::vec3((p1(0)+p2(0))/2,0,(p1(2)+p2(2))/2),QVec::vec3(-n(2),0,n(0)),"#00A0A0",
+		QVec::vec3(width, 100, 100));
+		i++;
+		p1(0)=p2(0);
+		p1(2)=p2(2);
+		fichero.getline(buffer,100,'\n');
+	}
+	fichero.close();
 
-
-
-
+}
 
 // void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons)
 // {

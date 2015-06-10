@@ -2,7 +2,8 @@ CommonBehavior.Endpoints=tcp -p 12213
 
 
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h odroid-xtion.local -p 10096
+# RGBDProxy = rgbd:tcp -h odroid-xtion.local -p 10096
+RGBDProxy = rgbd:tcp -h localhost -p 10096
 
 
 

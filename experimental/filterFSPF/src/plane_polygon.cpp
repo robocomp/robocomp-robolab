@@ -292,7 +292,7 @@ void PlanePolygon::merge(PlanePolygon& poly2)
   eigenVectors = solver.eigenvectors();
   eigenValues = solver.eigenvalues();
   
-  double minEig=0, maxEig=0;
+  double minEig=0, midEig=0, maxEig=0;
   int minInd=-1, midInd=-1, maxInd=-1;
   for(int i=0; i<3; i++){
     if(minEig>eigenValues(i) || minInd<0){
@@ -306,6 +306,7 @@ void PlanePolygon::merge(PlanePolygon& poly2)
   }
   
   midInd = 3 - (minInd+maxInd);
+  midEig = eigenValues(midInd);
   
   if(debug){
     printf("\nEigenvalues order: %d %d %d\n",minInd,midInd,maxInd);
@@ -420,7 +421,7 @@ void PlanePolygon::merge(vector< PlanePolygon >& polygons)
   eigenVectors = solver.eigenvectors();
   eigenValues = solver.eigenvalues();
   
-  double minEig=0, maxEig=0;
+  double minEig=0, midEig=0, maxEig=0;
   int minInd=-1, midInd=-1, maxInd=-1;
   for(int i=0; i<3; i++){
     if(minEig>eigenValues(i) || minInd<0){
@@ -434,6 +435,7 @@ void PlanePolygon::merge(vector< PlanePolygon >& polygons)
   }
   
   midInd = 3 - (minInd+maxInd);
+  midEig = eigenValues(midInd);
   
   if(debug){
     printf("\nEigenvalues order: %d %d %d\n",minInd,midInd,maxInd);

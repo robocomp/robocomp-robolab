@@ -46,14 +46,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("InputInterface");
 		if (par.value == "RGBD")
 		{
+			printf("INTERFACE RGBD selected\n");
 			INPUTIFACE = RGBD;
 		}
 		else if ( par.value == "RGBDBus")
 		{
+			printf("INTERFACE RGBDBus selected\n");
 			INPUTIFACE = RGBDBus;
 		}
 		else if ( par.value == "Camera")
 		{
+			printf("INTERFACE Camera selected\n");
 			INPUTIFACE = Camera;
 			try
 			{
@@ -190,6 +193,7 @@ void SpecificWorker::compute()
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
+//			memset(image_color.data, 127, m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);
 		}
@@ -200,7 +204,10 @@ void SpecificWorker::compute()
 	}
 	else if( INPUTIFACE == RGBDBus)
 	{
-		qFatal("Support for RGBDBus is not implemented yet!");
+		RoboCompRGBDBus::ImageMap images;
+		CameraList cameraList;
+		cameraList.push_back(std::string("default"));
+		rgbdbus_proxy->getImages(cameraList, images);
 	}
 	else
 	{
@@ -228,15 +235,9 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
  	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-//
-// 	if (m_draw)
-// 	{
-// 		for (uint i=0; i<detections.size(); i++)
-// 		{
-// 			detections[i].draw(image_gray);
-// 		}
-// 		//imshow("AprilTags", image_gray); // OpenCV call
-//	}
+
+//imshow("AprilTags", image_gray); // OpenCV call
+//cv::waitKey(1);
 
 }
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)

@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component filterFSPF
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Cpp;
+};
+

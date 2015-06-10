@@ -53,7 +53,8 @@ class SpecificWorker(GenericWorker):
 		self.ui.label_photoRobot.setPixmap(pathImage+'robot3.png')
 		self.ui.label_photoHuman.setPixmap(pathImage+'persona1.png')
 		
-		self.ui.label_textHuman.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)		
+#		self.ui.label_textHuman.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)		
+		self.ui.label_textHuman.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 		self.ui.label_textRobot.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
 		
 		self.ui.label_textRobot.setText('Lorem ipsum dolor sit amet, consectetur adipricies sem Cras pulvin, maurisoicituding adipiscing, Lorem ipsum dolor sit amet, consect adipiscing elit, sed diam nonummy nibh euis ')
@@ -75,7 +76,12 @@ class SpecificWorker(GenericWorker):
 		try:
 			if self.showText is True:
 			      print self.text
-			      self.ui.label_textHuman.setText(str(self.text))
+			      if "Pablo" in self.text:
+				self.ui.label_textRobot.setText("pablo, trabaja un poco")
+				os.system('echo "Pablo, you dont work anithing. I miss you." | iconv -f utf-8 -t iso-8859-1 | festival --tts --language spanish')
+			      else:
+			          os.system('echo '+str(self.text)+' | iconv -f utf-8 -t iso-8859-1 | festival --tts --language spanish')
+			          self.ui.label_textHuman.setText(str(self.text))
 
 			      self.text = ''
 			      self.showText = False

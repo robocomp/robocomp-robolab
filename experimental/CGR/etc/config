@@ -1,8 +1,8 @@
 CommonBehavior.Endpoints=tcp -p 1
 
 
-# Endpoints for implemented interfaces
-FSPF.Endpoints=tcp -p 0
+# Proxies for required interfaces
+LaserProxy = laser:tcp -h localhost -p 0
 
 
 

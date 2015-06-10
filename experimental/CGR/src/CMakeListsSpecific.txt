@@ -3,6 +3,9 @@
 SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
+  vector_map.cpp
+  terminal_utils.cpp
+  vectorparticlefilter.cpp
 )
 
 # Headers set

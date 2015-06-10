@@ -1,0 +1,21 @@
+<innerModel>
+	<transform id="world">
+		<axes id="ax" length="200" width="30"/>
+		<transform id="floor">
+		    <plane id="back" ny="1" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
+		    <plane id="rgbd_wall" nz="1" pz="2500" py="1250" size="5000,2500,10" texture="#FFFFFF" />
+		    
+				<transform id="rgbd_t"  ty="2100" tz="2400" rx= "-3.55" rz="3.14592">
+		    	<camera id="rgbd" focal="485"/>
+				  <plane id="rgbd_plane" nz="1" size="200,200,10" texture="#FF0000" />
+				  <axes id="ax_c" length="200" width="30"/>
+					
+		    </transform >
+				
+				
+				<pointcloud id="cloud" />	
+		</transform>
+	</transform>		
+</innerModel>
+
+

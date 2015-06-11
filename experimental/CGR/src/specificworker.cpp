@@ -99,7 +99,7 @@ void SpecificWorker::LoadParameters()
 {
 
   WatchFiles watch_files;
-  ConfigReader config("etc/params.conf");
+  ConfigReader config("etc/params.conf");  //CAMBIA ESTE PATH, ESTA MAL.
   /*
   config.init(watch_files);
     

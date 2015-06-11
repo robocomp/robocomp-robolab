@@ -1,4 +1,6 @@
 
+find_package(Lua51 REQUIRED)
+
 # Sources set
 SET ( SOURCES
   specificworker.cpp
@@ -6,6 +8,9 @@ SET ( SOURCES
   vector_map.cpp
   terminal_utils.cpp
   vectorparticlefilter.cpp
+  gvector.cpp
+  watch_files.cpp
+  configreader.cpp
 )
 
 # Headers set
@@ -15,6 +20,7 @@ SET ( HEADERS
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+set (SPECIFIC_LIBS ${LUA_LIBRARIES} )
 
 ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2 -fpermissive)
 

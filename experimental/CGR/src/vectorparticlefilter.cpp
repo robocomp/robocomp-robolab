@@ -12,11 +12,10 @@
 //  Version 3 in the file COPYING that came with this distribution.
 //  If not, see <http://www.gnu.org/licenses/>.
 //========================================================================
-/*!
-\file    vectorparticlefilter.h
-\brief   C++ Implementation: Particle, VectorLocalization
-\author  Joydeep Biswas, (C) 2010-2012
-*/
+
+//file    vectorparticlefilter.h
+//brief   C++ Implementation: Particle, VectorLocalization
+//author  Joydeep Biswas, (C) 2010-2012
 //========================================================================
 
 #include "vectorparticlefilter.h"
@@ -31,7 +30,7 @@ inline float eigenCross(const Vector2f &v1, const Vector2f &v2)
 
 void VectorLocalization2D::LidarParams::initialize()
 {
-  float a0 = -0.5*angleResolution*float(numRays);
+  //float a0 = -0.5*angleResolution*float(numRays);
   scanHeadings.resize(numRays);
   int i=0;
   for(float a=minAngle; a<maxAngle; a+=angleResolution){
@@ -213,16 +212,16 @@ float VectorLocalization2D::motionModelWeight(vector2f loc, float angle, const M
 float VectorLocalization2D::observationWeightPointCloud(vector2f loc, float angle, vector< vector2f >& pointCloud, vector< vector2f >& pointNormals, const PointCloudParams & pointCloudParams)
 {
   //static const bool UseAnalyticRender = false;
-  static const bool debug = false;
+  //static const bool debug = false;
   float logOutOfRangeProb = pointCloudParams.logOutOfRangeProb;
   float logObstacleProb = pointCloudParams.logObstacleProb;
-  float logShortHitProb = pointCloudParams.logShortHitProb;
+  //float logShortHitProb = pointCloudParams.logShortHitProb;
   float corelationFactor = pointCloudParams.corelationFactor;
   float minRange = pointCloudParams.minRange;
   float maxRange = pointCloudParams.maxRange;
   float sqMaxRange = sq(maxRange);
   float stdDev = pointCloudParams.stdDev;
-  float curAngle;
+  //float curAngle;
   
   vector<line2f> lines;
 
@@ -243,7 +242,7 @@ float VectorLocalization2D::observationWeightPointCloud(vector2f loc, float angl
   int numCorrespondences = 0;
   Vector2f heading, scanPoint, lineNorm, curPoint, attraction, locE(V2COMP(loc)), rotatedNormal;
   
-  for(int i=0; i<pointCloud.size(); i++){
+  for(unsigned int i=0; i<pointCloud.size(); i++){
     curPoint = rotMat1*Vector2f(V2COMP(pointCloud[i])) + locE;
     attraction = Vector2f(0.0,0.0);
     if(lineCorrespondences[i]>=0){
@@ -279,7 +278,7 @@ float VectorLocalization2D::observationWeightPointCloud(vector2f loc, float angl
 
 float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, const LidarParams &lidarParams, const vector<Vector2f> &laserPoints)
 {
-  static const bool debug = false;
+  //static const bool debug = false;
   float numRays = lidarParams.numRays;
   float minRange = lidarParams.minRange;
   float maxRange = lidarParams.maxRange;
@@ -296,9 +295,9 @@ float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, co
   }
   
   float *scanRays = lidarParams.laserScan;
-  float curAngle;
+  //float curAngle;
   Vector2f attraction;
-  float midScan = float(numRays)/2.0;
+  //float midScan = float(numRays)/2.0;
   
   Matrix2f robotAngle;
   robotAngle = Rotation2Df(angle);
@@ -434,7 +433,7 @@ void VectorLocalization2D::computeParticleWeights(vector2f deltaLoc, float delta
 void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const MotionModelParams & motionParams)
 {
   static const bool debug = false;
-  static const bool usePermissibility = true;
+  //static const bool usePermissibility = true;
   
   double tStart = GetTimeSec();
   
@@ -447,13 +446,13 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   //Compute the sampling density
   float sqDensityKernelSize = sq(lidarParams.kernelSize);
   float totalDensity = 0.0;
-  int N = int(particlesRefined.size());
+  unsigned int N = particlesRefined.size();
   if(samplingDensity.size()!=N)
     samplingDensity.resize(N);
   if(debug) printf("\nParticle samplingDensity:\n");
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     float w = 0.99;
-    for(int j=0; j<N; j++){
+    for(unsigned int j=0; j<N; j++){
       if(i==j)
         continue;
       if( (particlesRefined[j].loc - particlesRefined[i].loc).sqlength() < sqDensityKernelSize && fabs(angle_diff(particlesRefined[j].angle, particlesRefined[i].angle))<RAD(20.0))
@@ -465,13 +464,13 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
     if(debug) printf("%2d:%f\n",i,w);
   }
   // Normalize densities, not really necessary since resampling does not require normalized weights
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     samplingDensity[i] /= totalDensity;
   }
   
   //Compute importance weights = observation x motion / samplingDensity
   if(debug) printf("\nParticle weights:\n");
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     Particle2D &p = particlesRefined[i];
     float w1 = observationWeightLidar(p.loc, p.angle, lidarParams, laserPoints);
     float w2 = motionModelWeight(p.loc, p.angle, motionParams);
@@ -485,20 +484,20 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
 void VectorLocalization2D::updatePointCloud(vector< vector2f >& pointCloud, vector< vector2f >& pointNormals, const MotionModelParams &motionParams, const PointCloudParams &pointCloudParams)
 {
   static const bool debug = false;
-  static const bool usePermissibility = true;
+  //static const bool usePermissibility = true;
   
   double tStart = GetTimeSec();
   
   //Compute the sampling density
   float sqDensityKernelSize = sq(pointCloudParams.kernelSize);
   float totalDensity = 0.0;
-  int N = int(particlesRefined.size());
+  unsigned int N = particlesRefined.size();
   if(samplingDensity.size()!=N)
     samplingDensity.resize(N);
   if(debug) printf("\nParticle samplingDensity:\n");
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     float w = 0.99;
-    for(int j=0; j<N; j++){
+    for(unsigned int j=0; j<N; j++){
       if(i==j)
         continue;
       if( (particlesRefined[j].loc - particlesRefined[i].loc).sqlength() < sqDensityKernelSize && fabs(angle_diff(particlesRefined[j].angle, particlesRefined[i].angle))<RAD(20.0))
@@ -510,13 +509,13 @@ void VectorLocalization2D::updatePointCloud(vector< vector2f >& pointCloud, vect
     if(debug) printf("%2d:%f\n",i,w);
   }
   // Normalize densities, not really necessary since resampling does not require normalized weights
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     samplingDensity[i] /= totalDensity;
   }
   
   //Compute importance weights = observation x motion / samplingDensity
   if(debug) printf("\nParticle weights:\n");
-  for(int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++){
     Particle2D &p = particlesRefined[i];
     float w1 = observationWeightPointCloud(p.loc, p.angle, pointCloud, pointNormals, pointCloudParams);
     float w2 = motionModelWeight(p.loc, p.angle, motionParams);
@@ -602,7 +601,7 @@ void VectorLocalization2D::getPointCloudGradient(vector2f loc, float angle, vect
   if(EnableProfiling)
     ft = new FunctionTimer(__FUNCTION__);
   
-  float numTotalPoints = pointCloud.size();
+  //float numTotalPoints = pointCloud.size();
   
   if(EnableProfiling) ft->Lap(__LINE__);
   //vector<int> lineCorrespondences;
@@ -645,7 +644,7 @@ void VectorLocalization2D::getPointCloudGradient(vector2f loc, float angle, vect
     rotatedNormal = rotMat1*Vector2f(V2COMP(pointNormals[i]));
     attraction = Vector2f(0,0);
     
-    if(lineCorrespondences[i]>=0 && lineCorrespondences[i]<lines.size()){
+    if(lineCorrespondences[i]>=0 && lineCorrespondences[i]<int(lines.size())){
       lineNorm = Vector2f(V2COMP(lines[lineCorrespondences[i]].Perp()));
       cosAngle = fabs(lineNorm.dot(rotatedNormal));
       
@@ -802,7 +801,7 @@ void VectorLocalization2D::getLidarGradient(vector2f loc, float angle, vector2f&
   float headingAngle;
   laserEval.meanSqError = 0.0;
   Vector2f locE(V2COMP(loc)), r, locGradE(0.0,0.0);
-  for(int i = 0; i<gradients.size(); i++){
+  for(unsigned int i = 0; i<gradients.size(); i++){
     r = points[i]-locE;
     laserEval.meanSqError += gradients[i].squaredNorm();
     if(r.squaredNorm()<sq(0.03))
@@ -1167,7 +1166,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
                                      vector<float> &points_x, vector<float> &points_y, vector<uint32_t> &points_color, 
                                        vector<float> &circles_x, vector<float> &circles_y, vector<uint32_t> &circles_color, float scale)
 {
-  static const bool debug = false;
+  //static const bool debug = false;
   static const bool drawParticles = true;
   static const bool drawLidarPoints = true;
   static const bool drawKinectPoints = true;
@@ -1180,11 +1179,11 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
   static const int LidarGradientColor = 0x2F95ED;
   static const int CloudPointColor = 0xDE2352;
   static const int CloudGradientColor = 0x8A23DE;
-  static const int LineCorrespondenceColor = 0x93FA70;
+  //static const int LineCorrespondenceColor = 0x93FA70;
   static const int LineExtentColor = 0xFFD659;
   static const int DebugColour = 0xFF0000;
   
-  for(int i=0; i<debugLines.size(); i++){
+  for(unsigned int i=0; i<debugLines.size(); i++){
     lines_p1x.push_back(scale*debugLines[i].P0().x);
     lines_p1y.push_back(scale*debugLines[i].P0().y);
     lines_p2x.push_back(scale*debugLines[i].P1().x);
@@ -1204,7 +1203,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
   
   if(drawParticles){
     //Draw all (unrefined) particles
-    for(int i=0; i<particles.size(); i++){
+    for(unsigned int i=0; i<particles.size(); i++){
       circles_x.push_back(scale*particles[i].loc.x);
       circles_y.push_back(scale*particles[i].loc.y);
       circles_color.push_back(ParticleCloudColor);
@@ -1251,7 +1250,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
       
       duplicate = false;
       ray = lines[i].P0()-loc;
-      for(int j=0; j<rays.size()&&!duplicate; j++){
+      for(unsigned int j=0; j<rays.size()&&!duplicate; j++){
         if(ray.norm().dot(rays[j].norm())>cos(RAD(0.1)) && fabs(ray.length()-rays[j].length())<0.01){
           duplicate = true;
           j = rays.erase(rays.begin()+j) - rays.begin();
@@ -1262,7 +1261,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
       
       duplicate = false;
       ray = lines[i].P1()-loc;
-      for(int j=0; j<rays.size()&&!duplicate; j++){
+      for(unsigned int j=0; j<rays.size()&&!duplicate; j++){
         if(ray.norm().dot(rays[j].norm())>cos(RAD(0.1)) && fabs(ray.length()-rays[j].length())<0.01){
           duplicate = true;
           j = rays.erase(rays.begin()+j) - rays.begin();
@@ -1272,7 +1271,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
         rays.push_back(ray);
     }
     
-    for(int i=0; i<rays.size(); i++){
+    for(unsigned int i=0; i<rays.size(); i++){
       vector2f p0 = loc;
       vector2f p1 = rays[i]+loc;
       lines_p1x.push_back(scale*p0.x);
@@ -1286,7 +1285,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
   
   if(drawLidarPoints){
     // Draw all LIDAR points considered for gradient descent, as well as their gradients
-    for(int i=0; i<points.size(); i++){
+    for(unsigned int i=0; i<points.size(); i++){
       points_x.push_back(scale*points[i].x());
       points_y.push_back(scale*points[i].y());
       points_color.push_back(LidarPointColor);
@@ -1301,7 +1300,7 @@ void VectorLocalization2D::drawDisplay(vector<float> &lines_p1x, vector<float> &
   
   if(drawKinectPoints){
     // Draw all point cloud points considered for gradient descent, as well as their gradients
-    for(int i=0; i<points2.size(); i++){
+    for(unsigned int i=0; i<points2.size(); i++){
       points_x.push_back(scale*points2[i].x());
       points_y.push_back(scale*points2[i].y());
       points_color.push_back(CloudPointColor);
@@ -1326,7 +1325,7 @@ void VectorLocalization2D::saveRunLog(FILE* f)
   static const bool saveParticles = false;
   fprintf(f, "%d, %d, %.15f, %.15f, ",numRefinedParticlesSampled, numUnrefinedParticlesSampled, refinedImportanceWeights, unrefinedImportanceWeights);
   if(saveParticles){
-    for(int i=0; i<particles.size(); i++){
+    for(unsigned int i=0; i<particles.size(); i++){
       fprintf(f, "%.3f, %.3f, %.2f, %f, ",V2COMP(particles[i].loc), DEG(particles[i].angle), particles[i].weight);
     }
   }

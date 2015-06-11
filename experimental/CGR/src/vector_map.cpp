@@ -28,7 +28,7 @@ bool ctxVectorMapErrorOccurred = false;
 bool VectorMap::loadMap(const char* name, bool usePreRender)
 {
   static const bool debug = false;
-  static const bool debugBitmap = false;
+  //static const bool debugBitmap = false;
   static const bool debugVector = false;
   
   char vectorFile[4096];
@@ -84,15 +84,15 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
       TerminalWarning(buf);
     }else{
       bool error = false;
-      int x=0, y=0;
-      int cnt = 0;
+      unsigned int x=0, y=0;
+      unsigned int cnt = 0;
       error = fread(&visListWidth,sizeof(unsigned int),1,pFile)!=1;
       error = error || (fread(&visListHeight,sizeof(unsigned int),1,pFile)!=1);
       error = error || (fread(&visListResolution,sizeof(double),1,pFile)!=1);
       if(!error){
         if(debug) printf("Pre-render size: %d x %d, resolution: %.3f\n",visListWidth, visListHeight, visListResolution);
         visibilityList.resize(visListWidth);
-        for(int i=0; i<visListWidth; i++)
+        for(unsigned int i=0; i<visListWidth; i++)
           visibilityList[i].resize(visListHeight);
       }
       while(cnt<visListHeight*visListWidth && !error){

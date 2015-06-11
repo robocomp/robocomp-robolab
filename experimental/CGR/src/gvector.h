@@ -37,7 +37,8 @@ namespace GVector {
 //  Vector3D Class
 //=====================================================================//
 
-#define EPSILON (1.0E-10)
+//#define EPSILON (1.0E-10)
+const double EPSILON = (1.0E-10);
 
 #ifdef GVECTOR_SSE_OPTIMIZATIONS
 template <typename num>

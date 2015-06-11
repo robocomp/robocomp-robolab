@@ -25,6 +25,7 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+#include "vectorparticlefilter.h"
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <innermodel/innermodelviewer.h>
@@ -46,6 +47,7 @@ public slots:
 private:
 InnerModelViewer *imv;
 InnerModel *innerModel;
+VectorLocalization2D *localization;
 };
 
 #endif

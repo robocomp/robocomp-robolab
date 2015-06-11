@@ -1,26 +1,26 @@
-/*
- *    Copyright (C) 2015 by YOUR NAME HERE
- *
- *    This file is part of RoboComp
- *
- *    RoboComp is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
- *
- *    RoboComp is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
+//
+//    Copyright (C) 2015 by YOUR NAME HERE
+//
+//    This file is part of RoboComp
+//
+//    RoboComp is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    RoboComp is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 //========================================================================
-/*!
-* \based in Joydeep Biswas, (C) 2010 paper
-*/
+//
+// based in Joydeep Biswas, (C) 2010 paper
+//
 //========================================================================
- */
+//
 
 
 #include <stdlib.h>
@@ -39,17 +39,22 @@
 // #include <geometry_msgs/PoseWithCovarianceStamped.h>
 // #include <ros/package.h>
 
+//#include "popt_pp.h"
+#include "proghelp.h"
+//#include "cgr_localization/DisplayMsg.h"
+//#include "cgr_localization/LocalizationInterfaceSrv.h"
+//#include "cgr_localization/LocalizationMsg.h"
+
 #include "vectorparticlefilter.h"
 #include "vector_map.h"
-#include "popt_pp.h"
+
 #include "terminal_utils.h"
 #include "timer.h"
-#include "proghelp.h"
-#include "cgr_localization/DisplayMsg.h"
-#include "cgr_localization/LocalizationInterfaceSrv.h"
-#include "cgr_localization/LocalizationMsg.h"
+
+
+
 #include "configreader.h"
-#include "plane_filtering.h"
+//#include "plane_filtering.h"
 
 #include "specificworker.h"
 
@@ -59,36 +64,9 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+/*
     LoadParameters();
-    //========================== Set up Command line parameters =======================
-  static struct poptOption options[] = {
-    { "num-particles",    'n', POPT_ARG_INT,     &numParticles,       0, "Number of Particles",   "NUM"},
-    { "debug",            'd', POPT_ARG_INT,     &debugLevel,         0, "Debug Level",           "NUM"},
-    { "start-x",          'x', POPT_ARG_DOUBLE,  &initialLoc.x,       0, "Starting X location",   "NUM"},
-    { "start-y",          'y', POPT_ARG_DOUBLE,  &initialLoc.y,       0, "Starting Y location",   "NUM"},
-    { "start-angle",      'a', POPT_ARG_DOUBLE,  &initialAngle,       0, "Starting Angle",        "NUM"},
-    { "use-point-cloud",  'p', POPT_ARG_NONE,    &usePointCloud,      0, "Use Point Cloud",       "NONE"},
-    { "no-lidar",         'l', POPT_ARG_NONE,    &noLidar,            0, "No LIDAR Observations", "NONE"},
-    { "Alpha1-param",     'u', POPT_ARG_DOUBLE,  &motionParams.Alpha1,  0, "Alpha1 parameter",   "NUM"},
-    { "Alpha2-param",     'v', POPT_ARG_DOUBLE,  &motionParams.Alpha2,  0, "Alpha2 parameter",   "NUM"},
-    { "Alpha3-param",     'w', POPT_ARG_DOUBLE,  &motionParams.Alpha3,  0, "Alpha3 parameter",   "NUM"},
-   
-    POPT_AUTOHELP
-    { NULL, 0, 0, NULL, 0, NULL, NULL }
-  };
-  
-   // parse options
-  POpt popt(NULL,argc,(const char**)argv,options,0);
-  int c;
-  while((c = popt.getNextOpt()) >= 0){
-  }
  
-  //========================= Welcome screen, Load map & log ========================
-  ColourTerminal(TerminalUtils::TERMINAL_COL_WHITE,TerminalUtils::TERMINAL_COL_BLACK,TerminalUtils::TERMINAL_ATTR_BRIGHT);
-  printf("\nVector Localization\n\n");
-  ResetTerminal();
- 
-  if(debugLevel>=0){
     printf("NumParticles     : %d\n",numParticles);
     printf("Alpha1           : %f\n",motionParams.Alpha1);
     printf("Alpha2           : %f\n",motionParams.Alpha2);
@@ -97,52 +75,16 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     printf("UseLIDAR         : %d\n",noLidar?0:1);
     printf("Visualizations   : %d\n",debugLevel>=0?1:0);
     printf("\n");
-  }
+  
   double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
   if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
   srand(seed);
+*/
  
   //Initialize particle filter, sensor model, motion model, refine model
-  string mapsFolder(ros::package::getPath("cgr_localization").append("/maps/"));
+  string mapsFolder("maps");
   localization = new VectorLocalization2D(mapsFolder.c_str());
-  InitModels();
- 
-  //Initialize particle filter
-  localization->initialize(numParticles,curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
- 
-  //Initialize ros for sensor and odometry topics
-  InitHandleStop(&run);
-  ros::init(argc, argv, "CGR_Localization");
-  ros::NodeHandle n;
-  guiPublisher = n.advertise<DisplayMsg>("localization_gui",1,true);
-  localizationPublisher = n.advertise<LocalizationMsg>("localization",1,true);
-  particlesPublisher = n.advertise<geometry_msgs::PoseArray>("particlecloud",1,false);
-  Sleep(0.1);
- 
-  localizationServer = n.advertiseService("localization_interface", &localizationCallback);
- 
-  //Initialize ros for sensor and odometry topics
-  ros::Subscriber odometrySubscriber = n.subscribe("odom", 20, odometryCallback);
-  ros::Subscriber lidarSubscriber = n.subscribe("scan", 5, lidarCallback);
-  ros::Subscriber kinectSubscriber = n.subscribe("kinect_depth", 1, depthCallback);
-  ros::Subscriber initialPoseSubscriber = n.subscribe("initialpose",1,initialPoseCallback);
-  transformListener = new tf::TransformListener(ros::Duration(10.0));
-  transformBroadcaster = new tf::TransformBroadcaster(); 
- 
-  filteredPointCloudPublisher = n.advertise<sensor_msgs::PointCloud>("Cobot/Kinect/FilteredPointCloud", 1);
- 
-  while(ros::ok() && run){
-    ros::spinOnce();
-    publishGUI();
-    publishLocation();
-    Sleep(0.005);
-  }
- 
-  if(debugLevel>=0) printf("closing.\n");
-  return 0;
-}
-
-  
+	
 }
 
 /**
@@ -155,9 +97,10 @@ SpecificWorker::~SpecificWorker()
 
 void SpecificWorker::LoadParameters()
 {
+
   WatchFiles watch_files;
-  ConfigReader config(ros::package::getPath("cgr_localization").append("/").c_str());
-  
+  ConfigReader config("etc/params.conf");
+  /*
   config.init(watch_files);
     
   {
@@ -197,13 +140,13 @@ void SpecificWorker::LoadParameters()
     ConfigReader::SubTree c(config,"lidarParams");
     
     bool error = false;
-    // Laser sensor properties
+    // Laser sensor properties  //BASURA
     error = error || !c.getReal("angleResolution", lidarParams.angleResolution);
     error = error || !c.getInt("numRays", lidarParams.numRays);
     error = error || !c.getReal("maxRange", lidarParams.maxRange);
     error = error || !c.getReal("minRange", lidarParams.minRange);
     
-    // Pose of laser sensor on robot
+    // Pose of laser sensor on robot	//BASURA
     vector2f laserToBaseTrans;
     float xRot, yRot, zRot;
     error = error || !c.getVec2f<vector2f>("laserToBaseTrans", laserToBaseTrans);
@@ -242,6 +185,7 @@ void SpecificWorker::LoadParameters()
       exit(2);
     }
   }
+*/
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -265,20 +209,20 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-static RoboCompLaser::TLaserData laserData;
+//static RoboCompLaser::TLaserData laserData;
 
  		//rgbd_proxy->getXYZ(points, hState, bState);
-		laserData = laser_proxy->getLaserData();
-			int j=0;
-			for(auto i : laserData)
-		{
+	//	laserData = laser_proxy->getLaserData();
+	//		int j=0;
+	//		for(auto i : laserData)
+	//	{
 			//pasar a xyz añadiendo w QVec p1 = QVec::vec3(x,y,z); 
 			//points[j].x=0;
 			//points[j].y=0;
 			//points[j].z=0;
 			//points[j].w=0;
 			//j++;
-		}
+	//	}
 // 	try
 // 	{
 // 		camera_proxy->getYImage(0,img, cState, bState);

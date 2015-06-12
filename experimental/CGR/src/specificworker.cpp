@@ -96,21 +96,16 @@ SpecificWorker::~SpecificWorker()
 
 void SpecificWorker::LoadParameters()
 {
-  qDebug() <<"aaaaaa";
   WatchFiles watch_files;
-  ConfigReader config("etc/");  //CAMBIA ESTE PATH, ESTA MAL/*
-//   ConfigReader config(ros::package::getPath("cgr_localization").append("/").c_str());
-    qDebug() <<"aaaaaa";
+  ConfigReader config("../etc/"); //path a los ficheros de configuracion desde el path del binario.
   config.init(watch_files);
   
-  config.addFile("configfiles/localization_parameters.cfg");
-  config.addFile("configfiles/kinect_parameters.cfg");
-    qDebug() <<"aaaaaa";
+  config.addFile("localization_parameters.cfg");
+  config.addFile("kinect_parameters.cfg");
   if(!config.readFiles()){
     printf("Failed to read config\n");
     exit(1);
   }
-    qDebug() <<"aaaaaa";
 /**
     {
     ConfigReader::SubTree c(config,"KinectParameters");
@@ -158,7 +153,8 @@ void SpecificWorker::LoadParameters()
       printf("Error Loading Plane Filtering Parameters!\n");
       exit(2);
     }
-  } 
+  }
+*/ 
   
   {
     ConfigReader::SubTree c(config,"initialConditions");
@@ -174,9 +170,6 @@ void SpecificWorker::LoadParameters()
     if(error){
       printf("Error Loading Initial Conditions!\n");
       exit(2);
-    }
-    else {
-        cout << angleUncertainty << curMapName<<endl
     }
   }
   
@@ -195,7 +188,7 @@ void SpecificWorker::LoadParameters()
       exit(2);
     }
   }
-  
+  /*
   {
     ConfigReader::SubTree c(config,"lidarParams");
     
@@ -293,6 +286,20 @@ void SpecificWorker::compute()
 // 	{
 // 		std::cout << "Error reading from Camera" << e << std::endl;
 // 	}
+}
+
+////////////////////////////
+///  SERVANTS
+////////////////////////////
+
+
+void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
+{
+	for (int i = 0; i < ops.size(); i++)
+	{
+		cout << "Points: "<<ops[i].x<<" "<< ops[i].y<<" "<< ops[i].z<<endl;
+		cout << "Normals: "<<ops[i].nx<<" "<< ops[i].ny<<" "<< ops[i].nz<<endl;
+	}
 }
 
 

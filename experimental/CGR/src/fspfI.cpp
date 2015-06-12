@@ -29,9 +29,9 @@ FSPFI::~FSPFI()
 {
 }
 
-PointSeq FSPFI::getFilteresPoints(const Ice::Current&)
+void FSPFI::newFilteredPoints(const OrientedPoints  &ops, const Ice::Current&)
 {
-	return worker->getFilteresPoints();
+	worker->newFilteredPoints(ops);
 }
 
 

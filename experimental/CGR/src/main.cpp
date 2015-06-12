@@ -78,8 +78,10 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <fspfI.h>
 
 #include <Laser.h>
+#include <FSPF.h>
 
 
 // User includes here
@@ -89,6 +91,7 @@ using namespace std;
 using namespace RoboCompCommonBehavior;
 
 using namespace RoboCompLaser;
+using namespace RoboCompFSPF;
 
 
 
@@ -143,6 +146,7 @@ int CGR::run(int argc, char* argv[])
 	rInfo("LaserProxy initialized Ok!");
 	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
 
+IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
 
 	GenericWorker *worker = new SpecificWorker(mprx);
@@ -170,6 +174,34 @@ int CGR::run(int argc, char* argv[])
 
 
 
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPFTopic", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
+		}
+		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf", tmp);
+		FSPFPtr fspfI_ = new FSPFI(worker);
+		Ice::ObjectPrx fspf = FSPF_adapter->addWithUUID(fspfI_)->ice_oneway();
+		IceStorm::TopicPrx fspf_topic;
+		if(!fspf_topic){
+		try {
+			fspf_topic = topicManager->create("FSPF");
+		}
+		catch (const IceStorm::TopicExists&) {
+		//Another client created the topic
+		try{
+			fspf_topic = topicManager->retrieve("FSPF");
+		}
+		catch(const IceStorm::NoSuchTopic&)
+		{
+			//Error. Topic does not exist
+			}
+		}
+		IceStorm::QoS qos;
+		fspf_topic->subscribeAndGetPublisher(qos, fspf);
+		}
+		FSPF_adapter->activate();
 
 		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;

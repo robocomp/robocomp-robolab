@@ -38,7 +38,7 @@ public:
 	FSPFI( GenericWorker *_worker, QObject *parent = 0 );
 	~FSPFI();
 	
-	PointSeq getFilteresPoints(const Ice::Current&);
+	void newFilteredPoints(const OrientedPoints  &ops, const Ice::Current&);
 
 	QMutex *mutex;
 private:

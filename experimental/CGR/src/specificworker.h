@@ -39,7 +39,8 @@ public:
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
         void LoadParameters();
 
-	//PointSeq getFilteresPoints();
+	void newFilteredPoints(const OrientedPoints &ops);
+
 
 public slots:
 	void compute(); 	
@@ -48,6 +49,11 @@ private:
 InnerModelViewer *imv;
 InnerModel *innerModel;
 VectorLocalization2D *localization;
+string curMapName;
+vector2f initialLoc;
+float initialAngle;
+float locUncertainty, angleUncertainty;
+VectorLocalization2D::MotionModelParams motionParams;
 };
 
 #endif

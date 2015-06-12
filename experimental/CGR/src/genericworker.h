@@ -28,6 +28,7 @@
 
 #include <CommonBehavior.h>
 #include <DifferentialRobot.h>
+#include <FSPF.h>
 #include <Laser.h>
 
 
@@ -39,6 +40,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 using namespace std;
 
 using namespace RoboCompDifferentialRobot;
+using namespace RoboCompFSPF;
 using namespace RoboCompLaser;
 
 class GenericWorker : 
@@ -60,6 +62,7 @@ public:
 
 	LaserPrx laser_proxy;
 
+	virtual void newFilteredPoints(const OrientedPoints &ops) = 0;
 
 
 protected:

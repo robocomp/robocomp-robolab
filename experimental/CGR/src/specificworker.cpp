@@ -65,7 +65,7 @@ using namespace std;
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 
-//    LoadParameters();
+    LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
     printf("Alpha1           : %f\n",motionParams.Alpha1);
@@ -75,11 +75,11 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     printf("UseLIDAR         : %d\n",noLidar?0:1);
     printf("Visualizations   : %d\n",debugLevel>=0?1:0);
     printf("\n");
-  
+*/  
   double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
-  if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
+  //if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
   srand(seed);
-*/
+
  
   
 
@@ -88,8 +88,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 
 //////
 //Initialize particle filter, sensor model, motion model, refine model
-  //string mapsFolder("maps");
-  //localization = new VectorLocalization2D(mapsFolder.c_str());
+  string mapsFolder("maps");
+  localization = new VectorLocalization2D(mapsFolder.c_str());
 	
 }
 

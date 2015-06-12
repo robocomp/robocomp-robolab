@@ -65,7 +65,7 @@ using namespace std;
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 
-    LoadParameters();
+//    LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
     printf("Alpha1           : %f\n",motionParams.Alpha1);
@@ -81,9 +81,15 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
   srand(seed);
 */
  
-  //Initialize particle filter, sensor model, motion model, refine model
-  string mapsFolder("maps");
-  localization = new VectorLocalization2D(mapsFolder.c_str());
+  
+
+
+
+
+//////
+//Initialize particle filter, sensor model, motion model, refine model
+  //string mapsFolder("maps");
+  //localization = new VectorLocalization2D(mapsFolder.c_str());
 	
 }
 
@@ -262,6 +268,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	//qDebug() << "asdf";
 //static RoboCompLaser::TLaserData laserData;
 
  		//rgbd_proxy->getXYZ(points, hState, bState);
@@ -295,6 +302,7 @@ void SpecificWorker::compute()
 
 void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 {
+//	qDebug() << "hola";
 	for (int i = 0; i < ops.size(); i++)
 	{
 		cout << "Points: "<<ops[i].x<<" "<< ops[i].y<<" "<< ops[i].z<<endl;

@@ -1,12 +1,11 @@
-CommonBehavior.Endpoints=tcp -p 1
-
+CommonBehavior.Endpoints=tcp -p 12010
 
 # Endpoints for subscriptions
-FSPF.Endpoints=tcp -p 0
+FSPF.Endpoints=tcp -p 10098
 
 
 # Proxies for required interfaces
-LaserProxy = laser:tcp -h localhost -p 0
+LaserProxy = laser:tcp -h localhost -p 10003
 
 
 

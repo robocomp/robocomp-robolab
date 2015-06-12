@@ -176,11 +176,12 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 
 
 		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPFTopic", tmp, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPF.Endpoints", tmp, "", NULL))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
 		}
-		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf", tmp);
+		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf",tmp);
+		
 		FSPFPtr fspfI_ = new FSPFI(worker);
 		Ice::ObjectPrx fspf = FSPF_adapter->addWithUUID(fspfI_)->ice_oneway();
 		IceStorm::TopicPrx fspf_topic;
@@ -195,8 +196,8 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		}
 		catch(const IceStorm::NoSuchTopic&)
 		{
-			//Error. Topic does not exist
-			}
+			qDebug() << "Error. Topic does not exist";
+		}	
 		}
 		IceStorm::QoS qos;
 		fspf_topic->subscribeAndGetPublisher(qos, fspf);

@@ -43,7 +43,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     //float maxOffsetDiff;
     //float minVisibilityFraction;
     filterParams.filterOutliers = true;
-    planeFilter = new PlaneFilter( points, filterParams);
+    planeFilter = new PlaneFilter( pointsCloudNorm.points, filterParams);
 }
 
 /**
@@ -69,15 +69,15 @@ void SpecificWorker::compute()
 		static RoboCompDifferentialRobot::TBaseState bState;
 		static RoboCompJointMotor::MotorStateMap hState;
 
- 		rgbd_proxy->getXYZ(points, hState, bState);
+ 		rgbd_proxy->getXYZ(pointsCloudNorm.points, hState, bState);
 
-		vector< vector3f > filteredPointCloud, pointCloudNormals, outlierCloud;
+		vector< vector3f > filteredPointCloud, outlierCloud;
 		vector< vector2i > pixelLocs;
 		vector< PlanePolygon > polygons;
 
-		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointCloudNormals, outlierCloud, polygons);
+		planeFilter->GenerateFilteredPointCloud(pointsCloudNorm.points, filteredPointCloud, pixelLocs, pointsCloudNorm.pointsNormals, outlierCloud, polygons);
 
-		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
+		qDebug() << pointsCloudNorm.points.size() << filteredPointCloud.size() << outlierCloud.size();
  	}
  	catch(const Ice::Exception &e)
  	{
@@ -93,8 +93,8 @@ void SpecificWorker::compute()
 }
 
 
-PointSeq SpecificWorker::getFilteredPoints()
+PointsCloudNorm SpecificWorker::getFilteredPoints()
 {
 	//QMutexLocker l(pointsMutex);
-	return points;
+	return pointsCloudNorm;
 }

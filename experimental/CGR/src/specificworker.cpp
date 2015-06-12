@@ -64,9 +64,9 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-/*
+
     LoadParameters();
- 
+/* 
     printf("NumParticles     : %d\n",numParticles);
     printf("Alpha1           : %f\n",motionParams.Alpha1);
     printf("Alpha2           : %f\n",motionParams.Alpha2);
@@ -92,17 +92,74 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
 }
 
 void SpecificWorker::LoadParameters()
 {
-
+  qDebug() <<"aaaaaa";
   WatchFiles watch_files;
-  ConfigReader config("etc/params.conf");  //CAMBIA ESTE PATH, ESTA MAL.
-  /*
+  ConfigReader config("etc/");  //CAMBIA ESTE PATH, ESTA MAL/*
+//   ConfigReader config(ros::package::getPath("cgr_localization").append("/").c_str());
+    qDebug() <<"aaaaaa";
   config.init(watch_files);
+  
+  config.addFile("configfiles/localization_parameters.cfg");
+  config.addFile("configfiles/kinect_parameters.cfg");
+    qDebug() <<"aaaaaa";
+  if(!config.readFiles()){
+    printf("Failed to read config\n");
+    exit(1);
+  }
+    qDebug() <<"aaaaaa";
+/**
+    {
+    ConfigReader::SubTree c(config,"KinectParameters");
     
+    unsigned int maxDepthVal;
+    bool error = false;
+    error = error || !c.getReal("f",kinectDepthCam.f);
+    error = error || !c.getReal("fovH",kinectDepthCam.fovH);
+    error = error || !c.getReal("fovV",kinectDepthCam.fovV);
+    error = error || !c.getInt("width",kinectDepthCam.width);
+    error = error || !c.getInt("height",kinectDepthCam.height);
+    error = error || !c.getUInt("maxDepthVal",maxDepthVal);
+    kinectDepthCam.maxDepthVal = maxDepthVal;    
+    
+    vector3f kinectLoc;
+    float xRot, yRot, zRot;
+    error = error || !c.getVec3f("loc",kinectLoc);
+    error = error || !c.getReal("xRot",xRot);
+    error = error || !c.getReal("yRot",yRot);
+    error = error || !c.getReal("zRot",zRot);
+    kinectToRobotTransform.xyzRotationAndTransformation(xRot,yRot,zRot,kinectLoc);
+    
+    if(error){
+      printf("Error Loading Kinect Parameters!\n");
+      exit(2);
+    }
+    }
+
+    {
+    ConfigReader::SubTree c(config,"PlaneFilteringParameters");
+    
+    bool error = false;
+    error = error || !c.getUInt("maxPoints",filterParams.maxPoints);
+    error = error || !c.getUInt("numSamples",filterParams.numSamples);
+    error = error || !c.getUInt("numLocalSamples",filterParams.numLocalSamples);
+    error = error || !c.getUInt("planeSize",filterParams.planeSize);
+    error = error || !c.getReal("maxError",filterParams.maxError);
+    error = error || !c.getReal("maxDepthDiff",filterParams.maxDepthDiff);
+    error = error || !c.getReal("minInlierFraction",filterParams.minInlierFraction);
+    error = error || !c.getReal("WorldPlaneSize",filterParams.WorldPlaneSize);
+    error = error || !c.getUInt("numRetries",filterParams.numRetries);
+    filterParams.runPolygonization = false;
+    
+    if(error){
+      printf("Error Loading Plane Filtering Parameters!\n");
+      exit(2);
+    }
+  } 
+  
   {
     ConfigReader::SubTree c(config,"initialConditions");
     
@@ -117,6 +174,9 @@ void SpecificWorker::LoadParameters()
     if(error){
       printf("Error Loading Initial Conditions!\n");
       exit(2);
+    }
+    else {
+        cout << angleUncertainty << curMapName<<endl
     }
   }
   

@@ -35,7 +35,7 @@ After editing the new config file we can run the component:
 
     --Ice.Config=config
 For install LUA:
- sudo apt-get install sudo apt-get install lua5.1 && liblua5.1-0-dev
+ sudo apt-get install lua5.1 liblua5.1-0-dev
  sudo ln -s /usr/lib/x86_64-linux-gnu/lublua5.1.so /usr/lib/liblua5.1.so 
  sudo ln -s /usr/include/lua5.1/lua.h /usr/include/lua.h
  sudo ln -s /usr/include/lua5.1/lualib.h /usr/include/lualib.h

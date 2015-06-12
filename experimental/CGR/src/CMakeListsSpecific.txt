@@ -24,3 +24,6 @@ set (SPECIFIC_LIBS ${LUA_LIBRARIES} )
 
 ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2 -fpermissive)
 
+find_package(Lua51 REQUIRED)
+ set (SPECIFIC_LIBS ${LUA_LIBRARIES} )
+

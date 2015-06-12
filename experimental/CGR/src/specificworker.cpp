@@ -58,6 +58,18 @@
 
 #include "specificworker.h"
 
+bool run = true;
+bool usePointCloud = false;
+bool noLidar = false;
+int numParticles = 20;
+int debugLevel = -1;
+
+vector2f initialLoc;
+float initialAngle;
+float locUncertainty, angleUncertainty;
+
+VectorLocalization2D *localization;
+
 using namespace std;
 /**
 * \brief Default constructor
@@ -65,7 +77,7 @@ using namespace std;
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 
-//    LoadParameters();
+    LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
     printf("Alpha1           : %f\n",motionParams.Alpha1);
@@ -75,22 +87,21 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     printf("UseLIDAR         : %d\n",noLidar?0:1);
     printf("Visualizations   : %d\n",debugLevel>=0?1:0);
     printf("\n");
-  
+*/  
   double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
   if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
   srand(seed);
-*/
+
  
-  
 
 
-
-
-//////
 //Initialize particle filter, sensor model, motion model, refine model
-  //string mapsFolder("maps");
-  //localization = new VectorLocalization2D(mapsFolder.c_str());
-	
+  string mapsFolder("../maps");
+//  localization = new VectorLocalization2D(mapsFolder.c_str());
+  localization = new VectorLocalization2D(mapsFolder.c_str());
+  localization->initialize(numParticles,
+	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
+  	
 }
 
 /**
@@ -266,34 +277,43 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 }
 
 
+
+
 void SpecificWorker::compute()
 {
-	//qDebug() << "asdf";
-//static RoboCompLaser::TLaserData laserData;
 
- 		//rgbd_proxy->getXYZ(points, hState, bState);
-	//	laserData = laser_proxy->getLaserData();
-	//		int j=0;
-	//		for(auto i : laserData)
-	//	{
-			//pasar a xyz añadiendo w QVec p1 = QVec::vec3(x,y,z); 
-			//points[j].x=0;
-			//points[j].y=0;
-			//points[j].z=0;
-			//points[j].w=0;
-			//j++;
-	//	}
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+	// Obtener la posición del robot en el mundo. Al arrancar 0
+	// LLamar a omnirobot -> getBaseState();
+
+	// Si hay algo nuevo
+	// Si no
+		// llamar a localization -> predict
+
 }
+
+void SpecificWorker::filterParticle()
+{
+  //Call particle filter
+    vector<vector2f> pointCloud2D, pointCloudNormals2D;
+
+    for(unsigned int i=0; i<filteredPointCloud.size(); i++){
+      if(fabs(pointCloudNormals[i].z)>sin(RAD(30.0)))
+        continue;
+
+      vector2f curNormal(V2COMP(pointCloudNormals[i]));
+      vector2f curPoint(V2COMP(filteredPointCloud[i]));
+      curNormal.normalize();
+      pointCloudNormals2D.push_back(curNormal);
+      pointCloud2D.push_back(curPoint);
+    }
+
+    double start = GetTimeSec();
+    localization->refinePointCloud(pointCloud2D, pointCloudNormals2D, pointCloudParams);
+    localization->updatePointCloud(pointCloud2D, pointCloudNormals2D, motionParams, pointCloudParams);
+    localization->resample(VectorLocalization2D::SparseMultinomialResampling);
+    localization->computeLocation(curLoc,curAngle);
+    std::cerr << "point cloud update: " << GetTimeSec()-start << std::endl;
+  }
 
 ////////////////////////////
 ///  SERVANTS
@@ -303,15 +323,27 @@ void SpecificWorker::compute()
 void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 {
 //	qDebug() << "hola";
-	for (int i = 0; i < ops.size(); i++)
-	{
-		cout << "Points: "<<ops[i].x<<" "<< ops[i].y<<" "<< ops[i].z<<endl;
-		cout << "Normals: "<<ops[i].nx<<" "<< ops[i].ny<<" "<< ops[i].nz<<endl;
-	}
+//	for (int i = 0; i < ops.size(); i++)
+//	{
+//		cout << "Points: "<<ops[i].x<<" "<< ops[i].y<<" "<< ops[i].z<<endl;
+//		cout << "Normals: "<<ops[i].nx<<" "<< ops[i].ny<<" "<< ops[i].nz<<endl;
+//	}
 }
 
 
 
+//static RoboCompLaser::TLaserData laserData;
 
+//	laserData = laser_proxy->getLaserData();
+//	int j=0;
+//	for(auto i : laserData)
+//	{
+		//pasar a xyz añadiendo w QVec p1 = QVec::vec3(x,y,z); 
+		//points[j].x=0;
+		//points[j].y=0;
+		//points[j].z=0;
+		//points[j].w=0;
+		//j++;
+//	}
 
 

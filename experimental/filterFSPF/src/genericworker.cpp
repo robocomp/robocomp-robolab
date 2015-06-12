@@ -25,8 +25,9 @@ QObject()
 {
 	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
 
+	fspf_proxy = (*(FSPFPrx*)mprx["FSPFPub"]);
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
 
 		
 	Period = BASIC_PERIOD;

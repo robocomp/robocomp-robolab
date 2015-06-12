@@ -29,11 +29,6 @@
 #include <omp.h>
 #include "plane_filtering.h"
 
-struct PointsCloudNorm{
-
-	PointSeq points;
-	vector< vector3f > pointsNormals;
-};
 
 class SpecificWorker : public GenericWorker
 {
@@ -42,13 +37,12 @@ public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	PointsCloudNorm getFilteredPoints();
 public slots:
 	void compute();
 
 private:
 	PlaneFilter *planeFilter;
-	PointsCloudNorm pointsCloudNorm;
+	PointSeq points;
 };
 
 #endif

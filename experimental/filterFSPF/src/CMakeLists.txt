@@ -1,11 +1,17 @@
 
 cmake_minimum_required(VERSION 2.6)
 PROJECT(  filterFSPF )
+
+ 
+IF ( "$ENV{ROBOCOMP}" STREQUAL "")
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
+  SET (ENV{ROBOCOMP} "/opt/robocomp/")
+ENDIF ( "$ENV{ROBOCOMP}" STREQUAL "")
+
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
-MESSAGE(FATAL_ERROR "
- ROBOCOMP variable not set, check your bashrc profile!
-")
+  MESSAGE(FATAL_ERROR "Couldn't find RoboComp in $ENV{ROBOCOMP}! Exiting...")
 ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
@@ -33,7 +39,7 @@ SET ( HEADERS
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor DifferentialRobot )
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor DifferentialRobot FSPF )
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # Qt4

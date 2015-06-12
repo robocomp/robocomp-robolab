@@ -29,6 +29,7 @@
 #include <RGBD.h>
 #include <DifferentialRobot.h>
 #include <JointMotor.h>
+#include <FSPF.h>
 
 
 #define CHECK_PERIOD 5000
@@ -41,6 +42,7 @@ using namespace std;
 using namespace RoboCompRGBD;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompJointMotor;
+using namespace RoboCompFSPF;
 
 class GenericWorker : 
 public QObject
@@ -55,6 +57,7 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
 
+	FSPFPrx fspf_proxy;
 	RGBDPrx rgbd_proxy;
 
 

@@ -43,7 +43,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     //float maxOffsetDiff;
     //float minVisibilityFraction;
     filterParams.filterOutliers = true;
-    planeFilter = new PlaneFilter( pointsCloudNorm.points, filterParams);
+    planeFilter = new PlaneFilter( points, filterParams);
 }
 
 /**
@@ -69,15 +69,29 @@ void SpecificWorker::compute()
 		static RoboCompDifferentialRobot::TBaseState bState;
 		static RoboCompJointMotor::MotorStateMap hState;
 
- 		rgbd_proxy->getXYZ(pointsCloudNorm.points, hState, bState);
+ 		rgbd_proxy->getXYZ(points, hState, bState);
 
-		vector< vector3f > filteredPointCloud, outlierCloud;
+		vector< vector3f > filteredPointCloud,pointsNormals , outlierCloud;
 		vector< vector2i > pixelLocs;
 		vector< PlanePolygon > polygons;
 
-		planeFilter->GenerateFilteredPointCloud(pointsCloudNorm.points, filteredPointCloud, pixelLocs, pointsCloudNorm.pointsNormals, outlierCloud, polygons);
+		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointsNormals, outlierCloud, polygons);
+		
+		RoboCompFSPF::OrientedPoints ops;
+		for( int i =0; i<points.size(); i++)
+		{
+			RoboCompFSPF::OrientedPoint op;
+			op.x = points[i].x;
+			op.y = points[i].y;
+			op.z = points[i].z;
+			op.nx = pointsNormals[i].x;
+			op.ny = pointsNormals[i].y;
+			op.nz = pointsNormals[i].z;
+			ops.push_back(op);		
+		}
+		fspf_proxy->newFilteredPoints(ops);
 
-		qDebug() << pointsCloudNorm.points.size() << filteredPointCloud.size() << outlierCloud.size();
+		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
  	}
  	catch(const Ice::Exception &e)
  	{
@@ -93,8 +107,8 @@ void SpecificWorker::compute()
 }
 
 
-PointsCloudNorm SpecificWorker::getFilteredPoints()
-{
-	//QMutexLocker l(pointsMutex);
-	return pointsCloudNorm;
-}
+//////////////////////////77
+/// SERVANT
+///////////////////////////
+
+

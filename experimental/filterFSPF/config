@@ -1,10 +1,12 @@
-CommonBehavior.Endpoints=tcp -p 12213
+CommonBehavior.Endpoints=tcp -p 14000
 
 
 # Proxies for required interfaces
-# RGBDProxy = rgbd:tcp -h odroid-xtion.local -p 10096
 RGBDProxy = rgbd:tcp -h localhost -p 10096
 
+
+# Proxies for published topics
+FSPFProxy = fspf:tcp -h localhost -p 10098
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -17,4 +19,6 @@ Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 
-Ice.MessageSizeMax=1024000
+
+Ice.MessageSizeMax=102400
+

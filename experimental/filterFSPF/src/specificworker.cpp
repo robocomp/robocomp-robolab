@@ -78,17 +78,19 @@ void SpecificWorker::compute()
 		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointsNormals, outlierCloud, polygons);
 		
 		RoboCompFSPF::OrientedPoints ops;
-		for( int i =0; i<points.size(); i++)
+		for( int i =0; i<filteredPointCloud.size(); i++)
 		{
 			RoboCompFSPF::OrientedPoint op;
-			op.x = points[i].x;
-			op.y = points[i].y;
-			op.z = points[i].z;
+			op.x = filteredPointCloud[i].x;
+			op.y = filteredPointCloud[i].y;
+			op.z = filteredPointCloud[i].z;
 			op.nx = pointsNormals[i].x;
 			op.ny = pointsNormals[i].y;
 			op.nz = pointsNormals[i].z;
 			ops.push_back(op);		
 		}
+
+//		qDebug() << "ops" << ops.size();
 		fspf_proxy->newFilteredPoints(ops);
 
 		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();

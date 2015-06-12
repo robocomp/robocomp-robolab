@@ -89,19 +89,32 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     printf("\n");
 */  
   double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
-  if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
+  //if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
   srand(seed);
+<<<<<<< HEAD
+=======
+
+ 
+  
+
+>>>>>>> 78b048f851e27ee67635ebfe81d6d4a880c3b79d
 
  
 
 
 //Initialize particle filter, sensor model, motion model, refine model
+<<<<<<< HEAD
   string mapsFolder("../maps");
 //  localization = new VectorLocalization2D(mapsFolder.c_str());
   localization = new VectorLocalization2D(mapsFolder.c_str());
   localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
   	
+=======
+  string mapsFolder("maps");
+  localization = new VectorLocalization2D(mapsFolder.c_str());
+	
+>>>>>>> 78b048f851e27ee67635ebfe81d6d4a880c3b79d
 }
 
 /**

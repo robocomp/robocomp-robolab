@@ -48,79 +48,38 @@ struct TRadRotations{
 using namespace openni;
 using namespace std;
 
-struct DoubleXYZBuffer
+template <class T> class DoubleBuffer
 {
-	//ATRIBUTOS DE LA struct
 	QMutex bufferMutex;
-	RoboCompRGBD::PointSeq bufferA, *writer, *reader, *aux, bufferB;
+	T bufferA, *writer, *reader, bufferB;
 	int size;
 	
-	DoubleXYZBuffer(){};
-	void resize(int size_)
-	{
-		bufferA.resize(size_);
-		writer = &bufferA;
-		bufferB.resize(size_);
-		reader = &bufferB;
-		size = size_;
-	}
+	public:
+		DoubleBuffer(){};
+		void resize(int size_)
+		{
+			bufferA.resize(size_);
+			writer = &bufferA;
+			bufferB.resize(size_);
+			reader = &bufferB;
+			size = size_;
+		}
+		void swap()  //mirar si el swap del std::vector funciona
+		{
+			bufferMutex.lock();
+				writer->swap(*reader);
+			bufferMutex.unlock();
+		}
 
-	void swap()  //mirar si el swap del std::vector funciona
-	{
-		bufferMutex.lock();
-		 	aux = writer;
-			writer = reader;
-			reader = aux;
-		bufferMutex.unlock();
-	}
+		inline typename T::value_type& operator[](int i){ return (*writer)[i]; };
 
-	inline RoboCompRGBD::PointXYZ& operator[](int i){ return (*writer)[i]; };
-
-	void copy(RoboCompRGBD::PointSeq &points)
-	{
-		points.resize(size);
-		bufferMutex.lock();
-			points = *reader;
-		bufferMutex.unlock();
-	}
-};
-
-
-struct DoubleDepthBuffer
-{
-	//ATRIBUTOS DE LA struct
-	QMutex bufferMutex;
-	RoboCompRGBD::DepthSeq bufferA, *writer, *reader, *aux, bufferB;
-	int size;
-	
-	DoubleDepthBuffer(){};
-	void resize(int size_)
-	{
-		bufferA.resize(size_);
-		writer = &bufferA;
-		bufferB.resize(size_);
-		reader = &bufferB;
-		size = size_;
-	}
-
-	void swap()  //mirar si el swap del std::vector funciona
-	{
-		bufferMutex.lock();
-		 	aux = writer;
-			writer = reader;
-			reader = aux;
-		bufferMutex.unlock();
-	}
-
-	inline float& operator[](int i){ return (*writer)[i]; };
-
-	void copy(RoboCompRGBD::DepthSeq &points)
-	{
-		points.resize(size);
-		bufferMutex.lock();
-			points = *reader;
-		bufferMutex.unlock();
-	}
+		void copy(T &points)
+		{
+			points.resize(size);
+			bufferMutex.lock();
+				points = *reader;
+			bufferMutex.unlock();
+		}
 };
 
 
@@ -172,8 +131,9 @@ Q_OBJECT
       
       void normalizeDepth();
       
-      DoubleXYZBuffer pointsBuff;
-	  DoubleDepthBuffer depthBuff;
+      DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
+	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+	  
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
            
 public:

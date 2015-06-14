@@ -16,7 +16,7 @@ Check that the include files and .so libraries are correctly copied to /usr or /
 
 ## Configuration parameters
 As any other component,
-``` *openNI2Comp* ```
+``` *openNI2RGBDComp* ```
 needs a configuration file to start. In
 
     etc/config
@@ -31,14 +31,13 @@ To avoid changing the *config* file in the repository, we can copy it to the com
 
     cd
 
-``` <openNI2Comp 's path> ```
+``` <openNI2RGBDComp 's path> ```
 
     cp etc/config config
     
 After editing the new config file we can run the component:
 
-    bin/```openNI2Comp ```
-    --Ice.Config=config
+    bin/openNI2RGBDComp --Ice.Config=config
 
 
 

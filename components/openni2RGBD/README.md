@@ -1,9 +1,6 @@
-```
-```
-#
-``` openNI2Comp
-```
-Intro to component here
+#openNI2RGBDComp
+
+This component provides accest to a Xtion or Kinect device through the OpenNI2 driver.
 
 
 ## Configuration parameters

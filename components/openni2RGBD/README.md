@@ -2,6 +2,17 @@
 
 This component provides accest to a Xtion or Kinect device through the OpenNI2 driver.
 
+You can download a versión of OpenNI2.2 for Ubuntu x64 from:
+    
+    https://github.com/mhaut/openni2
+    
+and execute with sudo de *install.sh* script to copy the relevant files to */usr*
+
+or you can compile the whole library for Ubuntu x64 downloading de sources from:     
+
+    https://github.com/mhaut/openni2/blob/master/Packaging/Final/OpenNI-Linux-x64-2.2.tar.bz2
+
+Check that the include files and .so libraries are correctly copied to /usr or /usr/local
 
 ## Configuration parameters
 As any other component,
@@ -26,14 +37,8 @@ To avoid changing the *config* file in the repository, we can copy it to the com
     
 After editing the new config file we can run the component:
 
-    bin/
-
-```openNI2Comp ```
-
+    bin/```openNI2Comp ```
     --Ice.Config=config
 
 
 
-YOU CAN DOWNLOAD A VERSION OF OPENNI 2.2 IN https://github.com/mhaut/openni2
-
-file compile for Ubuntu x64 in https://github.com/mhaut/openni2/blob/master/Packaging/Final/OpenNI-Linux-x64-2.2.tar.bz2

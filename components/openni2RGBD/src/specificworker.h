@@ -64,7 +64,7 @@ template <class T> class DoubleBuffer
 			reader = &bufferB;
 			size = size_;
 		}
-		void swap()  //mirar si el swap del std::vector funciona
+		void swap()
 		{
 			bufferMutex.lock();
 				writer->swap(*reader);

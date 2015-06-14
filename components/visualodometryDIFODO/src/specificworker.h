@@ -32,6 +32,10 @@
 #include <mrpt/utils/CConfigFileMemory.h>
 #include <mrpt/utils/CConfigFile.h>
 
+#ifdef USE_QTGUI
+	#include <osgviewer/osgview.h>
+	#include <innermodel/innermodelviewer.h>
+#endif
 
 class SpecificWorker : public GenericWorker
 {
@@ -66,6 +70,14 @@ private:
 			"rows = 240 \n"
 			"cols = 320 \n"
 			"ctf_levels = 5 \n\n";
+			
+	InnerModel *innerModel;		
+	
+	#ifdef USE_QTGUI
+		OsgView *osgView;
+		InnerModelViewer *innerViewer;
+		InnerModel *innerVisual;
+	#endif
 };
 
 #endif

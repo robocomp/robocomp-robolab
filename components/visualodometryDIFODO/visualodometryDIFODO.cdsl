@@ -7,5 +7,7 @@ Component visualodometryDIFODO
 		requires RGBD;
 	};
 	language Cpp;
+	gui Qt(QWidget);
+
 };
 

@@ -114,7 +114,11 @@ void visualodometryDIFODO::initialize()
 
 int visualodometryDIFODO::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
 	int status=EXIT_SUCCESS;
 
 	RGBDPrx rgbd_proxy;

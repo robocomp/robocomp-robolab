@@ -3,7 +3,7 @@ CommonBehavior.Endpoints=tcp -p 13000
 # Proxies for required interfaces
 RGBDProxy = rgbd:tcp -h localhost -p 10096
 
-
+visualodometryDIFODO.InnerModel=world.xml
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

@@ -10,23 +10,17 @@
 #include "difodometrycamera.h"
 #include <mrpt/utils/types_math.h> // Eigen (with MRPT "plugin" in BaseMatrix<>)
 #include <mrpt/system/filesystem.h>
-#include <mrpt/opengl/CFrustum.h>
-#include <mrpt/opengl/CGridPlaneXY.h>
-#include <mrpt/opengl/CBox.h>
-#include <mrpt/opengl/CPointCloud.h>
-#include <mrpt/opengl/CPointCloudColoured.h>
-#include <mrpt/opengl/CSetOfLines.h>
-#include <mrpt/opengl/CEllipsoid.h>
-#include <mrpt/opengl/stock_objects.h>
+
 
 using namespace Eigen;
 using namespace std;
 using namespace mrpt;
-using namespace mrpt::opengl;
 
 
-void CDifodoCamera::loadConfiguration(const utils::CConfigFileBase &ini )
+void CDifodoCamera::loadConfiguration(const utils::CConfigFileBase &ini , RoboCompRGBD::RGBDPrx _rgbd_proxy)
 {
+	rgbd_proxy = _rgbd_proxy;
+	
 	fovh = M_PI*58.6/180.0;
 	fovv = M_PI*45.6/180.0;
 	downsample = 1;
@@ -146,35 +140,69 @@ bool CDifodoCamera::openCamera()
 
 	return 0;
 }
-
 void CDifodoCamera::loadFrame()
 {
-	//Read the newest frame
-	openni::VideoFrameRef framed;
-	depth_ch.readFrame(&framed);
+	RoboCompRGBD::DepthSeq depth;
+	static RoboCompDifferentialRobot::TBaseState bState;
+	static RoboCompJointMotor::MotorStateMap hState;
 
-	const int height = framed.getHeight();
-	const int width = framed.getWidth();
-
-	//Store the depth values
-	const openni::DepthPixel* pDepthRow = (const openni::DepthPixel*)framed.getData();
-	int rowSize = framed.getStrideInBytes() / sizeof(openni::DepthPixel);
-
-	for (int yc = height-1; yc >= 0; --yc)
-	{
-		const openni::DepthPixel* pDepth = pDepthRow;
-		for (int xc = width-1; xc >= 0; --xc, ++pDepth)
+	const int height = 240;
+	const int width = 320;
+	
+	try
+	{	
+		rgbd_proxy->getDepth(depth, hState, bState);
+		
+		float *pDepth = &depth[0];
+		for (int yc = height-1; yc >= 0; --yc)
 		{
-			if (*pDepth < 4500.f)
-				depth_wf(yc,xc) = 0.001f*(*pDepth);
-
-			else
-				depth_wf(yc,xc) = 0.f;
+			for (int xc = width-1; xc >= 0; --xc)
+			{
+				if (*pDepth < 4500.f)
+					depth_wf(yc,xc) = 0.001f*(*pDepth);
+				else
+					depth_wf(yc,xc) = 0.f;
+				++pDepth;
+				//cout << *pDepth <<  " " << endl;
+			}
 		}
-
-		pDepthRow += rowSize;
 	}
+	catch(const Ice::Exception &ex)
+	{ cout << ex << endl;};
+	
 }
+
+// void CDifodoCamera::loadFrame()
+// {
+// 	cout << __FUNCTION__ << endl;
+// 	//Read the newest frame
+// 	openni::VideoFrameRef framed;
+// 	depth_ch.readFrame(&framed);
+// 
+// 	const int height = framed.getHeight();
+// 	const int width = framed.getWidth();
+// 
+// 	//Store the depth values
+// 	const openni::DepthPixel* pDepthRow = (const openni::DepthPixel*)framed.getData();
+// 	int rowSize = framed.getStrideInBytes() / sizeof(openni::DepthPixel);
+// 
+// 	for (int yc = height-1; yc >= 0; --yc)
+// 	{
+// 		const openni::DepthPixel* pDepth = pDepthRow;
+// 		for (int xc = width-1; xc >= 0; --xc, ++pDepth)
+// 		{
+// 			if (*pDepth < 4500.f)
+// 				depth_wf(yc,xc) = 0.001f*(*pDepth);
+// 
+// 			else
+// 				depth_wf(yc,xc) = 0.f;
+// 		}
+// 
+// 		pDepthRow += rowSize;
+// 	}
+// }
+
+
 
 void CDifodoCamera::CreateResultsFile()
 {
@@ -207,144 +235,7 @@ void CDifodoCamera::CreateResultsFile()
 	}
 }
 
-void CDifodoCamera::initializeScene()
-{
-	poses::CPose3D rel_lenspose(0,-0.05,0,0,0,0);
-	
-	global_settings::OCTREE_RENDER_MAX_POINTS_PER_NODE = 1000000;
-	window.resize(1000,900);
-	window.setPos(900,0);
-	window.setCameraZoom(16);
-	window.setCameraAzimuthDeg(0);
-	window.setCameraElevationDeg(90);
-	window.setCameraPointingToPoint(0,0,0);
-	window.setCameraPointingToPoint(0,0,1);
 
-	scene = window.get3DSceneAndLock();
-
-	// Lights:
-	scene->getViewport()->setNumberOfLights(1);
-	CLight & light0 = scene->getViewport()->getLight(0);
-	light0.light_ID = 0;
-	light0.setPosition(0,0,1,1);
-
-	//Grid (ground)
-	CGridPlaneXYPtr ground = CGridPlaneXY::Create();
-	scene->insert( ground );
-
-	//Reference
-	CSetOfObjectsPtr reference = stock_objects::CornerXYZ();
-	scene->insert( reference );
-
-	//					Cameras and points
-	//------------------------------------------------------
-
-	//DifOdo camera
-	CBoxPtr camera_odo = CBox::Create(math::TPoint3D(-0.02,-0.1,-0.01),math::TPoint3D(0.02,0.1,0.01));
-	camera_odo->setPose(cam_pose + rel_lenspose);
-	camera_odo->setColor(0,1,0);
-	scene->insert( camera_odo );
-
-	//Frustum
-	opengl::CFrustumPtr FOV = opengl::CFrustum::Create(0.3, 2, 57.3*fovh, 57.3*fovv, 1.f, true, false);
-	FOV->setColor(0.7,0.7,0.7);
-	FOV->setPose(cam_pose);
-	scene->insert( FOV );
-
-	//Reference cam
-	CSetOfObjectsPtr reference_gt = stock_objects::CornerXYZ();
-	reference_gt->setScale(0.2);
-	reference_gt->setPose(cam_pose);
-	scene->insert( reference_gt );
-
-	//Camera points
-	CPointCloudColouredPtr cam_points = CPointCloudColoured::Create();
-	cam_points->setPointSize(2);
-	cam_points->enablePointSmooth(1);
-	cam_points->setPose(cam_pose);
-	scene->insert( cam_points );
-
-
-	//					Trajectories and covariance
-	//-------------------------------------------------------------
-
-	//Dif Odometry
-	CSetOfLinesPtr traj_lines_odo = CSetOfLines::Create();
-	traj_lines_odo->setLocation(0,0,0);
-	traj_lines_odo->setColor(0,0.6,0);
-	traj_lines_odo->setLineWidth(6);
-	scene->insert( traj_lines_odo );
-	CPointCloudPtr traj_points_odo = CPointCloud::Create();
-	traj_points_odo->setColor(0,0.6,0);
-	traj_points_odo->setPointSize(4);
-	traj_points_odo->enablePointSmooth(1);
-	scene->insert( traj_points_odo );
-
-	//Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f*est_cov.topLeftCorner(3,3);
-	CEllipsoidPtr ellip = CEllipsoid::Create();
-	ellip->setCovMatrix(cov3d);
-	ellip->setQuantiles(2.0);
-	ellip->setColor(1.0, 1.0, 1.0, 0.5);
-	ellip->enableDrawSolid3D(true);
-	ellip->setPose(cam_pose + rel_lenspose);
-	scene->insert( ellip );
-
-	//User-interface information
-	utils::CImage img_legend;
-	img_legend.loadFromXPM(legend_xpm);
-	COpenGLViewportPtr legend = scene->createViewport("legend");
-	legend->setViewportPosition(20, 20, 350, 201);
-	legend->setImageView(img_legend);
-
-	window.unlockAccess3DScene();
-	window.repaint();
-}
-
-void CDifodoCamera::updateScene()
-{
-	poses::CPose3D rel_lenspose(0,-0.05,0,0,0,0);
-	
-	scene = window.get3DSceneAndLock();
-
-	//Reference gt
-	CSetOfObjectsPtr reference_gt = scene->getByClass<CSetOfObjects>(1);
-	reference_gt->setPose(cam_pose);
-
-	//Camera points
-	CPointCloudColouredPtr cam_points = scene->getByClass<CPointCloudColoured>(0);
-	cam_points->clear();
-	cam_points->setPose(cam_pose);
-	for (unsigned int y=0; y<cols; y++)
-		for (unsigned int z=0; z<rows; z++)
-			cam_points->push_back(depth[repr_level](z,y), xx[repr_level](z,y), yy[repr_level](z,y),
-									1.f-sqrt(weights(z,y)), sqrt(weights(z,y)), 0);
-
-	//DifOdo camera
-	CBoxPtr camera_odo = scene->getByClass<CBox>(0);
-	camera_odo->setPose(cam_pose + rel_lenspose);
-
-	//Frustum
-	CFrustumPtr FOV = scene->getByClass<CFrustum>(0);
-	FOV->setPose(cam_pose);
-
-	//Difodo traj lines
-	CSetOfLinesPtr traj_lines_odo = scene->getByClass<CSetOfLines>(0);
-	traj_lines_odo->appendLine(cam_oldpose.x(), cam_oldpose.y(), cam_oldpose.z(), cam_pose.x(), cam_pose.y(), cam_pose.z());
-
-	//Difodo traj points
-	CPointCloudPtr traj_points_odo = scene->getByClass<CPointCloud>(0);
-	traj_points_odo->insertPoint(cam_pose.x(), cam_pose.y(), cam_pose.z());
-
-	//Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f*est_cov.topLeftCorner(3,3);
-	CEllipsoidPtr ellip = scene->getByClass<CEllipsoid>(0);
-	ellip->setCovMatrix(cov3d);
-	ellip->setPose(cam_pose + rel_lenspose);
-
-	window.unlockAccess3DScene();
-	window.repaint();
-}
 
 void CDifodoCamera::closeCamera()
 {
@@ -364,15 +255,36 @@ void CDifodoCamera::reset()
 	cam_oldpose = cam_pose;
 
 	//Reset scene
-	scene = window.get3DSceneAndLock();
-	CSetOfLinesPtr traj_lines_odo = scene->getByClass<CSetOfLines>(0);
-	traj_lines_odo->clear();
-	CPointCloudPtr traj_points_odo = scene->getByClass<CPointCloud>(0);
-	traj_points_odo->clear();
-	window.unlockAccess3DScene();
+	//scene = window.get3DSceneAndLock();
+	//CSetOfLinesPtr traj_lines_odo = scene->getByClass<CSetOfLines>(0);
+	//traj_lines_odo->clear();
+	//CPointCloudPtr traj_points_odo = scene->getByClass<CPointCloud>(0);
+	//traj_points_odo->clear();
+	//window.unlockAccess3DScene();
 
-	updateScene();
+	//updateScene();
 }
+// void CDifodoCamera::reset()
+// {
+// 	//Reset Difodo
+// 	loadFrame();
+// 	buildImagePyramid();
+// 	loadFrame();
+// 	odometryCalculation();
+// 
+// 	cam_pose.setFromValues(0,0,1.5,0,0,0);
+// 	cam_oldpose = cam_pose;
+// 
+// 	//Reset scene
+// 	scene = window.get3DSceneAndLock();
+// 	CSetOfLinesPtr traj_lines_odo = scene->getByClass<CSetOfLines>(0);
+// 	traj_lines_odo->clear();
+// 	CPointCloudPtr traj_points_odo = scene->getByClass<CPointCloud>(0);
+// 	traj_points_odo->clear();
+// 	window.unlockAccess3DScene();
+// 
+// 	updateScene();
+// }
 
 void CDifodoCamera::writeTrajectoryFile()
 {

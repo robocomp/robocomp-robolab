@@ -23,6 +23,13 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+	mrpt::utils::CConfigFileMemory configDifodo(default_cfg_txt);
+	odo.loadConfiguration( configDifodo, rgbd_proxy );
+	//odo.initializeScene();
+	//odo.openCamera();
+	odo.reset();
+	qDebug() << "HOLA";
+
 }
 
 /**
@@ -30,7 +37,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -53,16 +59,18 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+	try
+	{
+		odo.loadFrame( );
+		odo.odometryCalculation();
+		cout << "pose" << odo.cam_pose << endl;
+	}
+	catch(const Ice::Exception &e)
+	{
+		std::cout << "Error reading from Camera" << e << std::endl;
+	}
+	
+	
 }
 
 

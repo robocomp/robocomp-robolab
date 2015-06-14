@@ -23,16 +23,14 @@
 */
 
 
-
-
-
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include "difodometrycamera.h"
+#include <mrpt/utils/CConfigFileMemory.h>
+#include <mrpt/utils/CConfigFile.h>
 
 
 class SpecificWorker : public GenericWorker
@@ -48,6 +46,26 @@ public slots:
 	void compute(); 	
 
 private:
+	CDifodoCamera odo;
+	const char *default_cfg_txt =
+			"; ---------------------------------------------------------------\n"
+			"; FILE: Difodo Parameters.txt\n"
+			";\n"
+			";  MJT @ JANUARY-2014\n"
+			"; ---------------------------------------------------------------\n\n"
+
+			"[DIFODO_CONFIG]\n\n"
+
+			";cam_mode: 1 - 640x480, 2 - 320x240, 4 - 160x120 \n"
+			"cam_mode = 2 \n\n"
+
+			"Set the frame rate (fps) to 30 or 60 Hz \n"
+			"fps = 30 \n\n"
+
+			";Indicate the number of rows and columns. \n"
+			"rows = 240 \n"
+			"cols = 320 \n"
+			"ctf_levels = 5 \n\n";
 };
 
 #endif

@@ -13,21 +13,18 @@
 #include <mrpt/utils/CImage.h>
 #include <mrpt/utils/CTicTac.h>
 #include <mrpt/utils/round.h>
-#include <mrpt/opengl/COpenGLScene.h>
-#include <mrpt/gui/CDisplayWindow3D.h>
 #include <iostream>
+#include <RGBD.h>
 
 #if defined(MRPT_OS_LINUX) && !defined(linux)
 #   define linux 1   // Seems to be required by OpenNI.h
 #endif
 #include <OpenNI.h>
-#include "legend.xpm"
 
 
 class CDifodoCamera : public mrpt::vision::CDifodo {
 public:
 
-	mrpt::gui::CDisplayWindow3D	window;
 	std::ofstream		f_res;
 
 	bool save_results;
@@ -39,7 +36,7 @@ public:
 	}
 
 	/** Initialize the visual odometry method */
-	void loadConfiguration( const mrpt::utils::CConfigFileBase &ini );
+	void loadConfiguration( const mrpt::utils::CConfigFileBase &ini , RoboCompRGBD::RGBDPrx _rgbd_proxy);
 
 	/** Open camera */
 	bool openCamera();
@@ -52,12 +49,6 @@ public:
 
 	/** Create a file to save the estimated trajectory */
 	void CreateResultsFile();
-
-	/** Initialize opengl scene */
-	void initializeScene();
-
-	/** Refresh the opengl scene */
-	void updateScene();
 
 	/** A pre-step that should be performed before starting to estimate the camera velocity.
 	  * It can also be called to reset the estimated trajectory and pose */
@@ -72,9 +63,8 @@ public:
 
 private:
 	
+	RoboCompRGBD::RGBDPrx rgbd_proxy;
 	unsigned int repr_level;
-
-	mrpt::opengl::COpenGLScenePtr	scene;	//!< Opengl scene
 
 	// OpenNI variables to manage the camera
 	openni::Status		rc;

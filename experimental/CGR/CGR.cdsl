@@ -1,10 +1,12 @@
+import "/robocomp/interfaces/IDSLs/Laser.idsl";
 import "/robocomp/interfaces/IDSLs/FSPF.idsl";
 
 Component CGR
 {
 	Communications
 	{
-		implements FSPF;
+		requires Laser;
+		subscribesTo FSPF;
 	};
 	language Cpp;
 	gui Qt(QWidget);

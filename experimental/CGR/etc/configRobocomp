@@ -1,8 +1,12 @@
-CommonBehavior.Endpoints=tcp -p 12213
+CommonBehavior.Endpoints=tcp -p 1
+
+
+# Endpoints for subscriptions
+FSPF.Endpoints=tcp -p 0
 
 
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h odroid-xtion.local -p 10096
+LaserProxy = laser:tcp -h localhost -p 0
 
 
 
@@ -16,4 +20,4 @@ Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 
-Ice.MessageSizeMax=1024000
+

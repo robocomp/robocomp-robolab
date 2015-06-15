@@ -51,7 +51,6 @@ private:
 	OsgView 			*osgView;			
 	IMVPointCloud *imvPointCloud;
 	
-	void loadLines();
 	void updatePointCloud(const PointSeq &points);	
 	void updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons);
 	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);

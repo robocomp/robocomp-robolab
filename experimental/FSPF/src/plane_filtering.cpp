@@ -137,7 +137,6 @@ void PlaneFilter::PointCloudFromRaster(const RoboCompRGBD::PointSeq &points, vec
 
 void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &points, vector< vector3f >& filteredPointCloud, vector< vector2i >& pixelLocs, vector< vector3f >& pointCloudNormals, vector< vector3f >& outlierCloud, vector< PlanePolygon >& polygons)
 { 
-  static const bool debug = false;
 
   planeFilteringTimer.start();
   
@@ -191,11 +190,7 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
     //generate random point p3 within max distance params.planeSize from p1
     if(!sampleLocation(points, ind3, l3.y, l3.x, p3, l1.y-planeSizeH, planeSize, l1.x-planeSizeH, planeSize))
       continue;
-    
-   // qDebug() << "p1" << p1.x() << p1.y() << p1.z() << "p2"  << p2.x() << p2.y() << p2.z();
-    
-    
-    
+
     //Generate Plane normal (n) and distance (d) from origin (distance-normal parameterization of plane)
     Vector3f n = ((p1-p2).cross(p3-p2)).normalized();
     
@@ -221,7 +216,7 @@ void PlaneFilter::GenerateFilteredPointCloud(const RoboCompRGBD::PointSeq &point
     for(unsigned int j=0; outliers<maxOutliers && j<filterParams.numLocalSamples; j++)
     {
       //generate random point p within max distance params.planeSize from p1
-      int r,c,ind;
+      int ind;
       if(!sampleLocation(points, ind, l.y, l.x, p, rMin, dR, cMin, dC))
         continue;
       
@@ -328,7 +323,6 @@ vector<PlanePolygon> PlaneFilter::findUniqueDepthPlanes(vector< PlanePolygon > p
     if(!matchFound)
       unique3DPlanes.push_back(planes[i]);
   }
-  unsigned int numUniquePlanes = unique3DPlanes.size();
   
   return unique3DPlanes;
 }

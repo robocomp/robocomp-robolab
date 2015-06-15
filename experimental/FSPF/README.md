@@ -1,10 +1,10 @@
 ```
 ```
-# Fast Sampling Plane Filtering (FSPF) is a RANSAC based algorithm for extracting 3D points corresponding to planar features, given a depth image.
-# The plane filtered points maybe used for localization, or to build polygon maps of environments. See:
-# Depth Camera Based Indoor Mobile Robot Localization and Navigation, Joydeep Biswas, and Manuela Veloso.
-# In Proceedings of ICRA'12, the IEEE International Conference on Robotics and Automation, St. Paul, MN, May 2012.
-# Source: hhtp://www.cs.cmu.edu/~coral/projects/localization/source.html
+ Fast Sampling Plane Filtering (FSPF) is a RANSAC based algorithm for extracting 3D points corresponding to planar features, given a depth image.
+ The plane filtered points maybe used for localization, or to build polygon maps of environments. See:
+ Depth Camera Based Indoor Mobile Robot Localization and Navigation, Joydeep Biswas, and Manuela Veloso.
+ In Proceedings of ICRA'12, the IEEE International Conference on Robotics and Automation, St. Paul, MN, May 2012.
+ Source: hhtp://www.cs.cmu.edu/~coral/projects/localization/source.html
 ``` peopleCounterRGBD
 ```
 Intro to component here

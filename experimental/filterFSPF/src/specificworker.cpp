@@ -71,11 +71,27 @@ void SpecificWorker::compute()
 
  		rgbd_proxy->getXYZ(points, hState, bState);
 
-		vector< vector3f > filteredPointCloud, pointCloudNormals, outlierCloud;
+		vector< vector3f > filteredPointCloud,pointsNormals , outlierCloud;
 		vector< vector2i > pixelLocs;
 		vector< PlanePolygon > polygons;
 
-		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointCloudNormals, outlierCloud, polygons);
+		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointsNormals, outlierCloud, polygons);
+		
+		RoboCompFSPF::OrientedPoints ops;
+		for( int i =0; i<filteredPointCloud.size(); i++)
+		{
+			RoboCompFSPF::OrientedPoint op;
+			op.x = filteredPointCloud[i].x;
+			op.y = filteredPointCloud[i].y;
+			op.z = filteredPointCloud[i].z;
+			op.nx = pointsNormals[i].x;
+			op.ny = pointsNormals[i].y;
+			op.nz = pointsNormals[i].z;
+			ops.push_back(op);		
+		}
+
+//		qDebug() << "ops" << ops.size();
+		fspf_proxy->newFilteredPoints(ops);
 
 		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
  	}
@@ -93,8 +109,8 @@ void SpecificWorker::compute()
 }
 
 
-PointSeq SpecificWorker::getFilteredPoints()
-{
-	//QMutexLocker l(pointsMutex);
-	return points;
-}
+//////////////////////////77
+/// SERVANT
+///////////////////////////
+
+

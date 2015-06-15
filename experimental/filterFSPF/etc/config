@@ -5,6 +5,9 @@ CommonBehavior.Endpoints=tcp -p 1
 RGBDProxy = rgbd:tcp -h localhost -p 0
 
 
+# Proxies for published topics
+FSPFProxy = fspf:tcp -h localhost -p 0
+
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

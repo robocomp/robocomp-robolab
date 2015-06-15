@@ -80,6 +80,7 @@
 
 
 #include <RGBD.h>
+#include <FSPF.h>
 
 
 // User includes here
@@ -89,6 +90,7 @@ using namespace std;
 using namespace RoboCompCommonBehavior;
 
 using namespace RoboCompRGBD;
+using namespace RoboCompFSPF;
 
 
 
@@ -117,6 +119,7 @@ int filterFSPF::run(int argc, char* argv[])
 	QCoreApplication a(argc, argv);  // NON-GUI application
 	int status=EXIT_SUCCESS;
 
+	FSPFPrx fspf_proxy;
 	RGBDPrx rgbd_proxy;
 
 	string proxy, tmp;
@@ -138,6 +141,30 @@ int filterFSPF::run(int argc, char* argv[])
 	}
 	rInfo("RGBDProxy initialized Ok!");
 	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+
+IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+	IceStorm::TopicPrx fspf_topic;
+	while (!fspf_topic)
+	{
+		try
+		{
+			fspf_topic = topicManager->retrieve("FSPF");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			try
+			{
+				fspf_topic = topicManager->create("FSPF");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+			}
+		}
+	}
+	Ice::ObjectPrx fspf_pub = fspf_topic->getPublisher()->ice_oneway();
+	FSPFPrx fspf = FSPFPrx::uncheckedCast(fspf_pub);
+	mprx["FSPFPub"] = (::IceProxy::Ice::Object*)(&fspf);
 
 
 

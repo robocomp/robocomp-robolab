@@ -1,0 +1,22 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  plane_filtering.cpp
+  plane_polygon.cpp
+  gvector.cpp
+  grahams_scan.cpp
+
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/openni2.cmake)
+
+ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2)
+

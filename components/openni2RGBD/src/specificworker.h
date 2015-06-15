@@ -48,44 +48,41 @@ struct TRadRotations{
 using namespace openni;
 using namespace std;
 
-struct DoubleBuffer
+template <class T> class DoubleBuffer
 {
-	//ATRIBUTOS DE LA struct
 	QMutex bufferMutex;
-	RoboCompRGBD::PointSeq bufferA;
-	RoboCompRGBD::PointSeq *writer, *reader, *aux;
+	T bufferA, *writer, *reader, bufferB;
 	int size;
-	RoboCompRGBD::PointSeq bufferB;
+	
+	public:
+		DoubleBuffer(){};
+		void resize(int size_)
+		{
+			bufferA.resize(size_);
+			writer = &bufferA;
+			bufferB.resize(size_);
+			reader = &bufferB;
+			size = size_;
+		}
+		void swap()
+		{
+			bufferMutex.lock();
+				writer->swap(*reader);
+			bufferMutex.unlock();
+		}
 
-	DoubleBuffer(){};
-	void resize(int size_)
-	{
-		bufferA.resize(size_);
-		writer = &bufferA;
-		bufferB.resize(size_);
-		reader = &bufferB;
-		size = size_;
-	}
+		inline typename T::value_type& operator[](int i){ return (*writer)[i]; };
 
-	void swap()
-	{
-		bufferMutex.lock();
-		 	aux = writer;
-			writer = reader;
-			reader = aux;
-		bufferMutex.unlock();
-	}
-
-	inline RoboCompRGBD::PointXYZ& operator[](int i){ return (*writer)[i]; };
-
-	void copy(RoboCompRGBD::PointSeq &points)
-	{
-		points.resize(size);
-		bufferMutex.lock();
-			points = *reader;
-		bufferMutex.unlock();
-}
+		void copy(T &points)
+		{
+			points.resize(size);
+			bufferMutex.lock();
+				points = *reader;
+			bufferMutex.unlock();
+		}
 };
+
+
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
@@ -134,7 +131,9 @@ Q_OBJECT
       
       void normalizeDepth();
       
-      DoubleBuffer pointsBuff;
+      DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
+	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+	  
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
            
 public:

@@ -34,8 +34,11 @@ After editing the new config file we can run the component:
 ```CGR ```
 
     --Ice.Config=config
-For install LUA:
- sudo apt-get install lua5.1 liblua5.1-0-dev
+
+
+
+Requisites:
+ sudo apt-get install lua5.1 liblua5.1-0-dev libeigen3-dev
  sudo ln -s /usr/lib/x86_64-linux-gnu/lublua5.1.so /usr/lib/liblua5.1.so 
  	
  echo "find_package(Lua51 REQUIRED)" >> src/CMakeListsSpecific.txt

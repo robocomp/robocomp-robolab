@@ -76,6 +76,7 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+//Inintializing InnerModel with ursus.xml
     innerModel = new InnerModel("../_etc/world.xml");
     osgView = new OsgView (this);
     osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
@@ -86,7 +87,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
     osgView->setCameraManipulator(tb);
     innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
-    
+    //Inintializing parameters for CGR
     LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
@@ -104,7 +105,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 
 
  
-
+	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
+	
 
 //Initialize particle filter, sensor model, motion model, refine model
   string mapsFolder("../maps");

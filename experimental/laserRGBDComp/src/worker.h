@@ -38,8 +38,8 @@
 
 #include "config.h"
 
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
+//#include <pcl/io/pcd_io.h>
+//#include <pcl/point_types.h>
 
 
 #define BASIC_PERIOD 100
@@ -136,7 +136,7 @@ private:
 	int32_t angle2bin(float ang);
 	void medianFilter();
 
-	void writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+//	void writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 signals:
 	void kill();
 };

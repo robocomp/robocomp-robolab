@@ -76,12 +76,17 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	    innerModel = new InnerModel("../_etc/world.xml");
-	osgView = new OsgView (this);
+    innerModel = new InnerModel("../_etc/world.xml");
+    osgView = new OsgView (this);
+    osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
     osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
     osg::Vec3d center(osg::Vec3(0.,0.,-0.));
     osg::Vec3d up(osg::Vec3(0.,1.,0.));
+    tb->setHomePosition(eye, center, up, true);
+    tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
+    osgView->setCameraManipulator(tb);
     innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
+    
     LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
@@ -299,7 +304,9 @@ void SpecificWorker::compute()
 	// Si hay algo nuevo
 	// Si no
 		// llamar a localization -> predict
-
+  	innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
 }
 
 void SpecificWorker::filterParticle()
@@ -340,12 +347,10 @@ void SpecificWorker::drawLines()
 			qDebug() << l.p1.x << l.p1.y;
 			QVec n = QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y);
 			float width = (QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y)).norm2();
-			addPlane_notExisting(innerModelViewer,"LINEA_"+i,"floor",QVec::vec3((l.p0.x+l.p1.x)/2,0,(l.p0.y+l.p1.y)/2),QVec::vec3(-n(2),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			addPlane_notExisting(innerModelViewer,"LINEA_"+i,"floor",QVec::vec3((l.p0.x+l.p1.x)/2,0,(l.p0.y+l.p1.y)/2),QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
 		}
 	}
-  	innerModelViewer->update();
- 	osgView->autoResize();
- 	osgView->frame();
+
 
 }
 

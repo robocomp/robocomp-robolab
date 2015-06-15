@@ -55,7 +55,7 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
   maxX = maxY = -FLT_MAX;
   lines.clear();
   rewind(pFile);
-  while(fscanf(pFile,"%f-%f-%f-%f",&x1,&y1,&x2,&y2)==4){
+  while(fscanf(pFile,"%f|%f|%f|%f",&x1,&y1,&x2,&y2)==4){
     if(debugVector) printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
     minX = min(minX,x1);
     minX = min(minX,x2);

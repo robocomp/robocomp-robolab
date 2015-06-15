@@ -28,6 +28,7 @@
 #include "vectorparticlefilter.h"
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <osgviewer/osgview.h>
 #include <innermodel/innermodelviewer.h>
 
 class SpecificWorker : public GenericWorker
@@ -38,17 +39,21 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
         void LoadParameters();
-
+	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
 	void newFilteredPoints(const OrientedPoints &ops);
+	void filterParticle();
+	void drawLines();
 
 
 public slots:
 	void compute(); 	
 
 private:
-InnerModelViewer *imv;
+InnerModelViewer *innerModelViewer;
 InnerModel *innerModel;
+OsgView *osgView;	
 VectorLocalization2D *localization;
+
 string curMapName;
 vector2f initialLoc;
 float initialAngle;

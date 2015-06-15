@@ -153,7 +153,7 @@ public:
     LowVarianceResampling,
     SensorResettingResampling,
   };
-  
+    vector<VectorMap> maps;
 protected:
   //Current state
   VectorMap* currentMap;
@@ -169,7 +169,6 @@ protected:
   float lastAngleTurned;
   
   string mapsFolder;
-  vector<VectorMap> maps;
   
   //These are class-wide only so that they can be accessed for debugging purposes
   vector<float> stage0Weights;
@@ -193,6 +192,7 @@ protected:
   EvalValues laserEval;
     
 public:
+
   VectorLocalization2D(const char* _mapsFolder);
   VectorLocalization2D(int _numParticles);
   
@@ -252,6 +252,8 @@ public:
   void computeLocation(vector2f &loc, float &angle);
   /// Returns the current map name
   const char* getCurrentMapName(){return currentMap->mapName.c_str();}
+  /// Returns the vector maps 
+  inline vector<VectorMap> getMaps(){return maps;}
   /// Creates a particle with the specified properties
   Particle2D createParticle(VectorMap* map, vector2f loc, float angle, float locationUncertainty, float angleUncertainty);
   /// Write to file run statistics about particle distribution

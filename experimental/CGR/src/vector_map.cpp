@@ -54,7 +54,8 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
   minX = minY = FLT_MAX;
   maxX = maxY = -FLT_MAX;
   lines.clear();
-  while(fscanf(pFile,"%f,%f,%f,%f",&x1,&y1,&x2,&y2)==4){
+  rewind(pFile);
+  while(fscanf(pFile,"%f-%f-%f-%f",&x1,&y1,&x2,&y2)==4){
     if(debugVector) printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
     minX = min(minX,x1);
     minX = min(minX,x2);
@@ -66,7 +67,6 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
     maxY = max(maxY,y2);
     vector2f p0(x1,y1);
     vector2f p1(x2,y2);
-    
     lines.push_back(line2f(p0,p1));
     lines.at(lines.size()-1).calcValues();
   }

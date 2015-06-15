@@ -76,7 +76,12 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-
+	    innerModel = new InnerModel("../_etc/world.xml");
+	osgView = new OsgView (this);
+    osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
+    osg::Vec3d center(osg::Vec3(0.,0.,-0.));
+    osg::Vec3d up(osg::Vec3(0.,1.,0.));
+    innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
     LoadParameters();
 /* 
     printf("NumParticles     : %d\n",numParticles);
@@ -91,30 +96,20 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
   double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
   //if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
   srand(seed);
-<<<<<<< HEAD
-=======
 
- 
-  
-
->>>>>>> 78b048f851e27ee67635ebfe81d6d4a880c3b79d
 
  
 
 
 //Initialize particle filter, sensor model, motion model, refine model
-<<<<<<< HEAD
   string mapsFolder("../maps");
 //  localization = new VectorLocalization2D(mapsFolder.c_str());
   localization = new VectorLocalization2D(mapsFolder.c_str());
   localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-  	
-=======
-  string mapsFolder("maps");
-  localization = new VectorLocalization2D(mapsFolder.c_str());
-	
->>>>>>> 78b048f851e27ee67635ebfe81d6d4a880c3b79d
+
+drawLines();
+
 }
 
 /**
@@ -124,10 +119,12 @@ SpecificWorker::~SpecificWorker()
 {
 }
 
+
+
 void SpecificWorker::LoadParameters()
 {
   WatchFiles watch_files;
-  ConfigReader config("../etc/"); //path a los ficheros de configuracion desde el path del binario.
+  ConfigReader config("../_etc/"); //path a los ficheros de configuracion desde el path del binario.
   config.init(watch_files);
   
   config.addFile("localization_parameters.cfg");
@@ -269,6 +266,7 @@ void SpecificWorker::LoadParameters()
     }
   }
 */
+
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -306,6 +304,7 @@ void SpecificWorker::compute()
 
 void SpecificWorker::filterParticle()
 {
+/*
   //Call particle filter
     vector<vector2f> pointCloud2D, pointCloudNormals2D;
 
@@ -326,7 +325,55 @@ void SpecificWorker::filterParticle()
     localization->resample(VectorLocalization2D::SparseMultinomialResampling);
     localization->computeLocation(curLoc,curAngle);
     std::cerr << "point cloud update: " << GetTimeSec()-start << std::endl;
-  }
+*/
+}
+
+void SpecificWorker::drawLines()
+{
+	vector<VectorMap> maps = localization->getMaps();
+	int i;
+	for( auto m : maps){
+		i=0;
+		for( auto l: m.lines){
+			i++;
+			qDebug() << l.p0.x << l.p0.y;
+			qDebug() << l.p1.x << l.p1.y;
+			QVec n = QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y);
+			float width = (QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y)).norm2();
+			addPlane_notExisting(innerModelViewer,"LINEA_"+i,"floor",QVec::vec3((l.p0.x+l.p1.x)/2,0,(l.p0.y+l.p1.y)/2),QVec::vec3(-n(2),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+		}
+	}
+  	innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
+
+}
+
+
+bool SpecificWorker::addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size)
+{
+	InnerModelNode *parent = innerViewer->innerModel->getNode(base);
+	if (parent == NULL)
+	{
+		printf("%s: parent not exists\n", __FUNCTION__);
+		return false;
+	}
+	
+	try
+	{
+	  InnerModelPlane *plane = innerViewer->innerModel->newPlane(item, parent, texture, size(0), size(1), size(2), 1, n(0), n(1), n(2), p(0), p(1), p(2));
+	  parent->addChild(plane);
+	  
+	  innerViewer->recursiveConstructor(plane, innerViewer->mts[parent->id], innerViewer->mts, innerViewer->meshHash);
+
+	}
+	catch (QString err)
+	{
+		printf("%s:%s:%d: Exception: %s\n", __FILE__, __FUNCTION__, __LINE__, err.toStdString().c_str());
+		throw;
+	}		
+	return true;
+}
 
 ////////////////////////////
 ///  SERVANTS

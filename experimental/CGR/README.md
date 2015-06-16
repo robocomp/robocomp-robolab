@@ -29,10 +29,10 @@ On other platforms, you will have to manually install the following packages:
 
 3. Compiling
 
-mkdir build
-cd build
-cmake ..
-make
+    mkdir build
+    cd build
+    cmake ..
+    make
 
 4. Testing with demo data
 

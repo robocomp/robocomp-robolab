@@ -1,6 +1,5 @@
 ```
-#
-``` CGR (Laser Scanner, Kinect - FSPF) Localization Component
+CGR (Laser Scanner, Kinect - FSPF) Localization Component
 ```
 
 1. Summary

@@ -1,8 +1,7 @@
-```
-CGR (Laser Scanner, Kinect - FSPF) Localization Component
-```
+# CGR (Laser Scanner, Kinect - FSPF) Localization Component
 
-1. Summary
+
+## 1. Summary
 
 This package provides the code for CGR localization to localize a robot in 2D using either laser rangefinder readings or depth images obtained from Kinect-style sensors.
 
@@ -10,7 +9,8 @@ This package provides the code for CGR localization to localize a robot in 2D us
     License: LGPL
     Source: hg clone http://hg.cobotrobots.com/cgr_localization
 
-2. Dependencies
+
+## 2. Dependencies
 
 To install all dependencies on Ubuntu, run "./InstallPackages", or copy & run the following command:
 
@@ -27,19 +27,21 @@ On other platforms, you will have to manually install the following packages:
     GLEW
     eigen3
 
-3. Compiling
-
+    
+## 3. Compiling
+```
     mkdir build
     cd build
     cmake ..
     make
+```
 
-4. Testing with demo data
+## 4. Testing with demo data
 
     Pending
 
 
-5. Running on your own robot
+## 5. Running on your own robot
 
     Creating A Vector Map: To run cgr localization on your own robot, you need to generate a vector map of your environment. For an example vector map, see maps/GHC7/GHC7_vector.txt . Each entry in the vector map represents a line (wall) in the world, and is of the form:
 
@@ -65,17 +67,13 @@ On other platforms, you will have to manually install the following packages:
 
 
 
-Requisites?
+## Requisites?
+```
  sudo ln -s /usr/lib/x86_64-linux-gnu/lublua5.1.so /usr/lib/liblua5.1.so 
- 	
  echo "find_package(Lua51 REQUIRED)" >> src/CMakeListsSpecific.txt
  echo "set (SPECIFIC_LIBS ${LUA_LIBRARIES})" >> src/CMakeListsSpecific.txt
+```
 
-
-
-
-
-Intro to component here
 
 
 ## Configuration parameters

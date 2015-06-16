@@ -412,28 +412,30 @@ void SpecificWorker::drawParticles()
 {
 	int i = 0;
 	for( auto particle : localization->particles){
-            qDebug() << particle.loc.x;
-            if (innerModelViewer->innerModel->getNode(QString::fromStdString("Particle_"+i)))
+            if (innerModelViewer->innerModel->getNode(QString::fromStdString("particle_"+i)))
             {
-                removeNode(innerModelViewer, QString::fromStdString("Particle_"+i));                
+                removeNode(innerModelViewer, QString::fromStdString("particle_"+i));                
             }
-            addPlane_notExisting(innerModelViewer,"Particle_"+i,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
+            addPlane_notExisting(innerModelViewer,"particle_"+i,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
             i++;
 	}
+	if (innerModelViewer->innerModel->getNode(QString::fromStdString("red")))
+	{
+	    removeNode(innerModelViewer, QString::fromStdString("red"));                
+	}
+	addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(initialLoc.x,0,initialLoc.y),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
 }
 void SpecificWorker::updateParticles()
 {
 	int i = 0;      
 	for( auto particle : localization->particles){  
-//             InnerModelNode *node = innerModel->getNode("Particle_"+i);
-            if (innerModelViewer->innerModel->getNode(QString::fromStdString("Particle_"+i)))
+            if (innerModelViewer->innerModel->getNode(QString::fromStdString("particle_"+i)))
             {
-                qDebug() << "Particle_"<<i;
-//                 innerModel->updateTransformValues("Particle_"+i, particle.loc.x*1000, 0, particle.loc.y*1000,0,0,0,"floor");
-                innerModel->updateTransformValues("Particle_"+i, 3000, 0, 3000,0,0,0,"floor");
+                innerModel->updateTransformValues("particle_"+i, particle.loc.x*1000, 0, particle.loc.y*1000,0,0,0,"floor");
             }
             i++;
 	}
+        innerModel->updateTransformValues("red", curLoc.x, 0, curLoc.y,0,curAngle,0,"floor");
 }
 
 bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)

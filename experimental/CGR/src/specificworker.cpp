@@ -423,7 +423,7 @@ void SpecificWorker::drawParticles()
 	{
 	    removeNode(innerModelViewer, QString::fromStdString("red"));                
 	}
-	addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(initialLoc.x,0,initialLoc.y),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
+	addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
 }
 void SpecificWorker::updateParticles()
 {
@@ -435,7 +435,7 @@ void SpecificWorker::updateParticles()
             }
             i++;
 	}
-        innerModel->updateTransformValues("red", curLoc.x, 0, curLoc.y,0,curAngle,0,"floor");
+        innerModel->updateTransformValues("red", curLoc.x*1000, 0, curLoc.y*1000,0,curAngle,0,"floor");
 }
 
 bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)

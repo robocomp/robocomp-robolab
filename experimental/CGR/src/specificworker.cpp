@@ -68,6 +68,9 @@ vector2f initialLoc;
 float initialAngle;
 float locUncertainty, angleUncertainty;
 
+RoboCompOmniRobot::TBaseState bStateOld;
+
+
 VectorLocalization2D *localization;
 
 using namespace std;
@@ -115,10 +118,10 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
   localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
 
-drawLines();
-
+    drawLines();    
+    omnirobot_proxy->getBaseState(bStateOld);
+    drawParticles();
 }
-
 /**
 * \brief Default destructor
 */
@@ -222,7 +225,7 @@ void SpecificWorker::LoadParameters()
       exit(2);
     }
   }
-  /*
+  
   {
     ConfigReader::SubTree c(config,"lidarParams");
     
@@ -272,7 +275,7 @@ void SpecificWorker::LoadParameters()
       exit(2);
     }
   }
-*/
+
 
 }
 
@@ -295,20 +298,63 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 }
 
 
+bool SpecificWorker::updateInnerModel(InnerModel *innerModel)
+{
+	try
+	{	
+		RoboCompOmniRobot::TBaseState bState;
+		omnirobot_proxy->getBaseState(bState);
+                localization->predict(bState.x/1000, bState.z/1000, bState.alpha, motionParams);
+		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+	}
+	catch(const Ice::Exception &ex) 
+	{ 
+		return false; 
+	}
 
+	return true;
+}
 
 void SpecificWorker::compute()
 {
-
+        innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
 	// Obtener la posición del robot en el mundo. Al arrancar 0
 	// LLamar a omnirobot -> getBaseState();
 
 	// Si hay algo nuevo
 	// Si no
 		// llamar a localization -> predict
-  	innerModelViewer->update();
- 	osgView->autoResize();
- 	osgView->frame();
+        RoboCompOmniRobot::TBaseState bState;
+        omnirobot_proxy->getBaseState(bState);
+        //if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
+        if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05 )
+        {
+           // double start = GetTimeSec();
+            localization->predict(bState.x/1000, bState.z/1000, bState.alpha, motionParams);
+           // qDebug() << "predict           : " << GetTimeSec()-start;
+            bStateOld.x = bState.x;
+            bStateOld.z = bState.z;
+            bStateOld.alpha = bState.alpha;
+            innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+            updateLaser();
+            localization->refineLidar(lidarParams);
+            localization->updateLidar(lidarParams, motionParams);
+            localization->resample(VectorLocalization2D::LowVarianceResampling);
+            localization->computeLocation(curLoc,curAngle);
+//             drawParticles();
+            updateParticles();
+            qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
+            qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
+        }
+        
+
+/*        else
+        {
+            qDebug() << "Soy una gargola";
+        } */       
+
 }
 
 void SpecificWorker::filterParticle()
@@ -340,22 +386,109 @@ void SpecificWorker::filterParticle()
 void SpecificWorker::drawLines()
 {
 	vector<VectorMap> maps = localization->getMaps();
-	int i;
+	int i = 0;
 	for( auto m : maps){
-		i=0;
 		for( auto l: m.lines){
-			i++;
-			qDebug() << l.p0.x << l.p0.y;
-			qDebug() << l.p1.x << l.p1.y;
+// 			qDebug() << l.p0.x << l.p0.y;
+// 			qDebug() << l.p1.x << l.p1.y;
+//                         MODIFICATION FOR LOAD ORIGINAL MAPS. ORIGINAL MAPS IN METERS. InnerModel IN MILIMETERS
+                    
+                        l.p0.x *= 1000;
+                        l.p0.y *= 1000;
+                        l.p1.x *= 1000;
+                        l.p1.y *= 1000;
+                        
 			QVec n = QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y);
 			float width = (QVec::vec2(l.p1.x-l.p0.x,l.p1.y-l.p0.y)).norm2();
-			addPlane_notExisting(innerModelViewer,"LINEA_"+i,"floor",QVec::vec3((l.p0.x+l.p1.x)/2,0,(l.p0.y+l.p1.y)/2),QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+                        std::ostringstream oss;
+                        oss << m.mapName << i;                        
+			addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3((l.p0.x+l.p1.x)/2,0,(l.p0.y+l.p1.y)/2),QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			i++;                        
 		}
 	}
 
-
+}
+void SpecificWorker::drawParticles()
+{
+	int i = 0;
+	for( auto particle : localization->particles){
+            qDebug() << particle.loc.x;
+            if (innerModelViewer->innerModel->getNode(QString::fromStdString("Particle_"+i)))
+            {
+                removeNode(innerModelViewer, QString::fromStdString("Particle_"+i));                
+            }
+            addPlane_notExisting(innerModelViewer,"Particle_"+i,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
+            i++;
+	}
+}
+void SpecificWorker::updateParticles()
+{
+	int i = 0;      
+	for( auto particle : localization->particles){  
+//             InnerModelNode *node = innerModel->getNode("Particle_"+i);
+            if (innerModelViewer->innerModel->getNode(QString::fromStdString("Particle_"+i)))
+            {
+                qDebug() << "Particle_"<<i;
+//                 innerModel->updateTransformValues("Particle_"+i, particle.loc.x*1000, 0, particle.loc.y*1000,0,0,0,"floor");
+                innerModel->updateTransformValues("Particle_"+i, 3000, 0, 3000,0,0,0,"floor");
+            }
+            i++;
+	}
 }
 
+bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)
+{
+	if (item=="floor")
+	{
+		qDebug() << "Can't remove root elements" << item;
+		return false;
+	}
+
+	InnerModelNode *node = innerViewer->innerModel->getNode(item);
+	if (node == NULL)
+	{
+		qDebug() << "Can't remove not existing elements" << item;
+		return false;
+	}
+
+	QStringList l;
+	innerViewer->innerModel->getSubTree(node, &l);
+	innerViewer->innerModel->removeSubTree(node, &l);
+
+	/// Replicate InnerModel node removals in the InnerModelViewer tree. And in handlers Lists
+	foreach(QString n, l)
+	{
+		/// Replicate mesh removals
+		if (innerViewer->meshHash.contains(n))
+		{
+			while (innerViewer->meshHash[n].osgmeshPaths->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshPaths->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshPaths);			
+			while(innerViewer->meshHash[n].osgmeshes->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshes->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshes);
+			while(innerViewer->meshHash[n].meshMts->getNumParents() > 0)	
+				innerViewer->meshHash[n].meshMts->getParent(0)->removeChild(innerViewer->meshHash[n].meshMts);			
+			innerViewer->meshHash.remove(n);
+		}
+		/// Replicate transform removals
+		if (innerViewer->mts.contains(n))
+		{
+ 			while (innerViewer->mts[n]->getNumParents() > 0)
+				innerViewer->mts[n]->getParent(0)->removeChild(innerViewer->mts[n]);
+ 			innerViewer->mts.remove(n);
+		}
+		/// Replicate plane removals
+		if (innerViewer->planeMts.contains(n))
+		{
+			while(innerViewer->planeMts[n]->getNumParents() > 0)
+				((osg::Group *)(innerViewer->planeMts[n]->getParent(0)))->removeChild(innerViewer->planeMts[n]);
+			innerViewer->planeMts.remove(n);
+			innerViewer->planesHash.remove(n);
+		}
+		
+	}
+
+	return true;
+}
 
 bool SpecificWorker::addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size)
 {
@@ -397,20 +530,23 @@ void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 //	}
 }
 
+void SpecificWorker::updateLaser()
+{
+    RoboCompLaser::TLaserData laserData;
+    laserData = laser_proxy->getLaserData();
 
-
-//static RoboCompLaser::TLaserData laserData;
-
-//	laserData = laser_proxy->getLaserData();
-//	int j=0;
-//	for(auto i : laserData)
-//	{
-		//pasar a xyz añadiendo w QVec p1 = QVec::vec3(x,y,z); 
-		//points[j].x=0;
-		//points[j].y=0;
-		//points[j].z=0;
-		//points[j].w=0;
-		//j++;
-//	}
-
+    if(int(laserData.size()) != lidarParams.numRays){
+        printf("Incorrect number of Laser Scan rays!\n");
+        printf("received: %d\n",int(laserData.size()));
+    }
+    else
+    {
+        int j=0;
+        for(auto i : laserData)
+        {
+            lidarParams.laserScan[j] = i.dist;
+            j++;
+        }
+    }
+}
 

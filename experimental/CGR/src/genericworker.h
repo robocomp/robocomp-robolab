@@ -27,9 +27,11 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
+#include <OmniRobot.h>
 #include <DifferentialRobot.h>
 #include <FSPF.h>
 #include <Laser.h>
+
 
 
 #define CHECK_PERIOD 5000
@@ -39,9 +41,13 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
+using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompFSPF;
 using namespace RoboCompLaser;
+
+
+
 
 class GenericWorker : 
 #ifdef USE_QTGUI
@@ -59,8 +65,10 @@ public:
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
+	
 
 	LaserPrx laser_proxy;
+	OmniRobotPrx omnirobot_proxy;
 
 	virtual void newFilteredPoints(const OrientedPoints &ops) = 0;
 
@@ -68,6 +76,7 @@ public:
 protected:
 	QTimer timer;
 	int Period;
+
 public slots:
 	virtual void compute() = 0;
 signals:

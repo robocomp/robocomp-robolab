@@ -1,11 +1,17 @@
 
 cmake_minimum_required(VERSION 2.6)
 PROJECT(  CGR )
+
+ 
+IF ( "$ENV{ROBOCOMP}" STREQUAL "")
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
+  SET (ENV{ROBOCOMP} "/opt/robocomp/")
+ENDIF ( "$ENV{ROBOCOMP}" STREQUAL "")
+
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
-MESSAGE(FATAL_ERROR "
- ROBOCOMP variable not set, check your bashrc profile!
-")
+  MESSAGE(FATAL_ERROR "Couldn't find RoboComp in $ENV{ROBOCOMP}! Exiting...")
 ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
@@ -35,7 +41,7 @@ SET ( HEADERS
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior Laser DifferentialRobot FSPF )
+ROBOCOMP_WRAP_ICE( CommonBehavior Laser DifferentialRobot FSPF OmniRobot )
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # Qt4
@@ -50,6 +56,7 @@ INCLUDE( ${QT_USE_FILE} )
 
 QT4_WRAP_UI( UI_HEADERS mainUI.ui )
 QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
+
 
 # Specify construction and link process
 ADD_EXECUTABLE( CGR ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

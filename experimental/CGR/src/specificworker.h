@@ -42,8 +42,12 @@ public:
 	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
 	void newFilteredPoints(const OrientedPoints &ops);
 	void filterParticle();
+        void drawParticles();
+        bool removeNode(InnerModelViewer *innerViewer, const QString &item);
 	void drawLines();
-
+        bool updateInnerModel(InnerModel *innerModel);
+        void updateLaser();
+        void updateParticles();
 
 public slots:
 	void compute(); 	
@@ -56,9 +60,12 @@ VectorLocalization2D *localization;
 
 string curMapName;
 vector2f initialLoc;
+vector2f curLoc;
+float curAngle;
 float initialAngle;
 float locUncertainty, angleUncertainty;
 VectorLocalization2D::MotionModelParams motionParams;
+VectorLocalization2D::LidarParams lidarParams;
 };
 
 #endif

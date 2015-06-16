@@ -37,6 +37,8 @@ void VectorLocalization2D::LidarParams::initialize()
     scanHeadings[i] = Vector2f(cos(a),sin(a));
     i++;
   }
+  //TODO delete laserScan
+  laserScan = (float*) malloc(numRays*sizeof(float));
 }
 
 VectorLocalization2D::VectorLocalization2D(const char* _mapsFolder)
@@ -440,7 +442,7 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   // Transform laserpoints to robot frame
   vector< Vector2f > laserPoints(lidarParams.numRays);
   for(int i=0; i<lidarParams.numRays; i++){
-    laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
+    laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i]; //laserScan = laser.dist
   }
   
   //Compute the sampling density
@@ -840,13 +842,15 @@ void VectorLocalization2D::refineLocationLidar(vector2f& loc, float& angle, floa
   Vector2f laserLocE = Vector2f(V2COMP(loc)) + robotAngle*(lidarParams.laserToBaseTrans);
   vector2f laserLoc(laserLocE.x(), laserLocE.y());
   vector<line2f> lines;
+  
   if(UseAnalyticRender){
     lineCorrespondences = currentMap->getRayToLineCorrespondences(laserLoc, angle, lidarParams.angleResolution, lidarParams.numRays, lidarParams.minRange, lidarParams.maxRange, true, &lines);
   }else{
     lineCorrespondences = currentMap->getRayToLineCorrespondences(laserLoc, angle, lidarParams.angleResolution, lidarParams.numRays, lidarParams.minRange, lidarParams.maxRange);
   }
   
-  for(int i=0; beingRefined && i<lidarParams.numSteps; i++){
+  for(int i=0; beingRefined && i<lidarParams.numSteps; i++)
+  {
     getLidarGradient(loc,angle,locGrad,angleGrad,weight,lidarParams, laserPoints, lineCorrespondences, lines);
     if(i==0) initialWeight = exp(weight);
     loc -= lidarParams.etaLoc*locGrad;

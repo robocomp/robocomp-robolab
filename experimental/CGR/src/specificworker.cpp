@@ -122,6 +122,11 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
     drawLines();    
     drawParticles();
+    
+    Mat src1;
+    src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
+    namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
+    imshow( "Lena windows reset", src1 ); 
 }
 /**
 * \brief Default destructor
@@ -302,6 +307,31 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+        RoboCompOmniRobot::TBaseState bState;
+        int keyPressed = 0;
+        keyPressed = waitKey(10);
+        if (keyPressed > 0)
+        {
+            qDebug() << "----------------------------------";
+            qDebug() << "               RESET              ";
+            omnirobot_proxy-> resetOdometer();
+            qDebug() << "Reset Base ok";
+            omnirobot_proxy-> getBaseState(bState);
+            qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
+            innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+            qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
+            bStateOld.x = bState.x;
+            bStateOld.z = bState.z;
+            bStateOld.alpha = bState.alpha;
+            qDebug() << "Reset bStateOld to robot position";
+            curLoc.x = bState.x;
+            curLoc.y = bState.z;
+            curAngle = bState.alpha;
+            //localization->setLocation(curloc, curAngle, locationUncertainty, angleUncertainty);
+            localization->setLocation(curLoc, curAngle,curMapName.c_str(),0.01,RAD(1.0));
+            qDebug() << "Reset CGR Algorithm ok";
+            qDebug() << "----------------------------------";
+        }
         innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();
@@ -311,7 +341,7 @@ void SpecificWorker::compute()
 	// Si hay algo nuevo
 	// Si no
 		// llamar a localization -> predict
-        RoboCompOmniRobot::TBaseState bState;
+//         RoboCompOmniRobot::TBaseState bState;
         omnirobot_proxy->getBaseState(bState);
         //if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
         if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)

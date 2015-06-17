@@ -31,6 +31,9 @@
 #include <osgviewer/osgview.h>
 #include "innermodeldraw.h"
 #include <innermodel/innermodelviewer.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
 
 class SpecificWorker : public GenericWorker
 {

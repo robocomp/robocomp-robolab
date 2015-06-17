@@ -317,7 +317,7 @@ void SpecificWorker::compute()
         if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
         {
            // double start = GetTimeSec();			//pasar a deg
-            localization->predict(bState.x/1000.f, bState.z/1000.f, bState.alpha, motionParams);
+            localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
            // qDebug() << "predict           : " << GetTimeSec()-start;
             bStateOld.x = bState.x;
             bStateOld.z = bState.z;

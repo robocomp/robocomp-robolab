@@ -421,7 +421,8 @@ void SpecificWorker::drawLines()
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();
                         std::ostringstream oss;
                         oss << m.mapName << i;                        
-			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3((p0x+p1x)/2,0,(p0y+p1y)/2),QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3((p0x+p1x)/2,0,(p0y+p1y)/2),
+							     QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
 			i++;                        
 		}
 	}
@@ -435,11 +436,11 @@ void SpecificWorker::drawParticles()
 		const QString transf = QString::fromStdString("particle_")+QString::number(i);
 		const QString item = QString::fromStdString("plane_")+QString::number(i);
 		InnerModelDraw::addTransform(innerModelViewer,transf,"floor");
-		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
+		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(100, 50, 100));
 		i++;
 	}
 	InnerModelDraw::addTransform(innerModelViewer,"redTransform","floor");
-	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
+	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(200, 1000, 200));
 }
 void SpecificWorker::updateParticles()
 {

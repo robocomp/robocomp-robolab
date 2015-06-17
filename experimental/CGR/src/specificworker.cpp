@@ -80,7 +80,7 @@ using namespace std;
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 //Inintializing InnerModel with ursus.xml
-    innerModel = new InnerModel("../_etc/world.xml");
+    innerModel = new InnerModel("../_etc/informatica.xml");
     osgView = new OsgView (this);
     osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
     osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));

@@ -14,7 +14,7 @@ This package provides the code for CGR localization to localize a robot in 2D us
 
 To install all dependencies on Ubuntu, run "./InstallPackages", or copy & run the following command:
 
-sudo apt-get install g++ libqt4-dev cmake libpopt-dev libusb-1.0-0-dev liblua5.1-dev libglew1.5-dev libeigen3-dev lua5.1 liblua5.1-0-dev
+sudo apt-get install g++ libqt4-dev cmake libpopt-dev libusb-1.0-0-dev liblua5.1-dev libglew1.5-dev libeigen3-dev lua5.1 liblua5.1-0-dev libopencv-dev
 
 On other platforms, you will have to manually install the following packages:
 

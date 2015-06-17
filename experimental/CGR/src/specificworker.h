@@ -29,6 +29,7 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <osgviewer/osgview.h>
+#include "innermodeldraw.h"
 #include <innermodel/innermodelviewer.h>
 
 class SpecificWorker : public GenericWorker
@@ -39,11 +40,9 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
         void LoadParameters();
-	bool addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size);
 	void newFilteredPoints(const OrientedPoints &ops);
 	void filterParticle();
         void drawParticles();
-        bool removeNode(InnerModelViewer *innerViewer, const QString &item);
 	void drawLines();
         void updateLaser();
         void updateParticles();

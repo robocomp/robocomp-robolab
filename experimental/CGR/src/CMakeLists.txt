@@ -27,6 +27,7 @@ SET ( SOURCES
   genericworker.cpp
   specificworker.cpp
   fspfI.cpp
+  innermodeldraw.cpp
 )
 
 # Headers set
@@ -38,6 +39,7 @@ SET ( HEADERS
   genericworker.h
   specificworker.h
   fspfI.h
+  innermodeldraw.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )

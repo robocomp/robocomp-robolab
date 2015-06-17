@@ -110,16 +110,17 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 	
-
+ omnirobot_proxy->getBaseState(bStateOld);
+ initialLoc.x=bStateOld.x/1000;
+ initialLoc.y=bStateOld.z/1000;
+ initialAngle=bStateOld.alpha;
 //Initialize particle filter, sensor model, motion model, refine model
   string mapsFolder("../maps");
 //  localization = new VectorLocalization2D(mapsFolder.c_str());
   localization = new VectorLocalization2D(mapsFolder.c_str());
   localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-
     drawLines();    
-    omnirobot_proxy->getBaseState(bStateOld);
     drawParticles();
 }
 /**

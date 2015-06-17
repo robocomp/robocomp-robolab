@@ -1,3 +1,4 @@
+
 # Proxies for required interfaces
 RGBDProxy = rgbd:tcp -h localhost -p 10096
 
@@ -34,4 +35,3 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 Ice.MessageSizeMax=102400
-

@@ -65,7 +65,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
             qImgDepth = new QImage(IMAGE_WIDTH,IMAGE_HEIGHT,QImage::Format_Indexed8);
             printf("\nStart moving around to get detected...\n(PSI pose may be required for skeleton calibration, depending on the configuration)\n");
             // 76 fps de fspf 33 fsp de openni
-            setPeriod(1000/(76/33));
+            setPeriod(15);
             
         /////////////////////////////////////////////
         ///             FSPF

@@ -369,6 +369,10 @@ void SpecificWorker::filterParticle()
 
 void SpecificWorker::drawLines()
 {
+	float p0x;
+	float p0y;
+	float p1x;
+	float p1y;
 	vector<VectorMap> maps = localization->getMaps();
 	int i = 0;
 	for( auto m : maps){
@@ -377,10 +381,10 @@ void SpecificWorker::drawLines()
 // 			qDebug() << l.p1.x << l.p1.y;
 //                         MODIFICATION FOR LOAD ORIGINAL MAPS. ORIGINAL MAPS IN METERS. InnerModel IN MILIMETERS
                     
-                        float p0x =l.p0.x * 1000;
-                        float p0y =l.p0.y * 1000;
-                        float p1x =l.p1.x * 1000;
-                        float p1y =l.p1.y * 1000;
+                        p0x =l.p0.x * 1000;
+                        p0y =l.p0.y * 1000;
+                        p1x =l.p1.x * 1000;
+                        p1y =l.p1.y * 1000;
                         
 			QVec n = QVec::vec2(p1x-p0x,p1y-p0y);
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();

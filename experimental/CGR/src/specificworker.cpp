@@ -313,7 +313,7 @@ void SpecificWorker::compute()
         RoboCompOmniRobot::TBaseState bState;
         omnirobot_proxy->getBaseState(bState);
         //if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
-        if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05 )
+        if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
         {
            // double start = GetTimeSec();
             localization->predict(bState.x/1000, bState.z/1000, bState.alpha, motionParams);
@@ -327,8 +327,8 @@ void SpecificWorker::compute()
             localization->updateLidar(lidarParams, motionParams);
             localization->resample(VectorLocalization2D::LowVarianceResampling);
             localization->computeLocation(curLoc,curAngle);
-             drawParticles();
-           // updateParticles();
+            // drawParticles();
+            updateParticles();
             qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
             qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
         }
@@ -395,35 +395,33 @@ void SpecificWorker::drawLines()
 void SpecificWorker::drawParticles()
 {
 	int i = 0;
-	for( auto particle : localization->particles){
-            if (innerModelViewer->innerModel->getNode(QString::fromStdString("particle_"+i)))
-            {
-                removeNode(innerModelViewer, QString::fromStdString("particle_"+i));                
-            }
-            addPlane_notExisting(innerModelViewer,"particle_"+i,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
-            i++;
-	}
-	if (innerModelViewer->innerModel->getNode(QString::fromStdString("red")))
+	for( auto particle : localization->particles)
 	{
-	    removeNode(innerModelViewer, QString::fromStdString("red"));                
+		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
+		addPlane_notExisting(innerModelViewer, cadena,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
+		i++;
 	}
-	addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
+	addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(curLoc.x*1000,0,curLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
 }
 void SpecificWorker::updateParticles()
 {
 	int i = 0;      
-	for( auto particle : localization->particles){  
-            if (innerModelViewer->innerModel->getNode(QString::fromStdString("particle_"+i)))
-            {
-                innerModel->updateTransformValues("particle_"+i, particle.loc.x*1000, 0, particle.loc.y*1000,0,0,0,"floor");
-            }
-            i++;
+	for( auto particle : localization->particles)
+	{
+		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
+		if (innerModelViewer->innerModel->getNode(cadena))
+		{
+			innerModel->updatePlaneValues(cadena, 1, 0, 0, particle.loc.x*1000, 0, particle.loc.y*1000);
+		}
+		i++;
 	}
-        innerModel->updateTransformValues("red", curLoc.x*1000, 0, curLoc.y*1000,0,curAngle,0,"floor");
+	innerModel->updatePlaneValues("red", 1, 0, 0, curLoc.x*1000, 0, curLoc.y*1000);
 }
 
 bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)
 {
+  	qDebug() << "AAAA" << item;
+
 	if (item=="floor")
 	{
 		qDebug() << "Can't remove root elements" << item;

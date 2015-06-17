@@ -298,22 +298,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 }
 
 
-bool SpecificWorker::updateInnerModel(InnerModel *innerModel)
-{
-	try
-	{	
-		RoboCompOmniRobot::TBaseState bState;
-		omnirobot_proxy->getBaseState(bState);
-                localization->predict(bState.x/1000, bState.z/1000, bState.alpha, motionParams);
-		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-	}
-	catch(const Ice::Exception &ex) 
-	{ 
-		return false; 
-	}
-
-	return true;
-}
 
 void SpecificWorker::compute()
 {
@@ -343,8 +327,8 @@ void SpecificWorker::compute()
             localization->updateLidar(lidarParams, motionParams);
             localization->resample(VectorLocalization2D::LowVarianceResampling);
             localization->computeLocation(curLoc,curAngle);
-//             drawParticles();
-            updateParticles();
+             drawParticles();
+           // updateParticles();
             qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
             qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
         }

@@ -45,7 +45,6 @@ public:
         void drawParticles();
         bool removeNode(InnerModelViewer *innerViewer, const QString &item);
 	void drawLines();
-        bool updateInnerModel(InnerModel *innerModel);
         void updateLaser();
         void updateParticles();
 

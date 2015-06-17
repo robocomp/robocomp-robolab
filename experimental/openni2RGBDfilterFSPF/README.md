@@ -8,13 +8,6 @@ Eigen:
 sudo aptitude install libeigen3-dev
 
 
-
-
-
-
-
-
-
 ```
 ```
 #

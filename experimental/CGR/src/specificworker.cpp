@@ -402,11 +402,14 @@ void SpecificWorker::drawParticles()
 	int i = 0;
 	for( auto particle : localization->particles)
 	{
-		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
-		InnerModelDraw::addPlane_notExisting(innerModelViewer, cadena,"floor",QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
+		const QString transf = QString::fromStdString("particle_")+QString::number(i);
+		const QString item = QString::fromStdString("plane_")+QString::number(i);
+		InnerModelDraw::addTransform(innerModelViewer,transf,"floor");
+		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(200, 200, 200));
 		i++;
 	}
-	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","floor",QVec::vec3(curLoc.x*1000,0,curLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
+	InnerModelDraw::addTransform(innerModelViewer,"redTransform","floor");
+	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(400, 2000, 400));
 }
 void SpecificWorker::updateParticles()
 {
@@ -416,11 +419,12 @@ void SpecificWorker::updateParticles()
 		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
 		if (innerModelViewer->innerModel->getNode(cadena))
 		{
-			innerModel->updatePlaneValues(cadena, 1, 0, 0, particle.loc.x*1000, 0, particle.loc.y*1000);
+		        innerModel->updateTransformValues(cadena, particle.loc.x*1000, 0, particle.loc.y*1000, 0, particle.angle, 0, "floor");
+			//innerModel->updatePlaneValues(cadena, 1, 0, 0, particle.loc.x*1000, 0, particle.loc.y*1000);
 		}
 		i++;
 	}
-	innerModel->updatePlaneValues("red", 1, 0, 0, curLoc.x*1000, 0, curLoc.y*1000);
+	innerModel->updateTransformValues("redTransform", curLoc.x*1000, 0, curLoc.y*1000, 0, curAngle, 0, "floor");
 }
 
 

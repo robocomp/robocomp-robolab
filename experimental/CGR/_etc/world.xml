@@ -3,9 +3,7 @@
 	<transform id="world">
 		<axes id="ax" length="200" width="30"/>
 		<transform id="floor">
-		    <plane id="back" ny="1" size="20000,20000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
-		    <plane id="rgbd_wall" nz="1" pz="2500" py="1250" size="5000,2500,10" texture="#FFFFFF" />   			
-		    <pointcloud id="cloud" />	
+		    <plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />    			
 		</transform>
 	</transform>		
 </innerModel>

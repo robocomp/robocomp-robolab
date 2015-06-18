@@ -79,54 +79,56 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-//Inintializing InnerModel with ursus.xml
-    innerModel = new InnerModel("../_etc/informatica.xml");
-    osgView = new OsgView (this);
-    osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
-    osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
-    osg::Vec3d center(osg::Vec3(0.,0.,-0.));
-    osg::Vec3d up(osg::Vec3(0.,1.,0.));
-    tb->setHomePosition(eye, center, up, true);
-    tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
-    osgView->setCameraManipulator(tb);
-    innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
-    //Inintializing parameters for CGR
-    LoadParameters();
+	//Inintializing InnerModel with ursus.xml
+	innerModel = new InnerModel("../_etc/world.xml");
+	osgView = new OsgView (this);
+	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
+	osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
+	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
+	osg::Vec3d up(osg::Vec3(0.,1.,0.));
+	tb->setHomePosition(eye, center, up, true);
+	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
+	osgView->setCameraManipulator(tb);
+	innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
+	//Inintializing parameters for CGR
+	LoadParameters();
 /* 
-    printf("NumParticles     : %d\n",numParticles);
-    printf("Alpha1           : %f\n",motionParams.Alpha1);
-    printf("Alpha2           : %f\n",motionParams.Alpha2);
-    printf("Alpha3           : %f\n",motionParams.Alpha3);
-    printf("UsePointCloud    : %d\n",usePointCloud?1:0);
-    printf("UseLIDAR         : %d\n",noLidar?0:1);
-    printf("Visualizations   : %d\n",debugLevel>=0?1:0);
-    printf("\n");
+	printf("NumParticles     : %d\n",numParticles);
+	printf("Alpha1           : %f\n",motionParams.Alpha1);
+	printf("Alpha2           : %f\n",motionParams.Alpha2);
+	printf("Alpha3           : %f\n",motionParams.Alpha3);
+	printf("UsePointCloud    : %d\n",usePointCloud?1:0);
+	printf("UseLIDAR         : %d\n",noLidar?0:1);
+	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
+	printf("\n");
 */  
-  double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
-  //if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
-  srand(seed);
+	double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
+	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
+	srand(seed);
 
+	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
+	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
 
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 	
- omnirobot_proxy->getBaseState(bStateOld);
- initialLoc.x=bStateOld.x/1000;
- initialLoc.y=bStateOld.z/1000;
- initialAngle=bStateOld.alpha;
-//Initialize particle filter, sensor model, motion model, refine model
-  string mapsFolder("../maps");
-//  localization = new VectorLocalization2D(mapsFolder.c_str());
-  localization = new VectorLocalization2D(mapsFolder.c_str());
-  localization->initialize(numParticles,
+	omnirobot_proxy->getBaseState(bStateOld);
+	initialLoc.x=bStateOld.x/1000;
+	initialLoc.y=bStateOld.z/1000;
+	initialAngle=bStateOld.alpha;
+	//Initialize particle filter, sensor model, motion model, refine model
+	string mapsFolder("../maps");
+	//  localization = new VectorLocalization2D(mapsFolder.c_str());
+	localization = new VectorLocalization2D(mapsFolder.c_str());
+	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-    drawLines();    
-    drawParticles();
-    
-    Mat src1;
-    src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
-    namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
-    imshow( "Lena windows reset", src1 ); 
+	drawLines();    
+	drawParticles();
+
+	Mat src1;
+	src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
+	namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
+	imshow( "Lena windows reset", src1 ); 
 }
 /**
 * \brief Default destructor
@@ -332,9 +334,7 @@ void SpecificWorker::compute()
             qDebug() << "Reset CGR Algorithm ok";
             qDebug() << "----------------------------------";
         }
-        innerModelViewer->update();
- 	osgView->autoResize();
- 	osgView->frame();
+     
 	// Obtener la posición del robot en el mundo. Al arrancar 0
 	// LLamar a omnirobot -> getBaseState();
 
@@ -342,34 +342,42 @@ void SpecificWorker::compute()
 	// Si no
 		// llamar a localization -> predict
 //         RoboCompOmniRobot::TBaseState bState;
-        omnirobot_proxy->getBaseState(bState);
-        //if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
-        if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
-        {
-           // double start = GetTimeSec();			//pasar a deg
-            localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
-           // qDebug() << "predict           : " << GetTimeSec()-start;
-            bStateOld.x = bState.x;
-            bStateOld.z = bState.z;
-            bStateOld.alpha = bState.alpha;
-            innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-        }
-            updateLaser();
-            localization->refineLidar(lidarParams);
-            localization->updateLidar(lidarParams, motionParams);
-            localization->resample(VectorLocalization2D::LowVarianceResampling);
-            localization->computeLocation(curLoc,curAngle);
-            // drawParticles();
-            updateParticles();
-            qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
-            qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
+	
+	omnirobot_proxy->getBaseState(bState);
+	//if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
+	if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
+	{
+		// double start = GetTimeSec();  //pasar a deg
+		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
+		innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
+		auto diff = innerModel->transform("poseRob1", "poseRob2");
+		localization->predict(diff(0)/1000., diff(2)/1000., -(bState.alpha - bStateOld.alpha), motionParams);
+
+// 		localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
+		// qDebug() << "predict           : " << GetTimeSec()-start;
+		bStateOld = bState;
+		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+	}
+	updateLaser();
+	
+	localization->refineLidar(lidarParams);
+	localization->updateLidar(lidarParams, motionParams);
+	localization->resample(VectorLocalization2D::LowVarianceResampling);
+	localization->computeLocation(curLoc,curAngle);
+	curAngle*=-1;
+	updateParticles();
+	//qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
+	//qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
         
 
 /*        else
         {
             qDebug() << "Soy una gargola";
         } */       
-
+      
+	innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
 }
 
 void SpecificWorker::filterParticle()
@@ -430,18 +438,17 @@ void SpecificWorker::drawLines()
 }
 void SpecificWorker::drawParticles()
 {
-	int i = 0;
-	for( auto particle : localization->particles)
+	for(uint i = 0; i<localization->particles.size(); ++i)
 	{
 		const QString transf = QString::fromStdString("particle_")+QString::number(i);
 		const QString item = QString::fromStdString("plane_")+QString::number(i);
 		InnerModelDraw::addTransform(innerModelViewer,transf,"floor");
-		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(particle.loc.x*1000,0,particle.loc.y*1000),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(100, 50, 100));
-		i++;
+		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(0,0,0),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(100, 50, 100));
 	}
 	InnerModelDraw::addTransform(innerModelViewer,"redTransform","floor");
-	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(initialLoc.x*1000,0,initialLoc.y*1000),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(200, 1000, 200));
+	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(0,0,0),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(200, 1000, 200));
 }
+
 void SpecificWorker::updateParticles()
 {
 	int i = 0;      
@@ -478,19 +485,24 @@ void SpecificWorker::updateLaser()
 {
     RoboCompLaser::TLaserData laserData;
     laserData = laser_proxy->getLaserData();
-
-    if(int(laserData.size()) != lidarParams.numRays){
+	
+    //if(int(laserData.size()) != lidarParams.numRays){
+    if(int(laserData.size()) != lidarParams.numRays+200){
         printf("Incorrect number of Laser Scan rays!\n");
         printf("received: %d\n",int(laserData.size()));
     }
     else
     {
-        int j=0;
+        int j=0, cont=0;
         for(auto i : laserData)
         {
-            lidarParams.laserScan[j] = i.dist;
-            j++;
-        }
+		if(cont>=100 and cont<=668)
+		{
+			lidarParams.laserScan[j] = i.dist;
+			j++;
+		}
+		cont++;
+	}
     }
 }
 

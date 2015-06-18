@@ -442,7 +442,7 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   // Transform laserpoints to robot frame
   vector< Vector2f > laserPoints(lidarParams.numRays);
   for(int i=0; i<lidarParams.numRays; i++){
-    laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i]; //laserScan = laser.dist
+    laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[lidarParams.numRays-i-1]; 
   }
   
   //Compute the sampling density
@@ -909,7 +909,7 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
   
   // Transform laserpoints to robot frame
   vector< Vector2f > laserPoints(lidarParams.numRays);
-  for(int i=0; i<lidarParams.numRays; i++){
+  for(int i=0; i<lidarParams.numRays; i++){ //lidarParams.numRays-i-1
     laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
   }
   

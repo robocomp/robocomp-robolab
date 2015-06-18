@@ -46,7 +46,7 @@ private:
   /// Used to keep track of lazy caching
   mutable bool updateRequired;
   /// Epsilon for computations
-  static const num eps = 1e-5;
+  static constexpr num eps = 1e-5;
   
 public:
   //Constructors, Setters

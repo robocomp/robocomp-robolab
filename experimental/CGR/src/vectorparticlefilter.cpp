@@ -472,7 +472,8 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   
   //Compute importance weights = observation x motion / samplingDensity
   if(debug) printf("\nParticle weights:\n");
-  for(unsigned int i=0; i<N; i++){
+  for(unsigned int i=0; i<N; i++)
+  {
     Particle2D &p = particlesRefined[i];
     float w1 = observationWeightLidar(p.loc, p.angle, lidarParams, laserPoints);
     float w2 = motionModelWeight(p.loc, p.angle, motionParams);

@@ -94,7 +94,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
 	//Inintializing parameters for CGR
 	LoadParameters();
-/* 
+ 
 	printf("NumParticles     : %d\n",numParticles);
 	printf("Alpha1           : %f\n",motionParams.Alpha1);
 	printf("Alpha2           : %f\n",motionParams.Alpha2);
@@ -103,7 +103,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	printf("UseLIDAR         : %d\n",noLidar?0:1);
 	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
 	printf("\n");
-*/  
+  
 	double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
 	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
 	srand(seed);
@@ -508,7 +508,7 @@ void SpecificWorker::updateLaser()
         {
 		if(cont>=100 and cont<=668)
 		{
-			lidarParams.laserScan[j] = i.dist;
+			lidarParams.laserScan[j] = i.dist/1000.f;
 			j++;
 		}
 		cont++;

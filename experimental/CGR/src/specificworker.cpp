@@ -63,7 +63,8 @@ bool usePointCloud = false;
 bool noLidar = false;
 int numParticles = 50;
 int debugLevel = -1;
-
+QTime t;
+int cont=0;
 vector2f initialLoc;
 float initialAngle;
 float locUncertainty, angleUncertainty;
@@ -79,6 +80,7 @@ using namespace std;
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+	t.start();
 	//Inintializing InnerModel with ursus.xml
 	innerModel = new InnerModel("../_etc/world.xml");
 	osgView = new OsgView (this);
@@ -92,7 +94,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
 	//Inintializing parameters for CGR
 	LoadParameters();
-/* 
+ 
 	printf("NumParticles     : %d\n",numParticles);
 	printf("Alpha1           : %f\n",motionParams.Alpha1);
 	printf("Alpha2           : %f\n",motionParams.Alpha2);
@@ -101,7 +103,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	printf("UseLIDAR         : %d\n",noLidar?0:1);
 	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
 	printf("\n");
-*/  
+  
 	double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
 	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
 	srand(seed);
@@ -289,6 +291,7 @@ void SpecificWorker::LoadParameters()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	
 //       THE FOLLOWING IS JUST AN EXAMPLE
 //
 // 	try
@@ -342,7 +345,7 @@ void SpecificWorker::compute()
 	// Si no
 		// llamar a localization -> predict
 //         RoboCompOmniRobot::TBaseState bState;
-	
+
 	omnirobot_proxy->getBaseState(bState);
 	//if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
 	if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
@@ -351,7 +354,7 @@ void SpecificWorker::compute()
 		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 		innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 		auto diff = innerModel->transform("poseRob1", "poseRob2");
-		localization->predict(diff(0)/1000., diff(2)/1000., -(bState.alpha - bStateOld.alpha), motionParams);
+		localization->predict(diff(0)/1000.f, diff(2)/1000.f, -(bState.alpha - bStateOld.alpha), motionParams);
 
 // 		localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
 		// qDebug() << "predict           : " << GetTimeSec()-start;
@@ -378,6 +381,13 @@ void SpecificWorker::compute()
 	innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();
+	if(t.elapsed()>1000)
+	{	
+		qDebug()<<"fps"<<cont;
+		t.restart();
+		cont=0;
+	}
+	cont++;
 }
 
 void SpecificWorker::filterParticle()
@@ -420,10 +430,10 @@ void SpecificWorker::drawLines()
 // 			qDebug() << l.p1.x << l.p1.y;
 //                         MODIFICATION FOR LOAD ORIGINAL MAPS. ORIGINAL MAPS IN METERS. InnerModel IN MILIMETERS
                     
-                        p0x =l.p0.x * 1000;
-                        p0y =l.p0.y * 1000;
-                        p1x =l.p1.x * 1000;
-                        p1y =l.p1.y * 1000;
+                        p0x =l.p0.x * 1000.f;
+                        p0y =l.p0.y * 1000.f;
+                        p1x =l.p1.x * 1000.f;
+                        p1y =l.p1.y * 1000.f;
                         
 			QVec n = QVec::vec2(p1x-p0x,p1y-p0y);
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();
@@ -498,7 +508,7 @@ void SpecificWorker::updateLaser()
         {
 		if(cont>=100 and cont<=668)
 		{
-			lidarParams.laserScan[j] = i.dist;
+			lidarParams.laserScan[j] = i.dist/1000.f;
 			j++;
 		}
 		cont++;

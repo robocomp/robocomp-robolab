@@ -1,7 +1,7 @@
 ﻿<innerModel>
 <!-- 	<axes id="sl3" /> -->
 	<omnirobot id="robot" port="12238" >
-		<transform id="laserPose" tx="0" ty="240" tz="100" rx="-0.4" >
+		<transform id="laserPose" tx="0" ty="240" tz="100" rx="0" >
 			<rgbd id="laser" focal="120" width="160" height="120" port="10097" ifconfig="10068,10004" />
 		</transform>
 

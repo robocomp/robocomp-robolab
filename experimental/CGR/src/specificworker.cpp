@@ -338,16 +338,10 @@ void SpecificWorker::compute()
             qDebug() << "----------------------------------";
         }
      
-	// Obtener la posición del robot en el mundo. Al arrancar 0
-	// LLamar a omnirobot -> getBaseState();
-
-	// Si hay algo nuevo
-	// Si no
-		// llamar a localization -> predict
-//         RoboCompOmniRobot::TBaseState bState;
-
 	omnirobot_proxy->getBaseState(bState);
-	//if(bState.x != bStateOld.x or bState.z != bStateOld.z or bState.alpha != bStateOld.alpha)
+	
+		//Hay que pasar el ángulo cambiado de signo porque los ejes estan cambiados en el localization.
+		//Para pintarlos en el innerModel hay que volver a cambiarlos de signo para pasarlos a nuestros ejes.
 	if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
 	{
 		// double start = GetTimeSec();  //pasar a deg
@@ -367,17 +361,8 @@ void SpecificWorker::compute()
 	localization->updateLidar(lidarParams, motionParams);
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
-	curAngle*=-1;
 	updateParticles();
-	//qDebug()<<"Base "<<bState.x<<bState.z<<"-"<<bState.alpha;
-	//qDebug()<<"Algoritmo "<<curLoc.x*1000<<curLoc.y*1000<<"-"<<curAngle;
         
-
-/*        else
-        {
-            qDebug() << "Soy una gargola";
-        } */       
-      
 	innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();
@@ -444,6 +429,20 @@ void SpecificWorker::drawLines()
 			i++;                        
 		}
 	}
+	int contador=0;
+	RoboCompLaser::TLaserData laserData;
+	laserData = laser_proxy->getLaserData();
+        for(uint i=0;i<laserData.size();i++)
+        {
+		if(contador>=100 and contador<=668)
+		{
+			const QString item = QString::fromStdString("laserPoint_")+QString::number(i);
+			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(i);
+			InnerModelDraw::addTransform(innerModelViewer,transf,"laserPose");
+			InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(0,0,0),QVec::vec3(0,1,0),"#FFFFFF",QVec::vec3(50, 50, 50));
+		}
+		contador++;
+	}
 
 }
 void SpecificWorker::drawParticles()
@@ -452,12 +451,16 @@ void SpecificWorker::drawParticles()
 	{
 		const QString transf = QString::fromStdString("particle_")+QString::number(i);
 		const QString item = QString::fromStdString("plane_")+QString::number(i);
+		const QString item2= QString::fromStdString("orientacion_")+QString::number(i);
 		InnerModelDraw::addTransform(innerModelViewer,transf,"floor");
 		InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(0,0,0),QVec::vec3(1,0,0),"#0000AA",QVec::vec3(100, 50, 100));
+		InnerModelDraw::addPlane_notExisting(innerModelViewer, item2,transf,QVec::vec3(0,0,100),QVec::vec3(1,0,0),"#FF00AA",QVec::vec3(200, 20, 20));
 	}
 	InnerModelDraw::addTransform(innerModelViewer,"redTransform","floor");
 	InnerModelDraw::addPlane_notExisting(innerModelViewer,"red","redTransform",QVec::vec3(0,0,0),QVec::vec3(1,0,0),"#AA0000",QVec::vec3(200, 1000, 200));
+	InnerModelDraw::addPlane_notExisting(innerModelViewer, "orientacion","redTransform",QVec::vec3(0,500,200),QVec::vec3(1,0,0),"#00FF00",QVec::vec3(200, 50, 50));
 }
+
 
 void SpecificWorker::updateParticles()
 {
@@ -467,12 +470,12 @@ void SpecificWorker::updateParticles()
 		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
 		if (innerModelViewer->innerModel->getNode(cadena))
 		{
-		        innerModel->updateTransformValues(cadena, particle.loc.x*1000, 0, particle.loc.y*1000, 0, particle.angle, 0, "floor");
+		        innerModel->updateTransformValues(cadena, particle.loc.x*1000, 0, particle.loc.y*1000, 0, -particle.angle, 0, "floor");
 			//innerModel->updatePlaneValues(cadena, 1, 0, 0, particle.loc.x*1000, 0, particle.loc.y*1000);
 		}
 		i++;
 	}
-	innerModel->updateTransformValues("redTransform", curLoc.x*1000, 0, curLoc.y*1000, 0, curAngle, 0, "floor");
+	innerModel->updateTransformValues("redTransform", curLoc.x*1000, 0, curLoc.y*1000, 0, -curAngle, 0, "floor");
 }
 
 
@@ -508,7 +511,9 @@ void SpecificWorker::updateLaser()
         {
 		if(cont>=100 and cont<=668)
 		{
+			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(cont);
 			lidarParams.laserScan[j] = i.dist/1000.f;
+			innerModel->updateTransformValues(transf, i.dist*sin(i.angle), 0, i.dist*cos(i.angle), 0, 0, 0, "laserPose");
 			j++;
 		}
 		cont++;

@@ -31,7 +31,7 @@ inline float eigenCross(const Vector2f &v1, const Vector2f &v2)
 
 void VectorLocalization2D::LidarParams::initialize()
 {
-  float a0 = -0.5*angleResolution*float(numRays);
+//   float a0 = -0.5*angleResolution*float(numRays);
   scanHeadings.resize(numRays);
   int i=0;
   for(float a=minAngle; a<maxAngle; a+=angleResolution){
@@ -213,16 +213,16 @@ float VectorLocalization2D::motionModelWeight(vector2f loc, float angle, const M
 float VectorLocalization2D::observationWeightPointCloud(vector2f loc, float angle, vector< vector2f >& pointCloud, vector< vector2f >& pointNormals, const PointCloudParams & pointCloudParams)
 {
   //static const bool UseAnalyticRender = false;
-  static const bool debug = false;
+//   static const bool debug = false;
   float logOutOfRangeProb = pointCloudParams.logOutOfRangeProb;
   float logObstacleProb = pointCloudParams.logObstacleProb;
-  float logShortHitProb = pointCloudParams.logShortHitProb;
+//   float logShortHitProb = pointCloudParams.logShortHitProb;
   float corelationFactor = pointCloudParams.corelationFactor;
   float minRange = pointCloudParams.minRange;
   float maxRange = pointCloudParams.maxRange;
   float sqMaxRange = sq(maxRange);
   float stdDev = pointCloudParams.stdDev;
-  float curAngle;
+//   float curAngle;
   
   vector<line2f> lines;
 
@@ -243,7 +243,7 @@ float VectorLocalization2D::observationWeightPointCloud(vector2f loc, float angl
   int numCorrespondences = 0;
   Vector2f heading, scanPoint, lineNorm, curPoint, attraction, locE(V2COMP(loc)), rotatedNormal;
   
-  for(int i=0; i<pointCloud.size(); i++){
+  for(unsigned int i=0; i<pointCloud.size(); i++){
     curPoint = rotMat1*Vector2f(V2COMP(pointCloud[i])) + locE;
     attraction = Vector2f(0.0,0.0);
     if(lineCorrespondences[i]>=0){
@@ -296,7 +296,7 @@ float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, co
   }
   
   float *scanRays = lidarParams.laserScan;
-  float curAngle;
+//   float curAngle;
   Vector2f attraction;
   float midScan = float(numRays)/2.0;
   

@@ -66,12 +66,6 @@ void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 }
 
 
-	}
-	catch(...)
-	{
-		exit(1);
-	}
-}
 
 
 

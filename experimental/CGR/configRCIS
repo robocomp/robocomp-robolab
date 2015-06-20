@@ -5,7 +5,7 @@ FSPF.Endpoints=tcp -p 10098
 
 
 # Proxies for required interfaces
-LaserProxy = laser:tcp -h localhost -p 10003
+LaserProxy = laser:tcp -h localhost -p 10097
 OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 

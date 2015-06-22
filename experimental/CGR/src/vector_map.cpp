@@ -55,8 +55,12 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
   maxX = maxY = -FLT_MAX;
   lines.clear();
   rewind(pFile);
-  while(fscanf(pFile,"%f|%f|%f|%f",&x1,&y1,&x2,&y2)==4){
-    if(debugVector) printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
+//   printf ("Locale is: %s\n", setlocale(LC_ALL,NULL) );
+  // Change locale to american
+  setlocale(LC_ALL, "en_US.UTF-8");
+//   printf ("Locale is: %s\n", setlocale(LC_ALL,NULL) );
+  while(fscanf(pFile,"%f,%f,%f,%f",&x1,&y1,&x2,&y2)==4){
+    printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
     minX = min(minX,x1);
     minX = min(minX,x2);
     minY = min(minY,y1);
@@ -91,6 +95,7 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
       error = error || (fread(&visListResolution,sizeof(double),1,pFile)!=1);
       if(!error){
         if(debug) printf("Pre-render size: %d x %d, resolution: %.3f\n",visListWidth, visListHeight, visListResolution);
+	printf("Pre-render size: %d x %d, resolution: %.3f\n",visListWidth, visListHeight, visListResolution);
         visibilityList.resize(visListWidth);
         for(unsigned int i=0; i<visListWidth; i++)
           visibilityList[i].resize(visListHeight);

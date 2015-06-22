@@ -28,7 +28,12 @@
 #include "vectorparticlefilter.h"
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <osgviewer/osgview.h>
+#include "innermodeldraw.h"
 #include <innermodel/innermodelviewer.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
 
 class SpecificWorker : public GenericWorker
 {
@@ -38,22 +43,30 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
         void LoadParameters();
-
 	void newFilteredPoints(const OrientedPoints &ops);
-
+	void filterParticle();
+        void drawParticles();
+	void drawLines();
+        void updateLaser();
+        void updateParticles();
 
 public slots:
 	void compute(); 	
 
 private:
-InnerModelViewer *imv;
+InnerModelViewer *innerModelViewer;
 InnerModel *innerModel;
+OsgView *osgView;	
 VectorLocalization2D *localization;
+
 string curMapName;
 vector2f initialLoc;
+vector2f curLoc;
+float curAngle;
 float initialAngle;
 float locUncertainty, angleUncertainty;
 VectorLocalization2D::MotionModelParams motionParams;
+VectorLocalization2D::LidarParams lidarParams;
 };
 
 #endif

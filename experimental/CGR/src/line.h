@@ -36,7 +36,7 @@ template <class num>
 class Line2d{
 private:
   /// End points of the line
-  GVector::vector2d<num> p0,p1;
+
   /// Unit vector from p0 to p1 of the line
   mutable GVector::vector2d<num> dir;
   /// Direction of the line, rotated 90 degrees anticlockwise
@@ -46,10 +46,11 @@ private:
   /// Used to keep track of lazy caching
   mutable bool updateRequired;
   /// Epsilon for computations
-  static const num eps = 1e-5;
+  static constexpr num eps = 1e-5;
   
 public:
   //Constructors, Setters
+  GVector::vector2d<num> p0,p1;
   Line2d();
   Line2d(GVector::vector2d<num> _p1);
   Line2d(GVector::vector2d<num> _p0, GVector::vector2d<num> _p1);

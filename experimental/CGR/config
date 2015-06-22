@@ -3,15 +3,12 @@ CommonBehavior.Endpoints=tcp -p 12010
 # Endpoints for subscriptions
 FSPF.Endpoints=tcp -p 10098
 
-
 # Proxies for required interfaces
-LaserProxy = laser:tcp -h localhost -p 10003
-
-
+LaserProxy = laser:tcp -h robonuc1.local -p 10003
+OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
-
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

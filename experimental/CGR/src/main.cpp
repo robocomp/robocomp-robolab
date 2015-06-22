@@ -82,6 +82,7 @@
 
 #include <Laser.h>
 #include <FSPF.h>
+#include <OmniRobot.h>
 
 
 // User includes here
@@ -92,6 +93,7 @@ using namespace RoboCompCommonBehavior;
 
 using namespace RoboCompLaser;
 using namespace RoboCompFSPF;
+using namespace RoboCompOmniRobot;
 
 
 
@@ -125,6 +127,7 @@ int CGR::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	LaserPrx laser_proxy;
+	OmniRobotPrx omnirobot_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -145,6 +148,23 @@ int CGR::run(int argc, char* argv[])
 	}
 	rInfo("LaserProxy initialized Ok!");
 	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "OmniRobotProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy OmniRobotProxy\n";
+		}
+		omnirobot_proxy = OmniRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("OmniRobotProxy initialized Ok!");
+	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 
 IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
@@ -176,12 +196,17 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 
 
 		// Server adapter creation and publication
+// 		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPFTopic", tmp, ""))
+// 		{
+// 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
+// 		}
+                // Server adapter creation and publication
 		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPF.Endpoints", tmp, "", NULL))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
 		}
-		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf",tmp);
 		
+		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf", tmp);
 		FSPFPtr fspfI_ = new FSPFI(worker);
 		Ice::ObjectPrx fspf = FSPF_adapter->addWithUUID(fspfI_)->ice_oneway();
 		IceStorm::TopicPrx fspf_topic;
@@ -196,8 +221,9 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		}
 		catch(const IceStorm::NoSuchTopic&)
 		{
-			qDebug() << "Error. Topic does not exist";
-		}	
+			//Error. Topic does not exist
+                        qDebug() << "Error. Topic does not exist";
+                }
 		}
 		IceStorm::QoS qos;
 		fspf_topic->subscribeAndGetPublisher(qos, fspf);

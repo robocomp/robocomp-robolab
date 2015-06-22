@@ -1,0 +1,14 @@
+<innerModel>
+       <include path="../_etc/ursus.xml"/>
+	<transform id="world">
+		<transform id="target2" tx="0" ty="0" tz="0"> 
+			<plane id="target2x" px="0.25" nx="1" size="10,10,5000" repeat="1" texture="#ff0000" />
+			<plane id="target2y" py="0.25" nx="1" size="10,5000,10" repeat="1" texture="#00ff00" />
+			<plane id="target2z" pz="0.25" nx="1" size="5000,10,10" repeat="1" texture="#0000ff" />
+		</transform>	
+		<transform id="floor">
+			<mesh  id="pabellonInformatica" file="/home/robocomp/robocomp/files/osgModels/edificios/informatica.ive"  tx="-16797.82" ty="-250" tz="-10800" rx="1.57079632679" scale="1000" />	
+		</transform>
+	</transform>
+</innerModel>
+

@@ -54,8 +54,13 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
   minX = minY = FLT_MAX;
   maxX = maxY = -FLT_MAX;
   lines.clear();
+  rewind(pFile);
+//   printf ("Locale is: %s\n", setlocale(LC_ALL,NULL) );
+  // Change locale to american
+  setlocale(LC_ALL, "en_US.UTF-8");
+//   printf ("Locale is: %s\n", setlocale(LC_ALL,NULL) );
   while(fscanf(pFile,"%f,%f,%f,%f",&x1,&y1,&x2,&y2)==4){
-    if(debugVector) printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
+    printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
     minX = min(minX,x1);
     minX = min(minX,x2);
     minY = min(minY,y1);
@@ -66,7 +71,6 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
     maxY = max(maxY,y2);
     vector2f p0(x1,y1);
     vector2f p1(x2,y2);
-    
     lines.push_back(line2f(p0,p1));
     lines.at(lines.size()-1).calcValues();
   }
@@ -91,12 +95,13 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
       error = error || (fread(&visListResolution,sizeof(double),1,pFile)!=1);
       if(!error){
         if(debug) printf("Pre-render size: %d x %d, resolution: %.3f\n",visListWidth, visListHeight, visListResolution);
+	printf("Pre-render size: %d x %d, resolution: %.3f\n",visListWidth, visListHeight, visListResolution);
         visibilityList.resize(visListWidth);
         for(unsigned int i=0; i<visListWidth; i++)
           visibilityList[i].resize(visListHeight);
       }
       while(cnt<visListHeight*visListWidth && !error){
-        int size = 0;
+        size_t size = 0;
         error = fread(&x,sizeof(int),1,pFile)!=1;
         error = error || (fread(&y,sizeof(int),1,pFile)!=1);
         error = error || (fread(&size,sizeof(int),1,pFile)!=1);
@@ -259,19 +264,19 @@ vector<int> VectorMap::getRayToLineCorrespondences(vector2f loc, float angle, fl
     float rotMat1[4] = {cos(angle), -sin(angle), sin(angle), cos(angle)};
     vector2f p(0.0,0.0);
     correspondences.resize(pointCloud.size());
-    for(int i=0; i<pointCloud.size(); i++){
+    for(uint i=0; i<pointCloud.size(); i++){
       p = pointCloud[i];
       p.set(p.x*rotMat1[0] + p.y*rotMat1[1], p.x*rotMat1[2] + p.y*rotMat1[3]);
       int correspondence = -1;
       
-      for(int j=0; j<segments.size() && correspondence<0; j++){
+      for(uint j=0; j<segments.size() && correspondence<0; j++){
         if(segments[j].v0.cross(p)>=0.0f && segments[j].v1.cross(p)<=0.0f)
           correspondence = segments[j].index;
       }
       correspondences[i] = correspondence;
     }
   }else{
-    for(int i=0; i<pointCloud.size(); i++){
+    for(uint i=0; i<pointCloud.size(); i++){
       float curAngle = angle_mod(pointCloud[i].angle() + angle);
       correspondences.push_back(getLineCorrespondence(loc,curAngle,minRange, maxRange, locVisibilityList));
     }
@@ -363,7 +368,7 @@ vector<int> VectorMap::getRayToLineCorrespondences(vector2f loc, float angle, fl
     vector< VectorMap::LineSegment > segments = sortLineSegments(loc,*lines);
     vector<int> correspondences;
     correspondences.clear();
-    for(unsigned int i=0; i<numRays; i++){
+    for(int i=0; i<numRays; i++){
       correspondences.push_back(-1);
     }
     int maxScanRays = floor((float)M_2PI/da);
@@ -666,14 +671,14 @@ vector<line2f> VectorMap::sceneRender(vector2f loc, float a0, float a1)
 {
   //FunctionTimer ft("Scene Render");
   static const float eps = 0.001;
-  static const float MinRange = 0.03;
+//   static const float MinRange = 0.03;
   static const float MaxRange = 5.0;
   static const unsigned int MaxLines = 200;
   
   vector2f leftMargin, rightMargin;
   rightMargin.heading(a0);
   leftMargin.heading(a1);
-  bool obtuseView = rightMargin.cross(leftMargin)<=0.0;
+//   bool obtuseView = rightMargin.cross(leftMargin)<=0.0;
   
   vector<line2f> scene, sceneCleaned;
   vector<line2f> linesList;

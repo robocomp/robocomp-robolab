@@ -49,24 +49,23 @@ public:
 	void drawLines();
         void updateLaser();
         void updateParticles();
-
 public slots:
-	void compute(); 	
-
+	void compute();
+	void reset();
 private:
-InnerModelViewer *innerModelViewer;
-InnerModel *innerModel;
-OsgView *osgView;	
-VectorLocalization2D *localization;
+	InnerModelViewer *innerModelViewer;
+	InnerModel *innerModel;
+	OsgView *osgView;	
+	VectorLocalization2D *localization;
 
-string curMapName;
-vector2f initialLoc;
-vector2f curLoc;
-float curAngle;
-float initialAngle;
-float locUncertainty, angleUncertainty;
-VectorLocalization2D::MotionModelParams motionParams;
-VectorLocalization2D::LidarParams lidarParams;
+	string curMapName;
+	vector2f initialLoc;
+	vector2f curLoc;
+	float curAngle;
+	float initialAngle;
+	float locUncertainty, angleUncertainty;
+	VectorLocalization2D::MotionModelParams motionParams;
+	VectorLocalization2D::LidarParams lidarParams;
 };
 
 #endif

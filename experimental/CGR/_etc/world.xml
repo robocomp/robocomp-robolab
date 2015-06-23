@@ -5,6 +5,14 @@
 		<transform id="floor">
 		    <plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />    			
 		</transform>
+<!--
+                <transform id="pared0" tx="-1030" tz="1555" ty="100" >
+                        <plane id="muro0" nx="1" size="2450,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                </transform>
+                <transform id="pared1" tx="-405" tz="2770" ty="100" >
+                        <plane id="muro1" nz="1" size="1240,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                </transform>
+-->
 	</transform>		
 </innerModel>
 

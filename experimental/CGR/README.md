@@ -43,6 +43,9 @@ On other platforms, you will have to manually install the following packages:
 
 ## 5. Running on your own robot
 
+    You need binary file to prerender. You can download a tested version in https://github.com/mhaut/pre_render
+    Please, read the instructions to compile.
+
     Creating A Vector Map: To run cgr localization on your own robot, you need to generate a vector map of your environment. For an example vector map, see maps/GHC7/GHC7_vector.txt . Each entry in the vector map represents a line (wall) in the world, and is of the form:
 
     x1, y1, x2, y2 

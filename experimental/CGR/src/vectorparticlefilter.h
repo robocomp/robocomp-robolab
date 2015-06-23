@@ -260,10 +260,6 @@ public:
   void saveRunLog(FILE* f);
   /// Write to file riun-time profiling information
   void saveProfilingStats(FILE* f);
-  /// Compile lists of drawing primitives that can be visualized for debugging purposes
-  void drawDisplay(vector<float> &lines_p1x, vector<float> &lines_p1y, vector<float> &lines_p2x, vector<float> &lines_p2y, vector<uint32_t> &lines_color,
-                   vector<float> &points_x, vector<float> &points_y, vector<uint32_t> &points_color, 
-                   vector<float> &circles_x, vector<float> &circles_y, vector<uint32_t> &circles_color, float scale=1.0);
   /// Return evaluation values
   void getEvalValues(EvalValues &_laserEval, EvalValues &_pointCloudEval);
   /// Return angle and location uncertainties

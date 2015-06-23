@@ -1,10 +1,11 @@
 ﻿<innerModel>
 <!-- 	<axes id="sl3" /> -->
 	<omnirobot id="robot" port="12238" >
-		<transform id="laserPose" tx="0" ty="240" tz="100" rx="0" >
-			<rgbd id="laser" focal="120" width="160" height="120" port="10097" ifconfig="10068,10004" />
-		</transform>
 
+		<transform id="laserPose" tx="0" ty="240" tz="100" rx="0" >
+			<laser id="laser" measures="768" min="100" max="4000" angle="3" port="10003" />
+		</transform>
+ 
 		<transform id="monitor_pose" ty="700" tz="35" >
 			<plane id="monitor_mesh" size="300,400,50" texture="#222266"  collide="1" />
 		</transform>

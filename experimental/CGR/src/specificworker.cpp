@@ -61,7 +61,7 @@
 bool run = true;
 bool usePointCloud = false;
 bool noLidar = false;
-int numParticles = 50;
+int numParticles = 20;
 int debugLevel = -1;
 QTime t;
 int cont=0;
@@ -433,7 +433,7 @@ void SpecificWorker::drawParticles()
 		{
 			const QString item = QString::fromStdString("laserPoint_")+QString::number(i);
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(i);
-			InnerModelDraw::addTransform(innerModelViewer,transf,"redTransform");
+			InnerModelDraw::addTransform(innerModelViewer,transf,"laserPose");
 			InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(0,0,0),QVec::vec3(0,1,0),"#FFFFFF",QVec::vec3(50, 50, 50));
 		}
 		contador++;
@@ -492,7 +492,7 @@ void SpecificWorker::updateLaser()
 		{
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(cont);
 			lidarParams.laserScan[j] = i.dist/1000.f;
-			innerModel->updateTransformValues(transf, i.dist*sin(i.angle), 0, i.dist*cos(i.angle), 0, 0, 0, "poseRob2");
+			innerModel->updateTransformValues(transf, i.dist*sin(i.angle), 0, i.dist*cos(i.angle), 0, 0, 0, "laserPose");
 			j++;
 		}
 		cont++;

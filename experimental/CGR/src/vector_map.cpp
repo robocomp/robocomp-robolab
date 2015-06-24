@@ -372,7 +372,6 @@ vector<int> VectorMap::getRayToLineCorrespondences(vector2f loc, float angle, fl
       correspondences.push_back(-1);
     }
     int maxScanRays = floor((float)M_2PI/da);
-    
     for(unsigned int i=0; i<segments.size(); i++){
       float aStart = segments[i].a0;
       float aEnd = segments[i].a1;

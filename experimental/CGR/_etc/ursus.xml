@@ -1,9 +1,9 @@
 ﻿<innerModel>
 <!-- 	<axes id="sl3" /> -->
-	<omnirobot id="robot" port="12238" >
+	<omnirobot id="robot" port="12238">
 
 		<transform id="laserPose" tx="0" ty="240" tz="100" rx="0" >
-			<laser id="laser" measures="768" min="100" max="4000" angle="3" port="10003" />
+			<laser id="laser" measures="40" min="100" max="4000" angle="3.14159265359" port="10003" />
 		</transform>
  
 		<transform id="monitor_pose" ty="700" tz="35" >

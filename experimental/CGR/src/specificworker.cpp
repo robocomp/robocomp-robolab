@@ -61,7 +61,7 @@
 bool run = true;
 bool usePointCloud = false;
 bool noLidar = false;
-int numParticles = 20;
+int numParticles = 1;
 int debugLevel = -1;
 QTime t;
 int cont=0;
@@ -117,10 +117,10 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 	
-	omnirobot_proxy->getBaseState(bStateOld);
-	initialLoc.x=bStateOld.x/1000;
-	initialLoc.y=bStateOld.z/1000;
-	initialAngle=bStateOld.alpha;
+// 	omnirobot_proxy->getBaseState(bStateOld);
+// 	initialLoc.x=bStateOld.x/1000;
+// 	initialLoc.y=bStateOld.z/1000;
+// 	initialAngle=bStateOld.alpha;
 	//Initialize particle filter, sensor model, motion model, refine model
 	string mapsFolder("../maps");
 	//  localization = new VectorLocalization2D(mapsFolder.c_str());
@@ -245,6 +245,8 @@ void SpecificWorker::LoadParameters()
     bool error = false;
     // Laser sensor properties  //BASURA
     error = error || !c.getReal("angleResolution", lidarParams.angleResolution);
+    error = error || !c.getReal("minAngle", lidarParams.minAngle);
+    error = error || !c.getReal("maxAngle", lidarParams.maxAngle);
     error = error || !c.getInt("numRays", lidarParams.numRays);
     error = error || !c.getReal("maxRange", lidarParams.maxRange);
     error = error || !c.getReal("minRange", lidarParams.minRange);
@@ -252,13 +254,14 @@ void SpecificWorker::LoadParameters()
     // Pose of laser sensor on robot	//BASURA
     vector2f laserToBaseTrans;
     float xRot, yRot, zRot;
-    error = error || !c.getVec2f<vector2f>("laserToBaseTrans", laserToBaseTrans);
+    error = error || !c.getVec2f<vector2f>("laserLoc", laserToBaseTrans);
     error = error || !c.getReal("xRot", xRot);
     error = error || !c.getReal("yRot", yRot);
     error = error || !c.getReal("zRot", zRot);
     Matrix3f laserToBaseRot;
     laserToBaseRot = AngleAxisf(xRot, Vector3f::UnitX()) * AngleAxisf(yRot, Vector3f::UnitY()) * AngleAxisf(zRot, Vector3f::UnitZ());
     lidarParams.laserToBaseTrans = Vector2f(V2COMP(laserToBaseTrans));
+    printf("%f - %f jodeeereresdfestgfeaswtfr\n",lidarParams.laserToBaseTrans.x(),lidarParams.laserToBaseTrans.y());
     lidarParams.laserToBaseRot = laserToBaseRot.block(0,0,2,2);
     
     // Parameters related to observation update
@@ -320,18 +323,19 @@ void SpecificWorker::compute()
 	
 		//Hay que pasar el ángulo cambiado de signo porque los ejes estan cambiados en el localization.
 		//Para pintarlos en el innerModel hay que volver a cambiarlos de signo para pasarlos a nuestros ejes.
-	if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
+	//if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
 	{
 		// double start = GetTimeSec();  //pasar a deg
 		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 		innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
-		auto diff = innerModel->transform("poseRob1", "poseRob2");
-		localization->predict(diff(0)/1000.f, diff(2)/1000.f, -(bState.alpha - bStateOld.alpha), motionParams);
+		auto diff = innerModel->transform6D("poseRob1", "poseRob2");
+		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 
-// 		localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
+ 		//localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
 		// qDebug() << "predict           : " << GetTimeSec()-start;
 		bStateOld = bState;
 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+// 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
 	}
 	updateLaser();
 	
@@ -398,12 +402,13 @@ void SpecificWorker::drawLines()
                         p1x =l.p1.x * 1000.f;
                         p1y =l.p1.y * 1000.f;
                         
-			QVec n = QVec::vec2(p1x-p0x,p1y-p0y);
+			QVec n = QVec::vec2(p1y-p0y,p1x-p0x);
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();
                         std::ostringstream oss;
                         oss << m.mapName << i;                        
-			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3((p0x+p1x)/2,0,(p0y+p1y)/2),
+			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3((p0y+p1y)/2,0,(p0x+p1x)/2),
 							     QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			printf("%f %f %f %f %f",(p0x+p1x)/2,(p0y+p1y)/2,-n(1),n(0),width);
 			i++;                        
 		}
 	}
@@ -429,7 +434,7 @@ void SpecificWorker::drawParticles()
 	laserData = laser_proxy->getLaserData();
         for(uint i=0;i<laserData.size();i++)
         {
-		if(contador>=100 and contador<=668)
+// 		if(contador>=100 and contador<=668)
 		{
 			const QString item = QString::fromStdString("laserPoint_")+QString::number(i);
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(i);
@@ -449,12 +454,11 @@ void SpecificWorker::updateParticles()
 		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
 		if (innerModelViewer->innerModel->getNode(cadena))
 		{
-		        innerModel->updateTransformValues(cadena, particle.loc.x*1000, 0, particle.loc.y*1000, 0, -particle.angle, 0, "floor");
-			//innerModel->updatePlaneValues(cadena, 1, 0, 0, particle.loc.x*1000, 0, particle.loc.y*1000);
+		        innerModel->updateTransformValues(cadena, -particle.loc.y*1000, 0, particle.loc.x*1000, 0, -particle.angle , 0, "floor");
 		}
 		i++;
 	}
-	innerModel->updateTransformValues("redTransform", curLoc.x*1000, 0, curLoc.y*1000, 0, -curAngle, 0, "floor");
+	innerModel->updateTransformValues("redTransform", -curLoc.y*1000, 0, curLoc.x*1000, 0, -curAngle, 0, "floor");
 }
 
 
@@ -479,7 +483,7 @@ void SpecificWorker::updateLaser()
     laserData = laser_proxy->getLaserData();
 	
     //if(int(laserData.size()) != lidarParams.numRays){
-    if(int(laserData.size()) != lidarParams.numRays+200){
+    if(int(laserData.size()) != lidarParams.numRays){//+200){
         printf("Incorrect number of Laser Scan rays!\n");
         printf("received: %d\n",int(laserData.size()));
     }
@@ -488,7 +492,7 @@ void SpecificWorker::updateLaser()
         int j=0, cont=0;
         for(auto i : laserData)
         {
-		if(cont>=100 and cont<=668)
+// 		if(cont>=100 and cont<=668)
 		{
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(cont);
 			lidarParams.laserScan[j] = i.dist/1000.f;

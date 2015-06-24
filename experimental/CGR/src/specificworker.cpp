@@ -61,7 +61,7 @@
 bool run = true;
 bool usePointCloud = false;
 bool noLidar = false;
-int numParticles = 50;
+int numParticles = 20;
 int debugLevel = -1;
 QTime t;
 int cont=0;
@@ -83,7 +83,10 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	t.start();
 	//Inintializing InnerModel with ursus.xml
 	innerModel = new InnerModel("../_etc/world.xml");
-	osgView = new OsgView (this);
+	osgView = new OsgView (widget);
+	// Connect button signal to appropriate slot
+	connect(buttonreset, SIGNAL (released()), this, SLOT (reset()));
+	
 	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
 	osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
 	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
@@ -127,10 +130,10 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	drawLines();    
 	drawParticles();
 
-	Mat src1;
-	src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
-	namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
-	imshow( "Lena windows reset", src1 ); 
+// 	Mat src1;
+// 	src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
+// 	namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
+// 	imshow( "Lena windows reset", src1 ); 
 }
 /**
 * \brief Default destructor
@@ -312,32 +315,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-        RoboCompOmniRobot::TBaseState bState;
-        int keyPressed = 0;
-        keyPressed = waitKey(10);
-        if (keyPressed > 0)
-        {
-            qDebug() << "----------------------------------";
-            qDebug() << "               RESET              ";
-            omnirobot_proxy-> resetOdometer();
-            qDebug() << "Reset Base ok";
-            omnirobot_proxy-> getBaseState(bState);
-            qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
-            innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-            qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
-            bStateOld.x = bState.x;
-            bStateOld.z = bState.z;
-            bStateOld.alpha = bState.alpha;
-            qDebug() << "Reset bStateOld to robot position";
-            curLoc.x = bState.x;
-            curLoc.y = bState.z;
-            curAngle = bState.alpha;
-            //localization->setLocation(curloc, curAngle, locationUncertainty, angleUncertainty);
-            localization->setLocation(curLoc, curAngle,curMapName.c_str(),0.01,RAD(1.0));
-            qDebug() << "Reset CGR Algorithm ok";
-            qDebug() << "----------------------------------";
-        }
-     
+	RoboCompOmniRobot::TBaseState bState;
 	omnirobot_proxy->getBaseState(bState);
 	
 		//Hay que pasar el ángulo cambiado de signo porque los ejes estan cambiados en el localization.
@@ -455,7 +433,7 @@ void SpecificWorker::drawParticles()
 		{
 			const QString item = QString::fromStdString("laserPoint_")+QString::number(i);
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(i);
-			InnerModelDraw::addTransform(innerModelViewer,transf,"redTransform");
+			InnerModelDraw::addTransform(innerModelViewer,transf,"laserPose");
 			InnerModelDraw::addPlane_notExisting(innerModelViewer, item,transf,QVec::vec3(0,0,0),QVec::vec3(0,1,0),"#FFFFFF",QVec::vec3(50, 50, 50));
 		}
 		contador++;
@@ -514,7 +492,7 @@ void SpecificWorker::updateLaser()
 		{
 			const QString transf = QString::fromStdString("laserPointTransf_")+QString::number(cont);
 			lidarParams.laserScan[j] = i.dist/1000.f;
-			innerModel->updateTransformValues(transf, i.dist*sin(i.angle), 0, i.dist*cos(i.angle), 0, 0, 0, "redTransform");
+			innerModel->updateTransformValues(transf, i.dist*sin(i.angle), 0, i.dist*cos(i.angle), 0, 0, 0, "laserPose");
 			j++;
 		}
 		cont++;
@@ -522,3 +500,28 @@ void SpecificWorker::updateLaser()
     }
 }
 
+void SpecificWorker::reset()
+{
+	RoboCompOmniRobot::TBaseState bState;
+	qDebug() << "----------------------------------";
+	qDebug() << "               RESET              ";
+	omnirobot_proxy-> resetOdometer();
+	qDebug() << "Reset Base ok";
+	omnirobot_proxy-> getBaseState(bState);
+	qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
+	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+	qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
+	bStateOld.x = bState.x;
+	bStateOld.z = bState.z;
+	bStateOld.alpha = bState.alpha;
+	qDebug() << "Reset bStateOld to robot position";
+	curLoc.x = bState.x;
+	curLoc.y = bState.z;
+	curAngle = bState.alpha;
+	//localization->setLocation(curloc, curAngle, locationUncertainty, angleUncertainty);
+	localization->setLocation(curLoc, curAngle,curMapName.c_str(),0.01,RAD(1.0));
+	updateLaser();
+	qDebug() << "Reset CGR Algorithm ok";
+	qDebug() << "----------------------------------";
+
+}

@@ -507,5 +507,5 @@ bool ConfigReader::set(const char *name,double val)
 void ConfigReader::addStandard()
 {
   // standard includes for a project go here
-  addFile("config/common.cfg");
+  addFile("../etc/common.cfg");
 }

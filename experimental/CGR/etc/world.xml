@@ -1,6 +1,6 @@
 
 <innerModel>
-	        <include path="../_etc/ursus.xml"/>
+	        <include path="../etc/ursus.xml"/>
 	<transform id="world">
 		<axes id="ax" length="200" width="30"/>
 		<transform id="floor">

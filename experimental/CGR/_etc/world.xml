@@ -4,7 +4,7 @@
 	<transform id="world">
 		<axes id="ax" length="200" width="30"/>
 		<transform id="floor">
-			
+<!--			
                <transform id="pared0" tx="2430" tz="0" ty="400" >
                         <plane id="muro0" nx="1" size="3780,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
@@ -16,31 +16,31 @@
                         <plane id="muro2" nx="1" size="3780,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
 
-<!--
+-->
   
                <transform id="pared0" tx="20" tz="-2430" ty="400" >
-                        <plane id="muro0" nz="3820" size="3820,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro0" nz="-3820" size="3820,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared1" tx="-1890" tz="-1050" ty="400" >
                         <plane id="muro1" nx="-2760" size="2760,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
--->
+
 		    <plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />    			
-<!--
+
                <transform id="pared2" tx="-1460" tz="330" ty="400" >
-                        <plane id="muro2" nz="860" size="860,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro2" nz="-860" size="860,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared3" tx="-1030" tz="1550" ty="400" >
                         <plane id="muro3" nx="-2440" size="2440,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
 		</transform>
                 <transform id="pared4" tx="-420" tz="2770" ty="400" >
-                        <plane id="muro4" nz="1220" size="1220,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro4" nz="-1220" size="1220,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared5" tx="190" tz="3805" ty="400" >
                         <plane id="muro5" nx="-2070" size="2070,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared6" tx="1060" tz="4840" ty="400" >
-                        <plane id="muro6" nz="1740" size="1740,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro6" nz="-1740" size="1740,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared7" tx="1930" tz="-1215" ty="400" >
                         <plane id="muro7" nx="-2430" size="2430,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
@@ -49,24 +49,24 @@
                         <plane id="muro8" nx="-3610" size="3610,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared9" tx="1680" tz="0" ty="400" >
-                        <plane id="muro9" nz="-500" size="500,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro9" nz="500" size="500,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared10" tx="1430" tz="610" ty="400" >
                         <plane id="muro10" nx="-1220" size="1220,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared11" tx="1680" tz="1220" ty="400" >
-                        <plane id="muro11" nz="500" size="500,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro11" nz="-500" size="500,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared12" tx="1165" tz="530" ty="400" >
-                        <plane id="muro12" nz="-530" size="530,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro12" nz="530" size="530,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared13" tx="900" tz="642.5" ty="400" >
                         <plane id="muro13" nx="-225" size="225,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
                 <transform id="pared14" tx="1165" tz="755" ty="400" >
-                        <plane id="muro14" nz="530" size="530,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+                        <plane id="muro14" nz="-530" size="530,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
                 </transform>
--->
+
 		</transform>
 	</transform>		
 </innerModel>

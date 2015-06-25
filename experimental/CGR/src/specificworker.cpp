@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
-
+//#include "popt_pp.h"
+#include "proghelp.h"
+//#include "cgr_localization/LocalizationInterfaceSrv.h"
 // #include <ros/ros.h>
 // #include <tf/tf.h>
 // #include <tf/transform_listener.h>
@@ -38,16 +40,8 @@
 // #include <geometry_msgs/PoseArray.h>
 // #include <geometry_msgs/PoseWithCovarianceStamped.h>
 // #include <ros/package.h>
-
-//#include "popt_pp.h"
-#include "proghelp.h"
-//#include "cgr_localization/DisplayMsg.h"
-//#include "cgr_localization/LocalizationInterfaceSrv.h"
-//#include "cgr_localization/LocalizationMsg.h"
-
 #include "vectorparticlefilter.h"
 #include "vector_map.h"
-
 #include "terminal_utils.h"
 #include "timer.h"
 
@@ -63,16 +57,10 @@ bool usePointCloud = false;
 bool noLidar = false;
 int numParticles = 20;
 int debugLevel = -1;
-QTime t;
-int cont=0;
-vector2f initialLoc;
-float initialAngle;
-float locUncertainty, angleUncertainty;
+
+int cont=0;	//to calculate fps
 
 RoboCompOmniRobot::TBaseState bStateOld;
-
-
-VectorLocalization2D *localization;
 
 using namespace std;
 /**
@@ -84,8 +72,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	//Inintializing InnerModel with ursus.xml
 	innerModel = new InnerModel("../etc/world.xml");
 	osgView = new OsgView (widget);
-	// Connect button signal to appropriate slot
-	connect(buttonreset, SIGNAL (released()), this, SLOT (reset()));
 	
 	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
 	osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
@@ -107,33 +93,22 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
 	printf("\n");
   
-	double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
+	//double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
 	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
-	srand(seed);
+	//srand(seed);
 
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
 
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
-	
-// 	omnirobot_proxy->getBaseState(bStateOld);
-// 	initialLoc.x=bStateOld.x/1000;
-// 	initialLoc.y=bStateOld.z/1000;
-// 	initialAngle=bStateOld.alpha;
-	//Initialize particle filter, sensor model, motion model, refine model
+
 	string mapsFolder("../etc/maps");
-	//  localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
 	drawLines();    
 	drawParticles();
-
-// 	Mat src1;
-// 	src1 = imread("../lena.jpeg", CV_LOAD_IMAGE_COLOR); 
-// 	namedWindow( "Lena windows reset", CV_WINDOW_AUTOSIZE ); 
-// 	imshow( "Lena windows reset", src1 ); 
 }
 /**
 * \brief Default destructor
@@ -320,23 +295,12 @@ void SpecificWorker::compute()
 {
 	RoboCompOmniRobot::TBaseState bState;
 	omnirobot_proxy->getBaseState(bState);
-	
-		//Hay que pasar el ángulo cambiado de signo porque los ejes estan cambiados en el localization.
-		//Para pintarlos en el innerModel hay que volver a cambiarlos de signo para pasarlos a nuestros ejes.
-	//if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
-	// double start = GetTimeSec();  //pasar a deg
 	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
  	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
 	{		
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
-
- 		//localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
-		// qDebug() << "predict           : " << GetTimeSec()-start;
-// 		bStateOld = bState;
-// 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-// 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
 	}
 	bStateOld = bState;
 	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
@@ -396,11 +360,7 @@ void SpecificWorker::drawLines()
 	vector<VectorMap> maps = localization->getMaps();
 	int i = 0;
 	for( auto m : maps){
-		for( auto l: m.lines){
-// 			qDebug() << l.p0.x << l.p0.y;
-// 			qDebug() << l.p1.x << l.p1.y;
-//                         MODIFICATION FOR LOAD ORIGINAL MAPS. ORIGINAL MAPS IN METERS. InnerModel IN MILIMETERS
-                    
+		for( auto l: m.lines){                 
                         p0x =l.p0.x * 1000.f;
                         p0y =l.p0.y * 1000.f;
                         p1x =l.p1.x * 1000.f;
@@ -506,30 +466,4 @@ void SpecificWorker::updateLaser()
 		cont++;
 	}
     }
-}
-
-void SpecificWorker::reset()
-{
-	RoboCompOmniRobot::TBaseState bState;
-	qDebug() << "----------------------------------";
-	qDebug() << "               RESET              ";
-	omnirobot_proxy-> resetOdometer();
-	qDebug() << "Reset Base ok";
-	omnirobot_proxy-> getBaseState(bState);
-	qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
-	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-	qDebug() << "Robot at origin"<<bState.x<<bState.z<<bState.alpha;
-	bStateOld.x = bState.x;
-	bStateOld.z = bState.z;
-	bStateOld.alpha = bState.alpha;
-	qDebug() << "Reset bStateOld to robot position";
-	curLoc.x = bState.x;
-	curLoc.y = bState.z;
-	curAngle = bState.alpha;
-	//localization->setLocation(curloc, curAngle, locationUncertainty, angleUncertainty);
-	localization->setLocation(curLoc, curAngle,curMapName.c_str(),0.01,RAD(1.0));
-	updateLaser();
-	qDebug() << "Reset CGR Algorithm ok";
-	qDebug() << "----------------------------------";
-
 }

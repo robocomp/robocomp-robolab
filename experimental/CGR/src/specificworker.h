@@ -31,9 +31,6 @@
 #include <osgviewer/osgview.h>
 #include "innermodeldraw.h"
 #include <innermodel/innermodelviewer.h>
-#include <opencv2/opencv.hpp>
-
-using namespace cv;
 
 class SpecificWorker : public GenericWorker
 {
@@ -51,13 +48,12 @@ public:
         void updateParticles();
 public slots:
 	void compute();
-	void reset();
 private:
 	InnerModelViewer *innerModelViewer;
 	InnerModel *innerModel;
 	OsgView *osgView;	
 	VectorLocalization2D *localization;
-
+	QTime t;
 	string curMapName;
 	vector2f initialLoc;
 	vector2f curLoc;

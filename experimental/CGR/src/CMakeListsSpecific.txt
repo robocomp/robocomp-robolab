@@ -21,7 +21,7 @@ SET ( HEADERS
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
-set (SPECIFIC_LIBS ${LUA_LIBRARIES} -losgViewer -losgDB -L/usr/lib/x86_64-linux-gnu/ -lopencv_core -lopencv_highgui)
+set (SPECIFIC_LIBS ${LUA_LIBRARIES} -losgViewer -losgDB)
 
-ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2 -fpermissive)
+ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2)
 

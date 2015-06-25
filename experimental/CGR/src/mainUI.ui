@@ -15,13 +15,6 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="QPushButton" name="buttonreset">
-     <property name="text">
-      <string>reset</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
     <widget class="QWidget" name="widget" native="true"/>
    </item>
   </layout>

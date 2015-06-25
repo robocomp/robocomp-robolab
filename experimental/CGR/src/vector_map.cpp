@@ -61,6 +61,17 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
 //   printf ("Locale is: %s\n", setlocale(LC_ALL,NULL) );
   while(fscanf(pFile,"%f,%f,%f,%f",&x1,&y1,&x2,&y2)==4){
     printf("Line%d: <%f %f> <%f %f>\n",(int)lines.size(),x1,y1,x2,y2);
+    // Robocomp to CGR model
+    
+    float aux = y1;
+    y1 = (-1)*x1;
+    x1 = aux;
+    // ----
+    aux = y2;
+    y2 = (-1)*x2;
+    x2 = aux;
+    // --------
+    
     minX = min(minX,x1);
     minX = min(minX,x2);
     minY = min(minY,y1);

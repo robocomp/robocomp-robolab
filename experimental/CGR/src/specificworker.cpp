@@ -82,7 +82,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	t.start();
 	//Inintializing InnerModel with ursus.xml
-	innerModel = new InnerModel("../_etc/world.xml");
+	innerModel = new InnerModel("../etc/world.xml");
 	osgView = new OsgView (widget);
 	// Connect button signal to appropriate slot
 	connect(buttonreset, SIGNAL (released()), this, SLOT (reset()));
@@ -122,7 +122,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 // 	initialLoc.y=bStateOld.z/1000;
 // 	initialAngle=bStateOld.alpha;
 	//Initialize particle filter, sensor model, motion model, refine model
-	string mapsFolder("../maps");
+	string mapsFolder("../etc/maps");
 	//  localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
@@ -147,7 +147,7 @@ SpecificWorker::~SpecificWorker()
 void SpecificWorker::LoadParameters()
 {
   WatchFiles watch_files;
-  ConfigReader config("../_etc/"); //path a los ficheros de configuracion desde el path del binario.
+  ConfigReader config("../etc/"); //path a los ficheros de configuracion desde el path del binario.
   config.init(watch_files);
   
   config.addFile("localization_parameters.cfg");

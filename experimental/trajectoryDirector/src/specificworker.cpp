@@ -23,7 +23,10 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-
+	innerModel = new InnerModel("../etc/trajectory2d.xml");
+	target.x=29239249;
+	target.z=29239249;
+	updateState(State::STOP, mutex_state);
 }
 
 /**
@@ -31,42 +34,110 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
+	  state = State::STOP;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-
-
-
-	
 	timer.start(Period);
-
 	return true;
 }
 
 void SpecificWorker::compute()
 {
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+	Tag tagObjetive;
+	updateInnerModel(innerModel);
+
+	switch (state)
+	{
+		case State::GOTO:
+			if(tagList.getTagR(1,tagObjetive) && tagObjetive.isValid(3000))
+			{
+				//qDebug()<<tagObjetive.x()<<tagObjetive.y()<<tagObjetive.z()<<endl;
+				tagObjetive.coords = innerModel->transform("world", QVec::vec3(tagObjetive.x(), tagObjetive.y(), tagObjetive.z()), "rgbd_transform");
+				//    list=sam.sampleFreeSpaceR2Uniform(box);
+				target.x = tagObjetive.coords.x();
+				target.y = 0;
+				target.z = tagObjetive.coords.z();
+			try
+			{
+				qDebug() << "MOVING :-)";
+				//trajectoryrobot2d_proxy->stop();
+				trajectoryrobot2d_proxy->go(target);
+				updateState(State::GOTO, mutex_state);
+			}
+			catch(const Ice::Exception &ex){
+				cout << ex << endl;
+			}
+
+			}
+			else
+			{
+				RoboCompTrajectoryRobot2D::NavState s = trajectoryrobot2d_proxy->getState();
+				if(s.state != "IDLE") updateState(State::GOTO, mutex_state);	
+				else updateState(State::LOST, mutex_state);
+			}
+			break;
+		case State::LOST:
+			qDebug()<<"lost :-(";
+			stop();
+			updateState(State::SEARCHING, mutex_state);
+			clock.restart();
+			break;
+
+		case State::SEARCHING:
+			if(tagList.getTag(1,tagObjetive) && tagObjetive.isValid(3000))
+			{
+				updateState(State::GOTO, mutex_state);
+				stop();
+			}
+			//if(clock.elapsed() > 2000 && clock.isValid()) search();
+			break;
+
+		case State::STOP:
+			qDebug() << "Idle" << endl;
+			break;
+
+		default:
+			qDebug() << "Connection Failed!" << endl;
+			break;
+	}
+
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief Updates an InnerModel from values read from the robot. Reads laserData too.
+ * 
+ * @param inner InnerModel that is to be updated
+ * @return bool
+ */
+bool SpecificWorker::updateInnerModel(InnerModel *innerModel)
+{
+	// TODO sacar del trajectory2d
+	return true;
+}
+////////////////
+
+
+void SpecificWorker::stop()
+{
+	trajectoryrobot2d_proxy->stop();
+}
+
+void SpecificWorker::updateState(State st, QMutex& mutex_state)
+{
+	QMutexLocker ml(&mutex_state);
+	state = st;
+}
 
 void SpecificWorker::newAprilTag(const tagsList &tags)
 {
+	for(auto tag : tags)
+	{	
+		Tag t(tag.id, tag.tx, tag.ty, tag.tz);
+		tagList.addTag(t);
+	}
 
 }
-
-
-
-
-
-

@@ -1,5 +1,7 @@
-For use this component, you can need install to MRPT and the openni2RGBD component locate in our Github repository robocomp-robolab/components/openni2RGBD/
+# Instructions:
 
+For use this component, you can need install to MRPT and the openni2RGBD component locate in our Github repository robocomp-robolab/components/openni2RGBD/
+```
 mkdir ~/software
 cd ~/software
 git clone https://github.com/jlblancoc/mrpt
@@ -26,7 +28,7 @@ cd build
 cmake ..
 make
 bin/visualodometryDIFODO --Ice.Config=../config
-
+```
 
 
 

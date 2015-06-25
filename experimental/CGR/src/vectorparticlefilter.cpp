@@ -35,8 +35,7 @@ void VectorLocalization2D::LidarParams::initialize()
   scanHeadings.resize(numRays);
   int i=0;
   for(float a=minAngle; a<maxAngle; a+=angleResolution){
-//       scanHeadings[i] = Vector2f(cos(a),sin(a));
-	scanHeadings[i] = Vector2f(-sin(a),cos(a));
+	scanHeadings[i] = Vector2f(-sin(a),cos(a));		//with our axis reference
     i++;
   }
   //TODO delete laserScan
@@ -325,7 +324,6 @@ float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, co
       logTotalWeight += logObstacleProb*lidarParams.correlationFactor;
       continue;
     }
-//     printf("linea %d:    %d   %d\n",i,lineCorrespondences[i],(int)lines.size());
     if(lineCorrespondences[i]>=0){		//haya alguna linea
       scanPoint = laserLocE + robotAngle*laserPoints[i];
       scanPoint2 = laserLocE + robotAngle2*laserPoints[i+1];
@@ -351,8 +349,6 @@ float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, co
       logTotalWeight += logOutOfRangeProb*lidarParams.correlationFactor;
     }
   }
-  //if(debug) printf("numCorrespondences: %d\n",numCorrespondences);
-  //exit(-1);
   //return numCorrespondences;
   return exp(logTotalWeight);
 }
@@ -445,7 +441,6 @@ void VectorLocalization2D::computeParticleWeights(vector2f deltaLoc, float delta
 void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const MotionModelParams & motionParams)
 {
   static const bool debug = false;
-  //static const bool usePermissibility = true;
   
   double tStart = GetTimeSec();
   
@@ -453,7 +448,6 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   vector< Vector2f > laserPoints(lidarParams.numRays);
   for(int i=0; i<lidarParams.numRays; i++)
   {
-//     laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i]; 
     laserPoints[i] = lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
     Vector2f aux(laserPoints[i].x(),laserPoints[i].y());
     laserPoints[i] = Vector2f(aux.y(),-aux.x()) + lidarParams.laserToBaseTrans;
@@ -501,7 +495,6 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
 void VectorLocalization2D::updatePointCloud(vector< vector2f >& pointCloud, vector< vector2f >& pointNormals, const MotionModelParams &motionParams, const PointCloudParams &pointCloudParams)
 {
   static const bool debug = false;
-  //static const bool usePermissibility = true;
   
   double tStart = GetTimeSec();
   

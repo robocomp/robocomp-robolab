@@ -28,8 +28,6 @@ bool ctxVectorMapErrorOccurred = false;
 bool VectorMap::loadMap(const char* name, bool usePreRender)
 {
   static const bool debug = false;
-  //static const bool debugBitmap = false;
-  static const bool debugVector = false;
   
   char vectorFile[4096];
   char renderFile[4096];

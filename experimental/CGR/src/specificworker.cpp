@@ -328,7 +328,7 @@ void SpecificWorker::compute()
 	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
-// 	if(fabs(diff(2)) > 1 or fabs(diff(0)) > 1)// or fabs(diff(4)) > 0.05)
+ 	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
 	{		
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 
@@ -346,6 +346,7 @@ void SpecificWorker::compute()
 	localization->updateLidar(lidarParams, motionParams);
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
+	omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	updateParticles();
         
 	innerModelViewer->update();

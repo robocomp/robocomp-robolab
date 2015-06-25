@@ -454,9 +454,9 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
   for(int i=0; i<lidarParams.numRays; i++)
   {
 //     laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i]; 
-    laserPoints[i] = lidarParams.scanHeadings[i]*lidarParams.laserScan[i] + Vector2f(0,0.25);
+    laserPoints[i] = lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
     Vector2f aux(laserPoints[i].x(),laserPoints[i].y());
-    laserPoints[i] = Vector2f(aux.y(),-aux.x());
+    laserPoints[i] = Vector2f(aux.y(),-aux.x()) + lidarParams.laserToBaseTrans;
   }
   //Compute the sampling density
   float sqDensityKernelSize = sq(lidarParams.kernelSize);
@@ -494,10 +494,7 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
     float w2 = motionModelWeight(p.loc, p.angle, motionParams);
     p.weight = w1*w2/samplingDensity[i];
     if(debug) printf("%2d: %f , %f , %f\n",i,w1,w2,p.weight);
-   printf("%2d: %f , %f , %f , %f , %f , %f\n",i,w1,w2,p.weight,p.loc.x,p.loc.y,p.angle);
-  }
-// 	qFatal("fin");
-  
+  }  
   updateTime = GetTimeSec() - tStart;
 }
 
@@ -613,8 +610,6 @@ inline Vector2f VectorLocalization2D::observationFunction(line2f l, Vector2f p)
     debugLines.push_back( line2f( vector2f(p.x()+crossSize,p.y()) , vector2f(p.x()-crossSize,p.y())) );
     debugLines.push_back( line2f( vector2f(p.x(),p.y()+crossSize) , vector2f(p.x(),p.y()-crossSize)) );
   }
-  printf("attraction %f location %f\n",attraction.squaredNorm(),location);
-//   qFatal("fin");
   return attraction;
 }
 
@@ -934,9 +929,9 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
   vector< Vector2f > laserPoints(lidarParams.numRays);
   for(int i=0; i<lidarParams.numRays; i++){
 //     laserPoints[i] = lidarParams.laserToBaseTrans + lidarParams.laserToBaseRot*lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
-    laserPoints[i] = lidarParams.scanHeadings[i]*lidarParams.laserScan[i] + Vector2f(0,0.25);
+    laserPoints[i] = lidarParams.scanHeadings[i]*lidarParams.laserScan[i];
     Vector2f aux(laserPoints[i].x(),laserPoints[i].y());
-    laserPoints[i] = Vector2f(aux.y(),-aux.x());
+    laserPoints[i] = Vector2f(aux.y(),-aux.x()) + lidarParams.laserToBaseTrans;
   }
   
   particlesRefined = particles;

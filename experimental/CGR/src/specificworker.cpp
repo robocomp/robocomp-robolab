@@ -411,7 +411,7 @@ void SpecificWorker::drawLines()
                         oss << m.mapName << i;                        
 			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
 							     QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
-			printf("%f %f %f %f %f",(p0x+p1x)/2,(p0y+p1y)/2,-n(1),n(0),width);
+			printf("%f %f %f %f %f",-(p0y+p1y)/2,(p0x+p1x)/2),-n(1),n(0),width);
 			i++;                        
 		}
 	}
@@ -486,7 +486,7 @@ void SpecificWorker::updateLaser()
     laserData = laser_proxy->getLaserData();
 	
     //if(int(laserData.size()) != lidarParams.numRays){
-    if(int(laserData.size()) != lidarParams.numRays){//+200){
+    if(int(laserData.size()) != lidarParams.numRays){
         printf("Incorrect number of Laser Scan rays!\n");
         printf("received: %d\n",int(laserData.size()));
     }

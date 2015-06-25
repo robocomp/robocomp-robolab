@@ -70,7 +70,7 @@ bool VectorMap::loadMap(const char* name, bool usePreRender)
     aux = y2;
     y2 = (-1)*x2;
     x2 = aux;
-    // --------
+    // ----
     
     minX = min(minX,x1);
     minX = min(minX,x2);

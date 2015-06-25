@@ -61,7 +61,7 @@
 bool run = true;
 bool usePointCloud = false;
 bool noLidar = false;
-int numParticles = 1;
+int numParticles = 20;
 int debugLevel = -1;
 QTime t;
 int cont=0;
@@ -324,19 +324,22 @@ void SpecificWorker::compute()
 		//Hay que pasar el ángulo cambiado de signo porque los ejes estan cambiados en el localization.
 		//Para pintarlos en el innerModel hay que volver a cambiarlos de signo para pasarlos a nuestros ejes.
 	//if(fabs(bState.x - bStateOld.x) > 10 or fabs(bState.z - bStateOld.z) > 10 or fabs(bState.alpha - bStateOld.alpha) > 0.05)
-	{
-		// double start = GetTimeSec();  //pasar a deg
-		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
-		innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
-		auto diff = innerModel->transform6D("poseRob1", "poseRob2");
+	// double start = GetTimeSec();  //pasar a deg
+	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
+	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
+	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
+// 	if(fabs(diff(2)) > 1 or fabs(diff(0)) > 1)// or fabs(diff(4)) > 0.05)
+	{		
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 
  		//localization->predict((bState.x - bStateOld.x)/1000.f, (bState.z - bStateOld.z)/1000.f, (bState.alpha - bStateOld.alpha), motionParams);
 		// qDebug() << "predict           : " << GetTimeSec()-start;
-		bStateOld = bState;
-		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+// 		bStateOld = bState;
+// 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
 // 		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
 	}
+	bStateOld = bState;
+	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
 	updateLaser();
 	
 	localization->refineLidar(lidarParams);

@@ -36,8 +36,7 @@ void VectorLocalization2D::LidarParams::initialize()
   int i=0;
   for(float a=minAngle; a<maxAngle; a+=angleResolution){
 //       scanHeadings[i] = Vector2f(cos(a),sin(a));
-	  printf("yepaaaa %f",a);
-	scanHeadings[i] = Vector2f(sin(a),cos(a));
+	scanHeadings[i] = Vector2f(-sin(a),cos(a));
     i++;
   }
   //TODO delete laserScan
@@ -174,11 +173,9 @@ void VectorLocalization2D::initialize(int _numParticles, const char* mapName, ve
       fflush(stdout);
     }
 //    particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
-
-		particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
-
+    particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
   }
-  particles[0] = createParticle(currentMap, vector2f(0,0), 0, 0, 0);
+//   particles[0] = createParticle(currentMap, vector2f(0,0), 0, 0, 0);
 //   particles[1] = createParticle(currentMap, vector2f(0,0), M_PI/2, 0, 0);
 //    particles[2] = createParticle(currentMap, vector2f(0,0), -M_PI/2, 0, 0);
 //   particles[3] = createParticle(currentMap, vector2f(0,0), M_PI, 0, 0);
@@ -340,8 +337,7 @@ float VectorLocalization2D::observationWeightLidar(vector2f loc, float angle, co
       }
       if(fabs(lineDir.dot(scanDir))>lidarParams.minCosAngleError){
         if(UseAnalyticRender)
-          //attraction = observationFunction(lines[lineCorrespondences[i]], scanPoint);
-	  attraction = observationFunction(lines[lineCorrespondences[i]], laserLocE + robotAngle*laserPoints[laserPoints.size()/2]);
+          attraction = observationFunction(lines[lineCorrespondences[i]], scanPoint);
         else
           attraction = observationFunction(currentMap->lines[lineCorrespondences[i]], scanPoint);
         logTotalWeight += -min(attraction.squaredNorm()/lidarParams.lidarStdDev, -logShortHitProb)*lidarParams.correlationFactor;
@@ -944,15 +940,15 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
   }
   
   particlesRefined = particles;
-//   if(lidarParams.numSteps>0){  
-//     for(int i=0; i<numParticles; i++){
-//       refineLocationLidar(particlesRefined[i].loc, particlesRefined[i].angle, stage0Weights[i], stageRWeights[i], lidarParams, laserPoints);
-//       laserEval.stage0Weights += stage0Weights[i];
-//       laserEval.stageRWeights += stageRWeights[i];
-//     }
-//   }
-//   refineTime = GetTimeSec() - tStart;
-//   laserEval.runTime = refineTime;
+  if(lidarParams.numSteps>0){  
+    for(int i=0; i<numParticles; i++){
+      refineLocationLidar(particlesRefined[i].loc, particlesRefined[i].angle, stage0Weights[i], stageRWeights[i], lidarParams, laserPoints);
+      laserEval.stage0Weights += stage0Weights[i];
+      laserEval.stageRWeights += stageRWeights[i];
+    }
+  }
+  refineTime = GetTimeSec() - tStart;
+  laserEval.runTime = refineTime;
 }
 
 
@@ -1127,7 +1123,7 @@ void VectorLocalization2D::lowVarianceResample()
     
     newParticles[i] = particlesRefined[j];
     newParticles[i].weight = newWeight;
-    // QQuitado para que siempre distribuya particulas
+    // Si comentamos esto, todas las particulas se desplazan con ruido
      if(particlesRefined[i].weight < FLT_MIN)
     {
       //This particle was depleted: add replacement noise

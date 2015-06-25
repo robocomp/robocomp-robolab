@@ -1,0 +1,27 @@
+
+find_package(Lua51 REQUIRED)
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  vector_map.cpp
+  terminal_utils.cpp
+  vectorparticlefilter.cpp
+  gvector.cpp
+  watch_files.cpp
+  configreader.cpp
+  innermodeldraw.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+set (SPECIFIC_LIBS ${LUA_LIBRARIES} -losgViewer -losgDB)
+
+ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2)
+

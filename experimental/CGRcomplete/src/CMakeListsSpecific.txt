@@ -12,6 +12,9 @@ SET ( SOURCES
   watch_files.cpp
   configreader.cpp
   innermodeldraw.cpp
+  plane_polygon.cpp
+  plane_filtering.cpp
+  grahams_scan.cpp
 )
 
 # Headers set

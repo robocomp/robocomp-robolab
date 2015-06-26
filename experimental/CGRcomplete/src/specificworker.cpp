@@ -48,7 +48,7 @@
 
 
 #include "configreader.h"
-//#include "plane_filtering.h"
+#include "plane_filtering.h"
 
 #include "specificworker.h"
 
@@ -131,32 +131,32 @@ void SpecificWorker::LoadParameters()
     printf("Failed to read config\n");
     exit(1);
   }
-/**
+
     {
-    ConfigReader::SubTree c(config,"KinectParameters");
-    
-    unsigned int maxDepthVal;
-    bool error = false;
-    error = error || !c.getReal("f",kinectDepthCam.f);
-    error = error || !c.getReal("fovH",kinectDepthCam.fovH);
-    error = error || !c.getReal("fovV",kinectDepthCam.fovV);
-    error = error || !c.getInt("width",kinectDepthCam.width);
-    error = error || !c.getInt("height",kinectDepthCam.height);
-    error = error || !c.getUInt("maxDepthVal",maxDepthVal);
-    kinectDepthCam.maxDepthVal = maxDepthVal;    
-    
-    vector3f kinectLoc;
-    float xRot, yRot, zRot;
-    error = error || !c.getVec3f("loc",kinectLoc);
-    error = error || !c.getReal("xRot",xRot);
-    error = error || !c.getReal("yRot",yRot);
-    error = error || !c.getReal("zRot",zRot);
-    kinectToRobotTransform.xyzRotationAndTransformation(xRot,yRot,zRot,kinectLoc);
-    
-    if(error){
-      printf("Error Loading Kinect Parameters!\n");
-      exit(2);
-    }
+        ConfigReader::SubTree c(config,"KinectParameters");
+
+        unsigned int maxDepthVal;
+        bool error = false;
+        error = error || !c.getReal("f",kinectDepthCam.f);
+        error = error || !c.getReal("fovH",kinectDepthCam.fovH);
+        error = error || !c.getReal("fovV",kinectDepthCam.fovV);
+        error = error || !c.getInt("width",kinectDepthCam.width);
+        error = error || !c.getInt("height",kinectDepthCam.height);
+        error = error || !c.getUInt("maxDepthVal",maxDepthVal);
+        kinectDepthCam.maxDepthVal = maxDepthVal;    
+
+        vector3f kinectLoc;
+        float xRot, yRot, zRot;
+        error = error || !c.getVec3f("loc",kinectLoc);
+        error = error || !c.getReal("xRot",xRot);
+        error = error || !c.getReal("yRot",yRot);
+        error = error || !c.getReal("zRot",zRot);
+        kinectToRobotTransform.xyzRotationAndTransformation(xRot,yRot,zRot,kinectLoc);
+
+        if(error){
+            printf("Error Loading Kinect Parameters!\n");
+            exit(2);
+        }
     }
 
     {
@@ -179,7 +179,7 @@ void SpecificWorker::LoadParameters()
       exit(2);
     }
   }
-*/ 
+
   
   {
     ConfigReader::SubTree c(config,"initialConditions");
@@ -236,7 +236,6 @@ void SpecificWorker::LoadParameters()
     Matrix3f laserToBaseRot;
     laserToBaseRot = AngleAxisf(xRot, Vector3f::UnitX()) * AngleAxisf(yRot, Vector3f::UnitY()) * AngleAxisf(zRot, Vector3f::UnitZ());
     lidarParams.laserToBaseTrans = Vector2f(V2COMP(laserToBaseTrans));
-    printf("%f - %f jodeeereresdfestgfeaswtfr\n",lidarParams.laserToBaseTrans.x(),lidarParams.laserToBaseTrans.y());
     lidarParams.laserToBaseRot = laserToBaseRot.block(0,0,2,2);
     
     // Parameters related to observation update
@@ -272,20 +271,7 @@ void SpecificWorker::LoadParameters()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//
-// 	try
-// 	{
-// 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-// 		innermodel_path=par.value;
-// 		innermodel = new InnerModel(innermodel_path);
-// 	}
-// 	catch(std::exception e) { qFatal("Error reading config params"); }
-	
-	
 	timer.start(Period);
-
 	return true;
 }
 
@@ -327,7 +313,7 @@ void SpecificWorker::compute()
 
 void SpecificWorker::filterParticle()
 {
-/*
+
   //Call particle filter
     vector<vector2f> pointCloud2D, pointCloudNormals2D;
 
@@ -348,8 +334,8 @@ void SpecificWorker::filterParticle()
     localization->resample(VectorLocalization2D::SparseMultinomialResampling);
     localization->computeLocation(curLoc,curAngle);
     std::cerr << "point cloud update: " << GetTimeSec()-start << std::endl;
-*/
 }
+
 
 void SpecificWorker::drawLines()
 {

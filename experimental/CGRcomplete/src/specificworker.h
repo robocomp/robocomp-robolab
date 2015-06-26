@@ -26,6 +26,7 @@
 #define SPECIFICWORKER_H
 
 #include "vectorparticlefilter.h"
+#include "plane_filtering.h"
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <osgviewer/osgview.h>
@@ -57,6 +58,22 @@ private:
 	string curMapName;
 	vector2f initialLoc;
 	vector2f curLoc;
+        
+        //Point Cloud parameters
+        GVector::matrix3d<float> kinectToRobotTransform;
+        // KinectRawDepthCam kinectDepthCam;
+        KinectOpenNIDepthCam kinectDepthCam;
+        PlaneFilter::PlaneFilterParams filterParams;
+        PlaneFilter planeFilter;
+	//Generate filtered point cloud  
+	vector<vector3f> filteredPointCloud;
+	vector<vector3f> pointCloudNormals;
+	vector<vector3f> outlierCloud;
+	vector<vector2i> pixelLocs;
+	vector<PlanePolygon> planePolygons;
+	VectorLocalization2D::PointCloudParams pointCloudParams;
+
+
 	float curAngle;
 	float initialAngle;
 	float locUncertainty, angleUncertainty;

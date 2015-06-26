@@ -1052,15 +1052,92 @@ void VectorLocalization2D::computeLocation(vector2f& loc, float& angle)
 void VectorLocalization2D::resample(Resample type)
 {
   switch(type){
-    case NaiveResampling:{
-      naiveResample();
-    }break;
-    case LowVarianceResampling:{
-      lowVarianceResample();
-    }break;
-    case SensorResettingResampling:{
-    }break;
+  case NaiveResampling:
+    naiveResample();
+    break;
+  case LowVarianceResampling:
+    lowVarianceResample();
+    break;
+  case SparseMultinomialResampling:
+    sparseMultinomialResampling();
+    break;
+  case SensorResettingResampling:
+    break;
   }
+}
+
+void VectorLocalization2D::sparseMultinomialResampling()
+{
+  vector<Particle2D> newParticles;
+  static vector<Particle2D> oldParticles;
+  newParticles.resize(numParticles);
+  int numRefinedParticles = (int) particlesRefined.size();
+
+  //Get rid of particles with undefined weights
+  float totalWeight = 0.0;
+  refinedImportanceWeights = unrefinedImportanceWeights = 0.0;
+  int numInfs = 0, numNans = 0, numNegs = 0;
+  for (int i = 0; i < numRefinedParticles; i++) {
+    if (isnan(particlesRefined[i].weight))
+      numNans++;
+    else if (isinf(particlesRefined[i].weight))
+      numInfs++;
+    else if (particlesRefined[i].weight < 0.0)
+      numNegs++;
+    if (isnan(particlesRefined[i].weight) || isinf(particlesRefined[i].weight) || particlesRefined[i].weight < 0.0)
+      particlesRefined[i].weight = 0.0;
+
+    totalWeight += particlesRefined[i].weight;
+    if (i < numParticles)
+      refinedImportanceWeights += particlesRefined[i].weight;
+    else
+      unrefinedImportanceWeights += particlesRefined[i].weight;
+  }
+
+  if (totalWeight < FLT_MIN) {
+    TerminalWarning("Particles have zero total weight!");
+    printf("inf:%d nan:%d neg:%d\n", numInfs, numNans, numNegs);
+    particles = oldParticles;
+    return;
+  }
+
+  //Resample
+  static float cdf[3];
+  for (int i = 0; i < numParticles; i++) {
+    int j;
+    if (i == 0) {
+      cdf[0] = particlesRefined[0].weight;
+      cdf[1] = cdf[0] + particlesRefined[1].weight;
+
+      float x = frand(0.0f, cdf[1]);
+      j = 0;
+      if (cdf[0] < x) j = 1;
+    } else if (i == numParticles-1) {
+      cdf[0] = particlesRefined[i-2].weight;
+      cdf[1] = cdf[0] + particlesRefined[i-1].weight;
+
+      float x = frand(0.0f, cdf[1]);
+      j = i-2;
+      if (cdf[0] < x) j = i-1;
+    } else {
+      cdf[0] = particlesRefined[i-1].weight;
+      cdf[1] = cdf[0] + particlesRefined[i].weight;
+      cdf[2] = cdf[1] + particlesRefined[i+1].weight;
+
+      float x = frand(0.0f, cdf[1]);
+      j = i-1;
+      if (cdf[0] < x) {
+        if (cdf[1] < x) j = i+1;
+        else            j = i;
+      }
+    }
+
+    newParticles[i] = particlesRefined[j];
+    newParticles[i].weight = 1.0/numParticles;
+  }
+
+  particles = newParticles;
+  oldParticles = particles;
 }
 
 void VectorLocalization2D::lowVarianceResample()

@@ -1,0 +1,16 @@
+import "/robocomp/interfaces/IDSLs/Laser.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/FSPF.idsl";
+import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+
+Component CGR
+{
+	Communications
+	{
+		requires Laser, OmniRobot, RGBD;
+		subscribesTo FSPF;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

@@ -1,0 +1,10 @@
+<innerModel>
+	<include path="../etc/ursus.xml"/>
+	<transform id="world">
+		<transform id="floor">
+		    <plane id="floor_plane" ny="1"  px="-0" py="0" pz="0" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
+		</transform>
+	</transform>
+</innerModel>
+
+

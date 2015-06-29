@@ -9,4 +9,5 @@ Component missionPlanner {
 		publishes ASRPublish;
 	};
 	language Cpp;
+	gui Qt (QWidget);
 };

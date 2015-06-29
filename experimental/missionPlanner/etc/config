@@ -1,4 +1,4 @@
-CommonBehavior.Endpoints=tcp -p 14235
+CommonBehavior.Endpoints=tcp -p 14211
 
 
 # Endpoints for subscriptions
@@ -7,7 +7,7 @@ AprilTagsTopic.Endpoints=tcp -p 14358
 
 # Proxies for required interfaces
 TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h localhost -p 12204
-
+ASRPublishProxy = asrpublish:tcp -h localhost -p 19299
 
 This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

@@ -21,7 +21,12 @@
 * \brief Default constructor
 */
 GenericWorker::GenericWorker(MapPrx& mprx) :
+#ifdef USE_QTGUI
+Ui_guiDlg()
+#else
 QObject()
+#endif
+
 {
 	trajectoryrobot2d_proxy = (*(TrajectoryRobot2DPrx*)mprx["TrajectoryRobot2DProxy"]);
 
@@ -29,6 +34,10 @@ QObject()
 
 	mutex = new QMutex(QMutex::Recursive);
 
+	#ifdef USE_QTGUI
+		setupUi(this);
+		show();
+	#endif
 		
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

@@ -1,12 +1,12 @@
-CommonBehavior.Endpoints=tcp -p 1
+CommonBehavior.Endpoints=tcp -p 12221
 
 
 # Endpoints for subscriptions
-AprilTagsTopic.Endpoints=tcp -p 0
+AprilTagsTopic.Endpoints=tcp -p 14358
 
 
 # Proxies for required interfaces
-TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h localhost -p 0
+TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h robonuc1.local -p 12204
 
 
 This property is used by the clients to connect to IceStorm.
@@ -19,3 +19,4 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 
+Ice.MessageSizeMax=804800

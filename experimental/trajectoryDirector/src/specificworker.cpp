@@ -48,35 +48,41 @@ void SpecificWorker::compute()
 	Tag tagObjetive;
 	updateInnerModel(innerModel);
 
+	updateState(State::GOTO, mutex_state);
 	switch (state)
 	{
 		case State::GOTO:
-			if(tagList.getTagR(1,tagObjetive) && tagObjetive.isValid(3000))
+//			if(tagList.getTagR(1,tagObjetive)) && tagObjetive.isValid(3000))
 			{
 				//qDebug()<<tagObjetive.x()<<tagObjetive.y()<<tagObjetive.z()<<endl;
-				tagObjetive.coords = innerModel->transform("world", QVec::vec3(tagObjetive.x(), tagObjetive.y(), tagObjetive.z()), "rgbd_transform");
+//				tagObjetive.coords = innerModel->transform("world", QVec::vec3(tagObjetive.x(), tagObjetive.y(), tagObjetive.z()), "rgbd_transform");
+
 				//    list=sam.sampleFreeSpaceR2Uniform(box);
-				target.x = tagObjetive.coords.x();
+//				target.x = tagObjetive.coords.x();
 				target.y = 0;
-				target.z = tagObjetive.coords.z();
+//				target.z = tagObjetive.coords.z();
+				target.x = 200;
+				target.z = 1000;
 			try
 			{
 				qDebug() << "MOVING :-)";
 				//trajectoryrobot2d_proxy->stop();
 				trajectoryrobot2d_proxy->go(target);
 				updateState(State::GOTO, mutex_state);
+				printf("Go to ( %f , %f , %f )",target.x,target.y,target.z);
+				qFatal("miau");
 			}
 			catch(const Ice::Exception &ex){
 				cout << ex << endl;
 			}
 
 			}
-			else
-			{
-				RoboCompTrajectoryRobot2D::NavState s = trajectoryrobot2d_proxy->getState();
-				if(s.state != "IDLE") updateState(State::GOTO, mutex_state);	
-				else updateState(State::LOST, mutex_state);
-			}
+			//else
+			//{
+			//	RoboCompTrajectoryRobot2D::NavState s = trajectoryrobot2d_proxy->getState();
+			//	if(s.state != "IDLE") updateState(State::GOTO, mutex_state);	
+			//	else updateState(State::LOST, mutex_state);
+			//}
 			break;
 		case State::LOST:
 			qDebug()<<"lost :-(";

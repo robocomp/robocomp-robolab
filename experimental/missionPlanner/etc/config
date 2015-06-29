@@ -1,12 +1,12 @@
-CommonBehavior.Endpoints=tcp -p 1
+CommonBehavior.Endpoints=tcp -p 14235
 
 
 # Endpoints for subscriptions
-AprilTagsTopic.Endpoints=tcp -p 0
+AprilTagsTopic.Endpoints=tcp -p 14358
 
 
 # Proxies for required interfaces
-TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h localhost -p 0
+TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h localhost -p 12204
 
 
 This property is used by the clients to connect to IceStorm.

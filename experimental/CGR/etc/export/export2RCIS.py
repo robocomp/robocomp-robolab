@@ -51,7 +51,7 @@ else:
 						width = math.sqrt( (x2 - x1) ** 2 + (y2 - y1) ** 2 )
 
 					content += '\t\t\t<transform id="pared'+str(idObject)+'" tx="'+str(tx)+'" tz="'+str(tz)+'" ty="400" >\n'
-					content += '\t\t\t\t<plane id="muro'+str(idObject)+'" nz="'+str(nz)+'" size="'+str(width)+',800"  texture="'+texture+'" />\n'
+					content += '\t\t\t\t<plane id="muro'+str(idObject)+'" nx="'+str(nx)+'" nz="'+str(nz)+'" size="'+str(width)+',800"  texture="'+texture+'" />\n'
 					content += '\t\t\t</transform>\n'
 					idObject += 1
 

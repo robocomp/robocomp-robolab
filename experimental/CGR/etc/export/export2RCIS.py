@@ -39,17 +39,14 @@ else:
 						tx = (x1 + x2)/2
                                                 ty = 400
                                                 tz = (y1 + y2)/2
-                                                nx = x2 - x1
-                                                nz = (y2 - y1)
                                                 width = math.sqrt( (x2 - x1) ** 2 + (y2 - y1) ** 2 )
 					else: # cgr2rcis
 						tx = -(y1 + y2)/2
 						ty = 400
 						tz = (x1 + x2)/2
-						nx = -(y2 - y1)
-						nz = (x2 - x1)
 						width = math.sqrt( (x2 - x1) ** 2 + (y2 - y1) ** 2 )
-
+					nx = -(y2 - y1)
+					nz = (x2 - x1)
 					content += '\t\t\t<transform id="pared'+str(idObject)+'" tx="'+str(tx)+'" tz="'+str(tz)+'" ty="400" >\n'
 					content += '\t\t\t\t<plane id="muro'+str(idObject)+'" nx="'+str(nx)+'" nz="'+str(nz)+'" size="'+str(width)+',800"  texture="'+texture+'" />\n'
 					content += '\t\t\t</transform>\n'

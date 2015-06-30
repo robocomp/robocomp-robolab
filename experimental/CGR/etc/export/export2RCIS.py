@@ -19,8 +19,8 @@ else:
 		else:
 			# world conversion value: robocomp2rcis or cgr2rcis
 			conversion = 'robocomp2rcis'
-			head='<innerModel>\n\t<include path="../etc/ursus.xml"/>\n\t<transform id="world">\n\t\t<axes id="ax" length="200" width="30"/>\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n'
-			tail='\t\t</transform>\n\t</transform>\n</innerModel>'
+			head='<innerModel>\n\t<include path="../etc/ursus.xml"/>\n\t<transform id="world">\n\t\t<axes id="ax" length="200" width="30"/>\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n\t\t</transform>\n'
+			tail='\n\t</transform>\n</innerModel>'
 			
 			texture = '/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg'
 			idObject = 0

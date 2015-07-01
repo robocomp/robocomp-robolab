@@ -19,8 +19,8 @@ else:
 		else:
 			# world conversion value: robocomp2rcis or cgr2rcis
 			conversion = 'robocomp2rcis'
-			head='<innerModel>\n\t<include path="../etc/ursus.xml"/>\n\t<transform id="world">\n\t\t<axes id="ax" length="200" width="30"/>\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n'
-			tail='\t\t</transform>\n\t</transform>\n</innerModel>'
+			head='<innerModel>\n\t<include path="../etc/ursus.xml"/>\n\t<transform id="world">\n\t\t<axes id="ax" length="200" width="30"/>\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n\t\t</transform>\n'
+			tail='\n\t</transform>\n</innerModel>'
 			
 			texture = '/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg'
 			idObject = 0
@@ -39,20 +39,17 @@ else:
 						tx = (x1 + x2)/2
                                                 ty = 400
                                                 tz = (y1 + y2)/2
-                                                nx = x2 - x1
-                                                nz = (y2 - y1)
                                                 width = math.sqrt( (x2 - x1) ** 2 + (y2 - y1) ** 2 )
 					else: # cgr2rcis
 						tx = -(y1 + y2)/2
 						ty = 400
 						tz = (x1 + x2)/2
-						nx = -(y2 - y1)
-						nz = (x2 - x1)
 						width = math.sqrt( (x2 - x1) ** 2 + (y2 - y1) ** 2 )
-
-					content += '\t\t\t<transform id="pared'+str(idObject)+'" tx="'+str(tx)+'" tz="'+str(tz)+'" ty="400" >\n'
-					content += '\t\t\t\t<plane id="muro'+str(idObject)+'" nz="'+str(nz)+'" size="'+str(width)+',800"  texture="'+texture+'" />\n'
-					content += '\t\t\t</transform>\n'
+					nx = -(y2 - y1)
+					nz = (x2 - x1)
+					content += '\t\t<transform id="pared'+str(idObject)+'" tx="'+str(tx)+'" tz="'+str(tz)+'" ty="400" >\n'
+					content += '\t\t\t<plane id="muro'+str(idObject)+'" nx="'+str(nx)+'" nz="'+str(nz)+'" size="'+str(width)+',800"  texture="'+texture+'" />\n'
+					content += '\t\t</transform>\n'
 					idObject += 1
 
 			name = (os.path.basename(sys.argv[1])).split('.')

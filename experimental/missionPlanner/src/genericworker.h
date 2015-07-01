@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
+#include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
 #include <TrajectoryRobot2D.h>
@@ -47,7 +48,11 @@ using namespace RoboCompASRPublish;
 
 
 class GenericWorker : 
+#ifdef USE_QTGUI
+public QWidget, public Ui_guiDlg
+#else
 public QObject
+#endif
 {
 Q_OBJECT
 public:

@@ -23,7 +23,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	innerModel = new InnerModel("../etc/trajectory2d.xml");
+	innerModel = new InnerModel("../world.xml");
 	target.x=29239249;
 	target.z=29239249;
 	updateState(State::GOTO, mutex_state);
@@ -45,6 +45,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	asrpublish_proxy->newText("I go to the party");
 	Tag tagObjetive;
 	updateInnerModel(innerModel);
 
@@ -66,6 +67,7 @@ void SpecificWorker::compute()
 			try
 			{
 				qDebug() << "MOVING :-)";
+				asrpublish_proxy->newText("I go to the party");
 				//trajectoryrobot2d_proxy->stop();
 				trajectoryrobot2d_proxy->go(target);
 				updateState(State::GOTO, mutex_state);
@@ -94,6 +96,7 @@ void SpecificWorker::compute()
 			if(tagList.getTag(1,tagObjetive) && tagObjetive.isValid(3000))
 			{
 				updateState(State::GOTO, mutex_state);
+				
 				stop();
 			}
 			//if(clock.elapsed() > 2000 && clock.isValid()) search();

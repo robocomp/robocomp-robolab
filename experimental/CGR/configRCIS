@@ -9,6 +9,9 @@ LaserProxy = laser:tcp -h localhost -p 10003
 OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 
+InnerModelPath=../etc/maps/INF1/INF1_vector_rcis.xml
+
+
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 

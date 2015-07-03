@@ -69,10 +69,8 @@ using namespace std;
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	t.start();
-	//Inintializing InnerModel with ursus.xml
-	innerModel = new InnerModel("../etc/world.xml");
+	innerModelViewer = NULL;
 	osgView = new OsgView (widget);
-	
 	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
 	osg::Vec3d eye(osg::Vec3(000.,3000.,-6000.));
 	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
@@ -80,35 +78,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	tb->setHomePosition(eye, center, up, true);
 	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
 	osgView->setCameraManipulator(tb);
-	innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
-	//Inintializing parameters for CGR
-	LoadParameters();
- 
-	printf("NumParticles     : %d\n",numParticles);
-	printf("Alpha1           : %f\n",motionParams.Alpha1);
-	printf("Alpha2           : %f\n",motionParams.Alpha2);
-	printf("Alpha3           : %f\n",motionParams.Alpha3);
-	printf("UsePointCloud    : %d\n",usePointCloud?1:0);
-	printf("UseLIDAR         : %d\n",noLidar?0:1);
-	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
-	printf("\n");
-  
-	//double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
-	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
-	//srand(seed);
-
-	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
-	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
-
- 
-	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
-
-	string mapsFolder("../etc/maps");
-	localization = new VectorLocalization2D(mapsFolder.c_str());
-	localization->initialize(numParticles,
-	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-	drawLines();    
-	drawParticles();
 }
 /**
 * \brief Default destructor
@@ -236,7 +205,6 @@ void SpecificWorker::LoadParameters()
     Matrix3f laserToBaseRot;
     laserToBaseRot = AngleAxisf(xRot, Vector3f::UnitX()) * AngleAxisf(yRot, Vector3f::UnitY()) * AngleAxisf(zRot, Vector3f::UnitZ());
     lidarParams.laserToBaseTrans = Vector2f(V2COMP(laserToBaseTrans));
-    printf("%f - %f jodeeereresdfestgfeaswtfr\n",lidarParams.laserToBaseTrans.x(),lidarParams.laserToBaseTrans.y());
     lidarParams.laserToBaseRot = laserToBaseRot.block(0,0,2,2);
     
     // Parameters related to observation update
@@ -272,17 +240,56 @@ void SpecificWorker::LoadParameters()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	//Inintializing InnerModel with ursus.xml
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
+		
+		qDebug() << QString::fromStdString(par.value);
+		if( QFile::exists(QString::fromStdString(par.value)) )
+		{
+			innerModel = new InnerModel(par.value);
+			innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
+		}
+		else
+		{
+			std::cout << "Innermodel path " << par.value << " not found. "; qFatal("Abort");
+		}
+        }
+        catch(std::exception e)
+	{
+		qFatal("Error reading config params");
+	}
+	qDebug("aaa");
 	
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//
-// 	try
-// 	{
-// 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-// 		innermodel_path=par.value;
-// 		innermodel = new InnerModel(innermodel_path);
-// 	}
-// 	catch(std::exception e) { qFatal("Error reading config params"); }
+	printf("NumParticles     : %d\n",numParticles);
+	printf("Alpha1           : %f\n",motionParams.Alpha1);
+	printf("Alpha2           : %f\n",motionParams.Alpha2);
+	printf("Alpha3           : %f\n",motionParams.Alpha3);
+	printf("UsePointCloud    : %d\n",usePointCloud?1:0);
+	printf("UseLIDAR         : %d\n",noLidar?0:1);
+	printf("Visualizations   : %d\n",debugLevel>=0?1:0);
+	printf("\n");
+  
+	//double seed = floor(fmod(GetTimeSec()*1000000.0,1000000.0));
+	//if(debugLevel>-1) printf("Seeding with %d\n",(unsigned int)seed);
+	//srand(seed);
+
+	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
+	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
+
+ 
+	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
+
+	string mapsFolder("../etc/maps");
+	localization = new VectorLocalization2D(mapsFolder.c_str());
+	localization->initialize(numParticles,
+	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
+	drawLines();    
+	drawParticles();
 	
+	//Inintializing parameters for CGR
+	LoadParameters();
 	
 	timer.start(Period);
 
@@ -310,7 +317,10 @@ void SpecificWorker::compute()
 	localization->updateLidar(lidarParams, motionParams);
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
+// 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
+	{		
 	omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+	}
 	updateParticles();
         
 	innerModelViewer->update();
@@ -433,7 +443,6 @@ void SpecificWorker::updateParticles()
 
 void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 {
-//	qDebug() << "hola";
 //	for (int i = 0; i < ops.size(); i++)
 //	{
 //		cout << "Points: "<<ops[i].x<<" "<< ops[i].y<<" "<< ops[i].z<<endl;

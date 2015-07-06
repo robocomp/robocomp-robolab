@@ -303,6 +303,7 @@ void SpecificWorker::compute()
 	
 	{
 		QMutexLocker ml(&swap);
+		prtinf("Using CGR\n");
 		RoboCompOmniRobot::TBaseState bState;
 		omnirobot_proxy->getBaseState(bState);
 		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
@@ -452,6 +453,7 @@ void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 void SpecificWorker::newAprilTag(const tagsList &l)
 {
 	QMutexLocker ml(&swap);
+	prtinf("Using APRILTAG\n");
 	// Initial checks
 	if (l.size()==0 or innerModel==NULL) return;
 	// Tag selection

@@ -46,7 +46,7 @@ public:
         void drawParticles();
 	void drawLines();
         void updateLaser();
-        void updateParticles();
+        void updateParticles(const float tx,const float ty,const float alpha);
 public slots:
 	void compute();
 private:
@@ -63,6 +63,7 @@ private:
 	float locUncertainty, angleUncertainty;
 	VectorLocalization2D::MotionModelParams motionParams;
 	VectorLocalization2D::LidarParams lidarParams;
+	QMutex swap;  // swap between CGR and APRIL
 };
 
 #endif

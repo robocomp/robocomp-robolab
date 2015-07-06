@@ -300,29 +300,28 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	RoboCompOmniRobot::TBaseState bState;
-	omnirobot_proxy->getBaseState(bState);
-	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
-	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
-	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
- 	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
-	{		
-		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
-	}
-	bStateOld = bState;
-	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
-	updateLaser();
 	
-	localization->refineLidar(lidarParams);
-	localization->updateLidar(lidarParams, motionParams);
-	localization->resample(VectorLocalization2D::LowVarianceResampling);
-	localization->computeLocation(curLoc,curAngle);
-// 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
-	{		
-	omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+	{
+		QMutexLocker ml(&swap);
+		RoboCompOmniRobot::TBaseState bState;
+		omnirobot_proxy->getBaseState(bState);
+		innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
+		innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
+		auto diff = innerModel->transform6D("poseRob1", "poseRob2");
+		if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
+		{
+			localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
+		}
+		bStateOld = bState;
+		innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+		updateLaser();
+		localization->refineLidar(lidarParams);
+		localization->updateLidar(lidarParams, motionParams);
+		localization->resample(VectorLocalization2D::LowVarianceResampling);
+		localization->computeLocation(curLoc,curAngle);
+		omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+		updateParticles(-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
-	updateParticles();
-        
 	innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();
@@ -420,7 +419,7 @@ void SpecificWorker::drawParticles()
 }
 
 
-void SpecificWorker::updateParticles()
+void SpecificWorker::updateParticles(const float tx,const float ty,const float alpha)
 {
 	int i = 0;      
 	for( auto particle : localization->particles)
@@ -452,6 +451,7 @@ void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 
 void SpecificWorker::newAprilTag(const tagsList &l)
 {
+	QMutexLocker ml(&swap);
 	// Initial checks
 	if (l.size()==0 or innerModel==NULL) return;
 	// Tag selection
@@ -485,11 +485,11 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 
 	// Extract the scalar values from the pose matrix and send the correction
 	const auto new_T = correctOdometry.getCol(3).fromHomogeneousCoordinates();
-	const auto new_R = correctOdometry.extractAnglesR_min();
-	
+	const auto new_R = correctOdometry.extractAnglesR_min();	
 
 	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
 	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
+	updateParticles(new_T(0), new_T(2), new_R(1));
 	
 	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));
 }

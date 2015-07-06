@@ -27,30 +27,15 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
-//#include "popt_pp.h"
 #include "proghelp.h"
-//#include "cgr_localization/LocalizationInterfaceSrv.h"
-// #include <ros/ros.h>
-// #include <tf/tf.h>
-// #include <tf/transform_listener.h>
-// #include <tf/transform_broadcaster.h>
-// #include <sensor_msgs/LaserScan.h>
-// #include <sensor_msgs/Image.h>
-// #include <nav_msgs/Odometry.h>
-// #include <geometry_msgs/PoseArray.h>
-// #include <geometry_msgs/PoseWithCovarianceStamped.h>
-// #include <ros/package.h>
 #include "vectorparticlefilter.h"
 #include "vector_map.h"
 #include "terminal_utils.h"
 #include "timer.h"
-
-
-
 #include "configreader.h"
-//#include "plane_filtering.h"
-
 #include "specificworker.h"
+
+#define debug;
 
 bool run = true;
 bool usePointCloud = false;
@@ -285,8 +270,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
+	
+#ifdef debug
 	drawLines();    
 	drawParticles();
+#endif
 	
 	//Inintializing parameters for CGR
 	LoadParameters();
@@ -321,7 +309,10 @@ void SpecificWorker::compute()
 		localization->resample(VectorLocalization2D::LowVarianceResampling);
 		localization->computeLocation(curLoc,curAngle);
 		omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+#ifdef debug
 		updateParticles(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+		printf("%f %f   @ %f\n", -curLoc.y*1000, curLoc.x*1000, -curAngle);
+#endif
 	}
 	innerModelViewer->update();
  	osgView->autoResize();
@@ -491,9 +482,11 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 
 	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
 	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
-	updateParticles(new_T(0), new_T(2), new_R(1));
 	
+#ifdef debug
+	updateParticles(new_T(0), new_T(2), new_R(1));
 	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));
+#endif
 }
 
 

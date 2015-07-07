@@ -1,10 +1,19 @@
 <innerModel>
 	<include path="../etc/ursus.xml"/>
-	<transform id="world">
+	<transform id="world" tx ="-1000" tz="-1000">
 		<axes id="ax" length="200" width="30"/>
 		<transform id="floor">
 			<plane id="back" ny="1" size="20000,60000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />
 		</transform>
+		 <!--humano-->
+                <transform id="caja1" tx="1000" tz="1500" ty="0" >
+                    <differentialrobot id="caja" port="12004">
+                        <transform id="target07" ty="800" tz="-100"  ry="0" >
+                            <plane id="planeTag07" nz="-1" size="-216,279,10" texture="/home/robocomp/robocomp/files/innermodel/tar36h11-1.png" />
+                        </transform>
+                        <mesh id ="tio" file="/home/robocomp/robocomp/files/osgModels/human/TIOcompleto.osg" scale="7" tx="0" ty="0" tz="0" rx="1.570000052"/>
+                        </differentialrobot>
+                </transform>
 		<transform id="pared0" tx="1155.0" tz="0.0" ty="400" >
 			<plane id="muro0" nx="-0.0" nz="2310.0" size="2310.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
 		</transform>

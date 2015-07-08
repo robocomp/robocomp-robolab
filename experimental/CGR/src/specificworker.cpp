@@ -319,7 +319,7 @@ void SpecificWorker::compute()
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
 	{		
-	omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+	cgr_proxy->newCGRPose(-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
         

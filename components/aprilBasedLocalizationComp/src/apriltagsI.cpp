@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2015 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -22,18 +22,20 @@ AprilTagsI::AprilTagsI(GenericWorker *_worker, QObject *parent) : QObject(parent
 {
 	worker = _worker;
 	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
 
 AprilTagsI::~AprilTagsI()
 {
-	// Free component resources here
 }
 
-// Component functions, implementation
-void AprilTagsI::newAprilTag(const tagsList& tags, const Ice::Current&){
+void AprilTagsI::newAprilTag(const tagsList  &tags, const Ice::Current&)
+{
 	worker->newAprilTag(tags);
 }
+
+
+
+
 
 

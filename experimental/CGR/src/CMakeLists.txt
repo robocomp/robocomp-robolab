@@ -26,6 +26,7 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
+  cgrI.cpp
   fspfI.cpp
 )
 
@@ -37,11 +38,12 @@ SET ( HEADERS
   commonbehaviorI.h
   genericworker.h
   specificworker.h
+  cgrI.h
   fspfI.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior Laser DifferentialRobot FSPF OmniRobot CGR )
+ROBOCOMP_WRAP_ICE( CommonBehavior Laser DifferentialRobot FSPF OmniRobot StableOdometry CGR )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

@@ -78,11 +78,13 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <cgrI.h>
 #include <fspfI.h>
 
 #include <Laser.h>
 #include <FSPF.h>
 #include <OmniRobot.h>
+#include <StableOdometry.h>
 #include <CGR.h>
 
 
@@ -95,6 +97,7 @@ using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 using namespace RoboCompFSPF;
 using namespace RoboCompOmniRobot;
+using namespace RoboCompStableOdometry;
 using namespace RoboCompCGR;
 
 
@@ -128,9 +131,10 @@ int CGRComp::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
-	CGRPrx cgr_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
+	StableOdometryPrx stableodometry_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -169,29 +173,46 @@ int CGRComp::run(int argc, char* argv[])
 	rInfo("OmniRobotProxy initialized Ok!");
 	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "StableOdometryProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy StableOdometryProxy\n";
+		}
+		stableodometry_proxy = StableOdometryPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("StableOdometryProxy initialized Ok!");
+	mprx["StableOdometryProxy"] = (::IceProxy::Ice::Object*)(&stableodometry_proxy);//Remote server proxy creation example
+
 IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
-	IceStorm::TopicPrx cgr_topic;
-	while (!cgr_topic)
+	IceStorm::TopicPrx cgrtopic_topic;
+	while (!cgrtopic_topic)
 	{
 		try
 		{
-			cgr_topic = topicManager->retrieve("CGR");
+			cgrtopic_topic = topicManager->retrieve("CGRTopic");
 		}
 		catch (const IceStorm::NoSuchTopic&)
 		{
 			try
 			{
-				cgr_topic = topicManager->create("CGR");
+				cgrtopic_topic = topicManager->create("CGRTopic");
 			}
 			catch (const IceStorm::TopicExists&){
 				// Another client created the topic.
 			}
 		}
 	}
-	Ice::ObjectPrx cgr_pub = cgr_topic->getPublisher()->ice_oneway();
-	CGRPrx cgr = CGRPrx::uncheckedCast(cgr_pub);
-	mprx["CGRPub"] = (::IceProxy::Ice::Object*)(&cgr);
+	Ice::ObjectPrx cgrtopic_pub = cgrtopic_topic->getPublisher()->ice_oneway();
+	CGRTopicPrx cgrtopic = CGRTopicPrx::uncheckedCast(cgrtopic_pub);
+	mprx["CGRTopicPub"] = (::IceProxy::Ice::Object*)(&cgrtopic);
 
 
 
@@ -217,6 +238,17 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		adapterCommonBehavior->activate();
 
 
+
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CGR.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CGR";
+		}
+		Ice::ObjectAdapterPtr adapterCGR = communicator()->createObjectAdapterWithEndpoints("CGR", tmp);
+		CGRI *cgr = new CGRI(worker);
+		adapterCGR->add(cgr, communicator()->stringToIdentity("cgr"));
+		adapterCGR->activate();
 
 
 

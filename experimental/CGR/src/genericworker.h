@@ -27,11 +27,12 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
-#include <OmniRobot.h>
-#include <DifferentialRobot.h>
-#include <FSPF.h>
-#include <Laser.h>
 #include <CGR.h>
+#include <DifferentialRobot.h>
+#include <OmniRobot.h>
+#include <StableOdometry.h>
+#include <Laser.h>
+#include <FSPF.h>
 
 
 
@@ -42,11 +43,12 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompOmniRobot;
+using namespace RoboCompCGR;
 using namespace RoboCompDifferentialRobot;
-using namespace RoboCompFSPF;
+using namespace RoboCompOmniRobot;
+using namespace RoboCompStableOdometry;
 using namespace RoboCompLaser;
-using namespace CGR;
+using namespace RoboCompFSPF;
 
 
 
@@ -69,10 +71,12 @@ public:
 	QMutex *mutex;
 	
 
-	CGRPrx cgr_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
+	StableOdometryPrx stableodometry_proxy;
 
+	virtual void resetPose(const float x, const float z, const float alpha) = 0;
 	virtual void newFilteredPoints(const OrientedPoints &ops) = 0;
 
 

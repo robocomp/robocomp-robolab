@@ -1,6 +1,10 @@
 CommonBehavior.Endpoints=tcp -p 1
 
 
+# Endpoints for implemented interfaces
+CGR.Endpoints=tcp -p 0
+
+
 # Endpoints for subscriptions
 FSPFTopic.Endpoints=tcp -p 0
 
@@ -8,6 +12,7 @@ FSPFTopic.Endpoints=tcp -p 0
 # Proxies for required interfaces
 LaserProxy = laser:tcp -h localhost -p 0
 OmniRobotProxy = omnirobot:tcp -h localhost -p 0
+StableOdometryProxy = stableodometry:tcp -h localhost -p 0
 
 
 This property is used by the clients to connect to IceStorm.

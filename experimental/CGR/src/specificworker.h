@@ -46,6 +46,7 @@ public:
 	void drawLines();
         void updateLaser();
         void updateParticles();
+	void resetPose(const float x, const float z, const float alpha);
 public slots:
 	void compute();
 private:

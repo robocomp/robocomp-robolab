@@ -60,7 +60,7 @@ int debugLevel = -1;
 
 int cont=0;	//to calculate fps
 
-RoboCompOmniRobot::TBaseState bStateOld;
+int xOld=0,zOld=0,alphaOld=0;
 
 using namespace std;
 /**
@@ -300,17 +300,19 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	RoboCompOmniRobot::TBaseState bState;
-	omnirobot_proxy->getBaseState(bState);
-	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
-	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
+	int x=0,z=0,alpha=0;
+	stableodometry_proxy->newStableOdometry(x,y,alpha);
+	innerModel->updateTransformValues("poseRob1", x, 0, z, 0, alpha, 0);
+	innerModel->updateTransformValues("poseRob2", x, 0, z, 0, alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
  	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
 	{		
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 	}
-	bStateOld = bState;
-	innerModel->updateTransformValues("robot", bState.x, 0, bState.z, 0, bState.alpha, 0);
+	xOld=x;
+	zOld=z;
+	alphaOld=alpha;
+	innerModel->updateTransformValues("robot", x, 0, z, 0, alpha, 0);
 	updateLaser();
 	
 	localization->refineLidar(lidarParams);
@@ -319,7 +321,7 @@ void SpecificWorker::compute()
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
 	{		
-	cgr_proxy->newCGRPose(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+	cgrtopic_proxy->newCGRPose(-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
         
@@ -435,11 +437,20 @@ void SpecificWorker::updateParticles()
 	innerModel->updateTransformValues("redTransform", -curLoc.y*1000, 0, curLoc.x*1000, 0, -curAngle, 0, "floor");
 }
 
+////////////////////////////
+///IMPLEMENTS METHODS
+////////////////////////////
+
+void SpecificWorker::resetPose(const float x, const float z, const float alpha)
+{
+	xOld = curLoc.x = x;
+	zOld = curLoc.y = z;
+	alphaOld = curAngle = alpha;
+}
 
 ////////////////////////////
 ///  SERVANTS
 ////////////////////////////
-
 
 void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 {

@@ -3,8 +3,10 @@
 #
 ``` sickLaser
 ```
-Intro to component here
+sickLaser LD OEM 1000
 
+
+Examples and library in this [repository](https://github.com/mhaut/laserSickLD1000)
 
 ## Configuration parameters
 As any other component,
@@ -21,9 +23,9 @@ you can find an example of a configuration file. We can find there the following
 To get laserdata, in the client, only write
 	RoboCompLaser::TLaserData laserData;
 	laserData = laser_proxy->getLaserData();
-	for (auto i : laserData)
+	for (unsigned int i = 0; i < laserData.size(); i++)
 	{
-		cout << i.dist << " --- " << i.angle <<endl;
+		cout << laserData[i].dist << " --- " << laserData[i].angle <<endl;
 	}
     
 ## Starting the component

@@ -24,27 +24,63 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-
-	/* Define the data buffers */
+	mutex = new QMutex();
+	
 	values[SickLD::SICK_MAX_NUM_MEASUREMENTS] = {0};
+	sector_step_angles[SickLD::SICK_MAX_NUM_MEASUREMENTS] = {0};
 	num_values = 0;
-
-	/* Define the bounds for a single sector */
 	sector_start_ang = 90;
 	sector_stop_ang = 270;
-	
-	/*
-	* Initialize the Sick LD
-	*/
+	pointsLaser.resize(sector_stop_ang-sector_start_ang+1);
+	laserData.resize(sector_stop_ang-sector_start_ang+1);	
+	sick_ld = new SickLD("192.168.187.204");
 	try
 	{
-// 		sick_ld.Initialize();
 		sick_ld->Initialize();
 	}
 	catch(...)
 	{
 		cerr << "Initialize failed! Are you using the correct IP address?" << endl;
 	}
+	
+//	try 
+//	{
+		/* Assign absolute and then relative time */
+		//uint16_t new_sick_time = 0;
+		//sick_ld.SetSickTimeAbsolute(1500,new_sick_time);
+		//cout << "\tNew sick time: " << new_sick_time << endl;    
+		//sick_ld.SetSickTimeRelative(-500,new_sick_time);
+		//cout << "\tNew sick time: " << new_sick_time << endl;
+
+		/* Configure the Sick LD sensor ID */
+		//sick_ld.PrintSickGlobalConfig();
+		//sick_ld.SetSickSensorID(16);
+		//sick_ld.PrintSickGlobalConfig();
+
+		/* Configure the sick motor speed */
+		//sick_ld.PrintSickGlobalConfig();
+		//sick_ld.SetSickMotorSpeed(10);
+		//sick_ld.PrintSickGlobalConfig();
+
+		/* Configure the sick scan resolution */
+		//sick_ld.PrintSickGlobalConfig();
+		//sick_ld.SetSickScanResolution(0.5);
+		//sick_ld.PrintSickGlobalConfig();
+
+		/* Configure all the global parameters */
+		//double start_angle = 45;
+		//double stop_angle = 315;
+		//sick_ld.PrintSickGlobalConfig();
+		//sick_ld.PrintSickSectorConfig();
+		//sick_ld.SetSickGlobalParamsAndScanAreas(10,0.5,&start_angle,&stop_angle,1);
+		//sick_ld.PrintSickGlobalConfig();
+		//sick_ld.PrintSickSectorConfig();
+//	}
+//	catch(...)
+//	{
+//		cerr << "An error occurred!" << endl;
+//	}
+
 }
 
 /**
@@ -52,34 +88,16 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	/*
-	* Uninitialize the device
-	*/
 	try
 	{
-// 		sick_ld.Uninitialize();
 		sick_ld->Uninitialize();
 	}
-
 	catch(...)
 	{
 		cerr << "Uninitialize failed!" << endl;
 	}
-}
 
-RoboCompLaser::TLaserData SpecificWorker::getNewData()
-{
-	return laserData;
-}
-
-RoboCompLaser::LaserConfData SpecificWorker::getLaserConf()
-{
-	return laserConf;  
-}
-
-RoboCompDifferentialRobot::TBaseState SpecificWorker::getBaseData()
-{
-	return bState;
+	delete mutex;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -90,31 +108,59 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static int fps = 0;
+	static QTime reloj = QTime::currentTime();
+	int points = computePoints();
+	pointsLaser.swap();
+        if (reloj.elapsed() > 1000)
+        {
+           qDebug()<<"Read at:"<<points<<"ps";
+           reloj.restart();
+           fps=0;
+       }
+       fps++;
+}
+
+int SpecificWorker::computePoints()
+{
 	try {
-		/* Set the desired sector configuration */
-// 		sick_ld.SetSickTempScanAreas(&sector_start_ang,&sector_stop_ang,1);
 		sick_ld->SetSickTempScanAreas(&sector_start_ang,&sector_stop_ang,1);
-
-		/* Print the sector configuration */
-// 		sick_ld.PrintSickSectorConfig();
-		sick_ld->PrintSickSectorConfig();
-
-		/* Acquire some range measurements */
+// 		sick_ld->PrintSickSectorConfig();
 		for (unsigned int i = 0; i < 10; i++)
 		{
-			/* Here we only want the range values so the second arg is NULL */
-// 			sick_ld.GetSickMeasurements(values,NULL,&num_values);
-			sick_ld->GetSickMeasurements(values,NULL,&num_values);
+			sick_ld->GetSickMeasurements(values,NULL,&num_values,NULL,sector_step_angles);
+			double curAngle = sector_start_ang;
 			for (unsigned int i = 0; i < num_values; i++)
 			{
-				cout << values[i] <<endl;
+				pointsLaser[i].angle = curAngle;
+				pointsLaser[i].dist = values[sector_step_angles[i]];
+				curAngle++;
 			} 
 		}
 	}
-	/* Catch any exceptions */
 	catch(...)
 	{
 		cerr << "An error occurred!" << endl;
 	}
+	
+	return num_values;
+}
+
+//////////////////////////////
+/// SERVANT
+//////////////////////////////
+TLaserData SpecificWorker::getLaserData()
+{
+	pointsLaser.copy(laserData);
+	return laserData;
+}
+
+LaserConfData SpecificWorker::getLaserConfData()
+{
+
+}
+
+TLaserData SpecificWorker::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState)
+{
 
 }

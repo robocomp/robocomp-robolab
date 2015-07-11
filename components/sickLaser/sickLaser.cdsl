@@ -4,7 +4,7 @@ Component sickLaser
 {
 	Communications
 	{
-		publishes Laser;
+		implements Laser;
 	};
 	language Cpp;
 };

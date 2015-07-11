@@ -58,8 +58,10 @@ public:
 	QMutex *mutex;
 	
 
-	LaserPrx laser_proxy;
 
+	virtual TLaserData getLaserData() = 0;
+	virtual LaserConfData getLaserConfData() = 0;
+	virtual TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState) = 0;
 
 
 protected:

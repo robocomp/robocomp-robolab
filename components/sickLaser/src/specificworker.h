@@ -50,38 +50,68 @@
 using namespace std;
 using namespace SickToolbox;
 
+
+template <class T> class DoubleBuffer
+{
+	QMutex bufferMutex;
+	T bufferA, *writer, *reader, bufferB;
+	int size;
+	
+	public:
+		DoubleBuffer(){};
+		void resize(int size_)
+		{
+			bufferA.resize(size_);
+			writer = &bufferA;
+			bufferB.resize(size_);
+			reader = &bufferB;
+			size = size_;
+		}
+		void swap()
+		{
+			bufferMutex.lock();
+				writer->swap(*reader);
+			bufferMutex.unlock();
+		}
+
+		inline typename T::value_type& operator[](int i){ return (*writer)[i]; };
+
+		void copy(T &points)
+		{
+			points.resize(size);
+			bufferMutex.lock();
+				points = *reader;
+			bufferMutex.unlock();
+		}
+};
+
+
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 private:
  	RoboCompLaser::TLaserData laserData;
- 	RoboCompLaser::LaserConfData laserConf;
- 	RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot;
- 	RoboCompDifferentialRobot::TBaseState bState;
-
+	DoubleBuffer<RoboCompLaser::TLaserData> pointsLaser;
 public:
-	RoboCompLaser::TLaserData getNewData();
-	RoboCompLaser::LaserConfData getLaserConf();
-	RoboCompDifferentialRobot::TBaseState getBaseData();
+	SickLD *sick_ld;
 
-
-	SickLD *sick_ld = new SickLD("192.168.187.204");
-	
-	/* Define the data buffers */
 	double values[SickLD::SICK_MAX_NUM_MEASUREMENTS];
 	unsigned int num_values;
+	unsigned int sector_step_angles[SickLD::SICK_MAX_NUM_MEASUREMENTS];
 
-	/* Define the bounds for a single sector */
 	double sector_start_ang;
 	double sector_stop_ang;
 
 	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-public slots:
-	void compute(); 
-private:
+	int computePoints();
 	
+	TLaserData getLaserData();
+	LaserConfData getLaserConfData();
+	TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState);
+public slots:
+	void compute(); 	
 };
 
 #endif

@@ -26,6 +26,7 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
+  laserI.cpp
 )
 
 # Headers set
@@ -36,6 +37,7 @@ SET ( HEADERS
   commonbehaviorI.h
   genericworker.h
   specificworker.h
+  laserI.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )

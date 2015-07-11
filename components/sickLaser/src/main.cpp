@@ -78,6 +78,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <laserI.h>
 
 #include <Laser.h>
 
@@ -117,34 +118,9 @@ int sickLaser::run(int argc, char* argv[])
 	QCoreApplication a(argc, argv);  // NON-GUI application
 	int status=EXIT_SUCCESS;
 
-	LaserPrx laser_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
-
-	IceStorm::TopicPrx laser_topic;
-	while (!laser_topic)
-	{
-		try
-		{
-			laser_topic = topicManager->retrieve("Laser");
-		}
-		catch (const IceStorm::NoSuchTopic&)
-		{
-			try
-			{
-				laser_topic = topicManager->create("Laser");
-			}
-			catch (const IceStorm::TopicExists&){
-				// Another client created the topic.
-			}
-		}
-	}
-	Ice::ObjectPrx laser_pub = laser_topic->getPublisher()->ice_oneway();
-	LaserPrx laser = LaserPrx::uncheckedCast(laser_pub);
-	mprx["LaserPub"] = (::IceProxy::Ice::Object*)(&laser);
 
 
 
@@ -170,6 +146,17 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		adapterCommonBehavior->activate();
 
 
+
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
+		}
+		Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
+		LaserI *laser = new LaserI(worker);
+		adapterLaser->add(laser, communicator()->stringToIdentity("laser"));
+		adapterLaser->activate();
 
 
 

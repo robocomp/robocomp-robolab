@@ -260,7 +260,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		qFatal("Error reading config params");
 	}
-	qDebug("aaa");
 	
 	printf("NumParticles     : %d\n",numParticles);
 	printf("Alpha1           : %f\n",motionParams.Alpha1);
@@ -320,8 +319,10 @@ void SpecificWorker::compute()
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
+	float poseUncertainty = cgrUncertainty();
+	if(poseUncertainty>0.4)
 	{		
-	cgrtopic_proxy->newCGRPose(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+		cgrtopic_proxy->newCGRPose(poseUncertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
         
@@ -436,6 +437,25 @@ void SpecificWorker::updateParticles()
 	}
 	innerModel->updateTransformValues("redTransform", -curLoc.y*1000, 0, curLoc.x*1000, 0, -curAngle, 0, "floor");
 }
+
+
+
+float SpecificWorker::cgrUncertainty()
+{
+	int cont = 0;
+	float distTotal = 0.0;
+	for( auto particle : localization->particles)
+	{
+		distTotal += (curLoc.x - particle.loc.x)*(curLoc.x - particle.loc.x) + (curLoc.y - particle.loc.y)*(curLoc.y - particle.loc.y);
+		cont++;
+	}
+	return ((curLoc.x+curLoc.y) / (distTotal / cont));
+}
+
+
+
+
+
 
 ////////////////////////////
 ///IMPLEMENTS METHODS

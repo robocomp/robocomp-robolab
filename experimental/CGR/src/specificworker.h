@@ -47,6 +47,7 @@ public:
         void updateLaser();
         void updateParticles();
 	void resetPose(const float x, const float z, const float alpha);
+	float cgrUncertainty();
 public slots:
 	void compute();
 private:

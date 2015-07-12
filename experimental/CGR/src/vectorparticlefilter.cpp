@@ -172,16 +172,8 @@ void VectorLocalization2D::initialize(int _numParticles, const char* mapName, ve
       printf(" Initializing particles: %5.1f%%\r",float(i)/float(numParticles)*100.0);
       fflush(stdout);
     }
-//    particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
     particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
   }
-//   particles[0] = createParticle(currentMap, vector2f(0,0), 0, 0, 0);
-//   particles[1] = createParticle(currentMap, vector2f(0,0), M_PI/2, 0, 0);
-//    particles[2] = createParticle(currentMap, vector2f(0,0), -M_PI/2, 0, 0);
-//   particles[3] = createParticle(currentMap, vector2f(0,0), M_PI, 0, 0);
-//   particles[4] = createParticle(currentMap, vector2f(3,0), 0, 0, 0);
-//   particles[5] = createParticle(currentMap, vector2f(3,0), M_PI, 0, 0);
-//   particles[1] = createParticle(currentMap, vector2f(1,0), 0, 0, 0);
   
   computeLocation(loc, angle);
   
@@ -984,6 +976,7 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
 	  {
 		  // not in line
 		  listPointsFilter.push_back(i);
+		  qDebug() << "probar que tiene efecto!!");
 	  }
   }
   

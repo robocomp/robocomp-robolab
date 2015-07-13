@@ -976,7 +976,7 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
 	  {
 		  // not in line
 		  listPointsFilter.push_back(i);
-		  qDebug() << "probar que tiene efecto!!");
+		 printf("robar que tiene efecto!!\n");
 	  }
   }
   

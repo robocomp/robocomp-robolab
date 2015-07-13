@@ -299,8 +299,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	int x=0,z=0,alpha=0;
-	stableodometry_proxy->newStableOdometry(x,y,alpha);
+	float x=0,z=0,alpha=0;
+	stableodometry_proxy->newStableOdometry(x,z,alpha);
 	innerModel->updateTransformValues("poseRob1", x, 0, z, 0, alpha, 0);
 	innerModel->updateTransformValues("poseRob2", x, 0, z, 0, alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");

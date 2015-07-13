@@ -24,18 +24,22 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	mutex = new QMutex();
 	
-	values[SickLD::SICK_MAX_NUM_MEASUREMENTS] = {0};
-	sector_step_angles[SickLD::SICK_MAX_NUM_MEASUREMENTS] = {0};
+	for (int i=0; i<SickLD::SICK_MAX_NUM_MEASUREMENTS; i++)
+	{
+		values[i] = 0;
+		sector_step_angles[i] = 0;
+		echo[i]=0;
+	}
 	num_values = 0;
 	sector_start_ang = 90;
 	sector_stop_ang = 270;
 	pointsLaser.resize(sector_stop_ang-sector_start_ang+1);
-	laserData.resize(sector_stop_ang-sector_start_ang+1);	
 	sick_ld = new SickLD("192.168.187.204");
+	
+	
 	try
-	{
+	{		
 		sick_ld->Initialize();
 	}
 	catch(...)
@@ -43,43 +47,11 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 		cerr << "Initialize failed! Are you using the correct IP address?" << endl;
 	}
 	
-//	try 
-//	{
-		/* Assign absolute and then relative time */
-		//uint16_t new_sick_time = 0;
-		//sick_ld.SetSickTimeAbsolute(1500,new_sick_time);
-		//cout << "\tNew sick time: " << new_sick_time << endl;    
-		//sick_ld.SetSickTimeRelative(-500,new_sick_time);
-		//cout << "\tNew sick time: " << new_sick_time << endl;
-
-		/* Configure the Sick LD sensor ID */
-		//sick_ld.PrintSickGlobalConfig();
-		//sick_ld.SetSickSensorID(16);
-		//sick_ld.PrintSickGlobalConfig();
-
-		/* Configure the sick motor speed */
-		//sick_ld.PrintSickGlobalConfig();
-		//sick_ld.SetSickMotorSpeed(10);
-		//sick_ld.PrintSickGlobalConfig();
-
-		/* Configure the sick scan resolution */
-		//sick_ld.PrintSickGlobalConfig();
-		//sick_ld.SetSickScanResolution(0.5);
-		//sick_ld.PrintSickGlobalConfig();
-
-		/* Configure all the global parameters */
-		//double start_angle = 45;
-		//double stop_angle = 315;
-		//sick_ld.PrintSickGlobalConfig();
-		//sick_ld.PrintSickSectorConfig();
-		//sick_ld.SetSickGlobalParamsAndScanAreas(10,0.5,&start_angle,&stop_angle,1);
-		//sick_ld.PrintSickGlobalConfig();
-		//sick_ld.PrintSickSectorConfig();
-//	}
-//	catch(...)
-//	{
-//		cerr << "An error occurred!" << endl;
-//	}
+	sector_start_ang = 90;
+	sector_stop_ang = 270;
+	sick_ld->SetSickGlobalParamsAndScanAreas(5, 1, &sector_start_ang,&sector_stop_ang, 1);
+// 	sick_ld->SetSickTempScanAreas(&sector_start_ang,&sector_stop_ang,1);
+	sick_ld->PrintSickSectorConfig();
 
 }
 
@@ -97,7 +69,6 @@ SpecificWorker::~SpecificWorker()
 		cerr << "Uninitialize failed!" << endl;
 	}
 
-	delete mutex;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -123,20 +94,15 @@ void SpecificWorker::compute()
 
 int SpecificWorker::computePoints()
 {
-	try {
-		sick_ld->SetSickTempScanAreas(&sector_start_ang,&sector_stop_ang,1);
-// 		sick_ld->PrintSickSectorConfig();
-		for (unsigned int i = 0; i < 10; i++)
-		{
-			sick_ld->GetSickMeasurements(values,NULL,&num_values,NULL,sector_step_angles);
-			double curAngle = sector_start_ang;
+	try
+	{
+			sick_ld->GetSickMeasurements(values,echo, &num_values);//,NULL,sector_step_angles);
 			for (unsigned int i = 0; i < num_values; i++)
 			{
-				pointsLaser[i].angle = curAngle;
-				pointsLaser[i].dist = values[sector_step_angles[i]];
-				curAngle++;
+// 				laserPolarData[i] = (double)values[i]/2;
+				pointsLaser[i].angle = (i + 90.)*M_PI/180.f;
+				pointsLaser[i].dist = (double)values[i]*1000;
 			} 
-		}
 	}
 	catch(...)
 	{
@@ -146,21 +112,34 @@ int SpecificWorker::computePoints()
 	return num_values;
 }
 
+
+void getThetas(beg_ang,end_ang,res_ang)
+{
+	if beg_ang > end_ang, end_ang = end_ang+360; end
+		theta = mod((beg_ang:res_ang:end_ang)',360).*pi/180;
+
+}
+
+
+
 //////////////////////////////
 /// SERVANT
 //////////////////////////////
 TLaserData SpecificWorker::getLaserData()
 {
+	TLaserData laserData;
 	pointsLaser.copy(laserData);
 	return laserData;
 }
 
 LaserConfData SpecificWorker::getLaserConfData()
 {
-
+	return laserDataConf;
 }
 
 TLaserData SpecificWorker::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState)
 {
-
+	TLaserData laserData;
+	pointsLaser.copy(laserData);
+	return laserData;
 }

@@ -53,36 +53,51 @@ using namespace SickToolbox;
 
 template <class T> class DoubleBuffer
 {
-	QMutex bufferMutex;
-	T bufferA, *writer, *reader, bufferB;
-	int size;
 	
-	public:
-		DoubleBuffer(){};
-		void resize(int size_)
-		{
+public:
+	DoubleBuffer()
+	{
+		size = -1;
+	}
+	void resize(int size_)
+	{
+		bufferMutex.lock();
 			bufferA.resize(size_);
 			writer = &bufferA;
 			bufferB.resize(size_);
 			reader = &bufferB;
 			size = size_;
-		}
-		void swap()
-		{
-			bufferMutex.lock();
-				writer->swap(*reader);
-			bufferMutex.unlock();
-		}
+		bufferMutex.unlock();
+	}
+	void swap()
+	{
+		bufferMutex.lock();
+			writer->swap(*reader);
+		bufferMutex.unlock();
+	}
 
-		inline typename T::value_type& operator[](int i){ return (*writer)[i]; };
+	inline typename T::value_type& operator[](int i)
+	{
+		return (*writer)[i];
+	}
 
-		void copy(T &points)
-		{
+	void copy(T &points)
+	{
+		bufferMutex.lock();
 			points.resize(size);
-			bufferMutex.lock();
-				points = *reader;
-			bufferMutex.unlock();
-		}
+			points = *reader;
+		bufferMutex.unlock();
+	}
+
+	
+	
+	int getSize() { return size; }
+private:
+	QMutex bufferMutex;
+	T bufferA, *writer, *reader, bufferB;
+
+	int size;
+	
 };
 
 
@@ -90,12 +105,13 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 private:
- 	RoboCompLaser::TLaserData laserData;
+	RoboCompLaser::LaserConfData laserDataConf;
 	DoubleBuffer<RoboCompLaser::TLaserData> pointsLaser;
 public:
 	SickLD *sick_ld;
 
 	double values[SickLD::SICK_MAX_NUM_MEASUREMENTS];
+	unsigned int echo[SickLD::SICK_MAX_NUM_MEASUREMENTS];
 	unsigned int num_values;
 	unsigned int sector_step_angles[SickLD::SICK_MAX_NUM_MEASUREMENTS];
 

@@ -78,7 +78,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	tb->setHomePosition(eye, center, up, true);
 	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
 	osgView->setCameraManipulator(tb);
-	omnirobot_proxy->getBaseState(bStateOld);
+// 	omnirobot_proxy->getBaseState(bStateOld);
 }
 /**
 * \brief Default destructor

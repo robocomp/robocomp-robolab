@@ -1,6 +1,6 @@
 <!-- this world represents our lab -->
 <innerModel>
-	<include path="../../ursus.xml"/>
+	<include path="../etc/ursus.xml"/>
 	<transform id="world">
 		<axes id="ax" length="200" width="30"/>
                 <transform id="caja1" tx="0" tz="1500" ty="0" >

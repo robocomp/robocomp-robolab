@@ -78,6 +78,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <cgrI.h>
 #include <fspfI.h>
 
 #include <Laser.h>
@@ -217,6 +218,17 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		adapterCommonBehavior->activate();
 
 
+
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CGR.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CGR";
+		}
+		Ice::ObjectAdapterPtr adapterCGR = communicator()->createObjectAdapterWithEndpoints("CGR", tmp);
+		CGRI *cgr = new CGRI(worker);
+		adapterCGR->add(cgr, communicator()->stringToIdentity("cgr"));
+		adapterCGR->activate();
 
 
 

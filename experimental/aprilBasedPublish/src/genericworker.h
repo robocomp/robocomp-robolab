@@ -26,7 +26,7 @@
 
 
 #include <CommonBehavior.h>
-#include <DifferentialRobot.h>
+#include <AprilBasedLocalization.h>
 #include <AprilTags.h>
 
 
@@ -38,7 +38,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompAprilBasedLocalization;
 using namespace RoboCompAprilTags;
 
 
@@ -58,7 +58,7 @@ public:
 	QMutex *mutex;
 	
 
-	DifferentialRobotPrx differentialrobot_proxy;
+	AprilBasedLocalizationPrx aprilbasedlocalization_proxy;
 
 	virtual void newAprilTag(const tagsList &tags) = 0;
 

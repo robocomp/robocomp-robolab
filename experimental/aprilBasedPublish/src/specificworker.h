@@ -43,6 +43,8 @@ public slots:
 
 private:
 	InnerModel *innerModel;
+	QString robot_name;
+	QString tagSeenPose;
 };
 
 #endif

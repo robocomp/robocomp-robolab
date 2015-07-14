@@ -25,6 +25,9 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	innerModel = NULL;
+	robot_name = QString("robot");
+	tagSeenPose = QString("aprilOdometryReference_seen_pose");
+
 }
 
 
@@ -48,6 +51,23 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		innerModel = new InnerModel(par.value);
+		
+		if (innerModel->getNode("aprilOdometryReference_seen_pose") == NULL)
+		{
+			InnerModelNode *parent = innerModel->getNode("root");
+			InnerModelTransform *tr;
+			try
+			{
+				tr = innerModel->newTransform("aprilOdometryReference_seen_pose", "static", parent, 0,0,0, 0,0,0);
+				parent->addChild(tr);
+			}
+			catch (QString err)
+			{
+				printf("%s:%s:%d: Exception: %s\n", __FILE__, __FUNCTION__, __LINE__, err.toStdString().c_str());
+				throw;
+			}			
+		}
+
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
 
@@ -75,8 +95,6 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 	const RoboCompAprilTags::tag  &tag = l[indexToUse];
 
 	// Localization-related node identifiers
-	const QString robot_name("robot");
-	const QString tagSeenPose("aprilOdometryReference_seen_pose");
 	const QString tagReference = QString("aprilOdometryReference%1_pose").arg(tag.id);
 
 	// Update seen tag in InnerModel
@@ -95,10 +113,7 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 	const auto new_R = correctOdometry.extractAnglesR_min();
 
 
-// 	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
-// 	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
-
-	differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1));
+	aprilbasedlocalization_proxy->newAprilBasedPose(new_T(0), new_T(2), new_R(1));
 	
 	
 	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));

@@ -9,6 +9,7 @@ Component CGRc
 	{
 		requires Laser, OmniRobot;
 		subscribesTo FSPF;
+		implements CGR;
 		publishes CGRTopic;
 	};
 	language Cpp;

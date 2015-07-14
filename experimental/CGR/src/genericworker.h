@@ -73,6 +73,7 @@ public:
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
 
+	virtual void resetPose(const float x, const float z, const float alpha) = 0;
 	virtual void newFilteredPoints(const OrientedPoints &ops) = 0;
 
 

@@ -461,12 +461,12 @@ float SpecificWorker::cgrUncertainty()
 ///IMPLEMENTS METHODS
 ////////////////////////////
 
-// void SpecificWorker::resetPose(const float x, const float z, const float alpha)
-// {
-// 	xOld = curLoc.x = x;
-// 	zOld = curLoc.y = z;
-// 	alphaOld = curAngle = alpha;
-// }
+void SpecificWorker::resetPose(const float x, const float z, const float alpha)
+{
+	bStateOld.x = curLoc.x = x;
+	bStateOld.z = curLoc.y = z;
+	bStateOld.alpha = curAngle = alpha;
+}
 
 ////////////////////////////
 ///  SERVANTS

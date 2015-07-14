@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::CGR
+/** \mainpage RoboComp::CGRc
  *
  * \section intro_sec Introduction
  *
- * The CGR component...
+ * The CGRc component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd CGR
+ * cd CGRc
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/CGR --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/CGRc --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -83,6 +83,7 @@
 #include <Laser.h>
 #include <FSPF.h>
 #include <OmniRobot.h>
+#include <CGR.h>
 
 
 // User includes here
@@ -94,13 +95,14 @@ using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 using namespace RoboCompFSPF;
 using namespace RoboCompOmniRobot;
+using namespace RoboCompCGR;
 
 
 
-class CGR : public RoboComp::Application
+class CGRc : public RoboComp::Application
 {
 public:
-	CGR (QString prfx) { prefix = prfx.toStdString(); }
+	CGRc (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -110,14 +112,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void CGR::initialize()
+void CGRc::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int CGR::run(int argc, char* argv[])
+int CGRc::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -126,6 +128,7 @@ int CGR::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
+	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
 
@@ -168,6 +171,29 @@ int CGR::run(int argc, char* argv[])
 
 IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
+	IceStorm::TopicPrx cgrtopic_topic;
+	while (!cgrtopic_topic)
+	{
+		try
+		{
+			cgrtopic_topic = topicManager->retrieve("CGRTopic");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			try
+			{
+				cgrtopic_topic = topicManager->create("CGRTopic");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+			}
+		}
+	}
+	Ice::ObjectPrx cgrtopic_pub = cgrtopic_topic->getPublisher()->ice_oneway();
+	CGRTopicPrx cgrtopic = CGRTopicPrx::uncheckedCast(cgrtopic_pub);
+	mprx["CGRTopicPub"] = (::IceProxy::Ice::Object*)(&cgrtopic);
+
+
 
 	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -196,16 +222,10 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 
 
 		// Server adapter creation and publication
-// 		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPFTopic", tmp, ""))
-// 		{
-// 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
-// 		}
-                // Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPF.Endpoints", tmp, "", NULL))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "FSPFTopic.Endpoints", tmp, ""))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FSPFProxy";
 		}
-		
 		Ice::ObjectAdapterPtr FSPF_adapter = communicator()->createObjectAdapterWithEndpoints("fspf", tmp);
 		FSPFPtr fspfI_ = new FSPFI(worker);
 		Ice::ObjectPrx fspf = FSPF_adapter->addWithUUID(fspfI_)->ice_oneway();
@@ -222,8 +242,7 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		catch(const IceStorm::NoSuchTopic&)
 		{
 			//Error. Topic does not exist
-                        qDebug() << "Error. Topic does not exist";
-                }
+			}
 		}
 		IceStorm::QoS qos;
 		fspf_topic->subscribeAndGetPublisher(qos, fspf);
@@ -293,7 +312,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	CGR app(prefix);
+	CGRc app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

@@ -266,6 +266,7 @@ public:
   void getUncertainty(float &_angleUnc, float &_locUnc);
   /// Removes duplicate points with the same observation angle and range
   void reducePointCloud(const vector< vector2f >& pointCloud, const vector< vector2f >& pointNormals, vector< vector2f >& reducedPointCloud, vector< vector2f >& reducedPointNormals);
+  bool inLine(int numPoint, const std::vector< Vector2f >& pointsLaser);
   /// Returns current particles
   void getParticles(vector<Particle2D> &_particles){_particles = particles;}
 };

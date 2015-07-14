@@ -31,6 +31,7 @@
 #include <DifferentialRobot.h>
 #include <FSPF.h>
 #include <Laser.h>
+#include <CGR.h>
 
 
 
@@ -45,6 +46,7 @@ using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompFSPF;
 using namespace RoboCompLaser;
+using namespace RoboCompCGR;
 
 
 
@@ -67,6 +69,7 @@ public:
 	QMutex *mutex;
 	
 
+	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
 

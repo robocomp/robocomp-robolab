@@ -20,6 +20,7 @@
 
 #include "vectorparticlefilter.h"
 #include <QtGlobal>
+#include <list>
 
 static const bool UseAnalyticRender = true;
 
@@ -171,16 +172,8 @@ void VectorLocalization2D::initialize(int _numParticles, const char* mapName, ve
       printf(" Initializing particles: %5.1f%%\r",float(i)/float(numParticles)*100.0);
       fflush(stdout);
     }
-//    particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
     particles[i] = createParticle(currentMap, loc, angle, locationUncertainty, angleUncertainty);
   }
-//   particles[0] = createParticle(currentMap, vector2f(0,0), 0, 0, 0);
-//   particles[1] = createParticle(currentMap, vector2f(0,0), M_PI/2, 0, 0);
-//    particles[2] = createParticle(currentMap, vector2f(0,0), -M_PI/2, 0, 0);
-//   particles[3] = createParticle(currentMap, vector2f(0,0), M_PI, 0, 0);
-//   particles[4] = createParticle(currentMap, vector2f(3,0), 0, 0, 0);
-//   particles[5] = createParticle(currentMap, vector2f(3,0), M_PI, 0, 0);
-//   particles[1] = createParticle(currentMap, vector2f(1,0), 0, 0, 0);
   
   computeLocation(loc, angle);
   
@@ -493,7 +486,7 @@ void VectorLocalization2D::updateLidar(const LidarParams &lidarParams, const Mot
 }
 
 void VectorLocalization2D::updatePointCloud(vector< vector2f >& pointCloud, vector< vector2f >& pointNormals, const MotionModelParams &motionParams, const PointCloudParams &pointCloudParams)
-{
+ {
   static const bool debug = false;
   
   double tStart = GetTimeSec();
@@ -847,7 +840,6 @@ void VectorLocalization2D::refineLocationLidar(vector2f& loc, float& angle, floa
   float weight;
   
   if(debug) printf("before: %.4f,%.4f %.2f\u00b0\n",V2COMP(loc),DEG(angle));
-  
   Matrix2f robotAngle;
   robotAngle = Rotation2Df(angle);  
   Vector2f laserLocE = Vector2f(V2COMP(loc)) + robotAngle*(lidarParams.laserToBaseTrans);
@@ -872,6 +864,55 @@ void VectorLocalization2D::refineLocationLidar(vector2f& loc, float& angle, floa
   if(debug) printf("after: %.4f,%.4f %.2f\u00b0\n",V2COMP(loc),DEG(angle));
   finalWeight = exp(weight);
 }
+
+
+
+bool VectorLocalization2D::inLine(int numPoint, const std::vector< Vector2f >& pointsLaser)
+{
+	float xT = 0.0, yT = 0.0, xyT = 0.0, xxT = 0.0, yyT = 0.0;
+	int limit = 3;
+	for (int i = numPoint - limit; i <= numPoint + limit; i++)
+	{
+		xT += pointsLaser[i].x();
+		yT += pointsLaser[i].y();
+		xyT += pointsLaser[i].x() * pointsLaser[i].y();
+		xxT += pointsLaser[i].x() * pointsLaser[i].x();
+		yyT += pointsLaser[i].y() * pointsLaser[i].y();
+	}
+
+	int numRay = 11.0;
+	float xAV = xT / numRay;
+	float yAV = yT / numRay;
+	float cov = xyT / numRay;
+	float xVar = xxT / numRay - xAV * xAV;	
+	float yVar = yyT / numRay - yAV * yAV;
+	float a = cov / xVar;
+	float b = yAV - a * xAV;
+	float a2 = cov / yVar;	
+	float b2 = xAV - a2 * yAV;
+// 	float m = (xyT - (xT * yT) / 10.0) / (xxT - (xT*xT) / 10.0);
+// 	float b = yAV - m * xAV
+
+//	LINE y = ax + b + error
+// //	error = y -ax -b	
+// 	float Vres = eT /
+	
+	float eT = 0.0,eT2 = 0.0;
+	for (int i = numPoint - limit; i < numPoint + limit; i++)
+	{
+		eT += std::abs(pointsLaser[i].y() - a * pointsLaser[i].x() - b);
+		eT2 += std::abs(pointsLaser[i].y() - a2 * pointsLaser[i].x() - b2);
+// // 		printf("error %f",pointsLaser[i].y() - a * pointsLaser[i].x() - b);
+	}
+	printf("error Total de %i, es %f \n",numPoint, eT2);
+ 	return eT2 < 80.0;
+	return true;
+}
+
+
+
+
+
 
 void VectorLocalization2D::refineLocationPointCloud(vector2f& loc, float& angle, float& initialWeight, float& finalWeight, const std::vector< vector2f >& pointCloud, const std::vector< vector2f >& pointNormals, const VectorLocalization2D::PointCloudParams& pointCloudParams)
 {
@@ -926,6 +967,35 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
     Vector2f aux(laserPoints[i].x(),laserPoints[i].y());
     laserPoints[i] = Vector2f(aux.y(),-aux.x()) + lidarParams.laserToBaseTrans;
   }
+  
+//   list<int> listPointsFilter;
+//   for(int i=0; i<lidarParams.numRays; i++)
+//   {
+//  	  if (!inLine(i,laserPoints))
+// 	  {
+		  // not in line
+// 		  listPointsFilter.push_back(i);
+// 		 printf("probar que tiene efecto!!\n");
+// 	  }
+//   }
+  
+//   while( !listPointsFilter.empty() )
+//   {
+// 	  laserPoints[listPointsFilter.front()] = Vector2f(10000,10000);
+// 	  listPointsFilter.pop_front();
+//   }
+/*  
+  for(int i=0; i<lidarParams.numRays; i++)
+  {
+	printf("punto laser %d --> (%f , %f)\n",i,laserPoints[i].x(),laserPoints[i].y());
+  }*/
+//   qFatal("fin");
+     printf(" -------------------------------- \n");
+     printf(" -------------------------------- \n");
+  
+  
+  
+  
   
   particlesRefined = particles;
   if(lidarParams.numSteps>0){  

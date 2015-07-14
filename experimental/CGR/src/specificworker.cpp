@@ -78,6 +78,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	tb->setHomePosition(eye, center, up, true);
 	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
 	osgView->setCameraManipulator(tb);
+// 	omnirobot_proxy->getBaseState(bStateOld);
 }
 /**
 * \brief Default destructor
@@ -260,7 +261,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		qFatal("Error reading config params");
 	}
-	qDebug("aaa");
 	
 	printf("NumParticles     : %d\n",numParticles);
 	printf("Alpha1           : %f\n",motionParams.Alpha1);
@@ -305,7 +305,7 @@ void SpecificWorker::compute()
 	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
- 	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
+	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
 	{		
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 	}
@@ -318,8 +318,10 @@ void SpecificWorker::compute()
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
+	float poseUncertainty = cgrUncertainty();
+// 	if(poseUncertainty>0.4)
 	{		
-	omnirobot_proxy->correctOdometer(-curLoc.y*1000, curLoc.x*1000, -curAngle);
+		cgrtopic_proxy->newCGRPose(poseUncertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
         
@@ -436,10 +438,39 @@ void SpecificWorker::updateParticles()
 }
 
 
+
+float SpecificWorker::cgrUncertainty()
+{
+// 	int cont = 0;
+// 	float distTotal = 0.0;
+// 	for( auto particle : localization->particles)
+// 	{
+// 		distTotal += (curLoc.x - particle.loc.x)*(curLoc.x - particle.loc.x) + (curLoc.y - particle.loc.y)*(curLoc.y - particle.loc.y);
+// 		cont++;
+// 	}
+// 	return ((curLoc.x+curLoc.y) / (distTotal / cont));
+	return 1;
+}
+
+
+
+
+
+
+////////////////////////////
+///IMPLEMENTS METHODS
+////////////////////////////
+
+// void SpecificWorker::resetPose(const float x, const float z, const float alpha)
+// {
+// 	xOld = curLoc.x = x;
+// 	zOld = curLoc.y = z;
+// 	alphaOld = curAngle = alpha;
+// }
+
 ////////////////////////////
 ///  SERVANTS
 ////////////////////////////
-
 
 void SpecificWorker::newFilteredPoints(const OrientedPoints &ops)
 {

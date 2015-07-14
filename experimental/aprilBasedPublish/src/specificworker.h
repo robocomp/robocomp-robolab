@@ -45,6 +45,7 @@ private:
 	InnerModel *innerModel;
 	QString robot_name;
 	QString tagSeenPose;
+	QString cameraName;
 };
 
 #endif

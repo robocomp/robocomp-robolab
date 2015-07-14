@@ -93,6 +93,13 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString("","InnerModelPath", aux.value,"");
 	//Check valid ranges
 	params["InnerModelPath"] = aux;
+
+	
+	configGetString("","InnerModelCameraName", aux.value,"");
+	//Check valid ranges
+	params["InnerModelCameraName"] = aux;
+	
+	
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

@@ -13,13 +13,13 @@
                         </differentialrobot>
 -->
 
-		<transform id="aprilOdometryReference0_pose" tx="-200" ty="3000" tz="-1500" />
+		<transform id="aprilOdometryReference0_pose" tx="-200" ty="3000" tz="-1500" rx="-1.57" rz="3.1415" />
 
-		<transform id="aprilOdometryReference1_pose" tx="-200" ty="3000" tz="0" />
+		<transform id="aprilOdometryReference1_pose" tx="-200" ty="3000" tz="0" rx="-1.57" rz="3.1415" />
 
-		<transform id="aprilOdometryReference2_pose" tx="-200" ty="3000" tz="1500" />
+		<transform id="aprilOdometryReference2_pose" tx="-200" ty="3000" tz="1500" rx="-1.57" rz="3.1415" />
 
-		<transform id="aprilOdometryReference3_pose" tx="-200" ty="3000" tz="3000" />
+		<transform id="aprilOdometryReference3_pose" tx="-200" ty="3000" tz="3000" rx="-1.57" rz="3.1415" />
 					
                 </transform>
 		<transform id="floor">

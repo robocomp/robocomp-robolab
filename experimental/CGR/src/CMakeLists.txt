@@ -26,6 +26,7 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
+  cgrI.cpp
   fspfI.cpp
 )
 
@@ -37,6 +38,7 @@ SET ( HEADERS
   commonbehaviorI.h
   genericworker.h
   specificworker.h
+  cgrI.h
   fspfI.h
 )
 #ROBOCOMP

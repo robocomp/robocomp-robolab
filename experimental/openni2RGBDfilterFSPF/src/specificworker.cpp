@@ -227,10 +227,11 @@ void SpecificWorker::compute()
     }
     fspf_proxy->newFilteredPoints(ops);
 
-    qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
+//    qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
     co++;
     if( reloj.elapsed() > 1000)
     {
+	qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
         qDebug() << co << " fps";
         co = 0;
         reloj.restart();

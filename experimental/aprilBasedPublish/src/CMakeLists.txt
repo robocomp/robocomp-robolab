@@ -41,7 +41,7 @@ SET ( HEADERS
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior AprilTags DifferentialRobot )
+ROBOCOMP_WRAP_ICE( CommonBehavior AprilTags AprilBasedLocalization )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

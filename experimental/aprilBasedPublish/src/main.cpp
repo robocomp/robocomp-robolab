@@ -81,7 +81,7 @@
 #include <apriltagsI.h>
 
 #include <AprilTags.h>
-#include <DifferentialRobot.h>
+#include <AprilBasedLocalization.h>
 
 
 // User includes here
@@ -91,7 +91,7 @@ using namespace std;
 using namespace RoboCompCommonBehavior;
 
 using namespace RoboCompAprilTags;
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompAprilBasedLocalization;
 
 
 
@@ -108,46 +108,46 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void AprilBasedLocalization::initialize()
+void ::AprilBasedLocalization::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int AprilBasedLocalization::run(int argc, char* argv[])
+int ::AprilBasedLocalization::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 	int status=EXIT_SUCCESS;
 
-	DifferentialRobotPrx differentialrobot_proxy;
+	AprilBasedLocalizationPrx aprilbasedlocalization_proxy;
 
 	string proxy, tmp;
 	initialize();
 
 IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
-	IceStorm::TopicPrx differentialrobot_topic;
-	while (!differentialrobot_topic)
+	IceStorm::TopicPrx aprilbasedlocalization_topic;
+	while (!aprilbasedlocalization_topic)
 	{
 		try
 		{
-			differentialrobot_topic = topicManager->retrieve("DifferentialRobot");
+			aprilbasedlocalization_topic = topicManager->retrieve("AprilBasedLocalization");
 		}
 		catch (const IceStorm::NoSuchTopic&)
 		{
 			try
 			{
-				differentialrobot_topic = topicManager->create("DifferentialRobot");
+				aprilbasedlocalization_topic = topicManager->create("AprilBasedLocalization");
 			}
 			catch (const IceStorm::TopicExists&){
 				// Another client created the topic.
 			}
 		}
 	}
-	Ice::ObjectPrx differentialrobot_pub = differentialrobot_topic->getPublisher()->ice_oneway();
-	DifferentialRobotPrx differentialrobot = DifferentialRobotPrx::uncheckedCast(differentialrobot_pub);
-	mprx["DifferentialRobotPub"] = (::IceProxy::Ice::Object*)(&differentialrobot);
+	Ice::ObjectPrx aprilbasedlocalization_pub = aprilbasedlocalization_topic->getPublisher()->ice_oneway();
+	AprilBasedLocalizationPrx aprilbasedlocalization = AprilBasedLocalizationPrx::uncheckedCast(aprilbasedlocalization_pub);
+	mprx["AprilBasedLocalizationPub"] = (::IceProxy::Ice::Object*)(&aprilbasedlocalization);
 
 
 
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	AprilBasedLocalization app(prefix);
+	::AprilBasedLocalization app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

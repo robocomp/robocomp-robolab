@@ -14,7 +14,7 @@ DifferentialRobotProxy = differentialrobot:tcp -h host -p 10004
 
 Laser.Driver = HokuyoURG
 Laser.Device = /dev/ttyACM0
-Laser.StartValue = 169
+Laser.StartValue = 1
 Laser.EndValue = 768
 Laser.SampleRate = 100
 Laser.SkipValue  = 1

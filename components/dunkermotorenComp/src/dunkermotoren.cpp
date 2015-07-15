@@ -1020,10 +1020,14 @@ bool Dunkermotoren::setVelocity(const QString &motor, float  vel)
 	motors[motor]->params.maxVelocity=vel;
 		
 	if(Dunker_setVel( this->devHandler, motors[motor]->params.busId, vel ) == 0)
+	{
 		return true;
-	else	
+	}
+	else
+	{	
 		throw QString("Dunkermotoren::setVelocity() - Error setting Velocity");
 		return false;
+	}
 }
 
 bool Dunkermotoren::getReferenceVelocity(uchar  motor, float &vel)

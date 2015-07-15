@@ -3,11 +3,16 @@ CommonBehavior.Endpoints=tcp -p 12010
 # Endpoints for subscriptions
 FSPFTopic.Endpoints=tcp -p 10098
 
+
+# Endpoints for implemented interfaces
+CGR.Endpoints=tcp -p 15445
+
+
 # Proxies for required interfaces
 LaserProxy = laser:tcp -h robonuc1.local -p 10003
 OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 
-InnerModelPath=../etc/maps/LAB/LAB0_vector_rcis.xml
+InnerModelPath=/home/robocomp/robocomp/components/robocomp-robolab/experimental/CGR/etc/maps/LAB1/LAB1_vector_rcis.xml
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -h robonuc1.local -p 9999

@@ -8,7 +8,7 @@ FSPFProxy = fspf:tcp -h localhost -p 10098
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -h robonuc1.local -p 9999
 
 
 #

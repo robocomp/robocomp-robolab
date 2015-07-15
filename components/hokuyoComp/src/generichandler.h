@@ -68,6 +68,7 @@ public slots:
 		{
 			rError("Error talking to differentialRobot");
 		}
+		printf("seguimos...\n");
 		return b;
 	}
 

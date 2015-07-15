@@ -330,7 +330,7 @@ void Worker::compute()
 	laserDataW = t;
 }
 
-
+/*
 void Worker::writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
 {
 	printf("Writing: %s  width:%d height:%d points:%d\n", path.c_str(), (int)cloud->width, (int)cloud->height, (int)cloud->points.size());
@@ -339,6 +339,7 @@ void Worker::writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 	static pcl::PCDWriter writer;
 	if (not cloud->empty()) writer.writeASCII(path, *cloud);
 }
+*/
 
 RoboCompLaser::TLaserData Worker::getLaserData()
 {

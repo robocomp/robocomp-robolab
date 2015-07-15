@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include <DifferentialRobot.h>
+#include <OmniRobot.h>
 #include <Laser.h>
 #include <JointMotor.h>
 #include <RGBD.h>
@@ -90,7 +90,7 @@ class Worker  : public QObject
 {
 Q_OBJECT
 public:
-	Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &wconfig);
+	Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &wconfig);
 	~Worker();
 	//CommonBehavior
 	void killYourSelf();
@@ -101,7 +101,7 @@ public:
 
 
 	RoboCompLaser::TLaserData getLaserData();
-	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState&bState); 
+	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState); 
 	RoboCompLaser::LaserConfData getLaserConfData();
 
 public slots:
@@ -121,9 +121,9 @@ private:
 	int DECIMATION_LEVEL;
 
 	QTimer timer;
-	QString base;
+	QString base, actualLaserID;
 	InnerModel *innerModel;
-	RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot;
+	RoboCompOmniRobot::OmniRobotPrx omnirobot;
 	RoboCompJointMotor::JointMotorPrx jointmotor;
 	RoboCompLaser::LaserPrx laser;
 	std::vector<LaserRGBDInfo> rgbds;

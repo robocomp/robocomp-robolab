@@ -24,14 +24,15 @@
 // #define USE_EXTENSION
 #define EXTENSION_RANGE 6.283185307179586
 // #define EXTENSION_RANGE 3.1
-Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &cfg) : QObject()
+Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &cfg) : QObject()
 {
-	differentialrobot = differentialrobotprx;
+	omnirobot = omnirobotprx;
 	jointmotor = jointmotorprx;
 	laser = laserprx;
 
 	rgbds        = cfg.rgbdsVec;
 	base         = QString::fromStdString(cfg.laserBaseID);
+	actualLaserID= QString::fromStdString(cfg.actualLaserID);
 	minHeight    = cfg.minHeight;
 	minHeightNeg = cfg.minHeightNeg;
 	maxHeight    = cfg.maxHeight;
@@ -65,9 +66,13 @@ Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot
 	}
 	printf("Direct field of view < %f -- %f >\n", (*laserDataR)[0].angle, (*laserDataR)[laserDataR->size()-1].angle);
 
-	try { differentialrobot->getBaseState(bState); }
+	RoboCompOmniRobot::TBaseState oState;
+	try { omnirobot->getBaseState(oState); }
 	catch (Ice::Exception e) { qDebug()<<"error talking to base"<<e.what(); }
-	innerModel->updateTransformValues("base", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
+	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
+	bState.x     = oState.x;
+	bState.z     = oState.z;
+	bState.alpha = oState.alpha;
 	extended = new ExtendedRangeSensor(*laserDataR, bState, innerModel, EXTENSION_RANGE, maxLength);
 	extended->update(*laserDataR);
 
@@ -150,6 +155,7 @@ void Worker::compute()
 		(*laserDataW)[i].dist = maxLength;
 	}
 
+
 	/// Update InnerModel with joint information
 	if (updateJoint)
 	{
@@ -159,13 +165,17 @@ void Worker::compute()
 			jointmotor->getAllMotorState(motorMap);
 			for (RoboCompJointMotor::MotorStateMap::iterator it=motorMap.begin(); it!=motorMap.end(); ++it)
 			{
-				innerModel->updateRotationValues(it->first.c_str(),0,0, it->second.pos);
+				innerModel->updateJointValue(it->first.c_str(), it->second.pos);
 			}
 		}
 		catch (const Ice::Exception &ex)
 		{
 			cout << "Can't connect to jointMotor: " << ex << endl;
 		}
+	}
+	else
+	{
+		printf("not using joint\n");
 	}
 
 	/// FOR EACH OF THE CONFIGURED PROXIES
@@ -308,14 +318,50 @@ void Worker::compute()
 	qFatal("done");
 #endif
 
-	try { differentialrobot->getBaseState(bStateOut); }
+	
+	try
+	{
+		RoboCompLaser::TLaserData alData = laser->getLaserData();
+		for (uint i=0; i<alData.size(); i++)
+		{
+			const QVec p = innerModel->laserTo(base, actualLaserID, alData[i].dist, alData[i].angle);
+			const float angle = atan2(p(0), p(2));
+			const float dist = p.norm2();
+			const int j = LASER_SIZE*angle/FOV + (LASER_SIZE/2);
+// 			printf("FOV:%f, angle:%f, LASER_SIZE=%f, j:%d\n", (float)FOV, angle, (float)LASER_SIZE, j);
+			
+			if (j>=0 and j<(int)laserDataW->size())
+			{
+				if ((*laserDataW)[j].dist > dist)
+				{
+					(*laserDataW)[j].dist = dist;
+				}
+			}
+		}
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "Can't connect to laser: " << ex << endl;
+	}
+
+	
+	
+	
+	
+	
+	
+	RoboCompOmniRobot::TBaseState oState;
+	try { omnirobot->getBaseState(oState); }
 	catch (Ice::Exception e) { qDebug()<<"error talking to base"<<e.what(); }
+	bStateOut.x     = oState.x;
+	bStateOut.z     = oState.z;
+	bStateOut.alpha = oState.alpha;
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t = laserDataR;
 	mutex->lock();
 	laserDataR = laserDataW;
 	mutex->unlock();
-	innerModel->updateTransformValues("base", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
+	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
 // 	printf("%f %f ___ %f\n", bStateOut.x, bStateOut.z, bStateOut.alpha);
 #ifdef USE_EXTENSION
 	extended->update(*laserDataR);
@@ -323,7 +369,7 @@ void Worker::compute()
 	float re = 11.*te.elapsed()/1000.;
 	te = QTime::currentTime();
 // 	printf("S ------------   %d       %f\n", extended->size(), re);
-	extended->relax(re, innerModel, "laser", "world");
+	extended->relax(re, innerModel, "laser", "root");
 #endif
 
 // 	medianFilter();

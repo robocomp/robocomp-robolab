@@ -1,0 +1,21 @@
+
+# Sources set
+SET ( SOURCES
+  ConfigFile.cpp
+  SickLD.cc
+  SickLDBufferMonitor.cc
+  SickLDMessage.cc
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+
+ADD_DEFINITIONS( -std=c++11 -lpthread)
+

@@ -95,8 +95,8 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 	const auto new_R = correctOdometry.extractAnglesR_min();
 	
 
-	try { differentialrobot_proxy->correctOdometer(new_T(0), new_T(2), new_R(1)); }
-	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to DifferentialRobot\n"); }
+	try { aprilbasedlocalization_proxy->newPose(new_T(0), new_T(2), new_R(1)); }
+	catch( Ice::Exception e) { fprintf(stderr, "Can't connect to aprilbasedlocalization proxy\n"); }
 	
 	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));
 }

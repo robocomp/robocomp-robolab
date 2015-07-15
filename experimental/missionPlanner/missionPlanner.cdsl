@@ -1,0 +1,13 @@
+import "/robocomp/interfaces/IDSLs/AprilTags.idsl";
+import "/robocomp/interfaces/IDSLs/TrajectoryRobot2D.idsl";
+import "/robocomp/interfaces/IDSLs/ASRPublish.idsl";
+
+Component missionPlanner {
+	Communications{
+		requires TrajectoryRobot2D;
+		subscribesTo AprilTags;
+		publishes ASRPublish;
+	};
+	language Cpp;
+	gui Qt (QWidget);
+};

@@ -44,11 +44,8 @@ void SpecificMonitor::run()
 
 /**
  * \brief Reads components parameters and checks set integrity before signaling the Worker thread to start running
- * There can be four (4) types of parameteres:
- *		(1) Ice parameters
- *		(2) Nexus (configuration) parameters	
- *		(3) Local component parameters read at start
- *		(4) Local parameters read from other running component
+ *   (1) Ice parameters
+ *   (2) Local component parameters read at start
  *
  */
 void SpecificMonitor::initialize()
@@ -87,18 +84,12 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-// 	RoboCompCommonBehavior::Parameter aux;
-// 	aux.editable = true;
-// 	QString name = PROGRAM_NAME;
-// 	
-// 	configGetString(name+".param_name", aux.value, "default");
-// 	//Check valid ranges
-// 	if( aux.value != "val1" and aux.value != "val2")
-// 	{
-// 		std::cout << __FUNCTION__ << "Warning. Wrong XXX value. Using default xxx" << std::endl;
-// 		params[name+".param_name"] = "xxx";
-// 	}
-// 	params[name+".param_name"] = aux;
+ 	RoboCompCommonBehavior::Parameter aux;
+ 	aux.editable = true;
+ 	string name = PROGRAM_NAME;
+
+	configGetString("", "InnerModelPath", aux.value, "");
+	params["InnerModelPath"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

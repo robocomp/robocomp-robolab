@@ -75,15 +75,15 @@ public:
   class LidarParams{
     public:
     float* laserScan;
-    int numRays;
-    float minAngle;
-    float maxAngle;
-    float angleResolution;
-    float minRange;
-    float maxRange;
-    int minPoints;
-    Vector2f laserToBaseTrans;
-    Matrix2f laserToBaseRot;
+    int numRays; //720
+    float minAngle;  //0 o -120 en rads
+    float maxAngle;  //240 o +120 en rads
+    float angleResolution; //0,36g pasar a rads
+    float minRange; //20mm
+    float maxRange; //4000mm
+    int minPoints; //100
+    Vector2f laserToBaseTrans; //(0,220mm)
+    Matrix2f laserToBaseRot;  //0
     vector<Vector2f> scanHeadings;
     
     int numSteps;
@@ -153,7 +153,9 @@ public:
     LowVarianceResampling,
     SensorResettingResampling,
   };
-  
+    vector<VectorMap> maps;
+    vector<Particle2D> particles;
+    vector<Particle2D> particlesRefined;
 protected:
   //Current state
   VectorMap* currentMap;
@@ -161,15 +163,12 @@ protected:
   float currentAngle;
   vector2f currentLocStdDev;
   float currentAngleStdDev;
-  vector<Particle2D> particles;
-  vector<Particle2D> particlesRefined;
   int numParticles;
   vector<float> samplingDensity;
   vector2f lastDistanceMoved;
   float lastAngleTurned;
   
   string mapsFolder;
-  vector<VectorMap> maps;
   
   //These are class-wide only so that they can be accessed for debugging purposes
   vector<float> stage0Weights;
@@ -193,6 +192,7 @@ protected:
   EvalValues laserEval;
     
 public:
+
   VectorLocalization2D(const char* _mapsFolder);
   VectorLocalization2D(int _numParticles);
   
@@ -252,22 +252,21 @@ public:
   void computeLocation(vector2f &loc, float &angle);
   /// Returns the current map name
   const char* getCurrentMapName(){return currentMap->mapName.c_str();}
+  /// Returns the vector maps 
+  inline vector<VectorMap> getMaps(){return maps;}
   /// Creates a particle with the specified properties
   Particle2D createParticle(VectorMap* map, vector2f loc, float angle, float locationUncertainty, float angleUncertainty);
   /// Write to file run statistics about particle distribution
   void saveRunLog(FILE* f);
   /// Write to file riun-time profiling information
   void saveProfilingStats(FILE* f);
-  /// Compile lists of drawing primitives that can be visualized for debugging purposes
-  void drawDisplay(vector<float> &lines_p1x, vector<float> &lines_p1y, vector<float> &lines_p2x, vector<float> &lines_p2y, vector<uint32_t> &lines_color,
-                   vector<float> &points_x, vector<float> &points_y, vector<uint32_t> &points_color, 
-                   vector<float> &circles_x, vector<float> &circles_y, vector<uint32_t> &circles_color, float scale=1.0);
   /// Return evaluation values
   void getEvalValues(EvalValues &_laserEval, EvalValues &_pointCloudEval);
   /// Return angle and location uncertainties
   void getUncertainty(float &_angleUnc, float &_locUnc);
   /// Removes duplicate points with the same observation angle and range
   void reducePointCloud(const vector< vector2f >& pointCloud, const vector< vector2f >& pointNormals, vector< vector2f >& reducedPointCloud, vector< vector2f >& reducedPointNormals);
+  bool inLine(int numPoint, const std::vector< Vector2f >& pointsLaser);
   /// Returns current particles
   void getParticles(vector<Particle2D> &_particles){_particles = particles;}
 };

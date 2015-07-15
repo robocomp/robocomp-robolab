@@ -33,27 +33,20 @@
 
 class SpecificWorker : public GenericWorker
 {
-	struct Pose{
-	float x;
-	float z;
-	float alpha;
-	};
 Q_OBJECT
 public:
 	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	void newAprilBasedPose(const float x, const float z, const float alpha);
-	void newCGRPose(const float poseUncertainty, const float x, const float z, const float alpha);
+	void newCGRPose(const float poseCertainty, const float x, const float z, const float alpha);
 
 public slots:
 	void compute(); 
 	
 
 private:
-	Pose finalPose;
-	std::mutex mutex;
-	bool resetCGR;
+	QTime lastAprilUpdate, lastCGRUpdate;
 };
 
 #endif

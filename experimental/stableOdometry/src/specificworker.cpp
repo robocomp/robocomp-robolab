@@ -23,6 +23,8 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+	lastAprilUpdate = QTime()::currentTime().addSecs(-1000);
+	lastCGRUpdate   = QTime()::currentTime().addSecs(-1000);
 	finalPose.x=0;
 	finalPose.z=0;
 	finalPose.alpha=0;
@@ -45,10 +47,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-
-	mutex.lock();
-	omnirobot_proxy->correctOdometer(finalPose.x,finalPose.z,finalPose.alpha);
-	mutex.unlock();
 }
 
 
@@ -59,28 +57,28 @@ void SpecificWorker::compute()
 
 void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 {
-	mutex.lock();
-	finalPose.x=x;
-	finalPose.z=z;
-	finalPose.alpha=alpha;
-	resetCGR=false;
-	mutex.unlock();
-  	cgr_proxy->resetPose(finalPose.x,finalPose.z,finalPose.alpha);
+	if (lastAprilUpdate.elapsed() > 1000)
+	{
+		omnirobot_proxy->correctOdometer(x, z, alpha);
+		cgr_proxy->resetPose(x, z, alpha);
+		lastAprilUpdate = QTime::currentTime();
+	}
 }
 
 
-void SpecificWorker::newCGRPose(const float poseUncertainty, float x, float z, float alpha)
+void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, float alpha)
 {
-	mutex.lock();
-	printf("incertidumbre %f\n",poseUncertainty);
-	if(poseUncertainty > 0.4 && !resetCGR)
+	if (lastAprilUpdate.elapsed() > 1000 + 2000)
 	{
-		finalPose.x=x;
-		finalPose.z=z;
-		finalPose.alpha=alpha;
+		if (lastCGRUpdate.elapsed() > 1000)
+		{
+			printf("%f\n", poseCertainty);
+			if (poseCertainty > 0.4)
+			{
+				omnirobot_proxy->correctOdometer(x, z, alpha);
+				lastCGRUpdate = QTime::currentTime();
+			}
+		}
 	}
-	else 
-		resetCGR=true;
-	mutex.unlock();
 }
 

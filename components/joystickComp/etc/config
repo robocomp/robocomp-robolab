@@ -5,7 +5,7 @@ JoyStickComp.Endpoints=tcp -p 10002
 
 # Remote servers proxies example
 #RemoteProxy = remote:tcp -h remotehost -p 10001
-DifferentialRobotProxy = differentialrobot:tcp -h odroid.local -p 10004
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 
 # User config parameters
 # Example = value

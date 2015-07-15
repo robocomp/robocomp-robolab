@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+import "/robocomp/interfaces/IDSLs/AprilBasedLocalization.idsl";
+import "/robocomp/interfaces/IDSLs/CGR.idsl";
+
+Component stableOdometry {
+	Communications{
+		requires OmniRobot, CGR;
+		subscribesTo AprilBasedLocalization, CGRTopic;
+	};
+	language Cpp;
+};

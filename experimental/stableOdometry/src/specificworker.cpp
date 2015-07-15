@@ -45,10 +45,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+
 	mutex.lock();
 	omnirobot_proxy->correctOdometer(finalPose.x,finalPose.z,finalPose.alpha);
 	mutex.unlock();
 }
+
+
 
 ///////////////////////////////
 ///SUSCRIBES METHODS
@@ -64,6 +67,7 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 	mutex.unlock();
   	cgr_proxy->resetPose(finalPose.x,finalPose.z,finalPose.alpha);
 }
+
 
 void SpecificWorker::newCGRPose(const float poseUncertainty, float x, float z, float alpha)
 {

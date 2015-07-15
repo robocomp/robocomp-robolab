@@ -24,7 +24,7 @@ GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
 
-	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotPub"]);
+	aprilbasedlocalization_proxy = (*(AprilBasedLocalizationPrx*)mprx["AprilBasedLocalizationPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

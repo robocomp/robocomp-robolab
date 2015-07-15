@@ -80,6 +80,9 @@ struct WorkerConfig
 	float FOV;
 	int DECIMATION_LEVEL;
 	bool updateJoint;
+
+	// laser-related
+	std::string actualLaserID;
 	bool useLaser;
 };
 

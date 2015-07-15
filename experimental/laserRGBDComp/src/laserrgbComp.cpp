@@ -190,6 +190,9 @@ int laserRGBComp::run(int argc, char* argv[])
 	configGetInt("DecimationLevel", cfg.DECIMATION_LEVEL, 0);
 	printf("DecimationLevel: %d\n", cfg.DECIMATION_LEVEL);
 	
+	configGetString("ActualLaserID", cfg.actualLaserID, "");
+	printf("ActualLaserID: %s\n", cfg.actualLaserID.c_str());
+	
 
 
 	
@@ -324,24 +327,28 @@ int laserRGBComp::run(int argc, char* argv[])
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
 
-
-	try
+	
+	
+	if (cfg.ActualLaserID.size() > 0)
 	{
-		// Load the remote server proxy
-		proxy = getProxyString("LaserProxy");
-		laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-		if( !laser_proxy )
+		try
 		{
-			rInfo(QString("Error loading proxy!"));
+			// Load the remote server proxy
+			proxy = getProxyString("LaserProxy");
+			laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+			if( !laser_proxy )
+			{
+				rInfo(QString("Error loading proxy!"));
+				return EXIT_FAILURE;
+			}
+		}
+		catch(const Ice::Exception& ex)
+		{
+			cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
 			return EXIT_FAILURE;
 		}
+		rInfo("LaserProxy initialized Ok!");
 	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-		return EXIT_FAILURE;
-	}
-	rInfo("LaserProxy initialized Ok!");
 
 	try
 	{

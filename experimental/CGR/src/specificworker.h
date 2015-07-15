@@ -31,6 +31,7 @@
 #include <osgviewer/osgview.h>
 #include "innermodeldraw.h"
 #include <innermodel/innermodelviewer.h>
+#include <math.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -47,7 +48,7 @@ public:
         void updateLaser();
         void updateParticles();
 	void resetPose(const float x, const float z, const float alpha);
-	float cgrUncertainty();
+	float cgrCertainty();
 public slots:
 	void compute();
 private:

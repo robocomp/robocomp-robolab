@@ -441,15 +441,14 @@ void SpecificWorker::updateParticles()
 
 float SpecificWorker::cgrUncertainty()
 {
-// 	int cont = 0;
-// 	float distTotal = 0.0;
-// 	for( auto particle : localization->particles)
-// 	{
-// 		distTotal += (curLoc.x - particle.loc.x)*(curLoc.x - particle.loc.x) + (curLoc.y - particle.loc.y)*(curLoc.y - particle.loc.y);
-// 		cont++;
-// 	}
-// 	return ((curLoc.x+curLoc.y) / (distTotal / cont));
-	return 1;
+	int cont = 0;
+	float distTotal = 0.0;
+	for( auto particle : localization->particles)
+	{
+		distTotal += (curLoc.x - particle.loc.x)*(curLoc.x - particle.loc.x) + (curLoc.y - particle.loc.y)*(curLoc.y - particle.loc.y);
+		cont++;
+	}
+	return ((curLoc.x+curLoc.y) / (distTotal / cont));
 }
 
 

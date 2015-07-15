@@ -80,13 +80,14 @@ struct WorkerConfig
 	float FOV;
 	int DECIMATION_LEVEL;
 	bool updateJoint;
+	bool useLaser;
 };
 
 class Worker  : public QObject
 {
 Q_OBJECT
 public:
-	Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, WorkerConfig &wconfig);
+	Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &wconfig);
 	~Worker();
 	//CommonBehavior
 	void killYourSelf();
@@ -121,6 +122,7 @@ private:
 	InnerModel *innerModel;
 	RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobot;
 	RoboCompJointMotor::JointMotorPrx jointmotor;
+	RoboCompLaser::LaserPrx laser;
 	std::vector<LaserRGBDInfo> rgbds;
 
 	RoboCompJointMotor::MotorStateMap hState;

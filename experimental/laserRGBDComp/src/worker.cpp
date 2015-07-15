@@ -24,10 +24,11 @@
 // #define USE_EXTENSION
 #define EXTENSION_RANGE 6.283185307179586
 // #define EXTENSION_RANGE 3.1
-Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, WorkerConfig &cfg)  : QObject()
+Worker::Worker(RoboCompDifferentialRobot::DifferentialRobotPrx differentialrobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &cfg)  : QObject()
 {
 	differentialrobot = differentialrobotprx;
 	jointmotor = jointmotorprx;
+	laser = laserprx;
 
 	rgbds        = cfg.rgbdsVec;
 	base         = QString::fromStdString(cfg.laserBaseID);

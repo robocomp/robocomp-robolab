@@ -76,9 +76,7 @@
 #include <laserI.h>
 
 
-
-// Includes for remote proxy example
-// #include <Remote.h>
+#include <Laser.h>
 #include <ui_guiDlg.h>
 #include <DifferentialRobot.h>
 #include <JointMotor.h>
@@ -94,6 +92,7 @@ using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 
 using namespace RoboCompDifferentialRobot;
+using namespace RoboCompLaser;
 using namespace RoboCompJointMotor;
 using namespace RoboCompRGBD;
 using namespace RoboCompRGBDBus;
@@ -191,7 +190,8 @@ int laserRGBComp::run(int argc, char* argv[])
 	configGetInt("DecimationLevel", cfg.DECIMATION_LEVEL, 0);
 	printf("DecimationLevel: %d\n", cfg.DECIMATION_LEVEL);
 	
-	
+
+
 	
 	int numRGBD;
 	configGetInt("RGBDNumber", numRGBD);
@@ -301,8 +301,7 @@ int laserRGBComp::run(int argc, char* argv[])
 		printf("-> %d\n", rgbds[i].bus);
 	}
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
+	LaserPrx laser_proxy;
 	DifferentialRobotPrx differentialrobot_proxy;
 	JointMotorPrx jointmotor_proxy;
 
@@ -325,6 +324,24 @@ int laserRGBComp::run(int argc, char* argv[])
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
 
+
+	try
+	{
+		// Load the remote server proxy
+		proxy = getProxyString("LaserProxy");
+		laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		if( !laser_proxy )
+		{
+			rInfo(QString("Error loading proxy!"));
+			return EXIT_FAILURE;
+		}
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+		return EXIT_FAILURE;
+	}
+	rInfo("LaserProxy initialized Ok!");
 
 	try
 	{
@@ -358,7 +375,7 @@ int laserRGBComp::run(int argc, char* argv[])
 
 
 
-	Worker *worker = new Worker(differentialrobot_proxy, jointmotor_proxy, cfg);
+	Worker *worker = new Worker(differentialrobot_proxy, jointmotor_proxy, laser_proxy, cfg);
 	//Monitor thread
 	Monitor *monitor = new Monitor(worker,communicator());
 	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));

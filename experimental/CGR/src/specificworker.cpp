@@ -318,7 +318,7 @@ void SpecificWorker::compute()
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
-	float poseUncertainty = cgrUncertainty();
+	float poseUncertainty = cgrCertainty();
 // 	if(poseUncertainty>0.4)
 	{		
 		cgrtopic_proxy->newCGRPose(poseUncertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
@@ -439,16 +439,16 @@ void SpecificWorker::updateParticles()
 
 
 
-float SpecificWorker::cgrUncertainty()
+float SpecificWorker::cgrCertainty()
 {
 	int cont = 0;
 	float distTotal = 0.0;
 	for( auto particle : localization->particles)
 	{
-		distTotal += (curLoc.x - particle.loc.x)*(curLoc.x - particle.loc.x) + (curLoc.y - particle.loc.y)*(curLoc.y - particle.loc.y);
+		distTotal += sqrt(pow(curLoc.x - particle.loc.x,2) + pow(curLoc.y - particle.loc.y,2));
 		cont++;
 	}
-	return ((curLoc.x+curLoc.y) / (distTotal / cont));
+	return ((distTotal / cont) / motionParams.kernelSize);
 }
 
 

@@ -12,9 +12,9 @@ DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 Joy.Device = /dev/input/js0
 Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
-Joy.SampleRate = 1
-Joy.MaxSteering = 10.
-Joy.MaxAdvance = 1024
+Joy.SampleRate = 5
+Joy.MaxSteering = 2.
+-Joy.MaxAdvance = 750
 
 # Component properties
 #

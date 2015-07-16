@@ -154,10 +154,8 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 
 	new_R.print("R");
 
-	
-	
-	printf("%f %f   @ %f\n", new_T(0), new_T(2), -new_R(1));
-	aprilbasedlocalization_proxy->newAprilBasedPose(new_T(0), new_T(2), -new_R(1));
+	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));
+	aprilbasedlocalization_proxy->newAprilBasedPose(new_T(0), new_T(2), new_R(1));
 }
 
 

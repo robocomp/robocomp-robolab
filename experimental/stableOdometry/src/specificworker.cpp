@@ -23,12 +23,8 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	lastAprilUpdate = QTime()::currentTime().addSecs(-1000);
-	lastCGRUpdate   = QTime()::currentTime().addSecs(-1000);
-	finalPose.x=0;
-	finalPose.z=0;
-	finalPose.alpha=0;
-	resetCGR = false;
+	lastAprilUpdate = QTime::currentTime().addSecs(-1000);
+	lastCGRUpdate   = QTime::currentTime().addSecs(-1000);
 }
 
 /**

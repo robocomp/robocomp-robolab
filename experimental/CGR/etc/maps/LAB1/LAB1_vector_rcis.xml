@@ -1,5 +1,5 @@
 <innerModel>
-	<include path="../etc/ursus.xml"/>
+	<include path="/home/robocomp/robocomp/components/robocomp-ursus/etc/ursus.xml"/>
 	<transform id="world">
 		<axes id="ax" length="200" width="30"/>
 		<transform id="floor">

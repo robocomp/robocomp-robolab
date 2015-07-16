@@ -27,19 +27,8 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
-//#include "popt_pp.h"
 #include "proghelp.h"
-//#include "cgr_localization/LocalizationInterfaceSrv.h"
-// #include <ros/ros.h>
-// #include <tf/tf.h>
-// #include <tf/transform_listener.h>
-// #include <tf/transform_broadcaster.h>
-// #include <sensor_msgs/LaserScan.h>
-// #include <sensor_msgs/Image.h>
-// #include <nav_msgs/Odometry.h>
-// #include <geometry_msgs/PoseArray.h>
-// #include <geometry_msgs/PoseWithCovarianceStamped.h>
-// #include <ros/package.h>
+
 #include "vectorparticlefilter.h"
 #include "vector_map.h"
 #include "terminal_utils.h"
@@ -53,6 +42,7 @@
 #include "specificworker.h"
 
 bool run = true;
+bool resetCgr=false;
 bool usePointCloud = false;
 bool noLidar = false;
 int numParticles = 20;
@@ -250,7 +240,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		if( QFile::exists(QString::fromStdString(par.value)) )
 		{
 			innerModel = new InnerModel(par.value);
-			innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
+			innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup(), true);
 		}
 		else
 		{
@@ -300,12 +290,26 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	bool forcePredict = false;
+	mutex->lock();
+	if (resetCgr)
+	{
+		  qDebug()<< "reset base" << curLoc.x << curLoc.y << curAngle;
+			for (uint i=0; i<localization->particles.size(); i++)
+			{
+					localization->particles[i].lastLoc.x=localization->particles[i].loc.x=curLoc.x;
+					localization->particles[i].lastLoc.y=localization->particles[i].loc.y=curLoc.y;
+					localization->particles[i].angle=curAngle;
+			}
+			resetCgr = false;
+			forcePredict = true;
+	}
 	RoboCompOmniRobot::TBaseState bState;
 	omnirobot_proxy->getBaseState(bState);
 	innerModel->updateTransformValues("poseRob1", bStateOld.x, 0, bStateOld.z, 0, bStateOld.alpha, 0);
 	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
-	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
+	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01 or forcePredict)
 	{
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 	}
@@ -321,7 +325,7 @@ void SpecificWorker::compute()
 	float poseCertainty = cgrCertainty();
 // 	if(poseUncertainty>0.4)
 	{	
-		printf("Certainty: %f, curloc (%f,%f,%f)",poseCertainty,-curLoc.y*1000,curLoc.x*1000,-curAngle);
+		printf("Certainty: %f, curloc (%f,%f,%f)\n",poseCertainty,-curLoc.y*1000,curLoc.x*1000,-curAngle);
 		cgrtopic_proxy->newCGRPose(poseCertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
@@ -329,6 +333,8 @@ void SpecificWorker::compute()
 	innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();
+	mutex->unlock();
+	
 	if(t.elapsed()>1000)
 	{	
 		qDebug()<<"fps"<<cont;
@@ -463,9 +469,14 @@ float SpecificWorker::cgrCertainty()
 
 void SpecificWorker::resetPose(const float x, const float z, const float alpha)
 {
-	bStateOld.x = curLoc.x = x;
-	bStateOld.z = curLoc.y = z;
-	bStateOld.alpha = curAngle = alpha;
+	printf("me llega un resetpose\n");
+	mutex->lock();
+
+	curLoc.x = z/1000;
+	curLoc.y = -x/1000;
+	curAngle = -alpha;
+	resetCgr=true;
+	mutex->unlock();
 }
 
 ////////////////////////////

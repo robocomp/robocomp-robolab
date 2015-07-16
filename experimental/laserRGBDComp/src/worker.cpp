@@ -318,16 +318,20 @@ void Worker::compute()
 	qFatal("done");
 #endif
 
-	
 	try
 	{
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
 		for (uint i=0; i<alData.size(); i++)
 		{
-			const QVec p = innerModel->laserTo(base, actualLaserID, alData[i].dist, alData[i].angle);
+			if (i==alData.size()/2) printf("PC %d  (%f _ %f)\n", i, alData[i].dist, alData[i].angle);
+			const QVec p = innerModel->laserTo(actualLaserID, actualLaserID, alData[i].dist, alData[i].angle);
+			if (i==alData.size()/2) p.print("en base");
+			if (i==alData.size()/2) printf("(%s)", base.toStdString().c_str());
 			const float angle = atan2(p(0), p(2));
 			const float dist = p.norm2();
+			if (i==alData.size()/2) printf("enlaser %f %f\n", dist, angle);
 			const int j = LASER_SIZE*angle/FOV + (LASER_SIZE/2);
+			if (i==alData.size()/2) printf("index %d\n", j);
 // 			printf("FOV:%f, angle:%f, LASER_SIZE=%f, j:%d\n", (float)FOV, angle, (float)LASER_SIZE, j);
 			
 			if (j>=0 and j<(int)laserDataW->size())

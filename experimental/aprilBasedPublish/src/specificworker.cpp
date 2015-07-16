@@ -47,6 +47,7 @@ void SpecificWorker::compute( )
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+printf("<<<\n");
 	try
 	{
 		printf("%d\n", __LINE__);
@@ -67,11 +68,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	try
 	{
-				printf("%d\n", __LINE__);
+		printf("%d\n", __LINE__);
 		if (innerModel->getNode("aprilOdometryReference_seen_pose") == NULL)
 		{
-				printf("%d\n", __LINE__);
+			printf("%d %s\n", __LINE__, cameraName.toStdString().c_str());
 			InnerModelNode *parent = innerModel->getNode(cameraName);
+			if (not parent)
+				qFatal("can't find im node %s", cameraName.toStdString().c_str());
 			cout << parent << endl;
 			printf("%d\n", __LINE__);
 			cout << parent << endl;
@@ -92,7 +95,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			{
 				printf("%s:%s:%d: Exception: %s\n", __FILE__, __FUNCTION__, __LINE__, err.toStdString().c_str());
 				throw;
-			}			
+			}
 		}
 		else
 		{
@@ -101,6 +104,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { qFatal("Error including aprilOdometryReference_seen_pose in InnerModel"); }
 
+printf(">>>\n");
 
 	timer.start(Period);
 	return true;
@@ -157,5 +161,3 @@ void SpecificWorker::newAprilTag(const tagsList &l)
 	printf("%f %f   @ %f\n", new_T(0), new_T(2), new_R(1));
 	aprilbasedlocalization_proxy->newAprilBasedPose(new_T(0), new_T(2), new_R(1));
 }
-
-

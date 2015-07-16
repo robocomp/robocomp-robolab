@@ -92,7 +92,7 @@ SpecificWorker::~SpecificWorker()
 void SpecificWorker::LoadParameters()
 {
   WatchFiles watch_files;
-  ConfigReader config("../etc/"); //path a los ficheros de configuracion desde el path del binario.
+  ConfigReader config("/home/robocomp/robocomp/components/robocomp-robolab/experimental/CGR/etc/"); //path a los ficheros de configuracion desde el path del binario.
   config.init(watch_files);
   
   config.addFile("localization_parameters.cfg");
@@ -281,7 +281,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 
-	string mapsFolder("../etc/maps");
+	string mapsFolder("etc/maps");
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
@@ -320,7 +320,8 @@ void SpecificWorker::compute()
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
 	float poseUncertainty = cgrCertainty();
 // 	if(poseUncertainty>0.4)
-	{		
+	{	
+		printf("Certainty: %f, curloc (%f,%f,%f)",poseUncertainty,-curLoc.y*1000,curLoc.x*1000,-curangle)
 		cgrtopic_proxy->newCGRPose(poseUncertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();

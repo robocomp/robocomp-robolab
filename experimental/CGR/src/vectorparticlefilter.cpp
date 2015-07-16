@@ -66,6 +66,7 @@ void VectorLocalization2D::loadAtlas()
 {
   static const bool debug = true;
   string atlasFile = mapsFolder + "/atlas.txt";
+  cout <<atlasFile << endl;
   FILE* fid = fopen(atlasFile.c_str(),"r");
   if(fid==NULL){
     TerminalWarning("Unable to load Atlas!");
@@ -990,8 +991,7 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
 	printf("punto laser %d --> (%f , %f)\n",i,laserPoints[i].x(),laserPoints[i].y());
   }*/
 //   qFatal("fin");
-     printf(" -------------------------------- \n");
-     printf(" -------------------------------- \n");
+//     printf(" -------------------------------- \n");
   
   
   

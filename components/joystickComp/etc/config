@@ -5,16 +5,16 @@ JoyStickComp.Endpoints=tcp -p 10002
 
 # Remote servers proxies example
 #RemoteProxy = remote:tcp -h remotehost -p 10001
-DifferentialRobotProxy = differentialrobot:tcp -h odroid.local -p 10004
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 
 # User config parameters
 # Example = value
 Joy.Device = /dev/input/js0
 Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
-Joy.SampleRate = 1
-Joy.MaxSteering = 10.
-Joy.MaxAdvance = 1024
+Joy.SampleRate = 5
+Joy.MaxSteering = 2.
+-Joy.MaxAdvance = 750
 
 # Component properties
 #

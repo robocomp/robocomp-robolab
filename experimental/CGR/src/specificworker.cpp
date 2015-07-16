@@ -92,7 +92,7 @@ SpecificWorker::~SpecificWorker()
 void SpecificWorker::LoadParameters()
 {
   WatchFiles watch_files;
-  ConfigReader config("../etc/"); //path a los ficheros de configuracion desde el path del binario.
+  ConfigReader config("/home/robocomp/robocomp/components/robocomp-robolab/experimental/CGR/etc/"); //path a los ficheros de configuracion desde el path del binario.
   config.init(watch_files);
   
   config.addFile("localization_parameters.cfg");
@@ -281,7 +281,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
  
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 
-	string mapsFolder("../etc/maps");
+	string mapsFolder("etc/maps");
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
@@ -306,7 +306,7 @@ void SpecificWorker::compute()
 	innerModel->updateTransformValues("poseRob2", bState.x,    0,    bState.z, 0,    bState.alpha, 0);
 	auto diff = innerModel->transform6D("poseRob1", "poseRob2");
 	if(fabs(diff(2)) > 10 or (fabs(diff(0)) > 10) or fabs(diff(4)) > 0.01)
-	{		
+	{
 		localization->predict(diff(2)/1000.f,-diff(0)/1000.f , -diff(4), motionParams);
 	}
 	bStateOld = bState;
@@ -318,10 +318,11 @@ void SpecificWorker::compute()
 	localization->resample(VectorLocalization2D::LowVarianceResampling);
 	localization->computeLocation(curLoc,curAngle);
 // 	if(fabs(bStateOld.correctedX - (-curLoc.y*1000)) > 10 or (fabs(bStateOld.correctedZ - curLoc.x*1000)) > 10 or fabs(bStateOld.correctedAlpha - (-curAngle)) > 0.03)
-	float poseUncertainty = cgrCertainty();
+	float poseCertainty = cgrCertainty();
 // 	if(poseUncertainty>0.4)
-	{		
-		cgrtopic_proxy->newCGRPose(poseUncertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
+	{	
+		printf("Certainty: %f, curloc (%f,%f,%f)",poseCertainty,-curLoc.y*1000,curLoc.x*1000,-curAngle);
+		cgrtopic_proxy->newCGRPose(poseCertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
         
@@ -424,7 +425,7 @@ void SpecificWorker::drawParticles()
 
 void SpecificWorker::updateParticles()
 {
-	int i = 0;      
+	int i = 0;
 	for( auto particle : localization->particles)
 	{
 		const QString cadena = QString::fromStdString("particle_")+QString::number(i);
@@ -441,14 +442,14 @@ void SpecificWorker::updateParticles()
 
 float SpecificWorker::cgrCertainty()
 {
-	int cont = 0;
 	float distTotal = 0.0;
 	for( auto particle : localization->particles)
 	{
 		distTotal += sqrt(pow(curLoc.x - particle.loc.x,2) + pow(curLoc.y - particle.loc.y,2));
-		cont++;
 	}
-	return ((distTotal / cont) / motionParams.kernelSize);
+	float avgDist = distTotal / numParticles;
+
+	return (avgDist / motionParams.kernelSize);
 }
 
 

@@ -76,11 +76,9 @@
 #include <laserI.h>
 
 
-
-// Includes for remote proxy example
-// #include <Remote.h>
+#include <Laser.h>
 #include <ui_guiDlg.h>
-#include <DifferentialRobot.h>
+#include <OmniRobot.h>
 #include <JointMotor.h>
 #include <RGBD.h>
 #include <RGBDBus.h>
@@ -93,7 +91,8 @@ using namespace std;
 using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompOmniRobot;
+using namespace RoboCompLaser;
 using namespace RoboCompJointMotor;
 using namespace RoboCompRGBD;
 using namespace RoboCompRGBDBus;
@@ -191,7 +190,21 @@ int laserRGBComp::run(int argc, char* argv[])
 	configGetInt("DecimationLevel", cfg.DECIMATION_LEVEL, 0);
 	printf("DecimationLevel: %d\n", cfg.DECIMATION_LEVEL);
 	
+	configGetString("ActualLaserID", cfg.actualLaserID, "");
+	printf("ActualLaserID: %s\n", cfg.actualLaserID.c_str());
 	
+	std::string ssss;
+	configGetString("UpdateJoint", ssss, "y");
+	if (ssss[0] == 't' or ssss[0] == 'T' or ssss[0] == '1' or ssss[0] == 'Y' or ssss[0] == 'y')
+		cfg.updateJoint = true;
+	else if (ssss[0] == 'f' or ssss[0] == 'F' or ssss[0] == '0' or ssss[0] == 'N' or ssss[0] == 'n')
+		cfg.updateJoint = false;
+	else
+		qFatal("Wrong UpdateJoint value");
+	printf("UpdateJoint: %d\n", cfg.updateJoint);
+	
+
+
 	
 	int numRGBD;
 	configGetInt("RGBDNumber", numRGBD);
@@ -288,7 +301,7 @@ int laserRGBComp::run(int argc, char* argv[])
 			}
 			catch(const Ice::Exception& ex)
 			{
-				cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+				cout << "rgbdbus [" << PROGRAM_NAME << "]: Exception: " << ex << endl;
 				return EXIT_FAILURE;
 			}
 		}
@@ -301,18 +314,17 @@ int laserRGBComp::run(int argc, char* argv[])
 		printf("-> %d\n", rgbds[i].bus);
 	}
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
-	DifferentialRobotPrx differentialrobot_proxy;
+	LaserPrx laser_proxy;
+	OmniRobotPrx omnirobot_proxy;
 	JointMotorPrx jointmotor_proxy;
 
 
 	try
 	{
 		// Load the remote server proxy
-		proxy = getProxyString("DifferentialRobotProxy");
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-		if( !differentialrobot_proxy )
+		proxy = getProxyString("OmniRobotProxy");
+		omnirobot_proxy = OmniRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		if( !omnirobot_proxy )
 		{
 			rInfo(QString("Error loading proxy!"));
 			return EXIT_FAILURE;
@@ -320,45 +332,69 @@ int laserRGBComp::run(int argc, char* argv[])
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+		cout << "omni [" << PROGRAM_NAME << "]: Exception: " << ex << endl;
 		return EXIT_FAILURE;
 	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
+	rInfo("OmniRobotProxy initialized Ok!");
 
-
-	try
+	
+	
+	if (cfg.actualLaserID.size() > 0)
 	{
-		proxy = getProxyString("JointMotorProxy");
-		printf("joint string <%s>\n%d\n", proxy.c_str(), (int)proxy.size());
-		jointmotor_proxy = JointMotorPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-		if (proxy.size() > 14)
+		try
 		{
-			if( !jointmotor_proxy )
+			// Load the remote server proxy
+			proxy = getProxyString("LaserProxy");
+			laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+			if( !laser_proxy )
 			{
 				rInfo(QString("Error loading proxy!"));
-				cfg.updateJoint = false;
 				return EXIT_FAILURE;
 			}
-			cfg.updateJoint = false;
 		}
-		else
+		catch(const Ice::Exception& ex)
 		{
-			cfg.updateJoint = false;
+			cout << "laser [" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+			return EXIT_FAILURE;
 		}
+		rInfo("LaserProxy initialized Ok!");
 	}
-	catch(const Ice::Exception& ex)
+	else
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-		cfg.updateJoint = false;
-		return EXIT_FAILURE;
+		printf("Not using any real laser\n");
 	}
-	rInfo("JointMotorProxy initialized Ok!");
+
+	if (cfg.updateJoint)
+	{
+		try
+		{
+			proxy = getProxyString("JointMotorProxy");
+			printf("joint string <%s>\n%d\n", proxy.c_str(), (int)proxy.size());
+			jointmotor_proxy = JointMotorPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+			if (proxy.size() > 4)
+			{
+				if( !jointmotor_proxy )
+				{
+					qFatal("Error loading joint proxy! %s:%d", __FILE__,  __LINE__);
+				}
+			}
+			else
+			{
+				qFatal("Error loading joint proxy! %s:%d", __FILE__,  __LINE__);
+			}
+		}
+		catch(const Ice::Exception& ex)
+		{
+			cout << "joint [" << PROGRAM_NAME << "]: Exception: " << ex << endl;
+			qFatal("Error loading joint proxy! %s:%d", __FILE__,  __LINE__);
+		}
+		rInfo("JointMotorProxy initialized Ok!");
+	}
 
 
 
 
-
-	Worker *worker = new Worker(differentialrobot_proxy, jointmotor_proxy, cfg);
+	Worker *worker = new Worker(omnirobot_proxy, jointmotor_proxy, laser_proxy, cfg);
 	//Monitor thread
 	Monitor *monitor = new Monitor(worker,communicator());
 	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));

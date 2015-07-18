@@ -95,16 +95,16 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 
 void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, float alpha)
 {
-	if (lastAprilUpdate.elapsed() > 1000 + 2000)
-	{
-		if (lastCGRUpdate.elapsed() > 1000)
+	//if (lastAprilUpdate.elapsed() > 1000 + 2000)
+	//{
+	//	if (lastCGRUpdate.elapsed() > 1000)
 		{
 			printf("%f\n", poseCertainty);
-			if (poseCertainty > 0.4)
+	//		if (poseCertainty > 0.4)
 			{
 				omnirobot_proxy->correctOdometer(x, z, alpha);
 				lastCGRUpdate = QTime::currentTime();
 			}
 		}
-	}
+	//}
 }

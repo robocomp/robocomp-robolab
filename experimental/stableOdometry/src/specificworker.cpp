@@ -21,10 +21,13 @@
 /**
 * \brief Default constructor
 */
+ofstream fs("info.csv");
+
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	lastAprilUpdate = QTime::currentTime().addSecs(-1000);
-	lastCGRUpdate   = QTime::currentTime().addSecs(-1000);
+	lastCGRUpdate   = QTime::currentTime().addSecs(-1000); 
+	fs<<"id,time,x_base,z_base,alpha_base,x_april,z_april,alpha_april,x_cgr,z_cgr,alpha_cgr,x_error,z_error,alpha_error\n";
 }
 
 /**
@@ -32,7 +35,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
+	fs.close();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -66,15 +69,13 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 {	
 	static int id=0;
-	ofstream fs("error.log"); 
+
 	RoboCompOmniRobot::TBaseState bState;
 	omnirobot_proxy->getBaseState(bState);
-	fs << "id: "<< id << " time: "<<lastAprilUpdate.elapsed()
-	<<"\n x_base: "<< bState.x <<" z_base: "<< bState.z << " alpha_base: "<< bState.alpha 
-	<<"\n x_april: "<< x <<" z_april: "<< z << " alpha_april: "<< alpha 
-	<<"\n x_cgr: "<< bState.correctedX <<" z_cgr: "<< bState.correctedZ << " alpha_cgr: "<< bState.correctedAlpha 
-	<<"\n x_error: "<< fabs(bState.correctedX-x) <<" z_error: "<< fabs(bState.correctedZ-z) << " alpha_error: "<< fabs(bState.correctedAlpha-alpha);
-	fs.close();
+	fs << id << ","<<lastAprilUpdate.elapsed()
+	<<","<< bState.x <<","<< bState.z << ","<< bState.alpha <<","<< x <<","<< z << ","<< alpha 
+	<<","<< bState.correctedX <<","<< bState.correctedZ << ","<< bState.correctedAlpha 
+	<<","<< fabs(bState.correctedX-x) <<","<< fabs(bState.correctedZ-z) << ","<< fabs(bState.correctedAlpha-alpha)<<"\n";
 	id++;
 	lastAprilUpdate = QTime::currentTime();
 }

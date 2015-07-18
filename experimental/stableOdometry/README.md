@@ -34,3 +34,7 @@ After editing the new config file we can run the component:
 ```stableOdometry ```
 
     --Ice.Config=config
+
+To run debug:
+
+add '#define DEBUG' in config.h

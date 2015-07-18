@@ -50,7 +50,7 @@ void SpecificWorker::compute()
 ///////////////////////////////
 ///SUSCRIBES METHODS
 ///////////////////////////////
-
+/*
 void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 {
 	if (lastAprilUpdate.elapsed() > 1000)
@@ -61,7 +61,37 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 		lastAprilUpdate = QTime::currentTime();
 	}
 }
+*/
+#ifdef DEBUG
+void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
+{	
+	static int id=0;
+	ofstream fs("error.log"); 
+	RoboCompOmniRobot::TBaseState bState;
+	omnirobot_proxy->getBaseState(bState);
+	fs << "id: "<< id << " time: "<<lastAprilUpdate.elapsed()
+	<<"\n x_base: "<< bState.x <<" z_base: "<< bState.z << " alpha_base: "<< bState.alpha 
+	<<"\n x_april: "<< x <<" z_april: "<< z << " alpha_april: "<< alpha 
+	<<"\n x_cgr: "<< bState.correctedX <<" z_cgr: "<< bState.correctedZ << " alpha_cgr: "<< bState.correctedAlpha 
+	<<"\n x_error: "<< fabs(bState.correctedX-x) <<" z_error: "<< fabs(bState.correctedZ-z) << " alpha_error: "<< fabs(bState.correctedAlpha-alpha);
+	fs.close();
+	id++;
+	lastAprilUpdate = QTime::currentTime();
+}
 
+#else 
+void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
+{
+	if (lastAprilUpdate.elapsed() > 1000)
+	{ 
+		printf("pose: %f %f %f", x, z, alpha);
+		omnirobot_proxy->correctOdometer(x, z, alpha);
+		cgr_proxy->resetPose(x, z, alpha);
+		lastAprilUpdate = QTime::currentTime();
+	}
+}
+
+#endif
 
 void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, float alpha)
 {

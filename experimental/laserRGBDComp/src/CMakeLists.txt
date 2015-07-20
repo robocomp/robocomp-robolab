@@ -28,7 +28,7 @@ ADD_DEFINITIONS( -std=c++11 )
 # RoboComp
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior  Laser DifferentialRobot  JointMotor RGBD JointMotor RGBDBus )
+ROBOCOMP_WRAP_ICE( CommonBehavior  Laser OmniRobot DifferentialRobot JointMotor RGBD JointMotor RGBDBus )
 
 # PCL
 #find_package(PCL 1.6 REQUIRED COMPONENTS common io )

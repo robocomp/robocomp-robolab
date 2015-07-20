@@ -30,6 +30,10 @@
 #include <innermodel/innermodel.h>
 #include <mutex>
 
+#ifdef DEBUG
+#include <fstream>
+#include <math.h>
+#endif
 
 class SpecificWorker : public GenericWorker
 {

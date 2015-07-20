@@ -61,12 +61,6 @@ void SpecificWorker::compute()
 
 
 
-	}
-	catch(...)
-	{
-		exit(1);
-	}
-}
 
 
 

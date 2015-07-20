@@ -79,11 +79,7 @@ void Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 	}
 	else if ((laserConf.driver == "Hokuyo30LX") || (laserConf.driver == "HokuyoURG04LX-UG01"))
 	{
-		#ifdef COMPILE_HOKUYO30LX
-		 lh = new HokuyoGenericHandler(config, base_prx);
-		#else
-		 qFatal("LaserComp::LaserI::LaserI(): Config error: laserComp was not compiled with HOKUYO Laser support (please, install hokuyo library (sited in robocomp/Thirdparty). Exiting...");
-		#endif
+		 lh = new HokuyoGenericHandler(laserConf, differentialrobot);
 	}
 	if ( !lh->open() )
 	{

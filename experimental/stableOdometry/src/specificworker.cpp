@@ -21,13 +21,14 @@
 /**
 * \brief Default constructor
 */
-ofstream fs("info.csv");
 
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	lastAprilUpdate = QTime::currentTime().addSecs(-1000);
 	lastCGRUpdate   = QTime::currentTime().addSecs(-1000); 
+	ofstream fs("info.csv", ios_base::out|ios_base::app);
 	fs<<"id,time,x_base,z_base,alpha_base,x_april,z_april,alpha_april,x_cgr,z_cgr,alpha_cgr,x_error,z_error,alpha_error\n";
+	fs.close();
 }
 
 /**
@@ -35,7 +36,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	fs.close();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -72,10 +72,12 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 
 	RoboCompOmniRobot::TBaseState bState;
 	omnirobot_proxy->getBaseState(bState);
+	ofstream fs("info.csv", ios_base::out|ios_base::app);
 	fs << id << ","<<lastAprilUpdate.elapsed()
 	<<","<< bState.x <<","<< bState.z << ","<< bState.alpha <<","<< x <<","<< z << ","<< alpha 
 	<<","<< bState.correctedX <<","<< bState.correctedZ << ","<< bState.correctedAlpha 
 	<<","<< fabs(bState.correctedX-x) <<","<< fabs(bState.correctedZ-z) << ","<< fabs(bState.correctedAlpha-alpha)<<"\n";
+	fs.close();
 	id++;
 	lastAprilUpdate = QTime::currentTime();
 }

@@ -103,6 +103,13 @@ void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, flo
 			printf("%f\n", poseCertainty);
 	//		if (poseCertainty > 0.4)
 			{
+// 				omnirobot_proxy->correctOdometer(x, z, alpha);
+// 				lastCGRUpdate = QTime::currentTime();
+				
+				omnirobot_proxy->getBaseState(bState);
+				float xC = 0.8 * bState.x + 0.2 * x;
+				float zC = 0.8 * bState.z + 0.2 * z;
+				float alphaC = 0.8 * bState.alpha + 0.2 * alpha;
 				omnirobot_proxy->correctOdometer(x, z, alpha);
 				lastCGRUpdate = QTime::currentTime();
 			}

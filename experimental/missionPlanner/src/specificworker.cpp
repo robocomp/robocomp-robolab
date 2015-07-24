@@ -23,7 +23,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	innerModel = new InnerModel("../world.xml");
+	innerModel = new InnerModel("/home/robocomp/robocomp/components/robocomp-ursus/etc/autonomyLab.xml");
 	target.x=29239249;
 	target.z=29239249;
 	updateState(State::GOTO, mutex_state);
@@ -53,17 +53,17 @@ void SpecificWorker::compute()
 	switch (state)
 	{
 		case State::GOTO:
-			if(tagList.getTagR(1,tagObjetive) && tagObjetive.isValid(3000))
+		//	if(tagList.getTagR(1,tagObjetive) && tagObjetive.isValid(3000))
 			{
-				qDebug()<<tagObjetive.x()<<tagObjetive.y()<<tagObjetive.z()<<endl;
-				tagObjetive.coords = innerModel->transform("world", QVec::vec3(tagObjetive.x(), tagObjetive.y(), tagObjetive.z()), "rgbd_transform");
+		//		qDebug()<<tagObjetive.x()<<tagObjetive.y()<<tagObjetive.z()<<endl;
+		//		tagObjetive.coords = innerModel->transform("world", QVec::vec3(tagObjetive.x(), tagObjetive.y(), tagObjetive.z()), "rgbd_transform");
 
 // 				   list=sam.sampleFreeSpaceR2Uniform(box);
-				target.x = tagObjetive.coords.x();
+		//		target.x = tagObjetive.coords.x();
 				target.y = 0;
-				target.z = tagObjetive.coords.z();
-				//target.x = 200;
-				//target.z = 1000;
+		//		target.z = tagObjetive.coords.z();
+				target.x = 1000;
+				target.z = 4000;
 			try
 			{
 				qDebug() << "MOVING :-)";
@@ -78,12 +78,12 @@ void SpecificWorker::compute()
 			}
 
 			}
-			else
-			{
-				RoboCompTrajectoryRobot2D::NavState s = trajectoryrobot2d_proxy->getState();
-				if(s.state != "IDLE") updateState(State::GOTO, mutex_state);	
-				else updateState(State::LOST, mutex_state);
-			}
+		//	else
+		//	{
+		//		RoboCompTrajectoryRobot2D::NavState s = trajectoryrobot2d_proxy->getState();
+		//		if(s.state != "IDLE") updateState(State::GOTO, mutex_state);	
+		//		else updateState(State::LOST, mutex_state);
+		//	}
 			break;
 		case State::LOST:
 			qDebug()<<"lost :-(";

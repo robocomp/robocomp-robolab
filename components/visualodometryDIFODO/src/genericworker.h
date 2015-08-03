@@ -32,6 +32,7 @@
 #include <JointMotor.h>
 
 
+
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
@@ -42,6 +43,9 @@ using namespace std;
 using namespace RoboCompRGBD;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompJointMotor;
+
+
+
 
 class GenericWorker : 
 #ifdef USE_QTGUI
@@ -59,6 +63,7 @@ public:
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
+	
 
 	RGBDPrx rgbd_proxy;
 
@@ -67,6 +72,7 @@ public:
 protected:
 	QTimer timer;
 	int Period;
+
 public slots:
 	virtual void compute() = 0;
 signals:

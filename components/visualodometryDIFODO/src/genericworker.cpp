@@ -33,7 +33,7 @@ QObject()
 
 	mutex = new QMutex(QMutex::Recursive);
 
-#ifdef USE_QTGUI
+	#ifdef USE_QTGUI
 		setupUi(this);
 		show();
 	#endif
@@ -64,3 +64,4 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
+

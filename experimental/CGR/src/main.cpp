@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::CGRComp
+/** \mainpage RoboComp::CGRc
  *
  * \section intro_sec Introduction
  *
- * The CGRComp component...
+ * The CGRc component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd CGRComp
+ * cd CGRc
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/CGRComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/CGRc --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -84,7 +84,6 @@
 #include <Laser.h>
 #include <FSPF.h>
 #include <OmniRobot.h>
-#include <StableOdometry.h>
 #include <CGR.h>
 
 
@@ -97,15 +96,14 @@ using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 using namespace RoboCompFSPF;
 using namespace RoboCompOmniRobot;
-using namespace RoboCompStableOdometry;
 using namespace RoboCompCGR;
 
 
 
-class CGRComp : public RoboComp::Application
+class CGRc : public RoboComp::Application
 {
 public:
-	CGRComp (QString prfx) { prefix = prfx.toStdString(); }
+	CGRc (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -115,14 +113,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void CGRComp::initialize()
+void CGRc::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int CGRComp::run(int argc, char* argv[])
+int CGRc::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -134,7 +132,6 @@ int CGRComp::run(int argc, char* argv[])
 	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 	OmniRobotPrx omnirobot_proxy;
-	StableOdometryPrx stableodometry_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -172,23 +169,6 @@ int CGRComp::run(int argc, char* argv[])
 	}
 	rInfo("OmniRobotProxy initialized Ok!");
 	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "StableOdometryProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy StableOdometryProxy\n";
-		}
-		stableodometry_proxy = StableOdometryPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("StableOdometryProxy initialized Ok!");
-	mprx["StableOdometryProxy"] = (::IceProxy::Ice::Object*)(&stableodometry_proxy);//Remote server proxy creation example
 
 IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
@@ -344,7 +324,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	CGRComp app(prefix);
+	CGRc app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

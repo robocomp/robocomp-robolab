@@ -208,6 +208,12 @@ void SpecificWorker::compute()
 		CameraList cameraList;
 		cameraList.push_back(std::string("default"));
 		rgbdbus_proxy->getImages(cameraList, images);
+		for (auto i : images)
+		{
+			memcpy(image_color.data , &i.second.colorImage[0], m_width*m_height*3);
+			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+			searchTags(image_gray);
+		}
 	}
 	else
 	{
@@ -374,3 +380,6 @@ listaMarcas SpecificWorker::checkMarcas()
   QMutexLocker locker(mutex);
   return  listaDeMarcas;
 }
+
+
+

@@ -66,6 +66,7 @@ void VectorLocalization2D::loadAtlas()
 {
   static const bool debug = true;
   string atlasFile = mapsFolder + "/atlas.txt";
+  cout <<atlasFile << endl;
   FILE* fid = fopen(atlasFile.c_str(),"r");
   if(fid==NULL){
     TerminalWarning("Unable to load Atlas!");
@@ -840,7 +841,6 @@ void VectorLocalization2D::refineLocationLidar(vector2f& loc, float& angle, floa
   float weight;
   
   if(debug) printf("before: %.4f,%.4f %.2f\u00b0\n",V2COMP(loc),DEG(angle));
-  
   Matrix2f robotAngle;
   robotAngle = Rotation2Df(angle);  
   Vector2f laserLocE = Vector2f(V2COMP(loc)) + robotAngle*(lidarParams.laserToBaseTrans);
@@ -969,30 +969,29 @@ void VectorLocalization2D::refineLidar(const LidarParams &lidarParams)
     laserPoints[i] = Vector2f(aux.y(),-aux.x()) + lidarParams.laserToBaseTrans;
   }
   
-  list<int> listPointsFilter;
-  for(int i=0; i<lidarParams.numRays; i++)
-  {
- 	  if (!inLine(i,laserPoints))
-	  {
+//   list<int> listPointsFilter;
+//   for(int i=0; i<lidarParams.numRays; i++)
+//   {
+//  	  if (!inLine(i,laserPoints))
+// 	  {
 		  // not in line
-		  listPointsFilter.push_back(i);
-		  qDebug() << "probar que tiene efecto!!");
-	  }
-  }
+// 		  listPointsFilter.push_back(i);
+// 		 printf("probar que tiene efecto!!\n");
+// 	  }
+//   }
   
-  while( !listPointsFilter.empty() )
-  {
-	  laserPoints[listPointsFilter.front()] = Vector2f(10000,10000);
-	  listPointsFilter.pop_front();
-  }
-  
+//   while( !listPointsFilter.empty() )
+//   {
+// 	  laserPoints[listPointsFilter.front()] = Vector2f(10000,10000);
+// 	  listPointsFilter.pop_front();
+//   }
+/*  
   for(int i=0; i<lidarParams.numRays; i++)
   {
 	printf("punto laser %d --> (%f , %f)\n",i,laserPoints[i].x(),laserPoints[i].y());
-  }
+  }*/
 //   qFatal("fin");
-     printf(" -------------------------------- \n");
-     printf(" -------------------------------- \n");
+//     printf(" -------------------------------- \n");
   
   
   

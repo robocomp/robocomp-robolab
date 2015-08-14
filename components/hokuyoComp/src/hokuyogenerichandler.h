@@ -16,15 +16,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifdef COMPILE_HOKUYO30LX
-
 #ifndef HOKUYOGENERICHANDLER_H
 #define HOKUYOGENERICHANDLER_H
 
 #include <generichandler.h>
 #include <QtCore>
 #include <Laser.h>
-#include <const.h>
 #include <math.h>
 
 
@@ -73,7 +70,5 @@ public slots:
 	RoboCompLaser::TLaserData getNewData();
 	RoboCompLaser::LaserConfData getLaserConf();
 };
-
-#endif
 
 #endif

@@ -5,7 +5,7 @@
 #define USE_QTGUI
 
 
-#define PROGRAM_NAME    "CGRComp"
-#define SERVER_FULL_NAME   "RoboComp CGRComp:: CGRComp"
+#define PROGRAM_NAME    "CGRc"
+#define SERVER_FULL_NAME   "RoboComp CGRc:: CGRc"
 
 #endif

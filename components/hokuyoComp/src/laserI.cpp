@@ -39,7 +39,7 @@ TLaserData LaserI::getLaserData(const Ice::Current&)
 }
 TLaserData LaserI::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState,const Ice::Current&)
 {
-	bState = worker->getBaseState();
+// 	bState = worker->getBaseState();
 	return worker->getNewData();
 }
 LaserConfData LaserI::getLaserConfData( const Ice::Current&) 

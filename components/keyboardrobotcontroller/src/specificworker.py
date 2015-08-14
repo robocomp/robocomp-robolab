@@ -60,7 +60,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 100
 		self.timer.start(self.Period)
-		print 'Connected to robot. Use arrows to control speed and space bar to stop'
+		screen.addstr(0,0,'Connected to robot. Use arrows to control speed and space bar to stop')
 
 	def setParams(self, params):
 		return True
@@ -72,26 +72,28 @@ class SpecificWorker(GenericWorker):
             
                 if key == curses.KEY_UP:
                     self.adv = self.adv + 20
-                    screen.addstr(0, 0, 'up: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'up: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_DOWN:
                     self.adv = self.adv - 20
-                    screen.addstr(0, 0, 'down: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'down: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_LEFT:
                     self.rot = self.rot - 0.1;
-                    screen.addstr(0, 0, 'left: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'left: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_RIGHT:
                     self.rot = self.rot + 0.1;
-                    screen.addstr(0, 0, 'right: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'right: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == ord(' '):
-                    self.rot = 0;
-                    self.adv = 0;
-                    screen.addstr(0, 0, 'stop: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    self.rot = 0
+                    self.adv = 0
+                    screen.addstr(5, 0, 'stop: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
-                
+               	elif key == ord('q'):
+		    curses.endwin()
+		    sys.exit() 
             except Ice.Exception, e:
                 traceback.print_exc()
                 print e

@@ -60,7 +60,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 100
 		self.timer.start(self.Period)
-		screen.addstr(0,0,'Connected to robot. Use arrows to control speed and space bar to stop')
+		screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
 
 	def setParams(self, params):
 		return True

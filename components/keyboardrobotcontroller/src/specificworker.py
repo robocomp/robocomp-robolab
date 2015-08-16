@@ -95,6 +95,7 @@ class SpecificWorker(GenericWorker):
 		    curses.endwin()
 		    sys.exit() 
             except Ice.Exception, e:
+		curses.endwin()
                 traceback.print_exc()
                 print e
             return True

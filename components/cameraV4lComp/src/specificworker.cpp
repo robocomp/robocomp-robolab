@@ -52,9 +52,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) 
 	{ qFatal("\nAborting. Error reading config params"); }
-
+printf("%d\n", __LINE__);
 	std::array<string, 6> list = { "0", "1", "2", "3", "4", "5" };
+printf("%d\n", __LINE__);
 	qDebug() << __FUNCTION__ << "Opening device:" << camParams.name.c_str();
+printf("%d\n", __LINE__);
 	if( camParams.name == "default")
 		grabber.open(0);
 	else if	( find( begin(list), end(list), camParams.name) != end(list)) 
@@ -62,7 +64,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	else
 		grabber.open(camParams.name);
 	
-	if(grabber.isOpened() == false)  // check if we succeeded
+printf("%d\n", __LINE__);
+
+if(grabber.isOpened() == false)  // check if we succeeded
 		qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
 	else
 		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
@@ -79,15 +83,20 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	Mat frame;
 	grabber >> frame; 		// get a new frame from camera
 	Size s = frame.size();
-	double rate = grabber.get(CV_CAP_PROP_FPS);
+printf("%d\n", __LINE__);
+	double rate = 30;//grabber.get(CV_CAP_PROP_FPS);
+printf("%d\n", __LINE__);
 	qDebug() << __FUNCTION__ << "Current frame size:" << s.width << "x" << s.height << ". RGB 8 bits format at" << rate << "fps";
 	camParams.colorWidth = s.width;
 	camParams.colorHeight = s.height;
+printf("%d\n", __LINE__);
 	writeBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
 	readBuffer.resize( camParams.colorWidth * camParams.colorHeight * 3);
 	cameraParamsMap[camParams.name] = camParams;
 
+printf("%d\n", __LINE__);
 	timer.start(30);
+printf("%d\n", __LINE__);
 
 	return true;
 }
@@ -102,7 +111,7 @@ void SpecificWorker::compute()
 	cvtColor( frame, frameRGB, CV_BGR2RGB );
 	memcpy( &writeBuffer[0], frameRGB.data, frameRGB.size().area() * 3);
 	//qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
-	//imshow("img", frame);
+	imshow("img", frame);
 	QMutexLocker ml(mutex);
 	readBuffer.swap( writeBuffer);
 	

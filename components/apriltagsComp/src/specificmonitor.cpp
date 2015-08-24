@@ -94,22 +94,20 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString( "AprilTagsFamily", aux.value,"tagCodes36h11"); 
 	params["AprilTagsFamily"] = aux;
 	
-// 	aux.editable = false;
-// 	configGetString( "AprilTagsSize", aux.value,"0.175"); 
-// 	params["AprilTagsSize"] = aux;
-// 	
+	aux.editable = false;
+	configGetString("AprilTagsSize", aux.value,"70");	params["AprilTagsSize"] = aux;
 	
 	aux.editable = false;
-	configGetString( "ID:0-10", aux.value,"86"); //MILLIMETERS 
+	configGetString("ID:0-10", aux.value,"86");
 	params["ID:0-10"] = aux;
 	
 	aux.editable = false;
-	configGetString( "ID:11-20", aux.value,"86"); //MILLIMETERS 
+	configGetString("ID:11-20", aux.value,"86");
 	params["ID:11-20"] = aux;
 
 	aux.editable = false;
-	configGetString( "ID:21-30", aux.value,"86"); //MILLIMETERS 
-	params["ID:21-30"] = aux;
+	configGetString("ID:21-100", aux.value,"86");
+	params["ID:21-100"] = aux;
 
 	aux.editable = true;
 	configGetString( "CameraName", aux.value, "rgbd");

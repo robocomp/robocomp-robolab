@@ -122,8 +122,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	image_color.create(m_height,m_width,CV_8UC3);
 
 	innermodel = new InnerModel(innermodel_path);
- 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
-  	m_fy = innermodel->getCameraFocal(camera_name.c_str());
+	m_fx = innermodel->getCameraFocal(camera_name.c_str());
+	m_fy = innermodel->getCameraFocal(camera_name.c_str());
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
 	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
@@ -133,7 +133,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
-		Q_ASSERT(par.value > 0 and par.value < 500);
+		qDebug() << "ID:0-10" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
 		for(int i=0;i<=10; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
@@ -142,24 +143,33 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
-		Q_ASSERT(par.value > 0 and par.value < 500);
+		qDebug() << "ID:11-20" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
 		for(int i=11;i<=20; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
+			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 	try
 	{
-		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
-		Q_ASSERT(par.value > 0 and par.value < 500);
-		for(int i=21;i<=30; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
+		RoboCompCommonBehavior::Parameter par = params.at("ID:21-100");
+		qDebug() << "ID:21-100" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
+		for(int i=21;i<=100; i++)
+			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
-	//DONE
 
-	//Default value for IDs not defined before
+	// Default value for IDs not defined before
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
+		qDebug() << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
+		m_tagSize = QString::fromStdString(par.value).toFloat();
+	}
+	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 	return true;
 }
@@ -168,6 +178,13 @@ void SpecificWorker::compute()
 {
 	static int frame = 0;
 	static double last_t = tic();
+
+	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
+// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
+// 	{
+// 		printf("%d:%f ", it.key(), it.value());
+// 	}
+	printf("]\n");
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)

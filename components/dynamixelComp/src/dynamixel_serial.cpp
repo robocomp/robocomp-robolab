@@ -144,7 +144,7 @@ void Dynamixel::initialize() throw (QString)
 		setBothComplianceMargins(params.busId, 1);
 		setBothComplianceSlopes(params.busId, 20);
 
-		bool usbCorrect = true;
+		bool usbCorrect = false;
 		do
 		{
 			///Return delay time
@@ -193,7 +193,10 @@ void Dynamixel::initialize() throw (QString)
 				qDebug() << "Error reading CWComplianceSlope";
 			
 			if (!usbCorrect)
+			{
 				system("sh /home/robocomp/robocomp/component/robocomp-ursus/files/setDevices.sh");
+				usbCorrect = true;
+			}
 		}while(!usbCorrect);
 
 		///Read current position

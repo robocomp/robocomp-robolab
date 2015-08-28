@@ -38,10 +38,15 @@ void Dynamixel::initialize() throw (QString)
   // Open and initialize the device
   port.setName( device );
 
-  if ( port.open(device) == false)
+  if (port.open(device) == false)
   {
+	  //The Dynamixel device failed because:
+	  // 1) You don't have the necessary permissions
+	  // 2) The USB is not connected
 	QString error;
 	QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device));
+	qDebug()<<"----> PERMISSIONS: "<<p;
+	
 	if ( (p | QFile::WriteOwner) != true)
 		error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString(busParams->device) +
 					  " could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +

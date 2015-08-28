@@ -25,6 +25,8 @@
 #include <iostream>
 
 #include <q4serialport/q4serialport.h>
+#include <usb.h>
+
 #include "TSQHash.h"
 #include "JointMotor.h"
 #include "handler.h"

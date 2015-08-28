@@ -34,7 +34,7 @@ Dynamixel::~Dynamixel()
 void Dynamixel::initialize() throw (QString)
 {
 	QString device = QString::fromStdString( busParams->device);
-	qDebug()<<"||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
+	qDebug()<<"\n\n||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
 
 	// Identifiers of the FTDI (in order to identifie the usb with the dynamixel):
 	//---> 	ID_VENDOR  = 0x0403
@@ -52,56 +52,53 @@ void Dynamixel::initialize() throw (QString)
 			if(dev->descriptor.idVendor == 0x0403 and dev->descriptor.idProduct == 0x6001) counter++;
 		}		
 	}
-	if (counter == 2)  qDebug()<<"||  DYNAMIXEL USB CONNECTED!!  ||";
+	if (counter == 2)  qDebug()<<"||  DYNAMIXEL::initialize -----> USB CONNECTED!!  ||";
 	else
 	{
 		if (counter > 0) counter--;			
-		qDebug()<<"||    ERROR with USB. Dynamixel locate "<<counter<<" times  ||";
+		qDebug()<<"||  ERROR DYNAMIXEL::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
 		qFatal("Aborted");
 	}
   
 	// Open and initialize the device
 	port.setName( device );
-
 	if (port.open(device) == false)
 	{
-	  //The Dynamixel device failed because:
-	  // 1) You don't have the necessary permissions
-	  // 2) The USB is not connected
-	QString error;
-	QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device)); //contains FLAGS
-	qDebug()<<"----> PERMISSIONS: "<<p;
-	
-	//Sacamos el flag de permiso de escritura de propietario. Si no es verdadero (0x2000) entonces no tenemos
-	//permiso para ejecutar el dynamixel en el puerto
-	if ( (p | QFile::WriteOwner) != true)
-		error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString(busParams->device) +
-					  " could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +
-					  QString::fromStdString( busParams->device ) + "'";
-	else
-	  error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString( busParams->device ) +
-			  " could not be opened. Please check file permissions";
-	throw error;
-  }
+		//The Dynamixel device failed because:
+		// 1) You don't have the necessary permissions
+		// 2) The USB is not connected
+		QString error;
+		QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device)); //contains FLAGS
+		
+		//Sacamos el flag de permiso de escritura de propietario. Si no es verdadero (0x2000) entonces no tenemos
+		//permiso para ejecutar el dynamixel en el puerto
+		if ( (p | QFile::WriteOwner) != true)
+			error = "||  ERROR DYNAMIXEL::initialize ---> Port " + QString::fromStdString(busParams->device) +
+					" could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +
+					QString::fromStdString( busParams->device ) + "'";
+		else
+			error = "||  ERROR DYNAMIXEL::initialize ---> Port " + QString::fromStdString( busParams->device ) +
+					" could not be opened. Please check file permissions";
+		throw error;
+	}
 
 	//Setting baudrate
 	QSerialPort::_BaudRateType bRate;
 	switch ( busParams->baudRate )
 	{
-		case 2400:  bRate = QSerialPort::BAUD2400 ; break;
-		case 4800:  bRate = QSerialPort::BAUD4800 ; break;
-		case 9600:  bRate = QSerialPort::BAUD9600 ; break;
-		case 19200:  bRate = QSerialPort::BAUD19200 ; break;
-		case 38400:  bRate = QSerialPort::BAUD38400 ; break;
-		case 57600:  bRate = QSerialPort::BAUD57600 ; break;
-		case 76800:  bRate = QSerialPort::BAUD76800 ; break;
+		case 2400:    bRate = QSerialPort::BAUD2400 ;   break;
+		case 4800:    bRate = QSerialPort::BAUD4800 ;   break;
+		case 9600:    bRate = QSerialPort::BAUD9600 ;   break;
+		case 19200:   bRate = QSerialPort::BAUD19200 ;  break;
+		case 38400:   bRate = QSerialPort::BAUD38400 ;  break;
+		case 57600:   bRate = QSerialPort::BAUD57600 ;  break;
+		case 76800:   bRate = QSerialPort::BAUD76800 ;  break;
 		case 115200:  bRate = QSerialPort::BAUD115200 ; break;
 		case 230400:  bRate = QSerialPort::BAUD230400 ; break;
-		default: bRate = QSerialPort::BAUD115200 ; break;
+		default:      bRate = QSerialPort::BAUD115200 ; break;
 	}
-	port.setBaudRate( bRate );
-	if(port.baudRate() != bRate )
-		qFatal("JointMotor::Dynamixel::initialize() - Error setting Baud Rate %d\n", busParams->baudRate);
+	port.setBaudRate( bRate ); //set the baudrate.
+	if(port.baudRate() != bRate ) qFatal("||  ERROR DYNAMIXEL::initialize!! ---> Error setting Baud Rate %d\n", busParams->baudRate);
 
 	qDebug()<<"baudRate"<<bRate<<"valor"<<busParams->baudRate;
   //Create servos instances in a QMap indexed by name
@@ -147,52 +144,57 @@ void Dynamixel::initialize() throw (QString)
 		setBothComplianceMargins(params.busId, 1);
 		setBothComplianceSlopes(params.busId, 20);
 
-		
-		///Return delay time
-		int rt = 50;
-		if (setReturnDelayTime( params.busId, rt) == true and getReturnDelayTime( params.busId, rt) == true)
+		bool usbCorrect = true;
+		do
 		{
-			qDebug() << "	Return delay time: " << rt;
-		}
-		else
-			qDebug() << "Error setting delay time";
+			///Return delay time
+			int rt = 50;
+			if (setReturnDelayTime( params.busId, rt) == true and getReturnDelayTime( params.busId, rt) == true)
+			{
+				qDebug() << "	Return delay time: " << rt;
+			}
+			else
+				qDebug() << "Error setting delay time";
 
-		///Control params
-		int m;
-		if (getPunch( params.busId, m ) == true)
-		{
-			qDebug() << "	Punch: " << m;
-		}
-		else
-			qDebug() << "Error reading Punch";
+			///Control params
+			int m;
+			if (getPunch( params.busId, m ) == true)
+			{
+				qDebug() << "	Punch: " << m;
+			}
+			else
+				qDebug() << "Error reading Punch";
 
-		if (getCCWComplianceMargin( params.busId, m ) == true)
-		{
-			qDebug() << "	CCWComplianceMargin: " << m;
-		}
-		else
-			qDebug() << "Error reading CCWComplianceMargin";
+			if (getCCWComplianceMargin( params.busId, m ) == true)
+			{
+				qDebug() << "	CCWComplianceMargin: " << m;
+			}
+			else
+				qDebug() << "Error reading CCWComplianceMargin";
 
-		if (getCWComplianceMargin( params.busId, m ) == true)
-		{
-			qDebug() << "	CWComplianceMargin: " << m;
-		}
-		else
-			qDebug() << "Error reading CWComplianceMargin";
-		if (getCCWComplianceSlope( params.busId, m ) == true)
-		{
-			qDebug() << "	CCWComplianceSlope: " << m;
-		}
-		else
-			qDebug() << "Error reading CCWComplianceSlope";
+			if (getCWComplianceMargin( params.busId, m ) == true)
+			{
+				qDebug() << "	CWComplianceMargin: " << m;
+			}
+			else
+				qDebug() << "Error reading CWComplianceMargin";
+			if (getCCWComplianceSlope( params.busId, m ) == true)
+			{
+				qDebug() << "	CCWComplianceSlope: " << m;
+			}
+			else
+				qDebug() << "Error reading CCWComplianceSlope";
 
-		if (getCWComplianceSlope( params.busId, m ) == true)
-		{
-			qDebug() << "	CWComplianceSlope: " << m;
-		}
-		else
-			qDebug() << "Error reading CWComplianceSlope";
-
+			if (getCWComplianceSlope( params.busId, m ) == true)
+			{
+				qDebug() << "	CWComplianceSlope: " << m;
+			}
+			else
+				qDebug() << "Error reading CWComplianceSlope";
+			
+			if (!usbCorrect)
+				system("sh /home/robocomp/robocomp/component/robocomp-ursus/files/setDevices.sh");
+		}while(!usbCorrect);
 
 		///Read current position
 		float p;

@@ -134,9 +134,10 @@ void Dynamixel::initialize() throw (QString)
 		// --> Level 1: only for reading commands. Default ;
 		// --> Level 2: always
 		int level = 1;
-		setStatusReturnLevel(params.busId, level);
-		getStatusReturnLevel(params.busId, level);
-		qDebug() << "	Status return level: " << level;
+		bool a = setStatusReturnLevel(params.busId, level);
+		bool b = getStatusReturnLevel(params.busId, level);
+		
+		qDebug()<<"MOWECBNGCW: "<<a<<", "<<b;
 
 		//set specific parameters
 	    setPunch(params.busId, 32);

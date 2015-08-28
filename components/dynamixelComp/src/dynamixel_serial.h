@@ -121,11 +121,18 @@ private:
 	bool getSPacket( );
 	QSerialPort  port;
 	char checkSum(char *packet);
-	char status[MAX_LENGTH_PACKET];
+	// STATUS structure:
+	// status[0]
+	// status[1]
+	// status[2] motor name (bus Id)
+	// status[3]
+	// status[4] PING
+	// status[5]
+	char status[MAX_LENGTH_PACKET]; 
 	void printPacket(char *packet);
 	void ping(char motor);
 
-	char packet[MAX_LENGTH_PACKET];
+	char packet[MAX_LENGTH_PACKET]; // vector char de 30 elementos??
 	RoboCompJointMotor::BusParams *busParams;
 	RoboCompJointMotor::MotorParamsList *params;
 

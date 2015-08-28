@@ -22,10 +22,10 @@
 */
 Worker::Worker(QObject *parent) : QThread(parent)
 {
- 	period = 50;
-	active = false;
-	handler = NULL;
-	w_mutex = new QMutex(QMutex::Recursive);
+ 	period        = 50;
+	active        = false;
+	handler       = NULL;
+	w_mutex       = new QMutex(QMutex::Recursive);
 	monitor_mutex = new QMutex(QMutex::Recursive);
 	rDebug("||   CONSTRUCTOR WORKER OK   ||");
 }
@@ -83,43 +83,43 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 	QMutexLocker lock(monitor_mutex);
 	active = false;
 
-	qDebug() << "JointMotor::Worker::setParams()";
+	qDebug() << "||   JOINT MOTOR --> Worker::setParams()  ||";
 
 	if(_params["Dynamixel.Device"].value != busParams.device)
 	{
 		if(handler!= NULL)
 			delete handler;
-		busParams.device = _params["Dynamixel.Device"].value;
-		busParams.numMotors = QString::fromStdString(_params["Dynamixel.NumMotors"].value).toInt();
-		busParams.baudRate = QString::fromStdString(_params["Dynamixel.BaudRate"].value).toInt();
+		busParams.device      = _params["Dynamixel.Device"].value;
+		busParams.numMotors   = QString::fromStdString(_params["Dynamixel.NumMotors"].value).toInt();
+		busParams.baudRate    = QString::fromStdString(_params["Dynamixel.BaudRate"].value).toInt();
 		busParams.basicPeriod = QString::fromStdString(_params["Dynamixel.BasicPeriod"].value).toInt()*1000;
 
 		for (int i=0; i<busParams.numMotors; i++)
 		{
-			std::string s= QString::number(i).toStdString();
+			std::string s     = QString::number(i).toStdString();
 			RoboCompJointMotor::MotorParams mpar;
-			mpar.name = _params["Dynamixel.Params_" + s +".name"].value;
-			mpar.busId = QString::fromStdString(_params["Dynamixel.Params_" + s +".busId"].value).toUShort();
+			mpar.name         = _params["Dynamixel.Params_" + s +".name"].value;
+			mpar.busId        = QString::fromStdString(_params["Dynamixel.Params_" + s +".busId"].value).toUShort();
 			mpar.invertedSign = QString::fromStdString(_params["Dynamixel.Params_" + s +".invertedSign"].value).contains("true");
-			mpar.minPos = QString::fromStdString(_params["Dynamixel.Params_" + s +".minPos"].value).toFloat();
-			mpar.maxPos = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxPos"].value).toFloat();
-			mpar.zeroPos = QString::fromStdString(_params["Dynamixel.Params_" + s +".zeroPos"].value).toFloat();
-			mpar.maxVelocity = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxVelocity"].value).toFloat();
-			mpar.maxDegrees = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxDegrees"].value).toFloat();
-			mpar.stepsRange = QString::fromStdString(_params["Dynamixel.Params_" + s +".stepsRange"].value).toFloat();
+			mpar.minPos       = QString::fromStdString(_params["Dynamixel.Params_" + s +".minPos"].value).toFloat();
+			mpar.maxPos       = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxPos"].value).toFloat();
+			mpar.zeroPos      = QString::fromStdString(_params["Dynamixel.Params_" + s +".zeroPos"].value).toFloat();
+			mpar.maxVelocity  = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxVelocity"].value).toFloat();
+			mpar.maxDegrees   = QString::fromStdString(_params["Dynamixel.Params_" + s +".maxDegrees"].value).toFloat();
+			mpar.stepsRange   = QString::fromStdString(_params["Dynamixel.Params_" + s +".stepsRange"].value).toFloat();
 			params.push_back(mpar);
 		}
 		//if config has the Dynamixel.SDK == FALSE, then we start the dynamixel serial handler (dynamixel_serial)
 		if(not QString::fromStdString(_params["Dynamixel.SDK"].value).contains("true"))
 		{
 			handler = new Dynamixel(&busParams, &params, w_mutex);
-			qDebug() << "Dynamixel::Worker::setParams() Dynamixel serial handler";
+			qDebug() << "||  Dynamixel::Worker::setParams()--> DYNAMIXEL SERIAL HANDLER SELECTED ||";
 		}
 		#if COMPILE_DYNAMIXEL == 1
 		else
 		{
 			handler = new DynamixelSDK(&busParams, &params, w_mutex);
-			qDebug() << "Dynamixel::Worker::setParams() Dynamixel sdk handler";
+			qDebug() << "||  Dynamixel::Worker::setParams() DYNAMIXEL SDK HANDLER SELECTED ||";
 		}
 		#endif
 		try

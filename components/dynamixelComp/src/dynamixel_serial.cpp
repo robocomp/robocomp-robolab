@@ -135,7 +135,6 @@ void Dynamixel::initialize() throw (QString)
 		int level = 1;
 		setStatusReturnLevel(params.busId, level);
 		getStatusReturnLevel(params.busId, level);
-		qDebug() << "	Status return level: " << level;
 
 		//set specific parameters
 	    setPunch(params.busId, 32);

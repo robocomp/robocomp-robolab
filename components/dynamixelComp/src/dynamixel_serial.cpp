@@ -49,45 +49,21 @@ void Dynamixel::initialize() throw (QString)
 	{
 		for (dev = bus->devices; dev; dev = dev->next)
 		{
-			if(dev->descriptor.idVendor == 0403 and dev->descriptor.idProduct == 6001)
-			{
-				counter++;
-			}
-			printf("Trying device %s/%s\n", bus->dirname, dev->filename);
-			printf("\tID_VENDOR = 0x%04x\n", dev->descriptor.idVendor);
-			printf("\tID_PRODUCT = 0x%04x\n", dev->descriptor.idProduct);
+			if(dev->descriptor.idVendor == 0x0403 and dev->descriptor.idProduct == 0x6001) counter++;
 		}		
 	}
-	if (counter == 2)
-	{
-		qDebug()<<"Dynamixel connected!!";
-	}
+	if (counter == 2)  qDebug()<<"||  DYNAMIXEL USB CONNECTED!!  ||";
 	else
 	{
-		if (counter > 0) {counter--;}			
-		qDebug()<<"Error with USB. Dynamixel locate "<<counter<<" times";
+		if (counter > 0) counter--;			
+		qFatal("||    ERROR with USB. Dynamixel locate "<<counter<<" times  ||");
 	}
-	qFatal("Fary");
+  
+	// Open and initialize the device
+	port.setName( device );
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  // Open and initialize the device
-  port.setName( device );
-
-  if (port.open(device) == false)
-  {
+	if (port.open(device) == false)
+	{
 	  //The Dynamixel device failed because:
 	  // 1) You don't have the necessary permissions
 	  // 2) The USB is not connected

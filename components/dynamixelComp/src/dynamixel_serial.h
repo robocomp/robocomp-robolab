@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include <q4serialport/q4serialport.h>
+// sudo apt-get install libusb-dev
 #include <usb.h>
 
 #include "TSQHash.h"

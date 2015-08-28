@@ -35,6 +35,37 @@ void Dynamixel::initialize() throw (QString)
 {
   QString device = QString::fromStdString( busParams->device);
   qDebug()<<"||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
+
+struct usb_bus *bus;
+struct usb_device *dev;
+usb_init();
+usb_find_busses();
+usb_find_devices();
+for (bus = usb_busses; bus; bus = bus->next)
+{
+	for (dev = bus->devices; dev; dev = dev->next)
+	{
+		printf("Trying device %s/%s\n", bus->dirname, dev->filename);
+		printf("\tID_VENDOR = 0x%04x\n", dev->descriptor.idVendor);
+		printf("\tID_PRODUCT = 0x%04x\n", dev->descriptor.idProduct);
+	}
+}
+qFatal("Fary");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   // Open and initialize the device
   port.setName( device );
 
@@ -44,9 +75,11 @@ void Dynamixel::initialize() throw (QString)
 	  // 1) You don't have the necessary permissions
 	  // 2) The USB is not connected
 	QString error;
-	QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device));
+	QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device)); //contains FLAGS
 	qDebug()<<"----> PERMISSIONS: "<<p;
 	
+	//Sacamos el flag de permiso de escritura de propietario. Si no es verdadero (0x2000) entonces no tenemos
+	//permiso para ejecutar el dynamixel en el puerto
 	if ( (p | QFile::WriteOwner) != true)
 		error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString(busParams->device) +
 					  " could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +

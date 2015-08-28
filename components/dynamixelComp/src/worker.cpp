@@ -27,7 +27,7 @@ Worker::Worker(QObject *parent) : QThread(parent)
 	handler = NULL;
 	w_mutex = new QMutex(QMutex::Recursive);
 	monitor_mutex = new QMutex(QMutex::Recursive);
-	rDebug("constructor Ok");
+	rDebug("||   CONSTRUCTOR WORKER OK   ||");
 }
 /**
 * \brief Default destructor
@@ -109,6 +109,7 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 			mpar.stepsRange = QString::fromStdString(_params["Dynamixel.Params_" + s +".stepsRange"].value).toFloat();
 			params.push_back(mpar);
 		}
+		//if config has the Dynamixel.SDK == FALSE, then we start the dynamixel serial handler (dynamixel_serial)
 		if(not QString::fromStdString(_params["Dynamixel.SDK"].value).contains("true"))
 		{
 			handler = new Dynamixel(&busParams, &params, w_mutex);
@@ -127,7 +128,7 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 		}
 		catch(QString &s)
 		{
-			qDebug()<<"Dynamixel error exception";
+			qDebug()<<"Dynamixel error exception: "<<s;
 			throw s;
 		}
 		this->start();

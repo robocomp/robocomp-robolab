@@ -5,6 +5,19 @@
 ```
 Intro to component here
 
+Simple component to show how RGBD images from the RGBD.idsl interface can be displayed using Qt and OpenCV.
+
+Please note that the config file has an extra line 
+
+    Ice.MessageSizeMax=1000000
+
+to tell Ice to use a bigger network buffer.
+
+Also, a line has been included in src/CMakeListsSpecific.txt
+
+    INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv2.cmake)
+
+so CMake can take care of OpenCV dependencies.
 
 ## Configuration parameters
 As any other component,

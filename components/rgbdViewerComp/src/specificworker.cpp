@@ -53,7 +53,6 @@ void SpecificWorker::compute()
         qDebug() << "read frame";
    
         rgbd_proxy->getData(rgbMatrix,distanceMatrix, hState, bState);
-        qDebug() << rgbMatrix.size();
         
         Mat frame(480, 640, CV_8UC3,  &(rgbMatrix)[0]);
         imshow("3D viewer",frame);

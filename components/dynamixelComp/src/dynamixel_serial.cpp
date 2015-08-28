@@ -33,8 +33,8 @@ Dynamixel::~Dynamixel()
 
 void Dynamixel::initialize() throw (QString)
 {
-  QString device;
-  device = QString::fromStdString( busParams->device);
+  QString device = QString::fromStdString( busParams->device);
+  qDebug()<<"||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
   // Open and initialize the device
   port.setName( device );
 

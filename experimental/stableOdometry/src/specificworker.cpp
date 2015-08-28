@@ -117,6 +117,7 @@ void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, flo
 				float xC = 0.8 * bState.x + 0.2 * x;
 				float zC = 0.8 * bState.z + 0.2 * z;
 				float alphaC = 0.8 * bState.alpha + 0.2 * alpha;
+				// TODO: set correction or not
 				omnirobot_proxy->correctOdometer(x, z, alpha);
 				lastCGRUpdate = QTime::currentTime();
 			}

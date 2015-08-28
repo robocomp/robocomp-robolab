@@ -50,16 +50,16 @@ void Dynamixel::initialize() throw (QString)
 		for (dev = bus->devices; dev; dev = dev->next)
 		{
 			if(dev->descriptor.idVendor == 0x0403 and dev->descriptor.idProduct == 0x6001) counter++;
-		}		
+		}
 	}
 	if (counter == 2)  qDebug()<<"||  DYNAMIXEL::initialize -----> USB CONNECTED!!  ||";
 	else
 	{
-		if (counter > 0) counter--;			
+		if (counter > 0) counter--;
 		qDebug()<<"||  ERROR DYNAMIXEL::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
 		qFatal("Aborted");
 	}
-  
+
 	// 2) Open and initialize the device
 	port.setName( device );
 	if (port.open(device) == false)
@@ -69,7 +69,6 @@ void Dynamixel::initialize() throw (QString)
 		// 2) The USB is not connected
 		QString error;
 		QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device)); //contains FLAGS
-		
 		//Sacamos el flag de permiso de escritura de propietario. Si no es verdadero (0x2000) entonces no tenemos
 		//permiso para ejecutar el dynamixel en el puerto
 		if ( (p | QFile::WriteOwner) != true)
@@ -100,7 +99,7 @@ void Dynamixel::initialize() throw (QString)
 	port.setBaudRate( bRate ); //set the baudrate.
 	if(port.baudRate() != bRate ) qFatal("||  ERROR DYNAMIXEL::initialize!! ---> Error setting Baud Rate %d\n   ||", busParams->baudRate);
 	qDebug()<<"||  DYNAMIXEL::initialize -----> baudRate: "<<bRate<<", Valor"<<busParams->baudRate<<"   ||";
-	
+
 	//4) Create servos instances in a QMap indexed by name
 	for (int i = 0; i < busParams->numMotors; i++)
 	{
@@ -130,7 +129,7 @@ void Dynamixel::initialize() throw (QString)
 
 		std::cout << "JointMotor::Dynamixel::Dynamixel - Configuration data of motor " << params.name << std::endl;
 		///Set Status return level to 1.
-		// --> Level 0: no response ; 
+		// --> Level 0: no response ;
 		// --> Level 1: only for reading commands. Default ;
 		// --> Level 2: always
 		int level = 1;
@@ -209,7 +208,7 @@ void Dynamixel::initialize() throw (QString)
 		if (!usbCorrect)
 		{
 			qDebug()<<"Reset devices";
-			system("sh /home/robocomp/robocomp/components/robocomp-ursus/files/setDevices.sh");
+			system("sh /home/robocomp/robocomp/components/robocomp-ursus/files/setDynamixel.sh");
 			qDebug()<<"Reset devices OK";
 			qFatal("Please, relaunch dynamixel one more time");
 		}

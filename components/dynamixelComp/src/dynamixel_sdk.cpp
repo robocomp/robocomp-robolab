@@ -40,20 +40,30 @@ DynamixelSDK::DynamixelSDK(  RoboCompJointMotor::BusParams  *busParams , RoboCom
 DynamixelSDK::~DynamixelSDK()
 {
 }
-
+/**
+ * \brief INITIALIZE METHOD
+ */ 
 void DynamixelSDK::initialize() throw (QString)
-{
-	QString device;
-	device = QString::fromStdString( busParams->device);
+{	
 	//check device string to transform into integer
 	int deviceIndex = 0;
-	
-	if(busParams->device == "/dev/ttyUSB0")
-	      deviceIndex = 0;
-	else if(busParams->device == "/dev/ttyUSB1")
-	      deviceIndex = 1;
-
-	 qDebug()<<"device"<<device<<deviceIndex;
+	switch (busParams->device)
+	{
+		case "/dev/ttyUSB0":
+			deviceIndex = 0;
+			break;
+		case "/dev/ttyUSB1":
+			deviceIndex = 1;
+			break;
+		default:
+			//NOTE if dynamixel is not connected the program failed
+			qFatal("|| ERROR In Dynamixel_sdk initialize:   DEVICE NOT IN ttyUSB0 OR ttyUSB1!!   ||");
+			break;
+	}
+// 	if(busParams->device == "/dev/ttyUSB0")       deviceIndex = 0;
+// 	else if(busParams->device == "/dev/ttyUSB1")  deviceIndex = 1;
+// 	else qFatal("|| ERROR In Dynamixel_sdk initialize:   DEVICE NOT IN ttyUSB0 OR ttyUSB1!!   ||"); //NOTE if dynamixel is not connected the program failed
+	 qDebug()<<"|| DEVICE NAME: "<<QString::fromStdString(busParams->device)<<"      DEVICE INDEX: "<<deviceIndex<<"  ||";
 	
 ///FIXME Insert all posibles baudRate values	
 	int baudnum = 1;

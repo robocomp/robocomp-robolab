@@ -194,7 +194,7 @@ void Dynamixel::initialize() throw (QString)
 			
 			if (!usbCorrect)
 			{
-				system("sh /home/robocomp/robocomp/component/robocomp-ursus/files/setDevices.sh");
+				system("sh /home/robocomp/robocomp/components/robocomp-ursus/files/setDevices.sh");
 				usbCorrect = true;
 			}
 		}while(!usbCorrect);

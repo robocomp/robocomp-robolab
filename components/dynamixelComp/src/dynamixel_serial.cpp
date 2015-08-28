@@ -33,24 +33,41 @@ Dynamixel::~Dynamixel()
 
 void Dynamixel::initialize() throw (QString)
 {
-  QString device = QString::fromStdString( busParams->device);
-  qDebug()<<"||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
+	QString device = QString::fromStdString( busParams->device);
+	qDebug()<<"||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
 
-struct usb_bus *bus;
-struct usb_device *dev;
-usb_init();
-usb_find_busses();
-usb_find_devices();
-for (bus = usb_busses; bus; bus = bus->next)
-{
-	for (dev = bus->devices; dev; dev = dev->next)
+	// Identifiers of the FTDI (in order to identifie the usb with the dynamixel):
+	//---> 	ID_VENDOR  = 0x0403
+	//---> 	ID_PRODUCT = 0x6001
+	int counter = 0;
+	struct usb_bus    *bus;
+	struct usb_device *dev;
+	usb_init();
+	usb_find_busses();  //get the busses
+	usb_find_devices(); //get the devices
+	for (bus = usb_busses; bus; bus = bus->next)
 	{
-		printf("Trying device %s/%s\n", bus->dirname, dev->filename);
-		printf("\tID_VENDOR = 0x%04x\n", dev->descriptor.idVendor);
-		printf("\tID_PRODUCT = 0x%04x\n", dev->descriptor.idProduct);
+		for (dev = bus->devices; dev; dev = dev->next)
+		{
+			if(dev->descriptor.idVendor == 0403 and dev->descriptor.idProduct == 6001)
+			{
+				counter++;
+			}
+			printf("Trying device %s/%s\n", bus->dirname, dev->filename);
+			printf("\tID_VENDOR = 0x%04x\n", dev->descriptor.idVendor);
+			printf("\tID_PRODUCT = 0x%04x\n", dev->descriptor.idProduct);
+		}		
 	}
-}
-qFatal("Fary");
+	if (counter == 2)
+	{
+		qDebug()<<"Dynamixel connected!!";
+	}
+	else
+	{
+		if (counter > 0) {counter--;}			
+		qDebug()<<"Error with USB. Dynamixel locate "<<counter<<" times";
+	}
+	qFatal("Fary");
 
   
   

@@ -30,10 +30,8 @@
 #include <innermodel/innermodel.h>
 #include <mutex>
 
-#ifdef DEBUG
 #include <fstream>
 #include <math.h>
-#endif
 
 class SpecificWorker : public GenericWorker
 {
@@ -51,6 +49,10 @@ public slots:
 
 private:
 	QTime lastAprilUpdate, lastCGRUpdate;
+	
+	QVec lastPosition;
+	float distance;
+	float C;
 };
 
 #endif

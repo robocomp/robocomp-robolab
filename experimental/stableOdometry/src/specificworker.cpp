@@ -21,13 +21,14 @@
 /**
 * \brief Default constructor
 */
-ofstream fs("info.csv");
 
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	lastAprilUpdate = QTime::currentTime().addSecs(-1000);
 	lastCGRUpdate   = QTime::currentTime().addSecs(-1000); 
-	fs<<"id,time,x_base,z_base,alpha_base,x_april,z_april,alpha_april,x_cgr,z_cgr,alpha_cgr,x_error,z_error,alpha_error\n";
+// 	ofstream fs("info.csv", ios_base::out|ios_base::app);
+// 	fs<<"id,time,x_base,z_base,alpha_base,x_april,z_april,alpha_april,x_cgr,z_cgr,alpha_cgr,x_error,z_error,alpha_error\n";
+// 	fs.close();
 }
 
 /**
@@ -35,7 +36,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	fs.close();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -46,6 +46,27 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	QMutexLocker l(mutex);
+	static QTime lastDistanceUpdate;
+	static int lastX, lastZ;
+	int x, z;
+	float alpha;
+	
+	
+	if (distance<0)
+	{
+		distance = 0;
+		omnirobot_proxy->getBasePose(lastX, lastZ, alpha);
+	}
+
+	omnirobot_proxy->getBasePose(x, z, alpha);
+	int diffX = lastX - x;
+	int diffZ = lastZ - z;
+	float inc = sqrt(diffX*diffX + diffZ*diffZ);
+	printf("distance %f\n", distance);
+	distance += inc;
+	lastX = x;
+	lastZ = z;
 }
 
 
@@ -65,22 +86,8 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 	}
 }
 */
-#ifdef DEBUG
-void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
-{	
-	static int id=0;
 
-	RoboCompOmniRobot::TBaseState bState;
-	omnirobot_proxy->getBaseState(bState);
-	fs << id << ","<<lastAprilUpdate.elapsed()
-	<<","<< bState.x <<","<< bState.z << ","<< bState.alpha <<","<< x <<","<< z << ","<< alpha 
-	<<","<< bState.correctedX <<","<< bState.correctedZ << ","<< bState.correctedAlpha 
-	<<","<< fabs(bState.correctedX-x) <<","<< fabs(bState.correctedZ-z) << ","<< fabs(bState.correctedAlpha-alpha)<<"\n";
-	id++;
-	lastAprilUpdate = QTime::currentTime();
-}
 
-#else 
 void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 {
 	if (lastAprilUpdate.elapsed() > 1000)
@@ -92,20 +99,28 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 	}
 }
 
-#endif
 
 void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, float alpha)
 {
-	//if (lastAprilUpdate.elapsed() > 1000 + 2000)
-	//{
-	//	if (lastCGRUpdate.elapsed() > 1000)
+	if (lastAprilUpdate.elapsed() > 5000)
+	{
+		if (lastCGRUpdate.elapsed() > 1000)
 		{
-			printf("%f\n", poseCertainty);
-	//		if (poseCertainty > 0.4)
+// 			printf("%f\n", poseCertainty);
+			C = poseCertainty;
+			if (poseCertainty < 0.6)
 			{
+// 				omnirobot_proxy->correctOdometer(x, z, alpha);
+// 				lastCGRUpdate = QTime::currentTime();
+				RoboCompOmniRobot::TBaseState bState;
+				omnirobot_proxy->getBaseState(bState);
+				float xC = 0.8 * bState.x + 0.2 * x;
+				float zC = 0.8 * bState.z + 0.2 * z;
+				float alphaC = 0.8 * bState.alpha + 0.2 * alpha;
+				// TODO: set correction or not
 				omnirobot_proxy->correctOdometer(x, z, alpha);
 				lastCGRUpdate = QTime::currentTime();
 			}
 		}
-	//}
+	}
 }

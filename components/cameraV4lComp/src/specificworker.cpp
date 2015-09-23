@@ -25,7 +25,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	namedWindow("img",1);
+	//namedWindow("img",1);
 }
 
 /**
@@ -52,7 +52,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) 
 	{ qFatal("\nAborting. Error reading config params"); }
-
 	std::array<string, 6> list = { "0", "1", "2", "3", "4", "5" };
 	qDebug() << __FUNCTION__ << "Opening device:" << camParams.name.c_str();
 	if( camParams.name == "default")
@@ -62,7 +61,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	else
 		grabber.open(camParams.name);
 	
-	if(grabber.isOpened() == false)  // check if we succeeded
+
+if(grabber.isOpened() == false)  // check if we succeeded
 		qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
 	else
 		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
@@ -79,7 +79,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	Mat frame;
 	grabber >> frame; 		// get a new frame from camera
 	Size s = frame.size();
-	double rate = grabber.get(CV_CAP_PROP_FPS);
+	double rate = 30;//grabber.get(CV_CAP_PROP_FPS);
 	qDebug() << __FUNCTION__ << "Current frame size:" << s.width << "x" << s.height << ". RGB 8 bits format at" << rate << "fps";
 	camParams.colorWidth = s.width;
 	camParams.colorHeight = s.height;

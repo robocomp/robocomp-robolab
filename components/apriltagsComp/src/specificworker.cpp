@@ -290,9 +290,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
 		QVec T(3);
-		T(0) = -translation(1);
-		T(1) =  translation(2);
-		T(2) =  translation(0);
+		T(0) = -translation(1);//*0.65;
+		T(1) =  translation(2);//*0.65;
+		T(2) =  translation(0);//*0.65;
 
 		Eigen::Matrix3d F;
 		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
@@ -324,8 +324,8 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
-			detections2send[i]=t;
-			listaDeMarcas[i]=mar;
+		detections2send[i]=t;
+		listaDeMarcas[i]=mar;
 		mutex->unlock();
 	}
 

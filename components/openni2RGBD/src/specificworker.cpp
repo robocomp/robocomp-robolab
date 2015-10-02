@@ -73,8 +73,21 @@ void SpecificWorker::openDevice()
 
 void SpecificWorker::initializeStreams()
 {
+	openni::VideoMode mode;
+
 	if (!openStream(SENSOR_DEPTH, &depth)) qFatal("OPEN DEPTH STREAM FAILED!");
+	mode = depth.getVideoMode();
+	mode.setResolution(640, 480);
+	mode.setFps(20);
+	depth.setVideoMode(mode);
+
+
 	if (!openStream(SENSOR_COLOR, &color)) qFatal("OPEN COLOR STREAM FAILED!");
+	mode = color.getVideoMode();
+	mode.setResolution(640, 480);
+	mode.setFps(20);
+	color.setVideoMode(mode);
+
 
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();

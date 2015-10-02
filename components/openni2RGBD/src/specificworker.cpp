@@ -91,6 +91,7 @@ void SpecificWorker::initializeStreams()
 
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
+	printf("__ %d x %d __\n", IMAGE_WIDTH, IMAGE_HEIGHT);
 	
 	//RESIZE DOUBLE BUFFERS
 	pointsBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
@@ -154,7 +155,6 @@ void SpecificWorker::compute( )
 	readFrame();
 	computeCoordinates();
 	pointsBuff.swap();
-	depthBuff.swap();
         if (reloj.elapsed() > 1000)
         {
            qDebug()<<"Grabbing at:"<<fps/2<<"fps";
@@ -362,3 +362,5 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 {
 	pointsBuff.copy(points);
 }
+
+

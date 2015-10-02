@@ -118,6 +118,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	m_px = m_width/2;
 	m_py = m_height/2;
 
+	printf("w:%d   h:%d\n", m_width, m_height);
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
 
@@ -186,6 +187,8 @@ void SpecificWorker::compute()
 // 	}
 	printf("]\n");
 
+printf("%d\n", __LINE__);
+
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
 	{
@@ -205,14 +208,21 @@ void SpecificWorker::compute()
 	{
 		try
 		{
+printf("%d\n", __LINE__);
+
 			//For RGBD
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
+printf("%d\n", __LINE__);
 			rgbd_proxy->getRGB(colorseq, hState, bState);
+printf("%d  (%d, %d) %d=%d?\n", __LINE__, m_width, m_height, colorseq.size(), 640*480*3);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
+printf("%d\n", __LINE__);
 //			memset(image_color.data, 127, m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+printf("%d\n", __LINE__);
 			searchTags(image_gray);
+printf("%d\n", __LINE__);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -237,6 +247,7 @@ void SpecificWorker::compute()
 		qFatal("Input device not defined. Please specify one in the config file");
 	}
 
+printf("%d\n", __LINE__);
 
 	// print out the frame rate at which image frames are being processed
 	frame++;

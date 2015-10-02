@@ -138,7 +138,7 @@ void SpecificWorker::compute( )
 	static QTime reloj = QTime::currentTime();
 	readFrame();
 	computeCoordinates();
-	pointsBuff.swap();
+        pointsBuff.swap();
         if (reloj.elapsed() > 1000)
         {
            qDebug()<<"Grabbing at:"<<fps/2<<"fps";
@@ -171,7 +171,6 @@ void SpecificWorker::readFrame()
 		}
 	}
 }
-
 
 void SpecificWorker::readDepth()
 {

@@ -1,0 +1,26 @@
+
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  difodometrycamera.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/openni2.cmake)
+SET (LIBS ${LIBS} -losgViewer)
+
+
+FIND_PACKAGE( MRPT REQUIRED base gui opengl vision) # WARNING: Add all the MRPT libs used by your program: "gui", "obs", "slam",etc.
+LINK_LIBRARIES(visualodometryDIFODO ${MRPT_LIBS})
+
+
+ADD_DEFINITIONS( -std=c++14 )
+

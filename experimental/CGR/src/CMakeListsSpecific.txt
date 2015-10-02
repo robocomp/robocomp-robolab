@@ -1,0 +1,30 @@
+find_package(Lua52)
+if(NOT LUA52_FOUND)
+	find_package(Lua51 REQUIRED)
+	MESSAGE(WARNING "-- Lua5.2 NOT found --> Using Lua5.1")
+endif()
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  vector_map.cpp
+  terminal_utils.cpp
+  vectorparticlefilter.cpp
+  gvector.cpp
+  watch_files.cpp
+  configreader.cpp
+  innermodeldraw.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+set (SPECIFIC_LIBS ${LUA_LIBRARIES} -losgViewer -losgDB)
+
+ADD_DEFINITIONS( -std=c++11 -msse4.1 -mmmx -msse -msse2)
+

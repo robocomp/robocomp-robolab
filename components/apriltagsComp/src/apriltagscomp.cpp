@@ -126,7 +126,6 @@ int AprilTagsComp::run(int argc, char* argv[])
 
 	initialize();
 
-
 	try
 	{
 		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("CameraProxy") ) );
@@ -138,6 +137,7 @@ int AprilTagsComp::run(int argc, char* argv[])
 	}
 	rInfo("CameraProxy initialized Ok!");
 	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
+
 	try
 	{
 		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("RGBDProxy") ) );
@@ -147,6 +147,7 @@ int AprilTagsComp::run(int argc, char* argv[])
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
+
 	rInfo("RGBDProxy initialized Ok!");
 	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
 	try
@@ -160,10 +161,27 @@ int AprilTagsComp::run(int argc, char* argv[])
 	}
 	rInfo("RGBDBusProxy initialized Ok!");
 	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);
-	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+
+	IceStorm::TopicManagerPrx topicManager;
+
+	while (true)
+	{
+		try
+		{
+			topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+			break;
+		}
+		catch(...)
+		{
+			printf("TopicManager.Proxy not available yet. Sleeping...\n");
+			sleep(1);
+		}
+	}
 	
 	IceStorm::TopicPrx apriltags_topic;
-    while (!apriltags_topic)
+
+	while (!apriltags_topic)
 	{
 		try
 		{
@@ -179,12 +197,15 @@ int AprilTagsComp::run(int argc, char* argv[])
 				// Another client created the topic.
 			}
 		}
+		printf("Topic not available yet. Sleeping...\n");
+		sleep(1);
 	}
+
 	Ice::ObjectPrx apriltags_pub = apriltags_topic->getPublisher()->ice_oneway();
 	AprilTagsPrx apriltags = AprilTagsPrx::uncheckedCast(apriltags_pub);
 	mprx["AprilTagsPub"] = (::IceProxy::Ice::Object*)(&apriltags);
-	
 	GenericWorker *worker = new SpecificWorker(mprx);
+	
 	//Monitor thread
 	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));

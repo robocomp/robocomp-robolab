@@ -23,8 +23,10 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-    innerModel = new InnerModel("world.xml");
-  
+    innerModel = new InnerModel("etc/world.xml");
+    
+	    
+
 //     PlaneFilter::PlaneFilterParams filterParams;
 //     filterParams.maxPoints = 2000;
 //     filterParams.numSamples = 10000;
@@ -41,6 +43,26 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 //     filterParams.runPolygonization = false;
 //     filterParams.minConditionNumber = 0.1;
     
+//     PlaneFilter::PlaneFilterParams filterParams;
+//     
+//     filterParams.maxPoints = 2000;
+//     filterParams.numSamples = 20000;    
+//     filterParams.numLocalSamples = 80;
+//     filterParams.planeSize = 500;
+//     filterParams.WorldPlaneSize = 20;
+//     filterParams.minInlierFraction = 0.8;
+//     
+//     filterParams.maxError = 10;
+//     filterParams.numRetries = 2;
+//   
+//     filterParams.maxDepthDiff = 1800;
+//     
+//     
+//     // Parameters for polygonization
+//     filterParams.runPolygonization = false;
+//     filterParams.minConditionNumber = 0.1;
+    
+    
     PlaneFilter::PlaneFilterParams filterParams;
     
     filterParams.maxPoints = 2000;
@@ -53,21 +75,12 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     filterParams.maxError = 20;
     filterParams.numRetries = 2;
   
-    
     filterParams.maxDepthDiff = 1800;
-    
-    
-    
     
     
     // Parameters for polygonization
     filterParams.runPolygonization = false;
     filterParams.minConditionNumber = 0.1;
-    
-    
-    
-    
-    
     
     
     
@@ -91,7 +104,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     innerModelViewer = new InnerModelViewer(innerModel, "root", osgView->getRootGroup());
     
     imvPointCloud = innerModelViewer->pointCloudsHash["cloud"];
-      
+
 }
 
 /**
@@ -102,18 +115,7 @@ SpecificWorker::~SpecificWorker()
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
-{
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//
-// 	try
-// 	{
-// 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-// 		innermodel_path=par.value;
-// 		innermodel = new InnerModel(innermodel_path);
-// 	}
-// 	catch(std::exception e) { qFatal("Error reading config params"); }
-	
-	
+{	
 	timer.start(0);
 	return true;
 }
@@ -129,15 +131,15 @@ void SpecificWorker::compute()
 		static RoboCompJointMotor::MotorStateMap hState;
 		
  		rgbd_proxy->getXYZ(points, hState, bState);
-		//updatePointCloud(points);
 		
 		vector< vector3f > filteredPointCloud, pointCloudNormals, outlierCloud;
 		vector< vector2i > pixelLocs;
 		vector< PlanePolygon > polygons;
 		
 		planeFilter->GenerateFilteredPointCloud(points, filteredPointCloud, pixelLocs, pointCloudNormals, outlierCloud, polygons);
+
+		updatePointCloud2(filteredPointCloud,polygons);
 		qDebug() << points.size() << filteredPointCloud.size() << outlierCloud.size();
-		updatePointCloud2(filteredPointCloud);
 
  	}
  	catch(const Ice::Exception &e)
@@ -145,9 +147,9 @@ void SpecificWorker::compute()
  		std::cout << "Error reading from Camera" << e << std::endl;
  	}
  	 	
- 	innerModelViewer->update();
-	osgView->autoResize();
-	osgView->frame();
+  	innerModelViewer->update();
+ 	osgView->autoResize();
+ 	osgView->frame();
 
 	co++;
 	if( reloj.elapsed() > 1000)
@@ -171,7 +173,7 @@ void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
 	
 	for (size_t i = 0; i < points.size (); i+=4)
 	{
-		osg::Vec3f p = QVecToOSGVec( m * QVec::vec4(points[i].x, points[i].y, points[i].z,1.f));
+		osg::Vec3f p = QVecToOSGVec( m * QVec::vec4(points[i].x, 10/*points[i].y*/, points[i].z,1.f));
 		imvPointCloud->points->push_back(p);
 		imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
 
@@ -179,11 +181,94 @@ void SpecificWorker::updatePointCloud(const RoboCompRGBD::PointSeq &points)
 	imvPointCloud->update();
 }
 
-void SpecificWorker::updatePointCloud2( const vector< vector3f > &points)
+bool SpecificWorker::addPlane_notExisting(InnerModelViewer *innerViewer, const QString &item, const QString &base, const QVec &p, const QVec &n, const QString &texture, const QVec &size)
 {
+	InnerModelNode *parent = innerViewer->innerModel->getNode(base);
+	if (parent == NULL)
+	{
+		printf("%s: parent not exists\n", __FUNCTION__);
+		return false;
+	}
+	
+	try
+	{
+	  InnerModelPlane *plane = innerViewer->innerModel->newPlane(item, parent, texture, size(0), size(1), size(2), 1, n(0), n(1), n(2), p(0), p(1), p(2));
+	  parent->addChild(plane);
+	  
+	  innerViewer->recursiveConstructor(plane, innerViewer->mts[parent->id], innerViewer->mts, innerViewer->meshHash);
+
+	}
+	catch (QString err)
+	{
+		printf("%s:%s:%d: Exception: %s\n", __FILE__, __FUNCTION__, __LINE__, err.toStdString().c_str());
+		throw;
+	}		
+	return true;
+}
+
+
+bool SpecificWorker::removeNode(InnerModelViewer *innerViewer, const QString &item)
+{
+	if (item=="floor")
+	{
+		qDebug() << "Can't remove root elements" << item;
+		return false;
+	}
+
+	InnerModelNode *node = innerViewer->innerModel->getNode(item);
+	if (node == NULL)
+	{
+		qDebug() << "Can't remove not existing elements" << item;
+		return false;
+	}
+
+	QStringList l;
+	innerViewer->innerModel->getSubTree(node, &l);
+	innerViewer->innerModel->removeSubTree(node, &l);
+
+	/// Replicate InnerModel node removals in the InnerModelViewer tree. And in handlers Lists
+	foreach(QString n, l)
+	{
+		/// Replicate mesh removals
+		if (innerViewer->meshHash.contains(n))
+		{
+			while (innerViewer->meshHash[n].osgmeshPaths->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshPaths->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshPaths);			
+			while(innerViewer->meshHash[n].osgmeshes->getNumParents() > 0)
+				innerViewer->meshHash[n].osgmeshes->getParent(0)->removeChild(innerViewer->meshHash[n].osgmeshes);
+			while(innerViewer->meshHash[n].meshMts->getNumParents() > 0)	
+				innerViewer->meshHash[n].meshMts->getParent(0)->removeChild(innerViewer->meshHash[n].meshMts);			
+			innerViewer->meshHash.remove(n);
+		}
+		/// Replicate transform removals
+		if (innerViewer->mts.contains(n))
+		{
+ 			while (innerViewer->mts[n]->getNumParents() > 0)
+				innerViewer->mts[n]->getParent(0)->removeChild(innerViewer->mts[n]);
+ 			innerViewer->mts.remove(n);
+		}
+		/// Replicate plane removals
+		if (innerViewer->planeMts.contains(n))
+		{
+			while(innerViewer->planeMts[n]->getNumParents() > 0)
+				((osg::Group *)(innerViewer->planeMts[n]->getParent(0)))->removeChild(innerViewer->planeMts[n]);
+			innerViewer->planeMts.remove(n);
+			innerViewer->planesHash.remove(n);
+		}
+		
+	}
+
+	return true;
+}
+
+void SpecificWorker::updatePointCloud2( const vector< vector3f > &points,vector< PlanePolygon > polygons)
+{
+     // TODO draw polygons.
 	imvPointCloud->points->clear();
 	imvPointCloud->colors->clear();
-	
+
+
+
 	QMat m = innerModel->getTransformationMatrix("world","rgbd");
 	
 	for (size_t i = 0; i < points.size (); i++)
@@ -192,15 +277,6 @@ void SpecificWorker::updatePointCloud2( const vector< vector3f > &points)
 		imvPointCloud->points->push_back(p);
 		imvPointCloud->colors->push_back( osg::Vec4( 1.,  0.,  0.,  1 ) );
 	}
-	imvPointCloud->update();
+	imvPointCloud->update();	
 }
-
-
-
-
-
-
-
-
-
 

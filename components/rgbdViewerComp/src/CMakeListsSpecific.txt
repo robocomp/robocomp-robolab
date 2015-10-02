@@ -1,0 +1,21 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv2.cmake)
+
+
+ADD_DEFINITIONS( -std=c++11 )
+

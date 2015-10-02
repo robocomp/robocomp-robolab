@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/Laser.idsl";
+
+Component sickLaser
+{
+	Communications
+	{
+		implements Laser;
+	};
+	language Cpp;
+};
+

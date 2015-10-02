@@ -1,14 +1,22 @@
-```
-```
-#
-``` openNI2Comp
-```
-Intro to component here
+#openNI2RGBDComp
 
+This component provides accest to a Xtion or Kinect device through the OpenNI2 driver.
+
+You can download a versión of OpenNI2.2 for Ubuntu x64 from:
+    
+    https://github.com/mhaut/openni2
+    
+and execute with sudo de *install.sh* script to copy the relevant files to */usr*
+
+or you can compile the whole library for Ubuntu x64 downloading de sources from:     
+
+    https://github.com/mhaut/openni2/blob/master/Packaging/Final/OpenNI-Linux-x64-2.2.tar.bz2
+
+Check that the include files and .so libraries are correctly copied to /usr or /usr/local
 
 ## Configuration parameters
 As any other component,
-``` *openNI2Comp* ```
+``` *openNI2RGBDComp* ```
 needs a configuration file to start. In
 
     etc/config
@@ -23,14 +31,13 @@ To avoid changing the *config* file in the repository, we can copy it to the com
 
     cd
 
-``` <openNI2Comp 's path> ```
+``` <openNI2RGBDComp 's path> ```
 
     cp etc/config config
     
 After editing the new config file we can run the component:
 
-    bin/
+    bin/openNI2RGBDComp --Ice.Config=config
 
-```openNI2Comp ```
 
-    --Ice.Config=config
+

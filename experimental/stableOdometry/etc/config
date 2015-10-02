@@ -1,0 +1,23 @@
+CommonBehavior.Endpoints=tcp -p 15542
+
+
+# Endpoints for subscriptions
+AprilBasedLocalizationTopic.Endpoints=tcp -p 12342
+CGRTopicTopic.Endpoints=tcp -p 14112
+
+
+# Proxies for required interfaces
+CGRProxy = cgr:tcp -h localhost -p 15445
+OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
+
+
+This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -h robonuc1.local -p 9999
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+

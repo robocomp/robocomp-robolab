@@ -33,57 +33,82 @@ Dynamixel::~Dynamixel()
 
 void Dynamixel::initialize() throw (QString)
 {
-  QString device;
-  device = QString::fromStdString( busParams->device);
-  // Open and initialize the device
-  port.setName( device );
+	QString device = QString::fromStdString( busParams->device);
+	qDebug()<<"\n\n||  DYNAMIXEL::initialize -----> DEVICE: "<<device<<"   ||";
 
-  if ( port.open(device) == false)
-  {
-	QString error;
-	QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device));
-	if ( (p | QFile::WriteOwner) != true)
-		error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString(busParams->device) +
-					  " could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +
-					  QString::fromStdString( busParams->device ) + "'";
+	// 1) Identifiers of the FTDI (in order to identifie the usb with the dynamixel):
+	//---> 	ID_VENDOR  = 0x0403
+	//---> 	ID_PRODUCT = 0x6001
+	int counter = 0;
+	struct usb_bus    *bus;
+	struct usb_device *dev;
+	usb_init();
+	usb_find_busses();  //get the busses
+	usb_find_devices(); //get the devices
+	for (bus = usb_busses; bus; bus = bus->next)
+	{
+		for (dev = bus->devices; dev; dev = dev->next)
+		{
+			if(dev->descriptor.idVendor == 0x0403 and dev->descriptor.idProduct == 0x6001) counter++;
+		}
+	}
+	if (counter == 2)  qDebug()<<"||  DYNAMIXEL::initialize -----> USB CONNECTED!!  ||";
 	else
-	  error = "JointMotor::Dynamixel::initialize() - Port " + QString::fromStdString( busParams->device ) +
-			  " could not be opened. Please check file permissions";
-	throw error;
-  }
+	{
+		if (counter > 0) counter--;
+		qDebug()<<"||  ERROR DYNAMIXEL::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
+		qFatal("Aborted");
+	}
 
-	//Setting baudrate
+	// 2) Open and initialize the device
+	port.setName( device );
+	if (port.open(device) == false)
+	{
+		//The Dynamixel device failed because:
+		// 1) You don't have the necessary permissions
+		// 2) The USB is not connected
+		QString error;
+		QFile::Permissions p = QFile::permissions(QString::fromStdString(busParams->device)); //contains FLAGS
+		//Sacamos el flag de permiso de escritura de propietario. Si no es verdadero (0x2000) entonces no tenemos
+		//permiso para ejecutar el dynamixel en el puerto
+		if ( (p | QFile::WriteOwner) != true)
+			error = "||  ERROR DYNAMIXEL::initialize ---> Port " + QString::fromStdString(busParams->device) +
+					" could not be opened. You don't have write permission on the device. Try 'sudo chmod 777 " +
+					QString::fromStdString( busParams->device ) + "'   ||";
+		else
+			error = "||  ERROR DYNAMIXEL::initialize ---> Port " + QString::fromStdString( busParams->device ) +
+					" could not be opened. Please check file permissions   ||";
+		throw error;
+	}
+
+	// 3) Setting baudrate
 	QSerialPort::_BaudRateType bRate;
 	switch ( busParams->baudRate )
 	{
-		case 2400:  bRate = QSerialPort::BAUD2400 ; break;
-		case 4800:  bRate = QSerialPort::BAUD4800 ; break;
-		case 9600:  bRate = QSerialPort::BAUD9600 ; break;
-		case 19200:  bRate = QSerialPort::BAUD19200 ; break;
-		case 38400:  bRate = QSerialPort::BAUD38400 ; break;
-		case 57600:  bRate = QSerialPort::BAUD57600 ; break;
-		case 76800:  bRate = QSerialPort::BAUD76800 ; break;
+		case 2400:    bRate = QSerialPort::BAUD2400 ;   break;
+		case 4800:    bRate = QSerialPort::BAUD4800 ;   break;
+		case 9600:    bRate = QSerialPort::BAUD9600 ;   break;
+		case 19200:   bRate = QSerialPort::BAUD19200 ;  break;
+		case 38400:   bRate = QSerialPort::BAUD38400 ;  break;
+		case 57600:   bRate = QSerialPort::BAUD57600 ;  break;
+		case 76800:   bRate = QSerialPort::BAUD76800 ;  break;
 		case 115200:  bRate = QSerialPort::BAUD115200 ; break;
 		case 230400:  bRate = QSerialPort::BAUD230400 ; break;
-		default: bRate = QSerialPort::BAUD115200 ; break;
+		default:      bRate = QSerialPort::BAUD115200 ; break;
 	}
-	port.setBaudRate( bRate );
-	if(port.baudRate() != bRate )
-		qFatal("JointMotor::Dynamixel::initialize() - Error setting Baud Rate %d\n", busParams->baudRate);
+	port.setBaudRate( bRate ); //set the baudrate.
+	if(port.baudRate() != bRate ) qFatal("||  ERROR DYNAMIXEL::initialize!! ---> Error setting Baud Rate %d\n   ||", busParams->baudRate);
+	qDebug()<<"||  DYNAMIXEL::initialize -----> baudRate: "<<bRate<<", Valor"<<busParams->baudRate<<"   ||";
 
-	qDebug()<<"baudRate"<<bRate<<"valor"<<busParams->baudRate;
-  //Create servos instances in a QMap indexed by name
+	//4) Create servos instances in a QMap indexed by name
 	for (int i = 0; i < busParams->numMotors; i++)
 	{
 		std::cout << "JointMotor::Dynamixel::Dynamixel - name " <<params->operator[](i).name<< std::endl;
 		QString name = QString::fromStdString(params->operator[](i).name);
 		motors[name] = new Servo( params->operator[](i) );
 		//steps_range , max_degrees, steps_speed_range, max_speed_rads  ¿¿Deberían venir en los parámetros?
-		
 		// Fixed the max velocity motor to 12 rad/s to get the desired velocity from the config file (maxSpeed in Rad/s)
 		motors[name]->setMotorRanges(params->operator[](i).stepsRange,params->operator[](i).maxDegrees, 1024, 12);
-		//motors[name]->setMotorRanges(params->operator[](i).stepsRange,params->operator[](i).maxDegrees, 1024, params->operator[](i).maxVelocity);
-		
 	}
 
 	std::cout << "JointMotor::Dynamixel::Dynamixel - Motor Map created with " << busParams->numMotors << " motors: " << std::endl;
@@ -93,29 +118,30 @@ void Dynamixel::initialize() throw (QString)
 	}
 
 	//Initialize class variables
-	bzero(packet, MAX_LENGTH_PACKET);
+	bzero(packet, MAX_LENGTH_PACKET); //The bzero() function sets the first n bytes of the area starting at s to zero (bytes containing '\0').
 	packet[0]=0xFF;
 	packet[1]=0xFF;
-
 	//Initialize motor params
-	foreach( Servo *s, motors.values() )
+	foreach( Servo *servo, motors.values() )
 	{
-		Servo::TMotorData &data = s->data;
-		RoboCompJointMotor::MotorParams &params = s->params;
+		Servo::TMotorData               &data   = servo->data;
+		RoboCompJointMotor::MotorParams &params = servo->params;
 
 		std::cout << "JointMotor::Dynamixel::Dynamixel - Configuration data of motor " << params.name << std::endl;
-		///Set Status return level to 1. Level 0: no response ; Level 1: only for reading commands. Default ; Level 2: always
+		///Set Status return level to 1.
+		// --> Level 0: no response ;
+		// --> Level 1: only for reading commands. Default ;
+		// --> Level 2: always
 		int level = 1;
 		setStatusReturnLevel(params.busId, level);
 		getStatusReturnLevel(params.busId, level);
-		qDebug() << "	Status return level: " << level;
 
 		//set specific parameters
 	    setPunch(params.busId, 32);
 		setBothComplianceMargins(params.busId, 1);
 		setBothComplianceSlopes(params.busId, 20);
 
-		
+		bool usbCorrect = true;
 		///Return delay time
 		int rt = 50;
 		if (setReturnDelayTime( params.busId, rt) == true and getReturnDelayTime( params.busId, rt) == true)
@@ -123,8 +149,10 @@ void Dynamixel::initialize() throw (QString)
 			qDebug() << "	Return delay time: " << rt;
 		}
 		else
+		{
 			qDebug() << "Error setting delay time";
-
+			usbCorrect = false;
+		}
 		///Control params
 		int m;
 		if (getPunch( params.busId, m ) == true)
@@ -132,42 +160,64 @@ void Dynamixel::initialize() throw (QString)
 			qDebug() << "	Punch: " << m;
 		}
 		else
+		{
 			qDebug() << "Error reading Punch";
+			usbCorrect = false;
+		}
 
 		if (getCCWComplianceMargin( params.busId, m ) == true)
 		{
 			qDebug() << "	CCWComplianceMargin: " << m;
 		}
 		else
+		{
 			qDebug() << "Error reading CCWComplianceMargin";
+			usbCorrect = false;
+		}
 
 		if (getCWComplianceMargin( params.busId, m ) == true)
 		{
 			qDebug() << "	CWComplianceMargin: " << m;
 		}
 		else
+		{
 			qDebug() << "Error reading CWComplianceMargin";
+			usbCorrect = false;
+		}
 		if (getCCWComplianceSlope( params.busId, m ) == true)
 		{
 			qDebug() << "	CCWComplianceSlope: " << m;
 		}
 		else
+		{
 			qDebug() << "Error reading CCWComplianceSlope";
+			usbCorrect = false;
+		}
 
 		if (getCWComplianceSlope( params.busId, m ) == true)
 		{
 			qDebug() << "	CWComplianceSlope: " << m;
 		}
 		else
+		{
 			qDebug() << "Error reading CWComplianceSlope";
-
+			usbCorrect = false;
+		}
+		
+		if (!usbCorrect)
+		{
+			qDebug()<<"Reset devices";
+			system("sh /home/robocomp/robocomp/components/robocomp-ursus/files/setDynamixel.sh");
+			qDebug()<<"Reset devices OK";
+			qFatal("Please, relaunch dynamixel one more time");
+		}
 
 		///Read current position
 		float p;
 		getPosition(QString::fromStdString(params.name), p );
 		data.currentPosRads  = p;
 		data.antPosRads = p;
-		data.currentPos = s->rads2Steps(p);
+		data.currentPos = servo->rads2Steps(p);
 		qDebug() << "	Current position (steps): " << data.currentPos;
 		qDebug() << "	Current position (rads): " << data.currentPosRads;
 
@@ -189,9 +239,9 @@ void Dynamixel::initialize() throw (QString)
 		}
 		
 		getMaxPosition( QString::fromStdString(params.name), p);
-		qDebug() << "	Max position (nominal/steps/rads): " << params.maxPos << s->steps2Rads(p);
+		qDebug() << "	Max position (nominal/steps/rads): " << params.maxPos << servo->steps2Rads(p);
 		getMinPosition( QString::fromStdString(params.name), p);
-		qDebug() << "	Min position (nominal/steps/rads): " << params.minPos << s->steps2Rads(p);
+		qDebug() << "	Min position (nominal/steps/rads): " << params.minPos << servo->steps2Rads(p);
 
 		///set servos to maximum speed
 		data.maxVelocityRads = params.maxVelocity;
@@ -294,7 +344,7 @@ void Dynamixel::printPacket(char *packet)
 {
 	int pars = packet[3]-2;
 
- 	printf( "%d %d %d %d %d ",(uchar)packet[0],(uchar)packet[1],(uchar)packet[2],(uchar)packet[3],(uchar)packet[4]);
+ 	printf( "PrintPacket: %d %d %d %d %d ",(uchar)packet[0],(uchar)packet[1],(uchar)packet[2],(uchar)packet[3],(uchar)packet[4]);
 	for(int i=5; i< 5+pars;i++)
 	{
 		printf(" %d ",(uchar)packet[i]);
@@ -938,38 +988,46 @@ bool Dynamixel::getReturnDelayTime( uchar motor, int & t)
 
   return false;
 }
-
+/**
+ * \brief GET STATUS RETURN LEVEL
+ * @param motor bus identification
+ * @param level the level of the motor status
+ */ 
 bool Dynamixel::getStatusReturnLevel(uchar motor,  int &level)
 {
-	packet[2]=motor;
-	packet[3]=0x04;
-	packet[4]=READ_DATA;
-	packet[5]=0x10;
-	packet[6]=0x01;
-	packet[7]=checkSum(packet);
+	packet[2] = motor;
+	packet[3] = 0x04;
+	packet[4] = READ_DATA;
+	packet[5] = 0x10;
+	packet[6] = 0x01;  //level??
+	packet[7] = checkSum(packet);
 
-	if ( sendIPacket(packet, 8) == true and getSPacket() == true)
+	if(sendIPacket(packet, 8) == true and getSPacket() == true)
 	{
-	  level = status[5];
-	  return true;
+		level = status[5];
+		return true;
 	}
 	else
-	  return false;
+		return false;
 }
-
+/**
+ * \brief SET STATUS RETURN LEVEL
+ * @param motor bus identification
+ * @param level the level of the motor status
+ */ 
 bool Dynamixel::setStatusReturnLevel(uchar motor,  int &level)
 {
-	packet[2]=motor;
-	packet[3]=0x04;
-	packet[4]=WRITE_DATA;
-	packet[5]=0x10;
-	packet[6]=level;
-	packet[7]=checkSum(packet);
+	packet[2] = motor;
+	packet[3] = 0x04;
+	packet[4] = WRITE_DATA;
+	packet[5] = 0x10;
+	packet[6] = level;
+	packet[7] = checkSum(packet);
 
-	if( sendIPacket(packet, 8) == true)
-	  return true;
-	else
-	  return false;
+	if(sendIPacket(packet, 8) == true) 
+		return true;
+	else                              
+		return false;
 }
 bool Dynamixel::getTemperature(const QString &motor,int &temperature)
 {

@@ -46,14 +46,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("InputInterface");
 		if (par.value == "RGBD")
 		{
+			printf("INTERFACE RGBD selected\n");
 			INPUTIFACE = RGBD;
 		}
 		else if ( par.value == "RGBDBus")
 		{
+			printf("INTERFACE RGBDBus selected\n");
 			INPUTIFACE = RGBDBus;
 		}
 		else if ( par.value == "Camera")
 		{
+			printf("INTERFACE Camera selected\n");
 			INPUTIFACE = Camera;
 			try
 			{
@@ -115,12 +118,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	m_px = m_width/2;
 	m_py = m_height/2;
 
+	printf("w:%d   h:%d\n", m_width, m_height);
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
 
 	innermodel = new InnerModel(innermodel_path);
- 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
-  	m_fy = innermodel->getCameraFocal(camera_name.c_str());
+	m_fx = innermodel->getCameraFocal(camera_name.c_str());
+	m_fy = innermodel->getCameraFocal(camera_name.c_str());
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
 	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
@@ -130,7 +134,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
-		Q_ASSERT(par.value > 0 and par.value < 500);
+		qDebug() << "ID:0-10" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
 		for(int i=0;i<=10; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
@@ -139,24 +144,33 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
-		Q_ASSERT(par.value > 0 and par.value < 500);
+		qDebug() << "ID:11-20" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
 		for(int i=11;i<=20; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
+			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 	try
 	{
-		RoboCompCommonBehavior::Parameter par = params.at("ID:21-30");
-		Q_ASSERT(par.value > 0 and par.value < 500);
-		for(int i=21;i<=30; i++)
-			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
+		RoboCompCommonBehavior::Parameter par = params.at("ID:21-100");
+		qDebug() << "ID:21-100" << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
+		for(int i=21;i<=100; i++)
+			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
-	//DONE
 
-	//Default value for IDs not defined before
+	// Default value for IDs not defined before
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
+		qDebug() << QString::fromStdString(par.value);
+		Q_ASSERT(par.value > 0);
+		m_tagSize = QString::fromStdString(par.value).toFloat();
+	}
+	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 	return true;
 }
@@ -165,6 +179,15 @@ void SpecificWorker::compute()
 {
 	static int frame = 0;
 	static double last_t = tic();
+
+	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
+// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
+// 	{
+// 		printf("%d:%f ", it.key(), it.value());
+// 	}
+	printf("]\n");
+
+printf("%d\n", __LINE__);
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -185,13 +208,21 @@ void SpecificWorker::compute()
 	{
 		try
 		{
+printf("%d\n", __LINE__);
+
 			//For RGBD
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
+printf("%d\n", __LINE__);
 			rgbd_proxy->getRGB(colorseq, hState, bState);
+printf("%d  (%d, %d) %d=%d?\n", __LINE__, m_width, m_height, colorseq.size(), 640*480*3);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
+printf("%d\n", __LINE__);
+//			memset(image_color.data, 127, m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+printf("%d\n", __LINE__);
 			searchTags(image_gray);
+printf("%d\n", __LINE__);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -200,13 +231,23 @@ void SpecificWorker::compute()
 	}
 	else if( INPUTIFACE == RGBDBus)
 	{
-		qFatal("Support for RGBDBus is not implemented yet!");
+		RoboCompRGBDBus::ImageMap images;
+		CameraList cameraList;
+		cameraList.push_back(std::string("default"));
+		rgbdbus_proxy->getImages(cameraList, images);
+		for (auto i : images)
+		{
+			memcpy(image_color.data , &i.second.colorImage[0], m_width*m_height*3);
+			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+			searchTags(image_gray);
+		}
 	}
 	else
 	{
 		qFatal("Input device not defined. Please specify one in the config file");
 	}
 
+printf("%d\n", __LINE__);
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
@@ -228,15 +269,9 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
  	cout << detections.size() << " tags detected:" << endl;
 
 	print_detection(detections);
-//
-// 	if (m_draw)
-// 	{
-// 		for (uint i=0; i<detections.size(); i++)
-// 		{
-// 			detections[i].draw(image_gray);
-// 		}
-// 		//imshow("AprilTags", image_gray); // OpenCV call
-//	}
+
+//imshow("AprilTags", image_gray); // OpenCV call
+//cv::waitKey(1);
 
 }
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)
@@ -266,9 +301,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
 		QVec T(3);
-		T(0) = -translation(1);
-		T(1) =  translation(2);
-		T(2) =  translation(0);
+		T(0) = -translation(1);//*0.65;
+		T(1) =  translation(2);//*0.65;
+		T(2) =  translation(0);//*0.65;
 
 		Eigen::Matrix3d F;
 		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
@@ -277,7 +312,9 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
- 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+ 		
+		cout << m_fx << "  " << m_fy << endl;
+		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in
@@ -298,8 +335,8 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
-			detections2send[i]=t;
-			listaDeMarcas[i]=mar;
+		detections2send[i]=t;
+		listaDeMarcas[i]=mar;
 		mutex->unlock();
 	}
 
@@ -373,3 +410,6 @@ listaMarcas SpecificWorker::checkMarcas()
   QMutexLocker locker(mutex);
   return  listaDeMarcas;
 }
+
+
+

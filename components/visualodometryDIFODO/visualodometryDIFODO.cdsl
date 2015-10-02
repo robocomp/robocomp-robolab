@@ -1,0 +1,13 @@
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component visualodometryDIFODO
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+
+};
+

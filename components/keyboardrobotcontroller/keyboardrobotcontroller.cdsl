@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/DifferentialRobot.idsl";
+
+Component keyboardrobotcontroller
+{
+	Communications
+	{
+		requires DifferentialRobot;
+	};
+	language Python;
+};
+

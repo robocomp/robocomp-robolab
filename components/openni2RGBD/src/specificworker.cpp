@@ -36,6 +36,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
+	
 	///INICIALIZACION ATRIBUTOS PARA PINTAR
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
@@ -77,9 +78,11 @@ void SpecificWorker::initializeStreams()
 
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
+	printf("__ %d x %d __\n", IMAGE_WIDTH, IMAGE_HEIGHT);
 	
-	//RESIZE POINTMAP
+	//RESIZE DOUBLE BUFFERS
 	pointsBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+	depthBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 
 	depthBuffer = new vector<float>(IMAGE_WIDTH*IMAGE_HEIGHT);
 	colorBuffer = new vector<ColorRGB>(IMAGE_WIDTH*IMAGE_HEIGHT*3);
@@ -138,7 +141,7 @@ void SpecificWorker::compute( )
 	static QTime reloj = QTime::currentTime();
 	readFrame();
 	computeCoordinates();
-        pointsBuff.swap();
+	pointsBuff.swap();
         if (reloj.elapsed() > 1000)
         {
            qDebug()<<"Grabbing at:"<<fps/2<<"fps";
@@ -180,7 +183,6 @@ void SpecificWorker::readDepth()
 		printf("Read depth failed!\n%s\n", OpenNI::getExtendedError());
 		return;
 	}
-
 	if (depthFrame.getVideoMode().getPixelFormat() != PIXEL_FORMAT_DEPTH_1_MM && depthFrame.getVideoMode().getPixelFormat() != PIXEL_FORMAT_DEPTH_100_UM)
 	{
 		printf("Unexpected depth frame format\n");
@@ -228,7 +230,11 @@ void SpecificWorker::computeCoordinates()
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
 		{
 			const int offset = y*IMAGE_WIDTH + x;
-			const float z = float(pixDepth[offset]) / 1000.0;
+			
+			//Copy to depth doublebuffer
+			depthBuff[offset] = pixDepth[offset];
+			
+			const float z = float(pixDepth[offset]) / 1000.0;  // ESTO SE PUEDE QUITAR
 		
 			if( z < 0.1 ) 
 			{
@@ -329,9 +335,7 @@ void SpecificWorker::getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points
 
 void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState )
 {
-	depthMutex->lock();
-	depth=*depthBuffer;
-	depthMutex->unlock();
+	depthBuff.copy(depth);
 }
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
@@ -343,6 +347,7 @@ void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &
 
 void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
-	//QMutexLocker l(pointsMutex);
 	pointsBuff.copy(points);
 }
+
+

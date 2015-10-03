@@ -9,6 +9,8 @@ RGBDComp.Endpoints=tcp -p 10096
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+Ice.MessageSizeMax=2000480
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

@@ -187,7 +187,6 @@ void SpecificWorker::compute()
 // 	}
 	printf("]\n");
 
-printf("%d\n", __LINE__);
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -208,21 +207,16 @@ printf("%d\n", __LINE__);
 	{
 		try
 		{
-printf("%d\n", __LINE__);
 
 			//For RGBD
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
-printf("%d\n", __LINE__);
 			rgbd_proxy->getRGB(colorseq, hState, bState);
-printf("%d  (%d, %d) %d=%d?\n", __LINE__, m_width, m_height, colorseq.size(), 640*480*3);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
-printf("%d\n", __LINE__);
-//			memset(image_color.data, 127, m_width*m_height*3);
+			//memset(image_color.data, 127, m_width*m_height*3);
+
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-printf("%d\n", __LINE__);
 			searchTags(image_gray);
-printf("%d\n", __LINE__);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -247,7 +241,6 @@ printf("%d\n", __LINE__);
 		qFatal("Input device not defined. Please specify one in the config file");
 	}
 
-printf("%d\n", __LINE__);
 
 	// print out the frame rate at which image frames are being processed
 	frame++;

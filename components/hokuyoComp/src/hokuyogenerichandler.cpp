@@ -21,14 +21,11 @@
 
 HokuyoGenericHandler::HokuyoGenericHandler(RoboCompLaser::LaserConfData &config, RoboCompDifferentialRobot::DifferentialRobotPrx base_prx, QObject *_parent) : GenericLaserHandler(base_prx, _parent)
 {
-
 	// Create the sampling timer
 	timer = new QTimer(this );
 	pm_timer = NULL;
 	powerOn = FALSE;
-
 	setConfig(config);
-
 }
 
 
@@ -56,16 +53,19 @@ void HokuyoGenericHandler::setConfig (RoboCompLaser::LaserConfData & config )
 	int ret; urg_parameter_t parameters;
 
 	ret = urg_connect(&urg, device, 115200);
-	if (ret < 0) {
-	    urg_disconnect(&urg);
+	if (ret < 0)
+	{
+		printf("%s: %d\n", __FILE__, __LINE__);
+		urg_disconnect(&urg);
 	}
 
 	/* Get sensor parameter */
 	ret = urg_parameters(&urg, &parameters);
 
-	if (ret < 0) {
-	  urg_disconnect(&urg);
-	  qFatal("laserComp: Error getting config laser");
+	if (ret < 0)
+	{
+		urg_disconnect(&urg);
+		qFatal("laserComp: Error getting config laser");
 	}
 
 
@@ -120,7 +120,8 @@ bool HokuyoGenericHandler::open()
 		exit(1);
 	}
 
-	return TRUE;
+	printf("Connection opened OK.\n");
+	return true;
 }
 
 bool HokuyoGenericHandler::isPowerOn()
@@ -140,14 +141,12 @@ void HokuyoGenericHandler::poweroffLaser()
 
 bool HokuyoGenericHandler::setLaserPowerState ( bool state )
 {
-
-	return TRUE;
+	return true;
 }
 
 bool HokuyoGenericHandler::readLaserData()
 {
-
-	powerOn = TRUE;
+	powerOn = true;
 
 	int min_length = 0;
 	int max_length = 0;
@@ -158,60 +157,56 @@ bool HokuyoGenericHandler::readLaserData()
 	ret = urg_requestData(&urg, URG_GD, URG_FIRST, URG_LAST);
 	if (ret < 0)
 	{
-	  urg_disconnect(&urg);
-	  exit(1);
+		urg_disconnect(&urg);
+		exit(1);
 	}
 
 	/* Reception */
 	int n;
 
-
-
-	// qFatal("ERROR");
-
-
 	n = urg_receiveData(&urg, data, data_max);
 	if (n < 0)
 	{
 		urg_disconnect(&urg);
+		printf("urg_disconnect\n");
 		return false;
 	}
 	else
 	{
-	/* Output as 2 dimensional data */
-	/* Consider front of URG as positive direction of X axis */
-	min_length = urg_minDistance(&urg);
-	max_length = urg_maxDistance(&urg);
+		/* Output as 2 dimensional data */
+		/* Consider front of URG as positive direction of X axis */
+		min_length = urg_minDistance(&urg);
+		max_length = urg_maxDistance(&urg);
 
 
-	int i = 0;
+		int i = 0;
 
-	for( int k = confLaser.iniRange; k < confLaser.endRange; ++k)
-	{
-	    int x, y;
-	    long length = data[k];
-
-
-	    /* Neglect the out of range values */
-	    if ((length <= min_length) || (length >= max_length)) {
-		//qFatal("ERROR");
-		continue;
-	    }
-
-	    x = (int)(length * cos(urg_index2rad(&urg, k)));
-	    y = (int)(length * sin(urg_index2rad(&urg, k)));
-
-	    wdataW[i].dist = length;
-	    wdataW[i].angle =  -urg_index2rad(&urg, k);
-	    i++;
-	}
+		for( int k = confLaser.iniRange; k < confLaser.endRange; ++k)
+		{
+			int x, y;
+			long length = data[k];
 
 
-	  //Double buffering
-	  laserMutex.lock();
-	  wdataW.swap(wdataR);
-	  laserMutex.unlock();
-	  return true;
+			/* Neglect out of range values */
+			if ((length <= min_length) || (length >= max_length))
+			{
+				continue;
+			}
+
+			x = (int)(length * cos(urg_index2rad(&urg, k)));
+			y = (int)(length * sin(urg_index2rad(&urg, k)));
+
+			wdataW[i].dist = length;
+			wdataW[i].angle =  -urg_index2rad(&urg, k);
+			i++;
+		}
+
+
+		//Double buffering
+		laserMutex.lock();
+		wdataW.swap(wdataR);
+		laserMutex.unlock();
+		return true;
 	}
 }
 
@@ -247,9 +242,9 @@ void HokuyoGenericHandler::run()
 		//last_use.restart();
 		if (readLaserData()==false)
 		{
-			std::cout << "Error reading laser " << std::endl;
+			std::cout << "Error reading laser (generic)" << std::endl;
+			usleep(500000);
 		}
-		//usleep(40000);
 	}
 }
 

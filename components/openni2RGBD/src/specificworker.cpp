@@ -38,7 +38,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	fps = 0;
-	setPeriod(10);
+	setPeriod(1);
 }
 
 void SpecificWorker::openDevice()
@@ -268,7 +268,7 @@ void SpecificWorker::computeCoordinates()
 	static const float flength_x = IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
 	static const float flength_y = IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
 	
-	#pragma omp parallel num_threads(3)
+	#pragma omp for schedule(static, 5)
 	for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
 	{
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 

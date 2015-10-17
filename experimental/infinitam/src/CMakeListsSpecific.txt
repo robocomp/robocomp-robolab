@@ -50,7 +50,7 @@ CANONIFY_BOOL(PNG_FOUND)
 message(STATUS "libpng found: ${PNG_FOUND}")
 
 OPTION(WITH_CUDA "Build with CUDA support?" ${CUDA_FOUND})
-INCLUDE(${PROJECT_SOURCE_DIR}/../UseOpenMP.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/../cmake/UseOpenMP.cmake)
 
 IF(MSVC_IDE)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)

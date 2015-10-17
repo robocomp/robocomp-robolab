@@ -26,6 +26,7 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
+  infinitamI.cpp
 )
 
 # Headers set
@@ -36,10 +37,11 @@ SET ( HEADERS
   commonbehaviorI.h
   genericworker.h
   specificworker.h
+  infinitamI.h
 )
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior Infinitam )
+ROBOCOMP_WRAP_ICE( CommonBehavior InfiniTAM )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

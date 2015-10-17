@@ -27,7 +27,7 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
-#include <Infinitam.h>
+#include <InfiniTAM.h>
 
 
 
@@ -38,7 +38,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompInfinitam;
+using namespace RoboCompInfiniTAM;
 
 
 

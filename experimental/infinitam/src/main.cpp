@@ -78,8 +78,9 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <infinitamI.h>
 
-#include <Infinitam.h>
+#include <InfiniTAM.h>
 
 
 // User includes here
@@ -88,7 +89,7 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-using namespace RoboCompInfinitam;
+using namespace RoboCompInfiniTAM;
 
 
 
@@ -127,21 +128,15 @@ int ::infinitam::run(int argc, char* argv[])
 
 
 
-	SpecificWorker *worker = new SpecificWorker(mprx);
+	GenericWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
-	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
+	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
 		return status;
-	
-	while (!monitor->ready)
-	{
-		usleep(10000);
-	}
-	
 	try
 	{
 		// Server adapter creation and publication
@@ -155,6 +150,17 @@ int ::infinitam::run(int argc, char* argv[])
 		adapterCommonBehavior->activate();
 
 
+
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "InfiniTAM.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy InfiniTAM";
+		}
+		Ice::ObjectAdapterPtr adapterInfiniTAM = communicator()->createObjectAdapterWithEndpoints("InfiniTAM", tmp);
+		InfiniTAMI *infinitam = new InfiniTAMI(worker);
+		adapterInfiniTAM->add(infinitam, communicator()->stringToIdentity("infinitam"));
+		adapterInfiniTAM->activate();
 
 
 

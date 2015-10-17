@@ -1,6 +1,10 @@
 CommonBehavior.Endpoints=tcp -p 1
 
 
+# Endpoints for implemented interfaces
+InfiniTAM.Endpoints=tcp -p 0
+
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

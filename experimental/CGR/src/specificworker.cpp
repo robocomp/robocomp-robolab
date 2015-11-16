@@ -87,7 +87,8 @@ void SpecificWorker::LoadParameters()
   
   config.addFile("localization_parameters.cfg");
   config.addFile("kinect_parameters.cfg");
-  if(!config.readFiles()){
+  if(!config.readFiles())
+  {
     printf("Failed to read config\n");
     exit(1);
   }
@@ -143,7 +144,6 @@ void SpecificWorker::LoadParameters()
   
   {
     ConfigReader::SubTree c(config,"initialConditions");
-    
     bool error = false;
     curMapName = string(c.getStr("mapName"));
     error = error || curMapName.length()==0;
@@ -231,12 +231,15 @@ void SpecificWorker::LoadParameters()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	//Inintializing parameters for CGR
+	LoadParameters();
+
 	//Inintializing InnerModel with ursus.xml
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		
-		qDebug() << QString::fromStdString(par.value);
+		//qDebug() << QString::fromStdString(par.value);
 		if( QFile::exists(QString::fromStdString(par.value)) )
 		{
 			innerModel = new InnerModel(par.value);
@@ -268,21 +271,20 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
 
- 
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 
 	string mapsFolder("etc/maps");
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-	drawLines();    
-	drawParticles();
-	
-	//Inintializing parameters for CGR
-	LoadParameters();
-	
-	timer.start(Period);
 
+	qDebug()<<"<<<<<<<<<<<<<<< setparams1 >>>>>>>>>>>";	
+	drawLines();    
+	qDebug()<<"<<<<<<<<<<<<<<< setparams2 >>>>>>>>>>>";	
+	drawParticles();
+	qDebug()<<"<<<<<<<<<<<<<<< setparams3 >>>>>>>>>>>";	
+	timer.start(Period);
+	qDebug()<<"<<<<<<<<<<<<<<< setparamsF >>>>>>>>>>>";
 	return true;
 }
 
@@ -290,6 +292,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	qDebug()<<"<<<<<<<<<<<<<<< compute >>>>>>>>>>>";
 	bool forcePredict = false;
 	mutex->lock();
 	if (resetCgr)

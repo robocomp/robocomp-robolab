@@ -44,8 +44,14 @@ else:
 					y2 = "{:.3f}".format(float(line[3]) + moveInY)
 					
 					if changeOrientationX == "True":
-						x1 = '-' + x1
-						x2 = '-' + x2
+						if x1 < 0:
+							x1 = x1[-1:]
+						elif x1 > 0:
+							x1 = '-' + x1
+						if x2 < 0:
+							x2 = x2[-1:]
+						elif x2 > 0:
+							x2 = '-' + x2
 					elif changeOrientationX == "False":
 						pass
 					else:
@@ -53,8 +59,15 @@ else:
 						error = True
 						break
 					if changeOrientationY == "True":
-						y1 = '-' + y1
-						y2 = '-' + y2
+						if y1 < 0:
+							y1 = y1[-1:]
+						elif y1 > 0:
+							y1 = '-' + y1
+						if y2 < 0:
+							y2 = y2[-1:]
+						elif y2 > 0:
+							y2 = '-' + y2
+
 					elif changeOrientationY == "False":
 						pass
 					else:

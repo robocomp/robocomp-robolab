@@ -44,13 +44,13 @@ else:
 					y2 = "{:.3f}".format(float(line[3]) + moveInY)
 					
 					if changeOrientationX == "True":
-						if x1 < 0:
-							x1 = x1[-1:]
-						elif x1 > 0:
+						if '-' == x1[0]:
+							x1 = x1.replace("-", "")
+						else:
 							x1 = '-' + x1
-						if x2 < 0:
-							x2 = x2[-1:]
-						elif x2 > 0:
+						if '-' == x2[0]:
+							x2 = x2.replace("-", "")
+						else:
 							x2 = '-' + x2
 					elif changeOrientationX == "False":
 						pass
@@ -59,14 +59,14 @@ else:
 						error = True
 						break
 					if changeOrientationY == "True":
-						if y1 < 0:
-							y1 = y1[-1:]
-						elif y1 > 0:
-							y1 = '-' + y1
-						if y2 < 0:
-							y2 = y2[-1:]
-						elif y2 > 0:
-							y2 = '-' + y2
+						if "-" == y1[0]:
+							y1 = y1.replace("-", "")
+						else:
+							y1 = "-" + y1
+						if "-" == y2[0]:
+							y2 = y2.replace("-", "")
+						else:
+							y2 = "-" + y2
 
 					elif changeOrientationY == "False":
 						pass
@@ -74,23 +74,13 @@ else:
 						print "Wrong change orientation in Y param!\n"
 						error = True
 						break
-						#data[0] += moveInX
-						#data[1] += moveInY
-						#data[2] += moveInX
-						#data[3] += moveInY
-						#if changeOrientationX is True:
-							#data[0] *= -1
-							#data[2] *= -1
-						#if changeOrientationY is True:
-							#data[1] *= -1
-							#data[3] *= -1
-						#content+= str(data).strip('[\'\']')+'\n'
+
 					if error is not True:
 						content += str(x1) + ',' + str(y1) + ',' + str(x2) + ',' + str(y2) + '\n'
 					else:
 						print "Not export file by error\n"
 					
 				name = (os.path.basename(sys.argv[1])).split('.')
-				filetarget = open(name[0]+'_veector.txt', 'w')
+				filetarget = open(name[0]+'_vector.txt', 'w')
 				filetarget.write(content)
 				filetarget.close()

@@ -208,6 +208,66 @@
 		<transform id="pared67" tx="-1525.0" tz="-2830.0" ty="400" >
 			<plane id="muro67" nx="640.0" nz="-510.0" size="818.352002503,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
 		</transform>
+		<transform id="pared68" tx="1865.0" tz="2120.0" ty="400" >
+			<plane id="muro68" nx="-0.0" nz="-1250.0" size="1250.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared69" tx="1240.0" tz="1695.0" ty="400" >
+			<plane id="muro69" nx="850.0" nz="0.0" size="850.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared70" tx="1865.0" tz="1270.0" ty="400" >
+			<plane id="muro70" nx="-0.0" nz="1250.0" size="1250.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared71" tx="2490.0" tz="1695.0" ty="400" >
+			<plane id="muro71" nx="-850.0" nz="0.0" size="850.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared72" tx="-910.0" tz="1570.0" ty="400" >
+			<plane id="muro72" nx="800.0" nz="0.0" size="800.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared73" tx="-310.0" tz="1170.0" ty="400" >
+			<plane id="muro73" nx="-0.0" nz="1200.0" size="1200.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared74" tx="290.0" tz="1570.0" ty="400" >
+			<plane id="muro74" nx="-800.0" nz="0.0" size="800.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared75" tx="-310.0" tz="1970.0" ty="400" >
+			<plane id="muro75" nx="-0.0" nz="-1200.0" size="1200.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared76" tx="1100.0" tz="-2055.0" ty="400" >
+			<plane id="muro76" nx="-550.0" nz="0.0" size="550.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared77" tx="650.0" tz="-1780.0" ty="400" >
+			<plane id="muro77" nx="-0.0" nz="-900.0" size="900.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared78" tx="200.0" tz="-2055.0" ty="400" >
+			<plane id="muro78" nx="550.0" nz="0.0" size="550.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared79" tx="650.0" tz="-2330.0" ty="400" >
+			<plane id="muro79" nx="-0.0" nz="900.0" size="900.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared80" tx="-1910.0" tz="-350.0" ty="400" >
+			<plane id="muro80" nx="560.0" nz="0.0" size="560.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared81" tx="-1635.0" tz="-630.0" ty="400" >
+			<plane id="muro81" nx="-0.0" nz="550.0" size="550.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared82" tx="-1360.0" tz="-350.0" ty="400" >
+			<plane id="muro82" nx="-560.0" nz="0.0" size="560.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared83" tx="-1635.0" tz="-70.0" ty="400" >
+			<plane id="muro83" nx="-0.0" nz="-550.0" size="550.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared84" tx="-3800.0" tz="-3630.0" ty="400" >
+			<plane id="muro84" nx="-400.0" nz="0.0" size="400.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared85" tx="-4000.0" tz="-3430.0" ty="400" >
+			<plane id="muro85" nx="-0.0" nz="-400.0" size="400.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared86" tx="-4200.0" tz="-3630.0" ty="400" >
+			<plane id="muro86" nx="400.0" nz="0.0" size="400.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
+		<transform id="pared87" tx="-4000.0" tz="-3830.0" ty="400" >
+			<plane id="muro87" nx="-0.0" nz="400.0" size="400.0,800"  texture="/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg" />
+		</transform>
 
 	</transform>
 </innerModel>

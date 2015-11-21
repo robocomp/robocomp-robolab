@@ -7,15 +7,15 @@ import os.path
 
 print "example of transform origin \n"
 print "ALERT: first move, after change orientation !!!!!!!!!! \n"
-print "python preparingFile.py filename moveInX moveInY changeOrrientationX changeOrrientationY \n"
-print "python preparingFile.py rockin0.txt 3 4.5 False True \n"
+print "python preparingFile.py filename moveInX moveInY changeOrrientationX changeOrrientationY doRotateAxisRockin\n"
+print "python preparingFile.py rockin0.txt 3 4.5 False True True\n"
 print "------------------------------------------------ \n"
 print "------------------------------------------------ \n"
 print "------------------------------------------------ \n"
 
 if len(sys.argv) == 1:
 	print 'I need filename to convert!\n'
-elif len(sys.argv) != 6:
+elif len(sys.argv) != 7:
         print 'wrong parameters!'
 else:
 	if(os.path.isfile(sys.argv[1]) is False):
@@ -28,6 +28,7 @@ else:
 			moveInY = float(sys.argv[3])
 			changeOrientationX = sys.argv[4]
 			changeOrientationY = sys.argv[5]
+			doRotateAxisRockin = sys.argv[6]
 
 			content = ''
 			lines = []
@@ -76,7 +77,22 @@ else:
 						break
 
 					if error is not True:
-						content += str(x1) + ',' + str(y1) + ',' + str(x2) + ',' + str(y2) + '\n'
+						if doRotateAxisRockin == "False":
+							content += str(x1) + ',' + str(y1) + ',' + str(x2) + ',' + str(y2) + '\n'
+						else:
+							aux1 = y1
+							aux2 = y2
+							y1 = x1
+							y2 = x2
+							if "-" == aux1[0]:
+								aux1 = aux1.replace("-", "")
+							else:
+								aux1 = "-" + aux1
+							if "-" == aux2[0]:
+								aux2 = aux2.replace("-", "")
+							else:
+								aux2 = "-" + aux2
+							content += str(aux1) + ',' + str(y1) + ',' + str(aux2) + ',' + str(y2) + '\n'
 					else:
 						print "Not export file by error\n"
 					

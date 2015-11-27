@@ -239,7 +239,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		
-		//qDebug() << QString::fromStdString(par.value);
+		qDebug() << QString::fromStdString(par.value);
 		if( QFile::exists(QString::fromStdString(par.value)) )
 		{
 			innerModel = new InnerModel(par.value);
@@ -381,8 +381,10 @@ void SpecificWorker::drawLines()
 	float p1y;
 	vector<VectorMap> maps = localization->getMaps();
 	int i = 0;
-	for( auto m : maps){
-		for( auto l: m.lines){                 
+	for( auto m : maps)
+	{
+		for( auto l: m.lines)
+		{
                         p0x =l.p0.x * 1000.f;
                         p0y =l.p0.y * 1000.f;
                         p1x =l.p1.x * 1000.f;
@@ -392,8 +394,13 @@ void SpecificWorker::drawLines()
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();
                         std::ostringstream oss;
                         oss << m.mapName << i;                        
-			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
-							     QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			InnerModelDraw::addPlane_notExisting(
+			  innerModelViewer,
+			  QString::fromStdString("LINEA_"+oss.str()), "floor",
+			  QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
+			  QVec::vec3(n(1),0,n(0)),"#00A0A0",
+			  QVec::vec3(width, 100, 100)
+			);	
 			printf("tx: %f| tz: %f| nx: %f| nz: %f| width %f\n",-(p0y+p1y)/2,(p0x+p1x)/2,-n(1),n(0),width);
 			i++;                        
 		}

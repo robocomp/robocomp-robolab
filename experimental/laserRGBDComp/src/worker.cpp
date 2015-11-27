@@ -94,7 +94,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	confData.device = "rgbd";
 
 	compute();
-	timer.start(200);
+	timer.start(100);
 }
 
 /**
@@ -145,7 +145,7 @@ int32_t Worker::angle2bin(float ang)
 /**
 * \brief Thread method
 */
-// #define STORE_POINTCLOUDS_AND_EXIT
+//#define STORE_POINTCLOUDS_AND_EXIT
 
 void Worker::compute()
 {
@@ -221,7 +221,7 @@ void Worker::compute()
 						pointCloud[pi].y *= images[iter->first].depthImage[pi];
 						pointCloud[pi].z  = images[iter->first].depthImage[pi];
 					}
-
+						qFatal("deeddededede");
 					/// Inserts the resulting points in the virtual laser
 					RTMat TR = innerModel->getTransformationMatrix(base, QString::fromStdString(iter->first));
 #ifdef STORE_POINTCLOUDS_AND_EXIT
@@ -267,7 +267,16 @@ void Worker::compute()
 				cout << "Can't connect to rgbd: " << ex << endl;
 				continue;
 			}
+// 			RTMat TR = innerModel->getTransformationMatrix(base, base);
 			RTMat TR = innerModel->getTransformationMatrix(base, QString::fromStdString(rgbds[r].id));
+			TR.print("tr");
+			printf("de %s a %s...\n", rgbds[r].id.c_str(), base.toStdString().c_str());
+
+			QVec p2 = (TR * QVec::vec4(0,0,0, 1)).fromHomogeneousCoordinates();
+			p2.print("zero");
+			p2 = (TR * QVec::vec4(0,0,1500, 1)).fromHomogeneousCoordinates();
+			p2.print("1500z");
+
 #ifdef STORE_POINTCLOUDS_AND_EXIT
 			cloud->points.resize(points.size());
 #endif
@@ -275,22 +284,24 @@ void Worker::compute()
 
 			uint32_t pw = 640;
 			uint32_t ph = 480;
-			uint32_t step = 13;
-			if (points.size() == 320*240) { pw=320; ph=240; step=11; }
-			if (points.size() == 160*120) { pw=160; ph=120; step=5; }
-			if (points.size() == 80*60) { pw=80; ph=60; step=3; }
-			for (uint32_t rr=0; rr<ph; rr+=step)
+			if (points.size() == 320*240) { pw=320; ph=240; }
+			if (points.size() == 160*120) { pw=160; ph=120; }
+			if (points.size() == 80*60) { pw=80; ph=60; }
+			for (uint32_t rr=0; rr<ph; rr+=1)
 			{
-				for (uint32_t cc=rr%5; cc<pw; cc+=2)
+				for (uint32_t cc=0; cc<pw; cc+=1)
 				{
 					uint32_t ioi = rr*pw+cc;
 					if (ioi<points.size())
 					{
+						uint interest = pw*1.5;
+						if (ioi == interest) QVec::vec3(points[ioi].x, points[ioi].y, points[ioi].z).print("en cam");
 						const QVec p = (TR * QVec::vec4(points[ioi].x, points[ioi].y, points[ioi].z, 1)).fromHomogeneousCoordinates();
+						if (ioi == interest) p.print("en final");
 #ifdef STORE_POINTCLOUDS_AND_EXIT
-						cloud->points[ioi].x =  p(0)/1000;
-						cloud->points[ioi].y =  p(1)/1000;
-						cloud->points[ioi].z = -p(2)/1000;
+						cloud->points[ioi].x = p(0)/1000;
+						cloud->points[ioi].y = p(1)/1000;
+						cloud->points[ioi].z = p(2)/1000;
 #endif
 						if ( (p(1)>=minHeight and p(1)<=maxHeight) or (p(1)<minHeightNeg) )
 						{
@@ -301,6 +312,7 @@ void Worker::compute()
 							const int32_t bin = angle2bin(a);
 							if (bin>=0 and bin<LASER_SIZE and (*laserDataW)[bin].dist > d)
 							{
+								if (ioi == interest)  printf("yess\n");
 								(*laserDataW)[bin].dist = d;
 							}
 						}
@@ -312,6 +324,7 @@ void Worker::compute()
 		}
 #ifdef STORE_POINTCLOUDS_AND_EXIT
 		writePCD(rgbds[r].id+".pcd", cloud);
+		writePCD_Y0("floor.pcd");
 #endif
 	}
 #ifdef STORE_POINTCLOUDS_AND_EXIT
@@ -323,15 +336,15 @@ void Worker::compute()
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
 		for (uint i=0; i<alData.size(); i++)
 		{
-			if (i==alData.size()/2) printf("PC %d  (%f _ %f)\n", i, alData[i].dist, alData[i].angle);
+			//if (i==alData.size()/2) printf("PC %d  (%f _ %f)\n", i, alData[i].dist, alData[i].angle);
 			const QVec p = innerModel->laserTo(actualLaserID, actualLaserID, alData[i].dist, alData[i].angle);
-			if (i==alData.size()/2) p.print("en base");
-			if (i==alData.size()/2) printf("(%s)", base.toStdString().c_str());
+			//if (i==alData.size()/2) p.print("en base");
+			//if (i==alData.size()/2) printf("(%s)", base.toStdString().c_str());
 			const float angle = atan2(p(0), p(2));
 			const float dist = p.norm2();
-			if (i==alData.size()/2) printf("enlaser %f %f\n", dist, angle);
+			//if (i==alData.size()/2) printf("enlaser %f %f\n", dist, angle);
 			const int j = LASER_SIZE*angle/FOV + (LASER_SIZE/2);
-			if (i==alData.size()/2) printf("index %d\n", j);
+			//if (i==alData.size()/2) printf("index %d\n", j);
 // 			printf("FOV:%f, angle:%f, LASER_SIZE=%f, j:%d\n", (float)FOV, angle, (float)LASER_SIZE, j);
 			
 			if (j>=0 and j<(int)laserDataW->size())
@@ -380,7 +393,7 @@ void Worker::compute()
 	laserDataW = t;
 }
 
-/*
+
 void Worker::writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
 {
 	printf("Writing: %s  width:%d height:%d points:%d\n", path.c_str(), (int)cloud->width, (int)cloud->height, (int)cloud->points.size());
@@ -389,7 +402,29 @@ void Worker::writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 	static pcl::PCDWriter writer;
 	if (not cloud->empty()) writer.writeASCII(path, *cloud);
 }
-*/
+
+void Worker::writePCD_Y0(std::string path)
+{
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+	cloud->points.resize(100*100);
+	for (int x=0; x<100; x++)
+	{
+		{
+			for (int z=0; z<100; z++)
+			{
+				cloud->points[x*100+z].x = 0.01 * x * z * 0.002;
+				cloud->points[x*100+z].y = (0.004 * z)*(0.004 * z)*(0.004 * z)*(0.004 * z);
+				cloud->points[x*100+z].z = 0.01 * z;
+			}
+		}
+	}
+	cloud->width = 1;
+	cloud->height = cloud->points.size();
+	
+	static pcl::PCDWriter writer;
+	if (not cloud->empty()) writer.writeASCII(path, *cloud);
+}
+
 
 RoboCompLaser::TLaserData Worker::getLaserData()
 {

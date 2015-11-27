@@ -188,9 +188,22 @@ void SpecificWorker::compute( )
 	}
         if (reloj.elapsed() > 1000)
         {
-           qDebug()<<"Grabbing at:"<<fps<<"fps";
-           reloj.restart();
-           fps=0;
+		qDebug()<<"Grabbing at:"<<fps<<"fps";
+/*
+		double sum = 0;
+		double div = 0;
+		for (int i=0; i<pointsBuff.size; i++)
+		{
+			if (not isnan(pointsBuff[i].z))
+			{
+				sum += pointsBuff[i].z;
+				div += 1;
+			}
+		}
+		qDebug() << sum/div;
+*/
+		reloj.restart();
+		fps=0;
        }
 }
 
@@ -263,19 +276,21 @@ void SpecificWorker::readColor()
 void SpecificWorker::computeCoordinates()
 {
 	//QMutexLocker l(pointsMutex); 57.00 43.00
-	static const float fovW = 522;
-	static const float fovH = 522;
-	static const float flength_x = IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
-	static const float flength_y = IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
-	
-	#pragma omp for schedule(static, 5)
-	for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
+	//static const float fovW = 57;
+	//static const float fovH = 43;
+	// focal: 522 sale abierto
+	static const float flength_x = 545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
+	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
+	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
+	//#pragma omp for schedule(static, 5)
+	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
 	{
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
 		{
 			const int offset = y*IMAGE_WIDTH + x;
 			
 			//Copy to depth doublebuffer
+			pixDepth[offset]*=1;
 			depthBuff[offset] = pixDepth[offset];
 			
 			const float z = float(pixDepth[offset]);
@@ -291,8 +306,8 @@ void SpecificWorker::computeCoordinates()
 			else 
 			{
 				//(*depthImage)[offset] = z;
-				pointsBuff[offset].x = (z * (x - IMAGE_WIDTH/2) / flength_x);
-				pointsBuff[offset].y = (z * (y - IMAGE_HEIGHT/2) / flength_y);
+				pointsBuff[offset].x = z * (x - IMAGE_WIDTH/2) / flength_x;
+				pointsBuff[offset].y = z * (IMAGE_HEIGHT/2- y) / flength_y;
 				pointsBuff[offset].z = z;
 				pointsBuff[offset].w = 1.0;
 			}
@@ -313,7 +328,7 @@ void SpecificWorker::normalizeDepth()
 {
 	for (int i=0; i<(IMAGE_HEIGHT*IMAGE_WIDTH); i++)
 	{
-		normalDepth[i]=255-(255*depthBuffer->operator[](i)/5/1000);
+		normalDepth[i]=(255.-(255.*float(depthBuffer->operator[](i))/1000.));
 		if (normalDepth[i] > 255) normalDepth[i] = 255;
 		if (normalDepth[i] < 0) normalDepth[i] = 0;
 	}

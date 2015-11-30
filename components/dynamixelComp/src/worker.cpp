@@ -53,7 +53,7 @@ void Worker::run( )
 			this->usleep(busParams.basicPeriod);
 		}
 	}
-  //qDebug() << "Waiting for condition";
+  //qDebug() << "Waiting for condition"; 
   //~ std::cout << "Worker.run() PARAMETERS_SET_WAIT_CONDITION->wait(mutex) 2" << std::endl;
   //~ PARAMETERS_SET_WAIT_CONDITION->wait(mutex);
   //~ std::cout << "Worker.run() PARAMETERS_SET_WAIT_CONDITION->wait(mutex) OK" << std::endl;
@@ -144,6 +144,7 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList _params)
 
 void Worker::setPosition( const RoboCompJointMotor::MotorGoalPosition & goalPosition )
 {
+	QMutexLocker ml(w_mutex);
 	try
 	{
 		handler->setPosition( QString::fromStdString( goalPosition.name) , goalPosition.position, goalPosition.maxSpeed);
@@ -162,6 +163,7 @@ void Worker::setPosition( const RoboCompJointMotor::MotorGoalPosition & goalPosi
 
 void Worker::setVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity )
 {
+	QMutexLocker ml(w_mutex);
 	float velocity = goalVelocity.velocity;
 	Servo *servo = handler->motors[QString::fromStdString(goalVelocity.name)];
 	try
@@ -197,14 +199,15 @@ void Worker::setSyncVelocity( const RoboCompJointMotor::MotorGoalVelocityList & 
 	qDebug()<<"setting sync velocity";
 	QVector<Dynamixel::GoalPosition> hPositionList;
 	float velocity = 0.1;
-	w_mutex->lock();
+	
+	QMutexLocker ml(w_mutex);
+	
 	for(uint i=0; i< goalVelList.size() ; i++)
 	{
 		QString motorName = QString::fromStdString( goalVelList[i].name);
 		if ( handler->motors.contains( motorName )  == false )
 		{
 			RoboCompJointMotor::UnknownMotorException ex(goalVelList[i].name);
-			w_mutex->unlock();
 			throw ex;
 		}
 		else
@@ -235,17 +238,15 @@ qDebug()<<"set sync velocity"<<QString::fromStdString(goalVelList[i].name)<<velo
 	{
 		RoboCompJointMotor::HardwareFailedException ex;
 		ex.what = std::string("Exception: DynamixelComp::Worker::setSyncVelocity::") + s.toStdString();
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 
 
 void Worker::setReferenceVelocity( const RoboCompJointMotor::MotorGoalVelocity & goalVelocity )
 {
 	QString motorName = QString::fromStdString(goalVelocity.name);
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	if (handler->motors.contains(motorName))
 	{
 		Servo *servo = handler->motors[motorName];
@@ -253,31 +254,28 @@ void Worker::setReferenceVelocity( const RoboCompJointMotor::MotorGoalVelocity &
 		if (handler->setReferenceVelocity( servo->params.busId , servo->rads2Steps(goalVelocity.velocity)) == false)
 		{
 			RoboCompJointMotor::HardwareFailedException ex(goalVelocity.name);
-			w_mutex->unlock();
 			throw ex;
 		}
 	}
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(goalVelocity.name);
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 
 
 void Worker::setSyncPosition( const RoboCompJointMotor::MotorGoalPositionList & goalPosList)
 {
 	QVector<Dynamixel::GoalPosition> hPositionList;
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
+	
 	for(uint i=0; i< goalPosList.size() ; i++)
 	{
 		QString motorName = QString::fromStdString( goalPosList[i].name);
 		if ( handler->motors.contains( motorName )  == false )
 		{
 			RoboCompJointMotor::UnknownMotorException ex(goalPosList[i].name);
-			w_mutex->unlock();
 			throw ex;
 		}
 		else
@@ -295,10 +293,8 @@ void Worker::setSyncPosition( const RoboCompJointMotor::MotorGoalPositionList & 
 	{
 		RoboCompJointMotor::HardwareFailedException ex;
 		ex.what = std::string("Exception: JointMotorComp::Worker::setSyncPosition::") + s.toStdString();
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 
 RoboCompJointMotor::BusParams Worker::getBusParams()
@@ -308,7 +304,7 @@ RoboCompJointMotor::BusParams Worker::getBusParams()
 
 void Worker::getMotorParams( const QString & motor , RoboCompJointMotor::MotorParams & mp)
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	if ( handler->motors.contains( motor ) )
 	{
 		mp = handler->motors[motor]->params;
@@ -316,21 +312,19 @@ void Worker::getMotorParams( const QString & motor , RoboCompJointMotor::MotorPa
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 
 RoboCompJointMotor::MotorParamsList Worker::getAllMotorParams( )
 {
 	RoboCompJointMotor::MotorParamsList list;
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
+	
 	foreach( Servo *s, handler->motors.values())
 	{
 		list.push_back( s->params );
 	}
-	w_mutex->unlock();
 	return list;
 }
 
@@ -339,26 +333,24 @@ RoboCompJointMotor::MotorStateMap Worker::getAllMotorState( )
 	RoboCompJointMotor::MotorStateMap map;
 	RoboCompJointMotor::MotorState state;
 	
+	QMutexLocker ml(w_mutex);
 
 	foreach( Servo *s, handler->motors.values())
 	{
-	w_mutex->lock();	
 		state.pos = s->data.currentPosRads;
 		state.v = s->data.currentVelocityRads;
 		state.p = s->data.currentPos;
 		state.isMoving = s->data.isMoving;
 		state.temperature = s->data.temperature;
 		map[s->params.name] = state ;
-	w_mutex->unlock();
 	}
-	
-	
+		
 	return map;
 }
 
 void Worker::getState(const QString & motor, RoboCompJointMotor::MotorState & state)
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	if ( handler->motors.contains( motor ) )
 	{
 		state.pos = handler->motors[motor]->data.currentPosRads;
@@ -369,10 +361,8 @@ void Worker::getState(const QString & motor, RoboCompJointMotor::MotorState & st
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 void Worker::setZeroPos(const std::string &motor)
 {
@@ -409,14 +399,14 @@ void Worker::stopAllMotors()
 {
 	QVector<Dynamixel::GoalPosition> hPositionList;
 	float position=0.f, velocity = 0.1;
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
+	
 	foreach( Servo *s, handler->motors.values())
 	{
 		QString motorName = QString::fromStdString( s->params.name);
 		if ( handler->motors.contains( motorName )  == false )
 		{
 			RoboCompJointMotor::UnknownMotorException ex(s->params.name);
-			w_mutex->unlock();
 			throw ex;
 		}
 		else
@@ -434,14 +424,12 @@ void Worker::stopAllMotors()
 	{
 		RoboCompJointMotor::HardwareFailedException ex;
 		ex.what = std::string("Exception: DynamixelComp::Worker::setSyncVelocity::") + s.toStdString();
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 void Worker::stopMotor(const QString &motor)
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	if ( handler->motors.contains( motor ) )
 	{
 		float position, velocity = 0.1;
@@ -451,23 +439,20 @@ void Worker::stopMotor(const QString &motor)
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 void Worker::releaseBrakeAllMotors()
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	foreach( Servo *s, handler->motors.values())
 	{
 		handler->powerOff(QString::fromStdString(s->params.name));
 	}
-	w_mutex->unlock();
 }
 void Worker::releaseBrakeMotor(const QString &motor)
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);	
 	if ( handler->motors.contains( motor ) )
 	{
 		handler->powerOff(motor);
@@ -475,24 +460,21 @@ void Worker::releaseBrakeMotor(const QString &motor)
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 
 void Worker::enableBrakeAllMotors()
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);
 	foreach( Servo *s, handler->motors.values())
 	{
 		handler->powerOn(QString::fromStdString(s->params.name));
 	}
-	w_mutex->unlock();
 }
 void Worker::enableBrakeMotor(const QString &motor)
 {
-	w_mutex->lock();
+	QMutexLocker ml(w_mutex);	
 	if ( handler->motors.contains( motor ) )
 	{
 		handler->powerOn(motor);
@@ -500,9 +482,7 @@ void Worker::enableBrakeMotor(const QString &motor)
 	else
 	{
 		RoboCompJointMotor::UnknownMotorException ex(motor.toStdString());
-		w_mutex->unlock();
 		throw ex;
 	}
-	w_mutex->unlock();
 }
 

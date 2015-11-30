@@ -52,9 +52,8 @@ template <class T> class DoubleBuffer
 {
 	QMutex bufferMutex;
 	T bufferA, *writer, *reader, bufferB;
-	int size;
-	
 	public:
+		int size;
 		DoubleBuffer(){};
 		void resize(int size_)
 		{
@@ -86,10 +85,9 @@ template <class T> class DoubleBuffer
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
-      ///ATRIBUTOS GENERALES
       int IMAGE_WIDTH, IMAGE_HEIGHT;
-      
-      ///ATRIBUTOS NECESARIOS PARA LA LECTURA DE FLUJOS
+     int fps; 
+
       openni::Status openniRc;
       Device device;
       VideoStream depth;
@@ -97,7 +95,6 @@ Q_OBJECT
       VideoFrameRef depthFrame;
       VideoFrameRef colorFrame;
       
-      ///ATRIBUTOS PARA LA OBTENCIÓN DE COLOR Y PROFUNDIDAD CON OPENNI
       VideoStream* pStream;
       int changedStreamDummy;
       DepthPixel* pixDepth;
@@ -109,22 +106,17 @@ Q_OBJECT
       ///MUTEX
       QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
       
-      ///ATRIBUTOS PARA PINTAR       
       vector<short> normalDepth;
-//      RCDraw *drawRGB;
       uint16_t *mColor;
       uint8_t *auxDepth;
-      //IppiSize ippSizeImage;      
-      QImage *qImgDepth;
       CoordinateConverter conversor;
 
       Registration registration;
       
-      ///MÉTODOS PRIVADOS
       void openDevice();
       bool openStream(SensorType sensorType, VideoStream *stream);
       void initializeStreams();
-      void readFrame();
+	bool readFrame();
       void computeCoordinates();
       void readColor();
       void readDepth();
@@ -137,7 +129,6 @@ Q_OBJECT
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
            
 public:
-//	SpecificWorker(MapPrx& mprx, QObject *parent = 0);	
 	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);

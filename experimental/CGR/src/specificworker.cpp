@@ -87,7 +87,8 @@ void SpecificWorker::LoadParameters()
   
   config.addFile("localization_parameters.cfg");
   config.addFile("kinect_parameters.cfg");
-  if(!config.readFiles()){
+  if(!config.readFiles())
+  {
     printf("Failed to read config\n");
     exit(1);
   }
@@ -143,7 +144,6 @@ void SpecificWorker::LoadParameters()
   
   {
     ConfigReader::SubTree c(config,"initialConditions");
-    
     bool error = false;
     curMapName = string(c.getStr("mapName"));
     error = error || curMapName.length()==0;
@@ -231,6 +231,9 @@ void SpecificWorker::LoadParameters()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	//Inintializing parameters for CGR
+	LoadParameters();
+
 	//Inintializing InnerModel with ursus.xml
 	try
 	{
@@ -268,21 +271,20 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob1","floor");
 	InnerModelDraw::addTransform(innerModelViewer,"poseRob2","floor");
 
- 
 	//Una vez cargado el innermodel y los parametros, cargamos los mapas con sus lineas y las pintamos.
 
 	string mapsFolder("etc/maps");
 	localization = new VectorLocalization2D(mapsFolder.c_str());
 	localization->initialize(numParticles,
 	curMapName.c_str(),initialLoc,initialAngle,locUncertainty,angleUncertainty);
-	drawLines();    
-	drawParticles();
-	
-	//Inintializing parameters for CGR
-	LoadParameters();
-	
-	timer.start(Period);
 
+	qDebug()<<"<<<<<<<<<<<<<<< setparams1 >>>>>>>>>>>";	
+	drawLines();    
+	qDebug()<<"<<<<<<<<<<<<<<< setparams2 >>>>>>>>>>>";	
+	drawParticles();
+	qDebug()<<"<<<<<<<<<<<<<<< setparams3 >>>>>>>>>>>";	
+	timer.start(Period);
+	qDebug()<<"<<<<<<<<<<<<<<< setparamsF >>>>>>>>>>>";
 	return true;
 }
 
@@ -290,6 +292,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	qDebug()<<"<<<<<<<<<<<<<<< compute >>>>>>>>>>>";
 	bool forcePredict = false;
 	mutex->lock();
 	if (resetCgr)
@@ -378,8 +381,10 @@ void SpecificWorker::drawLines()
 	float p1y;
 	vector<VectorMap> maps = localization->getMaps();
 	int i = 0;
-	for( auto m : maps){
-		for( auto l: m.lines){                 
+	for( auto m : maps)
+	{
+		for( auto l: m.lines)
+		{
                         p0x =l.p0.x * 1000.f;
                         p0y =l.p0.y * 1000.f;
                         p1x =l.p1.x * 1000.f;
@@ -389,8 +394,13 @@ void SpecificWorker::drawLines()
 			float width = (QVec::vec2(p1x-p0x,p1y-p0y)).norm2();
                         std::ostringstream oss;
                         oss << m.mapName << i;                        
-			InnerModelDraw::addPlane_notExisting(innerModelViewer,QString::fromStdString("LINEA_"+oss.str()),"floor",QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
-							     QVec::vec3(-n(1),0,n(0)),"#00A0A0",QVec::vec3(width, 100, 100));	
+			InnerModelDraw::addPlane_notExisting(
+			  innerModelViewer,
+			  QString::fromStdString("LINEA_"+oss.str()), "floor",
+			  QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
+			  QVec::vec3(n(1),0,n(0)),"#00A0A0",
+			  QVec::vec3(width, 100, 100)
+			);	
 			printf("tx: %f| tz: %f| nx: %f| nz: %f| width %f\n",-(p0y+p1y)/2,(p0x+p1x)/2,-n(1),n(0),width);
 			i++;                        
 		}

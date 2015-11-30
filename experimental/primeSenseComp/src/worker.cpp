@@ -66,12 +66,39 @@ void Worker::Data::initializeNI()
 	XnStatus status = XN_STATUS_OK;
 	status = context.Init();
 	
+	if (status)
+	{
+		printf("\n");
+		printf("xnGetStatusString: %s\n\n", xnGetStatusString(status));
+		printf("xnGetStatusName: %s\n\n", xnGetStatusName(status));
+		qFatal("Can't init OpenNi context\n");
+	}
+			
+	
 	// Create the depth generator
 	status = depthGen.Create( context );
+	if (status)
+	{
+		printf("\n");
+		printf("xnGetStatusString: %s\n\n", xnGetStatusString(status));
+		printf("xnGetStatusName: %s\n\n", xnGetStatusName(status));
+		qFatal("Can't create depth generator\n");
+	}
 	depthMode.nXRes = XN_VGA_X_RES;
 	depthMode.nYRes = XN_VGA_Y_RES;
 	depthMode.nFPS = 30;
+
+
 	status = depthGen.SetMapOutputMode( depthMode );
+	if (status)
+	{
+		printf("\n");
+		printf("xnGetStatusString: %s\n\n", xnGetStatusString(status));
+		printf("xnGetStatusName: %s\n\n", xnGetStatusName(status));
+		qFatal("Can't set Map Output mode\n");
+	}
+
+
 	depthMap1.resize( XN_VGA_X_RES * XN_VGA_Y_RES );
 	depthMap2.resize( XN_VGA_X_RES * XN_VGA_Y_RES );
 	depthMapW = &depthMap1;

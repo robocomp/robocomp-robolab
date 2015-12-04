@@ -21,7 +21,7 @@
 * \brief Default constructor
 */
 
-// #define USE_EXTENSION
+#define USE_EXTENSION
 #define EXTENSION_RANGE 6.283185307179586
 // #define EXTENSION_RANGE 3.1
 Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &cfg) : QObject()
@@ -73,7 +73,9 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	bState.x     = oState.x;
 	bState.z     = oState.z;
 	bState.alpha = oState.alpha;
-	extended = new ExtendedRangeSensor(*laserDataR, bState, innerModel, EXTENSION_RANGE, maxLength);
+	printf("<<< '%s'\n", base.toStdString().c_str());
+	extended = new ExtendedRangeSensor(*laserDataR, bState, innerModel, EXTENSION_RANGE, maxLength, base);
+	printf(">>>\n");
 	extended->update(*laserDataR);
 
 	confData.staticConf = 1;
@@ -94,7 +96,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	confData.device = "rgbd";
 
 	compute();
-	timer.start(100);
+	timer.start(10);
 }
 
 /**
@@ -287,17 +289,17 @@ void Worker::compute()
 			if (points.size() == 320*240) { pw=320; ph=240; }
 			if (points.size() == 160*120) { pw=160; ph=120; }
 			if (points.size() == 80*60) { pw=80; ph=60; }
-			for (uint32_t rr=0; rr<ph; rr+=1)
+			for (uint32_t rr=0; rr<ph; rr+=2)
 			{
-				for (uint32_t cc=0; cc<pw; cc+=1)
+				for (uint32_t cc=0; cc<pw; cc+=3)
 				{
 					uint32_t ioi = rr*pw+cc;
 					if (ioi<points.size())
 					{
-						uint interest = pw*1.5;
-						if (ioi == interest) QVec::vec3(points[ioi].x, points[ioi].y, points[ioi].z).print("en cam");
+						//uint interest = pw*1.5;
+						//if (ioi == interest) QVec::vec3(points[ioi].x, points[ioi].y, points[ioi].z).print("en cam");
 						const QVec p = (TR * QVec::vec4(points[ioi].x, points[ioi].y, points[ioi].z, 1)).fromHomogeneousCoordinates();
-						if (ioi == interest) p.print("en final");
+						//if (ioi == interest) p.print("en final");
 #ifdef STORE_POINTCLOUDS_AND_EXIT
 						cloud->points[ioi].x = p(0)/1000;
 						cloud->points[ioi].y = p(1)/1000;
@@ -312,7 +314,7 @@ void Worker::compute()
 							const int32_t bin = angle2bin(a);
 							if (bin>=0 and bin<LASER_SIZE and (*laserDataW)[bin].dist > d)
 							{
-								if (ioi == interest)  printf("yess\n");
+								//if (ioi == interest)  printf("yess\n");
 								(*laserDataW)[bin].dist = d;
 							}
 						}
@@ -383,10 +385,10 @@ void Worker::compute()
 #ifdef USE_EXTENSION
 	extended->update(*laserDataR);
 	static QTime te = QTime::currentTime();
-	float re = 11.*te.elapsed()/1000.;
+// 	float re = 11.*te.elapsed()/1000.;
 	te = QTime::currentTime();
 // 	printf("S ------------   %d       %f\n", extended->size(), re);
-	extended->relax(re, innerModel, "laser", "root");
+// 	extended->relax(re, innerModel, "laser", "root");
 #endif
 
 // 	medianFilter();

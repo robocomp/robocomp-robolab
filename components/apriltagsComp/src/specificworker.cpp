@@ -24,6 +24,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
+	innermodel = NULL;
 }
 
 /**
@@ -122,7 +123,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
 
-	innermodel = new InnerModel(innermodel_path);
+	try
+	{
+		innermodel = new InnerModel(innermodel_path);
+	}
+	catch (QString &s)
+	{
+		printf("error reading iner model %s\n", s.toStdString().c_str());
+	}
 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
 	m_fy = innermodel->getCameraFocal(camera_name.c_str());
 
@@ -177,6 +185,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	if (innermodel == NULL) return;
+printf("---------------------\n"); 
+
 	static int frame = 0;
 	static double last_t = tic();
 

@@ -51,7 +51,7 @@ private:
 	QTime lastAprilUpdate, lastCGRUpdate;
 	
 	QVec lastPosition;
-	float distance;
+	float distance = 0.f;
 	float C;
 };
 

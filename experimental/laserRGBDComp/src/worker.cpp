@@ -22,7 +22,7 @@
 */
 
 #define USE_EXTENSION
-#define EXTENSION_RANGE 6.283185307179586
+#define EXTENSION_RANGE 6.
 // #define EXTENSION_RANGE 3.1
 Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor::JointMotorPrx jointmotorprx, RoboCompLaser::LaserPrx laserprx, WorkerConfig &cfg) : QObject()
 {
@@ -61,8 +61,8 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	laserDataW->resize(LASER_SIZE);
 	for (int32_t i=0; i<LASER_SIZE; i++)
 	{
-		(*laserDataR)[i].angle = (float(i)-(LASER_SIZE/2.))*(cfg.FOV/LASER_SIZE);
-		(*laserDataW)[i].angle = (float(i)-(LASER_SIZE/2.))*(cfg.FOV/LASER_SIZE);
+		(*laserDataR)[i].angle = (double(i)-(LASER_SIZE/2.))*(cfg.FOV/LASER_SIZE);
+		(*laserDataW)[i].angle = (double(i)-(LASER_SIZE/2.))*(cfg.FOV/LASER_SIZE);
 	}
 	printf("Direct field of view < %f -- %f >\n", (*laserDataR)[0].angle, (*laserDataR)[laserDataR->size()-1].angle);
 
@@ -133,14 +133,14 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList params_)
 }
 
 
-int32_t Worker::angle2bin(float ang)
+int32_t Worker::angle2bin(double ang)
 {
 	while (ang>M_PI)  ang -= 2.*M_PI;
 	while (ang<-M_PI) ang += 2.*M_PI;
 
-	float ret;
-	ret = ang * (LASER_SIZE/localFOV);
-	ret = ret + LASER_SIZE/2.;
+	double ret;
+	ang += localFOV/2;
+	ret = (ang * LASER_SIZE) / localFOV;
 	return int32_t(ret);
 }
 
@@ -148,16 +148,8 @@ int32_t Worker::angle2bin(float ang)
 * \brief Thread method
 */
 //#define STORE_POINTCLOUDS_AND_EXIT
-
-void Worker::compute()
+void Worker::updateInnerModel()
 {
-	/// Clear laser measurement
-	for (int32_t i=0; i<LASER_SIZE; ++i)
-	{
-		(*laserDataW)[i].dist = maxLength;
-	}
-
-
 	/// Update InnerModel with joint information
 	if (updateJoint)
 	{
@@ -180,8 +172,32 @@ void Worker::compute()
 		printf("not using joint\n");
 	}
 
+	
+	RoboCompOmniRobot::TBaseState oState;
+	try { omnirobot->getBaseState(oState); }
+	catch (Ice::Exception e) { qDebug()<<"error talking to base"<<e.what(); }
+	bStateOut.x     = oState.x;
+	bStateOut.z     = oState.z;
+	bStateOut.alpha = oState.alpha;
+	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
+}
+
+
+void Worker::compute()
+{
+	/// Update InnerModel
+// 	innerModel->transform6D("root", "robot").print("robot1");
+	updateInnerModel();
+// 	innerModel->transform6D("root", "robot").print("robot2");
+	
+	/// Clear laser measurement
+	for (int32_t i=0; i<LASER_SIZE; ++i)
+	{
+		(*laserDataW)[i].dist = maxLength;
+	}
+
 	/// FOR EACH OF THE CONFIGURED PROXIES
-// 	#pragma omp parallel for
+	#pragma omp parallel for
 	for (uint r=0; r<rgbds.size(); ++r)
 	{
 #ifdef STORE_POINTCLOUDS_AND_EXIT
@@ -223,7 +239,7 @@ void Worker::compute()
 						pointCloud[pi].y *= images[iter->first].depthImage[pi];
 						pointCloud[pi].z  = images[iter->first].depthImage[pi];
 					}
-						qFatal("deeddededede");
+qFatal("deeddededede");
 					/// Inserts the resulting points in the virtual laser
 					RTMat TR = innerModel->getTransformationMatrix(base, QString::fromStdString(iter->first));
 #ifdef STORE_POINTCLOUDS_AND_EXIT
@@ -242,9 +258,9 @@ void Worker::compute()
 							if ( (p(1)>=minHeight and p(1)<=maxHeight) /* or (p(1)<minHeightNeg) */)
 							{
 								p(1) = 0;
-								float d = sqrt(p(0)*p(0) + p(2)*p(2));
+								double d = sqrt(p(0)*p(0) + p(2)*p(2));
 								if (d>maxLength) d = maxLength;
-								const float a = atan2(p(0), p(2));
+								const double a = atan2(p(0), p(2));
 								const int32_t bin = angle2bin(a);
 								if (bin>=0 and bin<LASER_SIZE and (*laserDataW)[bin].dist > d)
 								{
@@ -308,9 +324,9 @@ void Worker::compute()
 						if ( (p(1)>=minHeight and p(1)<=maxHeight) or (p(1)<minHeightNeg) )
 						{
 // 							p(1) = 0;
-							float d = sqrt(p(0)*p(0) + p(2)*p(2));
+							double d = sqrt(p(0)*p(0) + p(2)*p(2));
 							if (d>maxLength) d = maxLength;
-							const float a = atan2(p(0), p(2));
+							const double a = atan2(p(0), p(2));
 							const int32_t bin = angle2bin(a);
 							if (bin>=0 and bin<LASER_SIZE and (*laserDataW)[bin].dist > d)
 							{
@@ -336,19 +352,17 @@ void Worker::compute()
 	try
 	{
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
+		for (uint i=0; i<laserDataW->size(); i++)
+		{
+			(*laserDataW)[i].dist = maxLength;
+		}
 		for (uint i=0; i<alData.size(); i++)
 		{
-			//if (i==alData.size()/2) printf("PC %d  (%f _ %f)\n", i, alData[i].dist, alData[i].angle);
-			const QVec p = innerModel->laserTo(actualLaserID, actualLaserID, alData[i].dist, alData[i].angle);
-			//if (i==alData.size()/2) p.print("en base");
-			//if (i==alData.size()/2) printf("(%s)", base.toStdString().c_str());
-			const float angle = atan2(p(0), p(2));
-			const float dist = p.norm2();
-			//if (i==alData.size()/2) printf("enlaser %f %f\n", dist, angle);
-			const int j = LASER_SIZE*angle/FOV + (LASER_SIZE/2);
-			//if (i==alData.size()/2) printf("index %d\n", j);
-// 			printf("FOV:%f, angle:%f, LASER_SIZE=%f, j:%d\n", (float)FOV, angle, (float)LASER_SIZE, j);
-			
+			const QVec p = innerModel->laserTo(base, actualLaserID, alData[i].dist, alData[i].angle);
+			const double angle = atan2(p(0), p(2));
+			const double dist = p.norm2();
+			const int j = LASER_SIZE*angle/localFOV + (LASER_SIZE/2);
+// 			const int j = (LASER_SIZE*(angle+localFOV/2))/localFOV;
 			if (j>=0 and j<(int)laserDataW->size())
 			{
 				if ((*laserDataW)[j].dist > dist)
@@ -363,12 +377,8 @@ void Worker::compute()
 		cout << "Can't connect to laser: " << ex << endl;
 	}
 
-	
-	
-	
-	
-	
-	
+
+
 	RoboCompOmniRobot::TBaseState oState;
 	try { omnirobot->getBaseState(oState); }
 	catch (Ice::Exception e) { qDebug()<<"error talking to base"<<e.what(); }
@@ -380,19 +390,18 @@ void Worker::compute()
 	mutex->lock();
 	laserDataR = laserDataW;
 	mutex->unlock();
-	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
-// 	printf("%f %f ___ %f\n", bStateOut.x, bStateOut.z, bStateOut.alpha);
 #ifdef USE_EXTENSION
 	extended->update(*laserDataR);
 	static QTime te = QTime::currentTime();
-// 	float re = 11.*te.elapsed()/1000.;
+// 	double re = 11.*te.elapsed()/1000.;
 	te = QTime::currentTime();
-// 	printf("S ------------   %d       %f\n", extended->size(), re);
-// 	extended->relax(re, innerModel, "laser", "root");
 #endif
 
-// 	medianFilter();
 	laserDataW = t;
+
+
+
+// 	innerModel->transform6D("root", "robot").print("robot 3");
 }
 
 
@@ -456,8 +465,8 @@ RoboCompLaser::LaserConfData Worker::getLaserConfData()
 
 void Worker::medianFilter()
 {
-	float window[5];
-	float x[laserDataR->size()];
+	double window[5];
+	double x[laserDataR->size()];
 
 	for (int32_t i=2; i<(int)laserDataR->size()-2; ++i)
 	{
@@ -472,7 +481,7 @@ void Worker::medianFilter()
 			for (int k = j + 1; k < 5; ++k)
 				if (window[k] < window[min])
 					min = k;
-			const float temp = window[j];
+			const double temp = window[j];
 			window[j] = window[min];
 			window[min] = temp;
 		}

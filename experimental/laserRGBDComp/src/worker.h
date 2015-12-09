@@ -137,8 +137,8 @@ private:
 	
 	ExtendedRangeSensor *extended;
 
-
-	int32_t angle2bin(float ang);
+	void updateInnerModel();
+	int32_t angle2bin(double ang);
 	void medianFilter();
 
 	void writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);

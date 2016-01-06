@@ -133,6 +133,11 @@ void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString vi
 	cv::circle(map, cv::Point(xImageCoord, zImageCoord), minDist*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
 
 	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);
+	
+	
+	int dilation_size = 1;
+	cv::Mat element = getStructuringElement(cv::MORPH_RECT, cv::Size( 2*dilation_size+1, 2*dilation_size+1), cv::Point( dilation_size, dilation_size ) );
+	cv::dilate(mapThreshold, mapThreshold, element);
 
 	cv::imshow("map", map);
 	cv::imshow("mapThreshold", mapThreshold);
@@ -149,21 +154,28 @@ void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerM
 		(*laserData)[i].dist = maxLength;
 	}
 
-	for (int xi=0; xi<bins; xi++)
+	const QVec lmapCoord = innerModel->laserTo(movableRootID, virtualLaserID, 0,0).operator*(float(bins)/float(side));
+	int xlImageCoord =  lmapCoord(0) + 0.5*bins;
+	int zlImageCoord = -lmapCoord(2) + 0.5*bins;
+	int radius = (maxLength*float(bins))/float(side);
+	for (int xi=0; xi<bins; xi+=2)
 	{
-		for (int zi=0; zi<bins; zi++)
+		for (int zi=0; zi<bins; zi+=2)
 		{
-			if (mapThreshold.at<uchar>(zi, xi) > 0)
+			if (abs(xlImageCoord-xi)<=radius and abs(zlImageCoord-zi)<=radius)
 			{
-				QVec mapCoord = QVec::vec3(-0.5*bins+xi, 0, 0.5*bins-zi).operator*(float(side)/float(bins));
-				QVec mapCoordInLaser = innerModel->transform(virtualLaserID, mapCoord, movableRootID);
-				float angle = atan2(mapCoordInLaser(0), mapCoordInLaser(2));
-				float dist = mapCoordInLaser.norm2();
-				int32_t bin = angle2bin(angle, laserFOV, laserBins);
-				if ((*laserData)[bin].dist > dist)
+				if (mapThreshold.at<uchar>(zi, xi) > 0)
 				{
-					(*laserData)[bin].dist = dist;
-					mapThreshold.at<uchar>(zi, xi) = 255;
+					QVec mapCoord = QVec::vec3(-0.5*bins+xi, 0, 0.5*bins-zi).operator*(float(side)/float(bins));
+					QVec mapCoordInLaser = innerModel->transform(virtualLaserID, mapCoord, movableRootID);
+					float angle = atan2(mapCoordInLaser(0), mapCoordInLaser(2));
+					float dist = mapCoordInLaser.norm2();
+					int32_t bin = angle2bin(angle, laserFOV, laserBins);
+					if ((*laserData)[bin].dist > dist)
+					{
+						(*laserData)[bin].dist = dist;
+						mapThreshold.at<uchar>(zi, xi) = 255;
+					}
 				}
 			}
 		}

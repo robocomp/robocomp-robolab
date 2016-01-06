@@ -174,7 +174,6 @@ void Worker::updateInnerModel()
 
 void Worker::compute()
 {
-	QMutexLocker m(mutex);
 
 	/// Update InnerModel
 	updateInnerModel();
@@ -203,12 +202,12 @@ void Worker::compute()
 
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t;
-// 	mutex->lock();
 	map->getLaserData(laserDataW, innerModel, "movableRoot", virtualLaserID, LASER_SIZE, localFOV, maxLength);
+	mutex->lock();
 	t = laserDataR;
 	laserDataR = laserDataW;
 	laserDataW = t;
-// 	mutex->unlock();
+	mutex->unlock();
 
 }
 

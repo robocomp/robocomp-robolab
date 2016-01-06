@@ -122,6 +122,7 @@ bool Worker::setParams(RoboCompCommonBehavior::ParameterList params_)
 
 int32_t Worker::angle2bin(double ang)
 {
+	QMutexLocker m(mutex);
 	while (ang>M_PI)  ang -= 2.*M_PI;
 	while (ang<-M_PI) ang += 2.*M_PI;
 
@@ -137,6 +138,7 @@ int32_t Worker::angle2bin(double ang)
 //#define STORE_POINTCLOUDS_AND_EXIT
 void Worker::updateInnerModel()
 {
+	QMutexLocker m(mutex);
 	/// Update InnerModel with joint information
 	if (updateJoint)
 	{
@@ -227,6 +229,7 @@ RoboCompLaser::TLaserData Worker::getLaserAndBStateData(RoboCompDifferentialRobo
 
 RoboCompLaser::LaserConfData Worker::getLaserConfData()
 {
+	QMutexLocker m(mutex);
 	return confData;
 }
 

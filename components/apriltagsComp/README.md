@@ -83,13 +83,3 @@ So, to begin we type:
     
 If the robot's camera is pointing towards one of the tags, you should see in the terminal lines showing the ID and pose of each visible tag.
 
-    
-    
-
-
-    
-
-
-
-
-

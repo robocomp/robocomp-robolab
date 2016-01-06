@@ -42,7 +42,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	DECIMATION_LEVEL = cfg.DECIMATION_LEVEL;
 
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
 
 	innerModel = new InnerModel(cfg.xmlpath);
 

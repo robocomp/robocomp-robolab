@@ -127,25 +127,24 @@ void LMap::update_laser(RoboCompLaser::TLaserData *laserData, InnerModel *innerM
 void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist)
 {
 	// Empty a line 
-	const QVec mapCoord = innerModel->transform(movableRootID, virtualLaserID);
+	const QVec mapCoord = innerModel->transform(movableRootID, virtualLaserID).operator*(float(bins)/float(side));
 	int xImageCoord =  mapCoord(0) + 0.5*bins;
 	int zImageCoord = -mapCoord(2) + 0.5*bins;
 	cv::circle(map, cv::Point(xImageCoord, zImageCoord), minDist*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
 
 	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);
 
-// 	cv::imshow("map", map);
-// 	cv::imshow("mapThreshold", mapThreshold);
-// 	if (cv::waitKey(3) == 27)
-// 		exit(0);
+	cv::imshow("map", map);
+	cv::imshow("mapThreshold", mapThreshold);
+	if (cv::waitKey(3) == 27)
+		exit(0);
 }
 
 
 void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, int32_t laserBins, float laserFOV, float maxLength)
 {
-	printf("bins: %d\n", bins);
 	/// Clear laser measurement
-	for (int32_t i=0; i<bins; ++i)
+	for (int32_t i=0; i<laserBins; ++i)
 	{
 		(*laserData)[i].dist = maxLength;
 	}
@@ -156,22 +155,15 @@ void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerM
 		{
 			if (mapThreshold.at<uchar>(zi, xi) > 0)
 			{
-// 				QVec::vec3(xi, 0, zi).print("0");
 				QVec mapCoord = QVec::vec3(-0.5*bins+xi, 0, 0.5*bins-zi).operator*(float(side)/float(bins));
-				mapCoord.print("2");
 				QVec mapCoordInLaser = innerModel->transform(virtualLaserID, mapCoord, movableRootID);
 				float angle = atan2(mapCoordInLaser(0), mapCoordInLaser(2));
 				float dist = mapCoordInLaser.norm2();
-				if (dist < 500) printf("dist:%f\n", dist);
 				int32_t bin = angle2bin(angle, laserFOV, laserBins);
-				printf("%d (%d of %d)\n", __LINE__, bin, (int)(*laserData).size());
 				if ((*laserData)[bin].dist > dist)
 				{
-					printf("%d\n", __LINE__);
 					(*laserData)[bin].dist = dist;
-					printf("%d\n", __LINE__);
 					mapThreshold.at<uchar>(zi, xi) = 255;
-					printf("%d\n", __LINE__);
 				}
 			}
 		}

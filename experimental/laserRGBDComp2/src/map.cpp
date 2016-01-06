@@ -6,79 +6,114 @@ LMap::LMap(float side_, int32_t bins_, float laserRange_)
 	side = side_;
 	bins = bins_;
 	laserRange = laserRange_;
-	lastForget = QTime::currentTime();
+	lastForgetSubtract = QTime::currentTime();
+	lastForgetAdd = QTime::currentTime();
 
 	map = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(0));
 	cv::namedWindow("map", cv::WINDOW_AUTOSIZE);
 }
 
-cv::Mat offsetImageWithPadding(const cv::Mat& originalImage, int offsetX, int offsetY, cv::Scalar backgroundColour)
+
+cv::Mat offsetImageWithPadding(const cv::Mat& originalImage, int offsetX, int offsetY)
 {
-	auto padded = cv::Mat(originalImage.rows + 2 * abs(offsetY), originalImage.cols + 2 * abs(offsetX), CV_8UC1, backgroundColour);
+	auto padded = cv::Mat(originalImage.rows + 2 * abs(offsetY), originalImage.cols + 2 * abs(offsetX), CV_8UC1, cv::Scalar(128));
 	originalImage.copyTo(padded(cv::Rect(abs(offsetX), abs(offsetY), originalImage.cols, originalImage.rows)));
 	return cv::Mat(padded, cv::Rect(abs(offsetX) + offsetX, abs(offsetY) + offsetY, originalImage.cols, originalImage.rows));
 }
 
-void LMap::update(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString robotID, QString laserID)
+
+void LMap::update_timeAndPositionIssues(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID)
 {
-	// First, if the robot is far from the movable root, move such reference.
-	const QVec relPose = innerModel->transform(movableRootID, robotID);
-// 	innerModel->transform("root", movableRootID).print("robot");
-// 	relPose.print("pose");
-	float distFromReference = innerModel->transform(movableRootID, robotID).norm2();
+	// First, if virtualLaserID is far from the movable root, move the movableRootID reference.
+	const QVec relPose = innerModel->transform(movableRootID, virtualLaserID);
+	float distFromReference = innerModel->transform(movableRootID, virtualLaserID).norm2();
 	float margin = 0.5*side-laserRange;
-	if (distFromReference >= margin)
+	static bool first = true;
+	if (distFromReference >= margin or first)
 	{
-// 		relPose.print("\nmove rel pose");
-		QVec relPosePixels = relPose;
-// 		relPosePixels.print("eo1");
-		printf("%f %f ---- %f\n", float(bins), float(side), float(bins)/float(side));
-		relPosePixels = relPosePixels.operator*(float(bins)/float(side));
-// 		relPosePixels.print("eo2");
-		map = offsetImageWithPadding(map, relPosePixels(0), -relPosePixels(2), cv::Scalar(0));
+		first = false;
+		QVec relPosePixels = relPose.operator*(float(bins)/float(side));
+		map = offsetImageWithPadding(map, relPosePixels(0), -relPosePixels(2));
 		QString mrID_parent = innerModel->getParentIdentifier(movableRootID);
-		qDebug() << mrID_parent;
-		QVec pFromMRIDp = innerModel->transform(mrID_parent, robotID);
-		innerModel->transform6D("root", movableRootID).print("MR1");
+		QVec pFromMRIDp = innerModel->transform(mrID_parent, virtualLaserID);
 		innerModel->updateTransformValues(movableRootID, pFromMRIDp(0), pFromMRIDp(1), pFromMRIDp(2), 0,0,0);
-		innerModel->transform6D("root", movableRootID).print("MR2");
-		innerModel->transform(movableRootID, robotID).print("rel pose after");
+		printf("moving movableRootID %f\n", distFromReference);
 	}
 
 	// Decrease the obstacle certainty
-	const float forgetRate = 20;
-	const int forgetSubtract = float(lastForget.elapsed()*forgetRate)/1000.;
-	if (forgetSubtract > 0)
+	const float forgetRateSubtract = 12;
+	const float forgetSubtract = float(forgetRateSubtract*lastForgetSubtract.elapsed())/1000.;
+	if (forgetSubtract > 5)
 	{
-		lastForget = QTime::currentTime();
+		lastForgetSubtract = QTime::currentTime();
 		for (int x=0; x<bins; x++)
 		{
 			for (int z=0; z<bins; z++)
 			{
-				const int64_t t = map.at<uchar>(z, x);
-				map.at<uchar>(z, x) = t>=forgetSubtract ? t-forgetSubtract : 0;
+				int64_t t = map.at<uchar>(z, x);
+				if (t > 128)
+				{
+					t -= forgetSubtract;
+					if (t<128) t = 128;
+					map.at<uchar>(z, x) = t;
+				}
 			}
 		}
 	}
+	// Increase the obstacle certainty
+	const float forgetRateAdd = 7;
+	const float forgetAdd = float(forgetRateAdd*lastForgetAdd.elapsed())/1000.;
+	if (forgetAdd > 5)
+	{
+		lastForgetAdd = QTime::currentTime();
+		for (int x=0; x<bins; x++)
+		{
+			for (int z=0; z<bins; z++)
+			{
+				int64_t t = map.at<uchar>(z, x);
+				if (t < 128)
+				{
+					t += forgetAdd;
+					if (t>128) t = 128;
+					map.at<uchar>(z, x) = t;
+				}
+			}
+		}
+	}
+}
 
-	
+
+void LMap::update_laser(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID)
+{
 	for (auto datum : *laserData)
 	{
+		// Compute points' map coordinates
+		const QVec mapCoord = innerModel->laserTo(movableRootID, actualLaserID, datum.dist-(6.*side/bins), datum.angle).operator*(float(bins)/float(side));
+		int xImageCoord =  mapCoord(0) + 0.5*bins;
+		int zImageCoord = -mapCoord(2) + 0.5*bins;
+		// Empty a line 
+		const QVec mapCoordZ = innerModel->laserTo(movableRootID, actualLaserID, 0, datum.angle).operator*(float(bins)/float(side));
+		int xImageCoordL =  mapCoordZ(0) + 0.5*bins;
+		int zImageCoordL = -mapCoordZ(2) + 0.5*bins;
+		cv::line(map, cv::Point(xImageCoord, zImageCoord), cv::Point(xImageCoordL, zImageCoordL), cv::Scalar(0), 5);
+	}
+	for (auto datum : *laserData)
+	{
+		// Compute points' map coordinates
+		const QVec mapCoord = innerModel->laserTo(movableRootID, actualLaserID, datum.dist, datum.angle).operator*(float(bins)/float(side));
+		int xImageCoord =  mapCoord(0) + 0.5*bins;
+		int zImageCoord = -mapCoord(2) + 0.5*bins;
+		// Draw obstacle
 		if (datum.dist < laserRange)
 		{
-			const QVec mapCoord = innerModel->laserTo(movableRootID, laserID, datum.dist, datum.angle).operator*(float(bins)/float(side));
-			int xImageCoord =  mapCoord(0) + 0.5*bins;
-			int zImageCoord = -mapCoord(2) + 0.5*bins;
-			
 			auto addToCoordinates = [](const int x, const int z, cv::Mat &map, const int bins)
 			{
 				if (x >= 0 and x < bins and z >= 0 and z < bins)
 				{
-					const int64_t t = map.at<uchar>(z, x) + 25;
+					const int64_t t = int64_t(map.at<uchar>(z, x)) + 100;
 					map.at<uchar>(z, x) = t>255 ? 255 : t;
 				}
 			};
-			
 			for (auto i : std::vector<int>{-1, 0, 1})
 			{
 				addToCoordinates(xImageCoord+i, zImageCoord, map, bins);
@@ -86,16 +121,60 @@ void LMap::update(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, 
 			}
 		}
 	}
-
-	
-	cv::imshow("map", map);
-	cv::waitKey(1);
 }
 
-RoboCompLaser::TLaserData LMap::getData()
+
+void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist)
 {
-	RoboCompLaser::TLaserData ret;
-	return ret;
+	// Empty a line 
+	const QVec mapCoord = innerModel->transform(movableRootID, virtualLaserID);
+	int xImageCoord =  mapCoord(0) + 0.5*bins;
+	int zImageCoord = -mapCoord(2) + 0.5*bins;
+	cv::circle(map, cv::Point(xImageCoord, zImageCoord), minDist*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
+
+	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);
+
+// 	cv::imshow("map", map);
+// 	cv::imshow("mapThreshold", mapThreshold);
+// 	if (cv::waitKey(3) == 27)
+// 		exit(0);
 }
 
+
+void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, int32_t laserBins, float laserFOV, float maxLength)
+{
+	printf("bins: %d\n", bins);
+	/// Clear laser measurement
+	for (int32_t i=0; i<bins; ++i)
+	{
+		(*laserData)[i].dist = maxLength;
+	}
+
+	for (int xi=0; xi<bins; xi++)
+	{
+		for (int zi=0; zi<bins; zi++)
+		{
+			if (mapThreshold.at<uchar>(zi, xi) > 0)
+			{
+// 				QVec::vec3(xi, 0, zi).print("0");
+				QVec mapCoord = QVec::vec3(-0.5*bins+xi, 0, 0.5*bins-zi).operator*(float(side)/float(bins));
+				mapCoord.print("2");
+				QVec mapCoordInLaser = innerModel->transform(virtualLaserID, mapCoord, movableRootID);
+				float angle = atan2(mapCoordInLaser(0), mapCoordInLaser(2));
+				float dist = mapCoordInLaser.norm2();
+				if (dist < 500) printf("dist:%f\n", dist);
+				int32_t bin = angle2bin(angle, laserFOV, laserBins);
+				printf("%d (%d of %d)\n", __LINE__, bin, (int)(*laserData).size());
+				if ((*laserData)[bin].dist > dist)
+				{
+					printf("%d\n", __LINE__);
+					(*laserData)[bin].dist = dist;
+					printf("%d\n", __LINE__);
+					mapThreshold.at<uchar>(zi, xi) = 255;
+					printf("%d\n", __LINE__);
+				}
+			}
+		}
+	}
+}
 

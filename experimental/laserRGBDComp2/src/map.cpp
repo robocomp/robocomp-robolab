@@ -1,10 +1,11 @@
 #include "map.h"
 
-LMap::LMap(float side_, int32_t bins_, float laserRange_)
+LMap::LMap(float side_, int32_t bins_, float laserRange_, InnerModel *innerModel_)
 {
 	Q_ASSERT(0.5*side_ > 1.25 * laserRange);
 	side = side_;
 	bins = bins_;
+	innerModel = innerModel_;
 	laserRange = laserRange_;
 	lastForgetSubtract = QTime::currentTime();
 	lastForgetAdd = QTime::currentTime();
@@ -22,7 +23,7 @@ cv::Mat offsetImageWithPadding(const cv::Mat& originalImage, int offsetX, int of
 }
 
 
-void LMap::update_timeAndPositionIssues(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID)
+void LMap::update_timeAndPositionIssues(QString movableRootID, QString virtualLaserID, QString actualLaserID)
 {
 	// First, if virtualLaserID is far from the movable root, move the movableRootID reference.
 	const QVec relPose = innerModel->transform(movableRootID, virtualLaserID);
@@ -83,48 +84,74 @@ void LMap::update_timeAndPositionIssues(InnerModel *innerModel, QString movableR
 }
 
 
-void LMap::update_laser(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID)
+void LMap::update_include_laser(RoboCompLaser::TLaserData *laserData, QString movableRootID, QString virtualLaserID, QString actualLaserID)
 {
 	for (auto datum : *laserData)
 	{
 		// Compute points' map coordinates
-		const QVec mapCoord = innerModel->laserTo(movableRootID, actualLaserID, datum.dist-(6.*side/bins), datum.angle).operator*(float(bins)/float(side));
-		int xImageCoord =  mapCoord(0) + 0.5*bins;
-		int zImageCoord = -mapCoord(2) + 0.5*bins;
+		const QVec mapCoord  = fromReferenceLaserToImageCoordinates(datum.dist-(6.*side/bins), datum.angle, actualLaserID, movableRootID);
+		int xImageCoord = mapCoord(0);
+		int zImageCoord = mapCoord(2);
 		// Empty a line 
-		const QVec mapCoordZ = innerModel->laserTo(movableRootID, actualLaserID, 0, datum.angle).operator*(float(bins)/float(side));
-		int xImageCoordL =  mapCoordZ(0) + 0.5*bins;
-		int zImageCoordL = -mapCoordZ(2) + 0.5*bins;
+		const QVec mapCoordZ = fromReferenceLaserToImageCoordinates(                        0, datum.angle, actualLaserID, movableRootID);
+		int xImageCoordL = mapCoordZ(0);
+		int zImageCoordL = mapCoordZ(2);
 		cv::line(map, cv::Point(xImageCoord, zImageCoord), cv::Point(xImageCoordL, zImageCoordL), cv::Scalar(0), 5);
 	}
 	for (auto datum : *laserData)
 	{
 		// Compute points' map coordinates
-		const QVec mapCoord = innerModel->laserTo(movableRootID, actualLaserID, datum.dist, datum.angle).operator*(float(bins)/float(side));
-		int xImageCoord =  mapCoord(0) + 0.5*bins;
-		int zImageCoord = -mapCoord(2) + 0.5*bins;
+		const QVec mapCoord = fromReferenceLaserToImageCoordinates(datum.dist, datum.angle, actualLaserID, movableRootID);
 		// Draw obstacle
 		if (datum.dist < laserRange)
 		{
-			auto addToCoordinates = [](const int x, const int z, cv::Mat &map, const int bins)
-			{
-				if (x >= 0 and x < bins and z >= 0 and z < bins)
-				{
-					const int64_t t = int64_t(map.at<uchar>(z, x)) + 100;
-					map.at<uchar>(z, x) = t>255 ? 255 : t;
-				}
-			};
 			for (auto i : std::vector<int>{-1, 0, 1})
 			{
-				addToCoordinates(xImageCoord+i, zImageCoord, map, bins);
-				addToCoordinates(xImageCoord, zImageCoord+i, map, bins);
+				addToCoordinates(mapCoord(0)+i, mapCoord(0));
+				addToCoordinates(mapCoord(0), mapCoord(2)+i);
 			}
 		}
 	}
 }
 
+void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString movableRootID, QString virtualLaserID, QString rgbdID)
+{
+	RTMat TRv = innerModel->getTransformationMatrix(virtualLaserID, rgbdID);
+	RTMat TRr = innerModel->getTransformationMatrix("robot", rgbdID);
 
-void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist)
+	uint32_t pw = 640;
+	uint32_t ph = 480;
+	if (points->size() == 320*240) { pw=320; ph=240; }
+	if (points->size() == 160*120) { pw=160; ph=120; }
+	if (points->size() == 80*60) { pw=80; ph=60; }
+	for (uint32_t rr=0; rr<ph; rr+=2)
+	{
+		for (uint32_t cc=0; cc<pw; cc+=3)
+		{
+			uint32_t ioi = rr*pw+cc;
+			if (ioi<points->size())
+			{
+				const QVec pRobot   = (TRr * QVec::vec4(points->operator[](ioi).x, points->operator[](ioi).y, points->operator[](ioi).z, 1)).fromHomogeneousCoordinates();
+				//if (ioi == interest) p.print("en final");
+				int minHeight = 100;
+				int maxHeight = 1900;
+				int minHeightNeg = -200;
+				if ( (pRobot(1)>=minHeight and pRobot(1)<=maxHeight) or (pRobot(1)<minHeightNeg) )
+				{
+					const QVec pVirtual = (TRv * QVec::vec4(points->operator[](ioi).x, points->operator[](ioi).y, points->operator[](ioi).z, 1)).fromHomogeneousCoordinates();
+					const QVec mapCoord = fromReferenceToImageCoordinates(pVirtual, virtualLaserID, movableRootID);
+					for (auto i : std::vector<int>{-1, 0, 1})
+					{
+						addToCoordinates(mapCoord(0)+i, mapCoord(0));
+						addToCoordinates(mapCoord(0), mapCoord(2)+i);
+					}
+				}
+			}
+		}
+	}
+}
+
+void LMap::update_done(QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist)
 {
 	// Empty a line 
 	const QVec mapCoord = innerModel->transform(movableRootID, virtualLaserID).operator*(float(bins)/float(side));
@@ -133,7 +160,7 @@ void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString vi
 	cv::circle(map, cv::Point(xImageCoord, zImageCoord), minDist*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
 
 	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);
-	
+	  
 	
 	int dilation_size = 1;
 	cv::Mat element = getStructuringElement(cv::MORPH_RECT, cv::Size( 2*dilation_size+1, 2*dilation_size+1), cv::Point( dilation_size, dilation_size ) );
@@ -146,7 +173,7 @@ void LMap::update_done(InnerModel *innerModel, QString movableRootID, QString vi
 }
 
 
-void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, int32_t laserBins, float laserFOV, float maxLength)
+void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, QString movableRootID, QString virtualLaserID, int32_t laserBins, float laserFOV, float maxLength)
 {
 	/// Clear laser measurement
 	for (int32_t i=0; i<laserBins; ++i)
@@ -181,4 +208,37 @@ void LMap::getLaserData(RoboCompLaser::TLaserData *laserData, InnerModel *innerM
 		}
 	}
 }
+
+inline int32_t LMap::angle2bin(double ang, const float laserFOV, const int bins)
+{
+	while (ang>M_PI)  ang -= 2.*M_PI;
+	while (ang<-M_PI) ang += 2.*M_PI;
+
+	double ret;
+	ang += laserFOV/2.;
+	ret = (ang * bins) / laserFOV;
+	return int32_t(ret);
+}
+
+inline QVec LMap::fromReferenceLaserToImageCoordinates(const float dist, const float angle, const QString &reference, const QString &movableRootID)
+{
+	const QVec mapCoord = innerModel->laserTo(movableRootID, reference, dist, angle).operator*(float(bins)/float(side));
+	return QVec::vec3(mapCoord(0) + 0.5*bins, 0, -mapCoord(2) + 0.5*bins);
+}
+
+inline QVec LMap::fromReferenceToImageCoordinates(const QVec &point, const QString &reference, const QString &movableRootID)
+{
+	const QVec mapCoord = innerModel->transform(movableRootID, point, reference).operator*(float(bins)/float(side));
+	return QVec::vec3(mapCoord(0) + 0.5*bins, 0, -mapCoord(2) + 0.5*bins);
+}
+
+inline void LMap::addToCoordinates(const int x, const int z)
+{
+	if (x >= 0 and x < bins and z >= 0 and z < bins)
+	{
+		const int64_t t = int64_t(map.at<uchar>(z, x)) + 100;
+		map.at<uchar>(z, x) = t>255 ? 255 : t;
+	}
+};
+
 

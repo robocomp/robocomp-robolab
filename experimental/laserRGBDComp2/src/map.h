@@ -6,6 +6,7 @@
 #include <innermodel/innermodel.h>
 
 #include <Laser.h>
+#include <RGBD.h>
 
 using namespace RoboCompLaser;
 
@@ -13,13 +14,14 @@ class LMap
 {
 
 public:
-	LMap(float side_, int32_t bins_, float laserRange_);
+	LMap(float side_, int32_t bins_, float laserRange_, InnerModel *innerModel_);
 
-	void update_timeAndPositionIssues(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID);
-	void update_laser(TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID);
-	void update_done(InnerModel *innerModel, QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist);
+	void update_timeAndPositionIssues(QString movableRootID, QString virtualLaserID, QString actualLaserID);
+	void update_include_laser(TLaserData *laserData, QString movableRootID, QString virtualLaserID, QString actualLaserID);
+	void update_include_rgbd(RoboCompRGBD::PointSeq *points, QString movableRootID, QString virtualLaserID, QString rgbdID);
+	void update_done(QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist);
 
-	void getLaserData(TLaserData *laserData, InnerModel *innerModel, QString movableRootID, QString virtualLaserID, int32_t bins, float laserFOV, float maxLength);
+	void getLaserData(TLaserData *laserData, QString movableRootID, QString virtualLaserID, int32_t bins, float laserFOV, float maxLength);
 
 private:
 	int32_t bins;
@@ -29,18 +31,13 @@ private:
 	cv::Mat mapThreshold;
 	QTime lastForgetSubtract;
 	QTime lastForgetAdd;
+	InnerModel *innerModel;
 
 private:
-	inline int32_t angle2bin(double ang, const float laserFOV, const int bins)
-	{
-		while (ang>M_PI)  ang -= 2.*M_PI;
-		while (ang<-M_PI) ang += 2.*M_PI;
-
-		double ret;
-		ang += laserFOV/2.;
-		ret = (ang * bins) / laserFOV;
-		return int32_t(ret);
-	}
+	inline int32_t angle2bin(double ang, const float laserFOV, const int bins);
+	inline QVec fromReferenceLaserToImageCoordinates(const float dist, const float angle, const QString &reference, const QString &movableRootID);
+	inline QVec fromReferenceToImageCoordinates(const QVec &point, const QString &reference, const QString &movableRootID);
+	inline void addToCoordinates(const int x, const int z);
 };
 
 

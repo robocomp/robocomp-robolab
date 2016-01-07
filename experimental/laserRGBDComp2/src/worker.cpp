@@ -68,7 +68,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	bState.z     = oState.z;
 	bState.alpha = oState.alpha;
 	printf("<<< virtualLaserID: %s>>>\n", virtualLaserID.toStdString().c_str());
-	map = new LMap(6000, 400, 2000);
+	map = new LMap(6000, 400, 2000, innerModel);
 
 	confData.staticConf = 1;
 	confData.maxMeasures = 100;
@@ -135,7 +135,6 @@ int32_t Worker::angle2bin(double ang)
 /**
 * \brief Thread method
 */
-//#define STORE_POINTCLOUDS_AND_EXIT
 void Worker::updateInnerModel()
 {
 	QMutexLocker m(mutex);
@@ -184,25 +183,51 @@ void Worker::compute()
 		(*laserDataW)[i].dist = maxLength;
 	}
 
-	map->update_timeAndPositionIssues(innerModel, "movableRoot", virtualLaserID, actualLaserID);
+	map->update_timeAndPositionIssues("movableRoot", virtualLaserID, actualLaserID);
+
+	// Include laser data
 	try
 	{
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
-		map->update_laser(&alData, innerModel, "movableRoot", virtualLaserID, actualLaserID);
+		map->update_include_laser(&alData, "movableRoot", virtualLaserID, actualLaserID);
 	}
 	catch (const Ice::Exception &ex)
 	{
 		cout << "Can't connect to laser: " << ex << endl;
 	}
+	
+	/// Include each of the RGBD proxies
+	//#pragma omp parallel for
+	for (uint r=0; r<rgbds.size(); ++r)
+	{
+		if (rgbds[r].bus != true) /// If the proxy is a bus
+		{
+			RoboCompRGBD::PointSeq points;
+			try
+			{
+				rgbds[r].proxyRGBD->getXYZ(points, hState, bState);
+			}
+			catch (const Ice::Exception &ex)
+			{
+				cout << "Can't connect to rgbd: " << ex << endl;
+				continue;
+			}
+			map->update_include_rgbd(&points, "movableRoot", virtualLaserID, QString::fromStdString(rgbds[r].id));
+		}
+	}
+
+
 
 	
-	map->update_done(innerModel, "movableRoot", virtualLaserID, actualLaserID, MIN_LENGTH);
+	
+	
+	map->update_done("movableRoot", virtualLaserID, actualLaserID, MIN_LENGTH);
 
 
 
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t;
-	map->getLaserData(laserDataW, innerModel, "movableRoot", virtualLaserID, LASER_SIZE, localFOV, maxLength);
+	map->getLaserData(laserDataW, "movableRoot", virtualLaserID, LASER_SIZE, localFOV, maxLength);
 	mutex->lock();
 	t = laserDataR;
 	laserDataR = laserDataW;

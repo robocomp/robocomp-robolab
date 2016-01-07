@@ -68,7 +68,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 innerModel->transform("root", "root").print("robot");
 
 	printf("<<< virtualLaserID: %s>>>\n", virtualLaserID.toStdString().c_str());
-	map = new LMap(6000, 400, 2000, innerModel);
+	map = new LMap(6000, 400, 2000, "movableRoot", innerModel);
 
 	confData.staticConf = 1;
 	confData.maxMeasures = 100;
@@ -183,13 +183,13 @@ void Worker::compute()
 		(*laserDataW)[i].dist = maxLength;
 	}
 
-	map->update_timeAndPositionIssues("movableRoot", virtualLaserID, actualLaserID);
+	map->update_timeAndPositionIssues(virtualLaserID, actualLaserID);
 
 	// Include laser data
 	try
 	{
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
-		map->update_include_laser(&alData, "movableRoot", virtualLaserID, actualLaserID);
+		map->update_include_laser(&alData, virtualLaserID, actualLaserID);
 	}
 	catch (const Ice::Exception &ex)
 	{
@@ -219,13 +219,13 @@ void Worker::compute()
 	}
 */
 
-	map->update_done("movableRoot", virtualLaserID, actualLaserID, MIN_LENGTH);
+	map->update_done(virtualLaserID, actualLaserID, MIN_LENGTH);
 
 
 
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t;
-	map->getLaserData(laserDataW, "movableRoot", virtualLaserID, LASER_SIZE, maxLength);
+	map->getLaserData(laserDataW, virtualLaserID, LASER_SIZE, maxLength);
 	mutex->lock();
 	t = laserDataR;
 	laserDataR = laserDataW;

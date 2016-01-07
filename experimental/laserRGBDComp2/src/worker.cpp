@@ -36,8 +36,6 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	LASER_SIZE     = cfg.LASER_SIZE;
 	MIN_LENGTH     = cfg.MIN_LENGTH;
 	maxLength      = cfg.maxLength;
-	FOV            = 2.*M_PIl;
-	localFOV       = cfg.FOV;
 	updateJoint    = cfg.updateJoint;
 	DECIMATION_LEVEL = cfg.DECIMATION_LEVEL;
 
@@ -55,8 +53,8 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	laserDataW->resize(LASER_SIZE);
 	for (int32_t i=0; i<LASER_SIZE; i++)
 	{
-		(*laserDataR)[i].angle = (double(i)-(0.5*LASER_SIZE))*(cfg.FOV/LASER_SIZE);
-		(*laserDataW)[i].angle = (double(i)-(0.5*LASER_SIZE))*(cfg.FOV/LASER_SIZE);
+		(*laserDataR)[i].angle = (double(i)-(0.5*LASER_SIZE))*((2.*M_PIl)/LASER_SIZE);
+		(*laserDataW)[i].angle = (double(i)-(0.5*LASER_SIZE))*((2.*M_PIl)/LASER_SIZE);
 	}
 	printf("Direct field of view < %f -- %f >\n", (*laserDataR)[0].angle, (*laserDataR)[laserDataR->size()-1].angle);
 
@@ -67,6 +65,8 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	bState.x     = oState.x;
 	bState.z     = oState.z;
 	bState.alpha = oState.alpha;
+innerModel->transform("root", "root").print("robot");
+
 	printf("<<< virtualLaserID: %s>>>\n", virtualLaserID.toStdString().c_str());
 	map = new LMap(6000, 400, 2000, innerModel);
 
@@ -78,7 +78,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 	confData.maxDegrees = 6;
 	confData.maxRange = maxLength;
 	confData.minRange = MIN_LENGTH;
-	confData.angleRes = cfg.FOV/LASER_SIZE;//confData.maxDegrees/confData.maxMeasures;
+	confData.angleRes = 2.*M_PIl/LASER_SIZE;//confData.maxDegrees/confData.maxMeasures;
 	confData.driver = "simulated from depth map";
 	confData.device = "rgbd";
 
@@ -160,14 +160,14 @@ void Worker::updateInnerModel()
 		printf("not using joint\n");
 	}
 
-	
+
 	RoboCompOmniRobot::TBaseState oState;
 	try { omnirobot->getBaseState(oState); }
 	catch (Ice::Exception e) { qDebug()<<"error talking to base"<<e.what(); }
 	bStateOut.x     = oState.x;
 	bStateOut.z     = oState.z;
 	bStateOut.alpha = oState.alpha;
-	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha,0);
+	innerModel->updateTransformValues("robot", bStateOut.x, 0, bStateOut.z, 0, bStateOut.alpha, 0);
 }
 
 
@@ -176,7 +176,7 @@ void Worker::compute()
 
 	/// Update InnerModel
 	updateInnerModel();
-	
+
 	/// Clear laser measurement
 	for (int32_t i=0; i<LASER_SIZE; ++i)
 	{
@@ -194,8 +194,10 @@ void Worker::compute()
 	catch (const Ice::Exception &ex)
 	{
 		cout << "Can't connect to laser: " << ex << endl;
+		exit(-1);
 	}
-	
+
+/*
 	/// Include each of the RGBD proxies
 	//#pragma omp parallel for
 	for (uint r=0; r<rgbds.size(); ++r)
@@ -215,19 +217,15 @@ void Worker::compute()
 			map->update_include_rgbd(&points, "movableRoot", virtualLaserID, QString::fromStdString(rgbds[r].id));
 		}
 	}
+*/
 
-
-
-	
-	
-	
 	map->update_done("movableRoot", virtualLaserID, actualLaserID, MIN_LENGTH);
 
 
 
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t;
-	map->getLaserData(laserDataW, "movableRoot", virtualLaserID, LASER_SIZE, localFOV, maxLength);
+	map->getLaserData(laserDataW, "movableRoot", virtualLaserID, LASER_SIZE, maxLength);
 	mutex->lock();
 	t = laserDataR;
 	laserDataR = laserDataW;

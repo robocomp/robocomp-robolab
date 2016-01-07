@@ -68,7 +68,7 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 innerModel->transform("root", "root").print("robot");
 
 	printf("<<< virtualLaserID: %s>>>\n", virtualLaserID.toStdString().c_str());
-	map = new LMap(6000, 400, 2000, "movableRoot", innerModel);
+	map = new LMap(6000, 400, 2000, "movableRoot", virtualLaserID, innerModel);
 
 	confData.staticConf = 1;
 	confData.maxMeasures = 100;
@@ -183,13 +183,13 @@ void Worker::compute()
 		(*laserDataW)[i].dist = maxLength;
 	}
 
-	map->update_timeAndPositionIssues(virtualLaserID, actualLaserID);
+	map->update_timeAndPositionIssues(actualLaserID);
 
 	// Include laser data
 	try
 	{
 		RoboCompLaser::TLaserData alData = laser->getLaserData();
-		map->update_include_laser(&alData, virtualLaserID, actualLaserID);
+		map->update_include_laser(&alData, actualLaserID);
 	}
 	catch (const Ice::Exception &ex)
 	{
@@ -214,18 +214,18 @@ void Worker::compute()
 				cout << "Can't connect to rgbd: " << ex << endl;
 				continue;
 			}
-			map->update_include_rgbd(&points, "movableRoot", virtualLaserID, QString::fromStdString(rgbds[r].id));
+			map->update_include_rgbd(&points, "movableRoot", QString::fromStdString(rgbds[r].id));
 		}
 	}
 */
 
-	map->update_done(virtualLaserID, actualLaserID, MIN_LENGTH);
+	map->update_done(actualLaserID, MIN_LENGTH);
 
 
 
 	// Double buffer swap
 	RoboCompLaser::TLaserData *t;
-	map->getLaserData(laserDataW, virtualLaserID, LASER_SIZE, maxLength);
+	map->getLaserData(laserDataW, LASER_SIZE, maxLength);
 	mutex->lock();
 	t = laserDataR;
 	laserDataR = laserDataW;

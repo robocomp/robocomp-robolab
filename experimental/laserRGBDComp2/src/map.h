@@ -14,14 +14,14 @@ class LMap
 {
 
 public:
-	LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, InnerModel *innerModel_);
+	LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_);
 
-	void update_timeAndPositionIssues(QString movableRootID, QString virtualLaserID, QString actualLaserID);
-	void update_include_laser(TLaserData *laserData, QString movableRootID, QString virtualLaserID, QString actualLaserID);
-	void update_include_rgbd(RoboCompRGBD::PointSeq *points, QString movableRootID, QString virtualLaserID, QString rgbdID);
-	void update_done(QString movableRootID, QString virtualLaserID, QString actualLaserID, float minDist);
+	void update_timeAndPositionIssues(QString actualLaserID);
+	void update_include_laser(TLaserData *laserData, QString actualLaserID);
+	void update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID);
+	void update_done(QString actualLaserID, float minDist);
 
-	void getLaserData(TLaserData *laserData, QString movableRootID, QString virtualLaserID, int32_t bins, float maxLength);
+	void getLaserData(TLaserData *laserData, int32_t bins, float maxLength);
 
 private:
 	int32_t bins;
@@ -33,13 +33,15 @@ private:
 	QTime lastForgetAdd;
 	InnerModel *innerModel;
 	QString movableRootID;
+	QString virtualLaserID;
 
 private:
 	inline int32_t angle2bin(double ang, const int bins);
 	inline QVec fromReferenceLaserToImageCoordinates(const float dist, const float angle, const QString &reference);
 	inline QVec fromReferenceToImageCoordinates(const QVec &point, const QString &reference);
+	inline QVec fromImageToReference(float xi, float zi, const QString &reference);
+	inline void fromImageToVirtualLaser(float xi, float zi, int32_t laserBins, float &dist, int32_t &bin);
 	inline void addToCoordinates(const int x, const int z);
-	inline QVec fromImageCoordinatesToReferenceLaser(const QVec &point, const QString &dstLaser);
 };
 
 

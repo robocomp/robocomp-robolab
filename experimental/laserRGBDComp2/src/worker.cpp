@@ -68,7 +68,8 @@ Worker::Worker(RoboCompOmniRobot::OmniRobotPrx omnirobotprx, RoboCompJointMotor:
 innerModel->transform("root", "root").print("robot");
 
 	printf("<<< virtualLaserID: %s>>>\n", virtualLaserID.toStdString().c_str());
-	map = new LMap(6000, 400, 2000, "movableRoot", virtualLaserID, innerModel);
+
+	map = new LMap(2.2*maxLength, 250, maxLength, "movableRoot", virtualLaserID, innerModel, "robot", 290);
 
 	confData.staticConf = 1;
 	confData.maxMeasures = 100;

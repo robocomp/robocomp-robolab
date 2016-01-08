@@ -14,7 +14,7 @@ class LMap
 {
 
 public:
-	LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_);
+	LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_, const QString &robotID, const float robotRadius);
 
 	void update_timeAndPositionIssues(QString actualLaserID);
 	void update_include_laser(TLaserData *laserData, QString actualLaserID);
@@ -34,6 +34,8 @@ private:
 	InnerModel *innerModel;
 	QString movableRootID;
 	QString virtualLaserID;
+	QString robotID;
+	float robotRadius;
 
 private:
 	inline int32_t angle2bin(double ang, const int bins);

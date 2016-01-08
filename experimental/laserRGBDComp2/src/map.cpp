@@ -1,12 +1,14 @@
 #include "map.h"
 
-LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_)
+LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_, const QString &robotID_, const float robotRadius_)
 {
 	Q_ASSERT(0.5*side_ > 1.25 * laserRange);
 	side = side_;
 	bins = bins_;
 	innerModel = innerModel_;
 	laserRange = laserRange_;
+	robotID = robotID_;
+	robotRadius = robotRadius_;
 	// TODO It would be nice to create the InnerModel node in case it doesn't exist (the one for movableRootID) TODO
 	movableRootID = movableRootID_;
 	virtualLaserID = virtualLaserID_;
@@ -165,10 +167,10 @@ void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID)
 void LMap::update_done(QString actualLaserID, float minDist)
 {
 	// Empty the robot's position
-	const QVec mapCoord = innerModel->transform(movableRootID, virtualLaserID).operator*(float(bins)/float(side));
-	int xImageCoord =  mapCoord(0) + 0.5*bins;
-	int zImageCoord = -mapCoord(2) + 0.5*bins;
-	cv::circle(map, cv::Point(xImageCoord, zImageCoord), minDist*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
+	const QVec mapCoord = fromReferenceToImageCoordinates(QVec::vec3(0,0,0), robotID);
+	int xImageCoord = mapCoord(0);
+	int zImageCoord = mapCoord(2);
+	cv::circle(map, cv::Point(xImageCoord, zImageCoord), robotRadius*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
 
 	// Thresholding
 	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);

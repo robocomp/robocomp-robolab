@@ -198,13 +198,13 @@ void Worker::compute()
 		exit(-1);
 	}
 
-/*
 	/// Include each of the RGBD proxies
 	//#pragma omp parallel for
 	for (uint r=0; r<rgbds.size(); ++r)
 	{
 		if (rgbds[r].bus != true) /// If the proxy is a bus
 		{
+			printf("<< %s\n", rgbds[r].id.c_str());
 			RoboCompRGBD::PointSeq points;
 			try
 			{
@@ -215,10 +215,10 @@ void Worker::compute()
 				cout << "Can't connect to rgbd: " << ex << endl;
 				continue;
 			}
-			map->update_include_rgbd(&points, "movableRoot", QString::fromStdString(rgbds[r].id));
+			printf("   %s >>\n", rgbds[r].id.c_str());
+			map->update_include_rgbd(&points, QString::fromStdString(rgbds[r].id));
 		}
 	}
-*/
 
 	map->update_done(actualLaserID, MIN_LENGTH);
 

@@ -128,37 +128,35 @@ void LMap::update_include_laser(RoboCompLaser::TLaserData *laserData, QString ac
 
 void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID)
 {
-	exit(-1);
-	RTMat TRv = innerModel->getTransformationMatrix(virtualLaserID, rgbdID);
-	RTMat TRr = innerModel->getTransformationMatrix("robot", rgbdID);
+	int minHeight = 100;
+	int maxHeight = 1900;
+	int minHeightNeg = -200;
 
+	RTMat TRr = innerModel->getTransformationMatrix("robot", rgbdID); // WARNING This was used because it could be fater than calling transform multiple times
+	const uint32_t rgbd_size = points->size();
 	uint32_t pw = 640;
 	uint32_t ph = 480;
 	if (points->size() == 320*240) { pw=320; ph=240; }
 	if (points->size() == 160*120) { pw=160; ph=120; }
-	if (points->size() == 80*60) { pw=80; ph=60; }
-	for (uint32_t rr=0; rr<ph; rr+=2)
+	if (points->size() == 80*60)   { pw= 80; ph= 60; }
+	for (uint32_t rr=0; rr<ph; rr+=4)
 	{
-		for (uint32_t cc=0; cc<pw; cc+=3)
+		for (uint32_t cc=0; cc<pw; cc+=2)
 		{
 			uint32_t ioi = rr*pw+cc;
-			if (ioi<points->size())
+			if (ioi<rgbd_size)
 			{
-				const QVec pRobot   = (TRr * QVec::vec4(points->operator[](ioi).x, points->operator[](ioi).y, points->operator[](ioi).z, 1)).fromHomogeneousCoordinates();
-				//if (ioi == interest) p.print("en final");
-				int minHeight = 100;
-				int maxHeight = 1900;
-				int minHeightNeg = -200;
-				if ( (pRobot(1)>=minHeight and pRobot(1)<=maxHeight) or (pRobot(1)<minHeightNeg) )
-				{
-					const QVec pVirtual = (TRv * QVec::vec4(points->operator[](ioi).x, points->operator[](ioi).y, points->operator[](ioi).z, 1)).fromHomogeneousCoordinates();
-					const QVec mapCoord = fromReferenceToImageCoordinates(pVirtual, virtualLaserID);
-					for (auto i : std::vector<int>{-1, 0, 1})
-					{
-						addToCoordinates(mapCoord(0)+i, mapCoord(0));
-						addToCoordinates(mapCoord(0), mapCoord(2)+i);
-					}
-				}
+				if (isnan(points->operator[](ioi).x) or isnan(points->operator[](ioi).y) or isnan(points->operator[](ioi).z))
+					continue;
+				if (points->operator[](ioi).z<0)
+					continue;
+				const QVec pRobot = (TRr * QVec::vec4(points->operator[](ioi).x, points->operator[](ioi).y, points->operator[](ioi).z, 1)).fromHomogeneousCoordinates();
+				if (not ( (pRobot(1)>=minHeight and pRobot(1)<=maxHeight) or (pRobot(1)<minHeightNeg) ))
+					continue;
+				const QVec mapCoord = fromReferenceToImageCoordinates(pRobot, "robot");
+				if (mapCoord(0)<=2 or mapCoord(0)>=bins-2 or mapCoord(2)<=2 or mapCoord(2)>=bins-2)
+					continue;
+				addToCoordinates(mapCoord(0), mapCoord(2));
 			}
 		}
 	}

@@ -39,8 +39,8 @@
 	#include <innermodel/innermodelreader.h>
 	#include "map.h"
 	#include "config.h"
-	#include <pcl/io/pcd_io.h>
-	#include <pcl/point_types.h>
+//	#include <pcl/io/pcd_io.h>
+//	#include <pcl/point_types.h>
 #endif
 
 #define BASIC_PERIOD 100

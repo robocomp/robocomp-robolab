@@ -27,9 +27,12 @@ private:
 	int32_t bins;
 	float side;
 	float laserRange;
-	cv::Mat map;
+	cv::Mat mapLaser;
+	cv::Mat mapRGBDs;
+	cv::Mat mapBlend;
 	cv::Mat mapThreshold;
-	QTime lastForgetSubtract;
+	QTime lastForgetSubtractLaser;
+	QTime lastForgetSubtractRGBD;
 	QTime lastForgetAdd;
 	InnerModel *innerModel;
 	QString movableRootID;
@@ -43,7 +46,8 @@ private:
 	inline QVec fromReferenceToImageCoordinates(const QVec &point, const QString &reference);
 	inline QVec fromImageToReference(float xi, float zi, const QString &reference);
 	inline void fromImageToVirtualLaser(float xi, float zi, int32_t laserBins, float &dist, int32_t &bin);
-	inline void addToCoordinates(const int x, const int z);
+	inline void addToLaserCoordinates(const int x, const int z);
+	inline void addToRGBDsCoordinates(const int x, const int z);
 };
 
 

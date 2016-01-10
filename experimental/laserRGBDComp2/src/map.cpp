@@ -12,11 +12,17 @@ LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movable
 	// TODO It would be nice to create the InnerModel node in case it doesn't exist (the one for movableRootID) TODO
 	movableRootID = movableRootID_;
 	virtualLaserID = virtualLaserID_;
-	lastForgetSubtract = QTime::currentTime();
+	lastForgetSubtractLaser = QTime::currentTime();
+	lastForgetSubtractRGBD = QTime::currentTime();
 	lastForgetAdd = QTime::currentTime();
 
-	map = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
-	cv::namedWindow("map", cv::WINDOW_AUTOSIZE);
+	mapLaser = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
+	mapRGBDs = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
+	mapBlend = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
+	cv::namedWindow("mapLaser", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("mapRGBDs", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("mapBlend", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("mapThreshold", cv::WINDOW_AUTOSIZE);
 }
 
 
@@ -40,7 +46,8 @@ void LMap::update_timeAndPositionIssues(QString actualLaserID)
 		first = false;
 		QVec relPosePixels = relPose.operator*(float(bins)/float(side));
 		relPosePixels.print("relPosePixels");
-		map = offsetImageWithPadding(map, relPosePixels(0), -relPosePixels(2));
+		mapLaser = offsetImageWithPadding(mapLaser, relPosePixels(0), -relPosePixels(2));
+		mapRGBDs = offsetImageWithPadding(mapRGBDs, relPosePixels(0), -relPosePixels(2));
 		relPosePixels.print("relPosePixels");
 		QString mrID_parent = innerModel->getParentIdentifier(movableRootID);
 		QVec pFromMRIDp = innerModel->transform(mrID_parent, virtualLaserID);
@@ -49,21 +56,41 @@ void LMap::update_timeAndPositionIssues(QString actualLaserID)
 	}
 
 	// Decrease the obstacle certainty
-	const float forgetRateSubtract = 12;
-	const float forgetSubtract = float(forgetRateSubtract*lastForgetSubtract.elapsed())/1000.;
-	if (forgetSubtract > 5)
+	const float forgetRateSubtractLaser = 7;
+	const float forgetSubtractLaser = float(forgetRateSubtractLaser*lastForgetSubtractLaser.elapsed())/1000.;
+	if (forgetSubtractLaser > 2)
 	{
-		lastForgetSubtract = QTime::currentTime();
+		lastForgetSubtractLaser = QTime::currentTime();
 		for (int x=0; x<bins; x++)
 		{
 			for (int z=0; z<bins; z++)
 			{
-				int64_t t = map.at<uchar>(z, x);
+				int64_t t = mapLaser.at<uchar>(z, x);
 				if (t > 128)
 				{
-					t -= forgetSubtract;
+					t -= forgetSubtractLaser;
 					if (t<128) t = 128;
-					map.at<uchar>(z, x) = t;
+					mapLaser.at<uchar>(z, x) = t;
+				}
+			}
+		}
+	}
+	// Decrease the obstacle certainty
+	const float forgetRateSubtractRGBD = 5;
+	const float forgetSubtractRGBD = float(forgetRateSubtractRGBD*lastForgetSubtractRGBD.elapsed())/1000.;
+	if (forgetSubtractRGBD > 2)
+	{
+		lastForgetSubtractRGBD = QTime::currentTime();
+		for (int x=0; x<bins; x++)
+		{
+			for (int z=0; z<bins; z++)
+			{
+				int64_t t = mapRGBDs.at<uchar>(z, x);
+				if (t > 128)
+				{
+					t -= forgetSubtractRGBD;
+					if (t<128) t = 128;
+					mapRGBDs.at<uchar>(z, x) = t;
 				}
 			}
 		}
@@ -78,12 +105,20 @@ void LMap::update_timeAndPositionIssues(QString actualLaserID)
 		{
 			for (int z=0; z<bins; z++)
 			{
-				int64_t t = map.at<uchar>(z, x);
+				int64_t t;
+				t = mapLaser.at<uchar>(z, x);
 				if (t < 128)
 				{
 					t += forgetAdd;
 					if (t>128) t = 128;
-					map.at<uchar>(z, x) = t;
+					mapLaser.at<uchar>(z, x) = t;
+				}
+				t = mapRGBDs.at<uchar>(z, x);
+				if (t < 128)
+				{
+					t += forgetAdd;
+					if (t>128) t = 128;
+					mapRGBDs.at<uchar>(z, x) = t;
 				}
 			}
 		}
@@ -103,7 +138,7 @@ void LMap::update_include_laser(RoboCompLaser::TLaserData *laserData, QString ac
 		const QVec mapCoordZ = fromReferenceLaserToImageCoordinates(                        0, datum.angle, actualLaserID);
 		int xImageCoordL = mapCoordZ(0);
 		int zImageCoordL = mapCoordZ(2);
-		cv::line(map, cv::Point(xImageCoord, zImageCoord), cv::Point(xImageCoordL, zImageCoordL), cv::Scalar(0), 5);
+		cv::line(mapLaser, cv::Point(xImageCoord, zImageCoord), cv::Point(xImageCoordL, zImageCoordL), cv::Scalar(0), 5);
 	}
 	for (auto datum : *laserData)
 	{
@@ -112,15 +147,10 @@ void LMap::update_include_laser(RoboCompLaser::TLaserData *laserData, QString ac
 		// Draw obstacle
 		if (datum.dist < laserRange and mapCoord(0)>2 and mapCoord(0)<bins-2 and mapCoord(2)>2 and mapCoord(2)<bins-2)
 		{
-/*
-			auto p1 = cv::Point2d(mapCoord(0)-1, mapCoord(2)-1);
-			auto p2 = cv::Point2d(mapCoord(0)+1, mapCoord(2)+1);
-			cv::rectangle(map, p1, p2, cv::Scalar(250), -1);
-*/
 			for (auto i : std::vector<int>{-1, 0, 1})
 			{
-				addToCoordinates(mapCoord(0)+i, mapCoord(2));
-				addToCoordinates(mapCoord(0), mapCoord(2)+i);
+				addToLaserCoordinates(mapCoord(0)+i, mapCoord(2));
+				addToLaserCoordinates(mapCoord(0), mapCoord(2)+i);
 			}
 		}
 	}
@@ -156,7 +186,7 @@ void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID)
 				const QVec mapCoord = fromReferenceToImageCoordinates(pRobot, "robot");
 				if (mapCoord(0)<=2 or mapCoord(0)>=bins-2 or mapCoord(2)<=2 or mapCoord(2)>=bins-2)
 					continue;
-				addToCoordinates(mapCoord(0), mapCoord(2));
+				addToRGBDsCoordinates(mapCoord(0), mapCoord(2));
 			}
 		}
 	}
@@ -168,10 +198,15 @@ void LMap::update_done(QString actualLaserID, float minDist)
 	const QVec mapCoord = fromReferenceToImageCoordinates(QVec::vec3(0,0,0), robotID);
 	int xImageCoord = mapCoord(0);
 	int zImageCoord = mapCoord(2);
-	cv::circle(map, cv::Point(xImageCoord, zImageCoord), robotRadius*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
+
+	cv::circle(mapLaser, cv::Point(xImageCoord, zImageCoord), robotRadius*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
+	cv::circle(mapRGBDs, cv::Point(xImageCoord, zImageCoord), robotRadius*float(bins)/float(side), cv::Scalar(0), -1, 8, 0);
+
+	cv::addWeighted(mapLaser, 0.45, mapRGBDs, 0.55, 0, mapBlend);
+	
 
 	// Thresholding
-	cv::threshold(map, mapThreshold, 127, 128, cv::THRESH_BINARY);
+	cv::threshold(mapBlend, mapThreshold, 127, 128, cv::THRESH_BINARY);
 
 	// Dilate
 	int dilation_size = 1;
@@ -179,7 +214,9 @@ void LMap::update_done(QString actualLaserID, float minDist)
 	cv::dilate(mapThreshold, mapThreshold, element);
 
 	// Show
-	cv::imshow("map", map);
+	cv::imshow("mapLaser", mapLaser);
+	cv::imshow("mapRGBDs", mapRGBDs);
+	cv::imshow("mapBlend", mapBlend);
 	cv::imshow("mapThreshold", mapThreshold);
 	if (cv::waitKey(3) == 27)
 		exit(0);
@@ -255,12 +292,20 @@ inline QVec LMap::fromReferenceToImageCoordinates(const QVec &point, const QStri
 	return QVec::vec3(mapCoord(0) + 0.5*bins, 0, -mapCoord(2) + 0.5*bins);
 }
 
-inline void LMap::addToCoordinates(const int x, const int z)
+inline void LMap::addToLaserCoordinates(const int x, const int z)
 {
 	if (x >= 0 and x < bins and z >= 0 and z < bins)
 	{
-		const int64_t t = int64_t(map.at<uchar>(z, x)) + 100;
-		map.at<uchar>(z, x) = t>255 ? 255 : t;
+		const int64_t t = int64_t(mapLaser.at<uchar>(z, x)) + 100;
+		mapLaser.at<uchar>(z, x) = t>255 ? 255 : t;
+	}
+};
+inline void LMap::addToRGBDsCoordinates(const int x, const int z)
+{
+	if (x >= 0 and x < bins and z >= 0 and z < bins)
+	{
+		const int64_t t = int64_t(mapRGBDs.at<uchar>(z, x)) + 100;
+		mapRGBDs.at<uchar>(z, x) = t>255 ? 255 : t;
 	}
 };
 

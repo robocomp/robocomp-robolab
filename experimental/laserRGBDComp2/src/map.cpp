@@ -166,12 +166,15 @@ void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID)
 	const uint32_t rgbd_size = points->size();
 	uint32_t pw = 640;
 	uint32_t ph = 480;
-	if (points->size() == 320*240) { pw=320; ph=240; }
-	if (points->size() == 160*120) { pw=160; ph=120; }
-	if (points->size() == 80*60)   { pw= 80; ph= 60; }
-	for (uint32_t rr=0; rr<ph; rr+=4)
+	uint32_t stepW = 10;
+	uint32_t stepH = 16;
+	if (points->size() == 320*240) { pw=320; ph=240; stepW=7; stepH=10; }
+	if (points->size() == 160*120) { pw=160; ph=120; stepW=4; stepH=6;  }
+	if (points->size() == 80*60)   { pw= 80; ph= 60; stepW=3; stepH=2;  }
+	#pragma omp parallel for
+	for (uint32_t rr=0; rr<ph; rr+=stepH)
 	{
-		for (uint32_t cc=0; cc<pw; cc+=2)
+		for (uint32_t cc=0; cc<pw; cc+=stepW)
 		{
 			uint32_t ioi = rr*pw+cc;
 			if (ioi<rgbd_size)

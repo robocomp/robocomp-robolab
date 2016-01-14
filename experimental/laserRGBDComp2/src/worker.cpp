@@ -199,7 +199,6 @@ void Worker::compute()
 	}
 
 	/// Include each of the RGBD proxies
-	//#pragma omp parallel for
 	for (uint r=0; r<rgbds.size(); ++r)
 	{
 		if (rgbds[r].bus != true) /// If the proxy is a bus

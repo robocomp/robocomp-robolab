@@ -1,8 +1,8 @@
 Download and install MIT's C++ port of E. Olson's AprilTags, [at](http://people.csail.mit.edu/kaess/apriltags/)
 
-1. First we need to install *libv4l-dev* from the Ubuntu repositories
+1. First we need to install *libv4l-dev* and eigen3 from the Ubuntu repositories
 
-    sudo apt-get install libv4l-dev
+    sudo apt-get install libv4l-dev eigen3
 
 2. Now checkout AprilTags code from subversion to your favourite software directory:
     

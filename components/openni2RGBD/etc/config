@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 CommonBehavior.Endpoints=tcp -p 12321
 
 
 # Endpoints for implemented interfaces
 RGBD.Endpoints=tcp -p 11122
+=======
+CommonBehavior.Endpoints=tcp -p 11111
+
+
+# Endpoints for implemented interfaces
+RGBD.Endpoints=tcp -p 10096
+>>>>>>> 1cb09e7b3425138b981100ab67363e03fbd7012b
 
 
 

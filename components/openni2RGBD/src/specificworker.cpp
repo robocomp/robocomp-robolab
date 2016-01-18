@@ -28,21 +28,17 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	openDevice();
 	initializeStreams();
 
-	///INICIALIZACION ATRIBUTOS GENERALES
-	registration=RoboCompRGBD::None; //A QUE INICIALIZO REGISTRATION????
+	registration=RoboCompRGBD::None;
 
-	///INICIALIZACION MUTEX
 	usersMutex = new QMutex();
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
 	
-	///INICIALIZACION ATRIBUTOS PARA PINTAR
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
-	qImgDepth = new QImage(IMAGE_WIDTH,IMAGE_HEIGHT,QImage::Format_Indexed8);
-	printf("\nStart moving around to get detected...\n(PSI pose may be required for skeleton calibration, depending on the configuration)\n");
-	setPeriod(15);
+	fps = 0;
+	setPeriod(1);
 }
 
 void SpecificWorker::openDevice()
@@ -69,22 +65,49 @@ void SpecificWorker::openDevice()
 	{
 		qDebug("Es un dispositivo fisico");
 	}
+
+
+        const openni::SensorInfo* depthInfo;
+        const openni::SensorInfo* colorInfo;
+
+        depthInfo = device.getSensorInfo(openni::SENSOR_DEPTH);
+        const openni::Array<openni::VideoMode>& depthModes = depthInfo->getSupportedVideoModes();
+	printf("Supported DEPTH modes:\n");
+        for (int i = 0; i < depthModes.getSize(); ++i)
+        {
+                const openni::VideoMode* pSupportedMode = &depthModes[i];
+                printf("%d x %d @ %d\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps());
+        }
+
+        colorInfo = device.getSensorInfo(openni::SENSOR_COLOR);
+        const openni::Array<openni::VideoMode>& colorModes = colorInfo->getSupportedVideoModes();
+	printf("Supported COLOR modes:\n");
+        for (int i = 0; i < colorModes.getSize(); ++i)
+        {
+                const openni::VideoMode* pSupportedMode = &colorModes[i];
+                printf("%d x %d @ %d\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps());
+        }
+
+
 }
 
 void SpecificWorker::initializeStreams()
 {
+
 	if (!openStream(SENSOR_DEPTH, &depth)) qFatal("OPEN DEPTH STREAM FAILED!");
+
 	if (!openStream(SENSOR_COLOR, &color)) qFatal("OPEN COLOR STREAM FAILED!");
+
 
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
+	printf("Using depth resolution:  %d x %d\n", IMAGE_WIDTH, IMAGE_HEIGHT);
 	
 	//RESIZE DOUBLE BUFFERS
 	pointsBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	depthBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 
 	depthBuffer = new vector<float>(IMAGE_WIDTH*IMAGE_HEIGHT);
-	colorBuffer = new vector<ColorRGB>(IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	depthImage = new vector<float>(IMAGE_WIDTH*IMAGE_HEIGHT);
 	colorImage = new vector<Ice::Byte>(IMAGE_WIDTH*IMAGE_HEIGHT*3); //x3 para RGB888Pixel
 }
@@ -97,6 +120,29 @@ bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
 		printf("openNi2Comp: Couldn't find stream:\n%s\n", OpenNI::getExtendedError());
 		return false;
 	}
+
+	openniRc = stream->setMirroringEnabled(false);
+        if (openniRc != openni::STATUS_OK)
+        {
+                printf("openNi2Comp: Couldn't disable mirrorirng:\n%s\n", OpenNI::getExtendedError());
+                stream->destroy();
+                return false;
+        }
+
+
+	openni::VideoMode mode;
+        mode = stream->getVideoMode();
+        mode.setResolution(640, 480);
+        mode.setFps(30);
+        openniRc = stream->setVideoMode(mode);
+        if (openniRc != openni::STATUS_OK)
+        {
+                printf("openNi2Comp: Couldn't setVideoMode:\n%s\n", OpenNI::getExtendedError());
+                stream->destroy();
+                return false;
+        }
+
+
 	openniRc = stream->start();
 	if (openniRc != openni::STATUS_OK)
 	{
@@ -121,12 +167,9 @@ SpecificWorker::~SpecificWorker()
 	OpenNI::shutdown();
 
 	delete depthBuffer;
-	delete colorBuffer;
 
 	delete depthImage;
 	delete colorImage;
-
-	delete qImgDepth;
 
 	delete usersMutex;
 	delete RGBMutex;
@@ -136,43 +179,57 @@ SpecificWorker::~SpecificWorker()
 
 void SpecificWorker::compute( )
 {
-	static int fps = 0;
 	static QTime reloj = QTime::currentTime();
-	readFrame();
-	computeCoordinates();
-	pointsBuff.swap();
-	depthBuff.swap();
+	bool doCoordinates = readFrame();
+	if (doCoordinates)
+	{
+		computeCoordinates();
+		pointsBuff.swap();
+	}
         if (reloj.elapsed() > 1000)
         {
-           qDebug()<<"Grabbing at:"<<fps/2<<"fps";
-           reloj.restart();
-           fps=0;
+		qDebug()<<"Grabbing at:"<<fps<<"fps";
+/*
+		double sum = 0;
+		double div = 0;
+		for (int i=0; i<pointsBuff.size; i++)
+		{
+			if (not isnan(pointsBuff[i].z))
+			{
+				sum += pointsBuff[i].z;
+				div += 1;
+			}
+		}
+		qDebug() << sum/div;
+*/
+		reloj.restart();
+		fps=0;
        }
-       fps++;
 }
 
-void SpecificWorker::readFrame()
+bool SpecificWorker::readFrame()
 {
-	openni::Status rc = openni::STATUS_OK;
 	openni::VideoStream* streams[] = {&depth, &color};
 
 	int changedIndex = -1;
-	while (rc == openni::STATUS_OK)
+	bool doCoordinates = false;
+	while (openni::OpenNI::waitForAnyStream(streams, 2, &changedIndex, 0) == openni::STATUS_OK)
 	{
-		rc = openni::OpenNI::waitForAnyStream(streams, 2, &changedIndex, 0);
-		if (rc == openni::STATUS_OK)
+		switch (changedIndex)
 		{
-			switch (changedIndex)
-			{
-			case 0:
-				readDepth(); break;
-			case 1:
-				readColor(); break;
-			default:
-				printf("Error in wait\n");
-			}
+		case 0:
+			readDepth();
+			doCoordinates = true;
+			fps++;
+			break;
+		case 1:
+			readColor();
+			break;
+		default:
+			printf("Error in wait\n");
 		}
 	}
+	return doCoordinates;
 }
 
 void SpecificWorker::readDepth()
@@ -194,7 +251,6 @@ void SpecificWorker::readDepth()
 
 void SpecificWorker::readColor()
 {
-//	printf("readColor\n");
 	openniRc = color.readFrame(&colorFrame);
 	if (openniRc != openni::STATUS_OK)
 	{
@@ -220,21 +276,24 @@ void SpecificWorker::readColor()
 void SpecificWorker::computeCoordinates()
 {
 	//QMutexLocker l(pointsMutex); 57.00 43.00
-	static const float fovW = 521;
-	static const float fovH = 521;
-	static const float flength_x = IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
-	static const float flength_y = IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
-	
-	for( int y=0 ; y< IMAGE_HEIGHT ; y++ ) 
+	//static const float fovW = 57;
+	//static const float fovH = 43;
+	// focal: 522 sale abierto
+	static const float flength_x = 545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
+	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
+	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
+	//#pragma omp for schedule(static, 5)
+	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
 	{
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
 		{
 			const int offset = y*IMAGE_WIDTH + x;
 			
 			//Copy to depth doublebuffer
+			pixDepth[offset]*=1;
 			depthBuff[offset] = pixDepth[offset];
 			
-			const float z = float(pixDepth[offset]) / 1000.0;  // ESTO SE PUEDE QUITAR
+			const float z = float(pixDepth[offset]);
 		
 			if( z < 0.1 ) 
 			{
@@ -247,9 +306,9 @@ void SpecificWorker::computeCoordinates()
 			else 
 			{
 				//(*depthImage)[offset] = z;
-				pointsBuff[offset].x = (z * (x - IMAGE_WIDTH/2) / flength_x) * 1000.;
-				pointsBuff[offset].y = (z * (y - IMAGE_HEIGHT/2) / flength_y) * 1000.;
-				pointsBuff[offset].z = z * 1000.;
+				pointsBuff[offset].x = z * (x - IMAGE_WIDTH/2) / flength_x;
+				pointsBuff[offset].y = z * (IMAGE_HEIGHT/2- y) / flength_y;
+				pointsBuff[offset].z = z;
 				pointsBuff[offset].w = 1.0;
 			}
 		}
@@ -269,7 +328,7 @@ void SpecificWorker::normalizeDepth()
 {
 	for (int i=0; i<(IMAGE_HEIGHT*IMAGE_WIDTH); i++)
 	{
-		normalDepth[i]=255-(255*depthBuffer->operator[](i)/5/1000);
+		normalDepth[i]=(255.-(255.*float(depthBuffer->operator[](i))/1000.));
 		if (normalDepth[i] > 255) normalDepth[i] = 255;
 		if (normalDepth[i] < 0) normalDepth[i] = 0;
 	}
@@ -340,8 +399,9 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
+        color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
-	color=*colorBuffer;
+	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
 }
 
@@ -349,3 +409,6 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 {
 	pointsBuff.copy(points);
 }
+
+
+

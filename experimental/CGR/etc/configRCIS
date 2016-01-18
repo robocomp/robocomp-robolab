@@ -9,7 +9,7 @@ LaserProxy = laser:tcp -h localhost -p 10003
 OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 
-InnerModelPath=../etc/maps/LAB0/LAB0_vector_rcis.xml
+InnerModelPath=../etc/maps/ROCKIN0/ROCKIN0_vector_rcis.xml
 
 
 # This property is used by the clients to connect to IceStorm.

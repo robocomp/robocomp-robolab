@@ -91,7 +91,7 @@ bool HokuyoHandler::open()
 	if ( !laserDevice.open ( 1 /*QIODevice::ReadWrite*/ ) )
 	{
 		timer->start();
-		qWarning("[HokuyoHandler]: Failed to open: %s", laserDevice.name().toLatin1().data());
+		printf("[HokuyoHandler]: Failed to open: %s", laserDevice.name().toLatin1().data());
 		return FALSE;
 	}
 	for (int i=0; i< 5; i++)
@@ -176,6 +176,7 @@ bool HokuyoHandler::setLaserPowerState ( bool state )
 
 	// Get the echo from the laser
 	dataRead = laserDevice.readLine ( data_block, sizeof ( data_block ) );
+	printf("%d: %s\n", dataRead, data_block);
 	if ( strcmp ( command, data_block ) != 0 )
 	{
 		qWarning ( "[HokuyoHandler]: Laser CRC error setting power status!" );
@@ -209,12 +210,12 @@ bool HokuyoHandler::readLaserData()
 	{
 		if (setLaserPowerState(TRUE) == false)
 		{
-			qWarning ( "[" PROGRAM_NAME "]: Power magnament: error laser off." );
+			printf( "[" PROGRAM_NAME "]: Power magnament: error laser off." );
 			return false;
 		}
 		else
 		{
-			qWarning ( "[" PROGRAM_NAME "]: Power magnament: laser on." );
+			printf( "[" PROGRAM_NAME "]: Power magnament: laser on." );
 		}
 	}
 	// Create the command: 'G' + Starting point (3) + End Point (3) + Cluster Count (2) + '\n'  SACAR FUERA!!!
@@ -223,7 +224,7 @@ bool HokuyoHandler::readLaserData()
 	dataWritten = laserDevice.write(command, LASER_CMD_GET_DATA_SZ );
 	if (!dataWritten)
 	{
-		qWarning ( "[HokuyoHandler]: Write error on laser device!" );
+		printf( "[HokuyoHandler]: Write error on laser device!" );
 		return false;
 	}
 
@@ -231,7 +232,7 @@ bool HokuyoHandler::readLaserData()
 	dataRead = laserDevice.readLine(data_block, sizeof(data_block));
 	if (strcmp(command, data_block) != 0)
 	{
-		qWarning ( "[HokuyoHandler]: Laser CRC error while getting data!" );
+		printf( "[HokuyoHandler]: Laser CRC error while getting data!" );
 		return false;
 	}
 
@@ -239,7 +240,7 @@ bool HokuyoHandler::readLaserData()
 	dataRead = laserDevice.readLine(data_block, sizeof(data_block));
 	if (strcmp("0\n", data_block))
 	{
-		qWarning("[HokuyoHandler]: Error: Laser status != 0");
+		printf("[HokuyoHandler]: Error: Laser status != 0");
 		return false;
 	}
 
@@ -270,7 +271,7 @@ bool HokuyoHandler::readLaserData()
 	}
 
 	float ra;
-	int aux;
+	//int aux;
 	int k;
 	//	std::cout << "data_received " << wdataW.size() << std::endl;
 	for( k=0; k<(int)wdataW.size(); k++)
@@ -281,15 +282,14 @@ bool HokuyoHandler::readLaserData()
 
 		if ( (ra<ERROR_C) || (ra>ERROR_L) )
 		{
-			aux = SiguienteNoNulo ( wdataW, k, 0, wdataW.size());
+			//aux = SiguienteNoNulo ( wdataW, k, 0, wdataW.size());
 			wdataW[k].dist = (short)ERROR_L;
 //			wdataW[k].dist = (short)aux;
-			// std::cout << "error measurements, dist, angle: " << ra << ", " << wdataW[k].angle*180/M_PI << std::endl;
+			std::cout << "error measurements, dist, angle: " << ra << ", " << wdataW[k].angle*180/M_PI << std::endl;
 		}
 
 	}
 	powerOn = TRUE;
-	//	qFatal("OK");
 
 
 	//Double buffering
@@ -355,7 +355,7 @@ void HokuyoHandler::run()
  		last_use.restart();
 		if (readLaserData()==false)
 		{
-			std::cout << "Error reading laser " << std::endl;
+			std::cout << "Error reading laser (not generic)" << std::endl;
 		}
 	}
 }

@@ -145,10 +145,7 @@ if __name__ == '__main__':
 
 	if status == 0:
 		worker = SpecificWorker(mprx)
-
-
 #		adapter.add(CommonBehaviorI(<LOWER>I, ic), ic.stringToIdentity('commonbehavior'))
-
 		app.exec_()
 
 	if ic:

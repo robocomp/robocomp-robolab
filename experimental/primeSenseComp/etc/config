@@ -4,8 +4,8 @@
 PrimeSenseComp.Endpoints=tcp -p 10096
 CommonBehavior.Endpoints=tcp -p 11096
 
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
-JointMotorProxy = jointmotor:tcp -h localhost -p 10067
+#DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+#JointMotorProxy = jointmotor:tcp -h localhost -p 20000
 
 FPS=30
 

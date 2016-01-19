@@ -44,8 +44,14 @@ from RoboCompLaser import *
 
 import networkx as nx
 import numpy as np
+import copy
 
 from trajectoryrobot2dI import *
+
+def sameSigns(a, b):
+	if a[0]*b[0]>0 and a[1]*b[1]>0:
+		return True
+	return False
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -53,9 +59,8 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
-
+		self.currentTarget = None
 		lines = open("/home/robocomp/robocomp/components/robocomp-ursus/files/navigation.graph").readlines()
-		print lines[0]
 		nodes = int(lines[0])
 
 		##http://networkx.github.io/documentation/latest/tutorial/tutorial.html
@@ -65,57 +70,53 @@ class SpecificWorker(GenericWorker):
 		lines = lines[1:]
 		for i in xrange(nodes):
 			node = i+1
-			print 'Add node', node
 			self.G.add_node(node)
 			line = lines[i]
 			c = line.split('#')
-			self.coordinates[node] = (float(c[0]), float(c[1]))
-			print self.coordinates[node]
+			self.coordinates[node] = np.array([float(c[0]), float(c[1])])
 			
 		lines = lines[nodes:]
 		for line in lines:
-			print line
 			src, dst = line.split('#')
 			src = int(src)
 			dst = int(dst)
-			print src, dst
-			dist = np.linalg.norm(np.array([abs(self.coordinates[src][0]-self.coordinates[src][0]), abs(self.coordinates[src][1]-self.coordinates[dst][1])]))
-			self.G.add_edge(src,dst)
-			self.G.add_edge(dst,src)
+			dist = np.linalg.norm(self.coordinates[src]-self.coordinates[dst])
+			self.G.add_edge(src, dst)
+			self.G.add_edge(dst, src)
 			self.G[src][dst]['distance'] = dist
 			self.G[dst][src]['distance'] = dist
 
 
 
 	def setParams(self, params):
-		#try:
-		#	par = params["InnerModelPath"]
-		#	innermodel_path=par.value
-		#	innermodel = InnerModel(innermodel_path)
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
-		#print 'SpecificWorker.compute...'
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception, e:
-		#	traceback.print_exc()
-		#	print e
-		return True
-
+		if self.currentTarget != None:
+			print 'got target'
+			s = self.omnirobot_proxy.getBaseState()
+			sV = np.array([s.correctedX, s.correctedZ])
+			sT = np.array([self.currentTarget.x, self.currentTarget.z])
+			if np.linalg.norm(sV-sT) < 80:
+				self.currentTarget = copy.deepcopy(self.target)
+				self.currentTarget.x = self.coordinates[self.path[0]][0]
+				self.currentTarget.z = self.coordinates[self.path[0]][1]
+				if len(self.path) > 1:
+					self.currentTarget.doRotation = False
+					txRef = 0.
+					tzRef = 0.
+				else:
+					txRef = self.xRef
+					tzRef = self.zRef
+				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
+				self.path = self.path[1:]
 
 	#
 	# getState
 	#
 	def getState(self):
 		ret = NavState()
-		#
-		# YOUR CODE HERE
-		#
 		return ret
 
 
@@ -132,7 +133,6 @@ class SpecificWorker(GenericWorker):
 	def stop(self):
 		l = QtCore.QMutexLocker(self.mutex)
 		self.state.state = "IDLE"
-		print 'set STOP'
 		self.omnirobot_proxy.setSpeedBase(0,0,0)
 
 
@@ -141,11 +141,58 @@ class SpecificWorker(GenericWorker):
 	#
 	def goReferenced(self, target, xRef, zRef, threshold):
 		ret = float()
+		self.target = target
+		self.xRef = xRef
+		self.zRef = zRef
+		self.threshold = threshold
+		self.state = self.omnirobot_proxy.getBaseState()
+		self.state.x  = self.state.correctedX
+		self.state.z  = self.state.correctedZ
+		self.state.ry = self.state.correctedAlpha
+		stateV  = np.array([ self.state.x,  self.state.z])
+		targetV = np.array([self.target.x, self.target.z])
+
+		a = None
+		aDist = np.linalg.norm(stateV-targetV)
+		b = None
+		bDist = -1
+
+
 		for c in self.coordinates:
-		print(nx.shortest_path(self.G, source=1,target=16, weight='distance'))
-		return ret
+			dist = np.linalg.norm(self.coordinates[c]-stateV)
+			if (dist < aDist or aDist < 0) and sameSigns(self.coordinates[c], stateV):
+				a = c
+				aDist = dist
+			dist = np.linalg.norm(self.coordinates[c]-targetV)
+			if (dist < bDist or bDist < 0) and sameSigns(self.coordinates[c], targetV):
+				b = c
+				bDist = dist
+		if a == None:
+			self.path = []
+		else:
+			self.path = nx.shortest_path(self.G, source=a,target=b, weight='distance')
+
+		print '----------------'
+		print self.state.x, self.state.z
+		for p in self.path:
+			print self.coordinates[p][0], self.coordinates[p][1], p
+		self.path.append(np.array([self.target.x, self.target.z]))
+		print self.target.x, self.target.z
+
+		
+		self.currentTarget = copy.deepcopy(target)
+		self.currentTarget.x = self.coordinates[self.path[0]][0]
+		self.currentTarget.z = self.coordinates[self.path[0]][1]
+		txRef = xRef
+		tzRef = zRef
+		if len(self.path) != 1:
+			txRef = 0.
+			tzRef = 0.
+			self.currentTarget.doRotation = False
+		self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
 
 
+		return np.linalg.norm(stateV-targetV)
 	#
 	# changeTarget
 	#

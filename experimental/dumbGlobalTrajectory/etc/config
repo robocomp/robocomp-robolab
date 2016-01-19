@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces
-TrajectoryRobot2D.Endpoints=tcp -p 0
+TrajectoryRobot2D.Endpoints=tcp -p 20201
 
 
 # Proxies for required interfaces

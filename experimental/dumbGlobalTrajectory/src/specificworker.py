@@ -43,6 +43,7 @@ from RoboCompLaser import *
 
 
 import networkx as nx
+import numpy as np
 
 from trajectoryrobot2dI import *
 
@@ -55,18 +56,34 @@ class SpecificWorker(GenericWorker):
 
 		lines = open("/home/robocomp/robocomp/components/robocomp-ursus/files/navigation.graph").readlines()
 		print lines[0]
+		nodes = int(lines[0])
 
-##http://networkx.github.io/documentation/latest/tutorial/tutorial.html
-#self.G = nx.Graph()
-#self.G = nx.path_graph(10)
-#self.coordinates = {}
-
-#self.G.add_edge(1,2)
-
-#print(nx.shortest_path(G,source=0,target=4, weight='distance'))
-#> G[1][3]['distance']=3.1
-
-
+		##http://networkx.github.io/documentation/latest/tutorial/tutorial.html
+		self.coordinates = {}
+		self.G = nx.Graph()
+		
+		lines = lines[1:]
+		for i in xrange(nodes):
+			node = i+1
+			print 'Add node', node
+			self.G.add_node(node)
+			line = lines[i]
+			c = line.split('#')
+			self.coordinates[node] = (float(c[0]), float(c[1]))
+			print self.coordinates[node]
+			
+		lines = lines[nodes:]
+		for line in lines:
+			print line
+			src, dst = line.split('#')
+			src = int(src)
+			dst = int(dst)
+			print src, dst
+			dist = np.linalg.norm(np.array([abs(self.coordinates[src][0]-self.coordinates[src][0]), abs(self.coordinates[src][1]-self.coordinates[dst][1])]))
+			self.G.add_edge(src,dst)
+			self.G.add_edge(dst,src)
+			self.G[src][dst]['distance'] = dist
+			self.G[dst][src]['distance'] = dist
 
 
 
@@ -82,7 +99,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
+		#print 'SpecificWorker.compute...'
 		#try:
 		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
 		#except Ice.Exception, e:
@@ -106,21 +123,17 @@ class SpecificWorker(GenericWorker):
 	# goBackwards
 	#
 	def goBackwards(self, target):
-		ret = float()
-		#
-		# YOUR CODE HERE
-		#
-		return ret
+		return self.goReferenced(target, 0, 0, 0)
 
 
 	#
 	# stop
 	#
 	def stop(self):
-		#
-		# YOUR CODE HERE
-		#
-		pass
+		l = QtCore.QMutexLocker(self.mutex)
+		self.state.state = "IDLE"
+		print 'set STOP'
+		self.omnirobot_proxy.setSpeedBase(0,0,0)
 
 
 	#
@@ -128,9 +141,8 @@ class SpecificWorker(GenericWorker):
 	#
 	def goReferenced(self, target, xRef, zRef, threshold):
 		ret = float()
-		#
-		# YOUR CODE HERE
-		#
+		for c in self.coordinates:
+		print(nx.shortest_path(self.G, source=1,target=16, weight='distance'))
 		return ret
 
 
@@ -138,22 +150,14 @@ class SpecificWorker(GenericWorker):
 	# changeTarget
 	#
 	def changeTarget(self, target):
-		ret = float()
-		#
-		# YOUR CODE HERE
-		#
-		return ret
+		return self.goReferenced(target, 0, 0, 0)
 
 
 	#
 	# go
 	#
 	def go(self, target):
-		ret = float()
-		#
-		# YOUR CODE HERE
-		#
-		return ret
+		return self.goReferenced(target, 0, 0, 0)
 
 
 	#

@@ -3,8 +3,8 @@ TrajectoryRobot2D.Endpoints=tcp -p 0
 
 
 # Proxies for required interfaces
-YTrajectoryRobot2DProxy = ytrajectoryrobot2d:tcp -h localhost -p 0
-OmniRobotProxy = omnirobot:tcp -h localhost -p 0
+TrajectoryRobot2DProxy = trajectoryrobot2d:tcp -h localhost -p 12204 
+OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 
 

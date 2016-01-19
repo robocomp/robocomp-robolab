@@ -33,7 +33,7 @@ class GenericWorker(QtGui.QWidget):
 		super(GenericWorker, self).__init__()
 
 
-		self.ytrajectoryrobot2d_proxy = mprx["YTrajectoryRobot2DProxy"]
+		self.trajectoryrobot2d_proxy = mprx["TrajectoryRobot2DProxy"]
 		self.omnirobot_proxy = mprx["OmniRobotProxy"]
 
 		self.ui = Ui_guiDlg()

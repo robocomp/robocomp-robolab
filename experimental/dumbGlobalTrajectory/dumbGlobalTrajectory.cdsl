@@ -6,7 +6,7 @@ Component dumbTrajectoryRobot2DComp
 {
 	Communications
 	{
-		requires YTrajectoryRobot2D, OmniRobot;
+		requires TrajectoryRobot2D, OmniRobot;
 		implements TrajectoryRobot2D;
 	};
 	language python;

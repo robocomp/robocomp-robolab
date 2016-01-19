@@ -126,20 +126,20 @@ if __name__ == '__main__':
 	mprx = {}
 	try:
 
-		# Remote object connection for YTrajectoryRobot2D
+		# Remote object connection for TrajectoryRobot2D
 		try:
-			proxyString = ic.getProperties().getProperty('YTrajectoryRobot2DProxy')
+			proxyString = ic.getProperties().getProperty('TrajectoryRobot2DProxy')
 			try:
 				basePrx = ic.stringToProxy(proxyString)
-				ytrajectoryrobot2d_proxy = RoboCompYTrajectoryRobot2D.YTrajectoryRobot2DPrx.checkedCast(basePrx)
-				mprx["YTrajectoryRobot2DProxy"] = ytrajectoryrobot2d_proxy
+				trajectoryrobot2d_proxy = RoboCompTrajectoryRobot2D.TrajectoryRobot2DPrx.checkedCast(basePrx)
+				mprx["TrajectoryRobot2DProxy"] = trajectoryrobot2d_proxy
 			except Ice.Exception:
-				print 'Cannot connect to the remote object (YTrajectoryRobot2D)', proxyString
+				print 'Cannot connect to the remote object (TrajectoryRobot2D)', proxyString
 				#traceback.print_exc()
 				status = 1
 		except Ice.Exception, e:
 			print e
-			print 'Cannot get YTrajectoryRobot2DProxy property.'
+			print 'Cannot get TrajectoryRobot2DProxy property.'
 			status = 1
 
 

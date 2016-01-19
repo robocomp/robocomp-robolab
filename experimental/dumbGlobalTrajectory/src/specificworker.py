@@ -42,6 +42,8 @@ Ice.loadSlice(preStr+"Laser.ice")
 from RoboCompLaser import *
 
 
+import networkx as nx
+
 from trajectoryrobot2dI import *
 
 class SpecificWorker(GenericWorker):
@@ -50,6 +52,23 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
+
+		lines = open("/home/robocomp/robocomp/components/robocomp-ursus/files/navigation.graph").readlines()
+		print lines[0]
+
+##http://networkx.github.io/documentation/latest/tutorial/tutorial.html
+#self.G = nx.Graph()
+#self.G = nx.path_graph(10)
+#self.coordinates = {}
+
+#self.G.add_edge(1,2)
+
+#print(nx.shortest_path(G,source=0,target=4, weight='distance'))
+#> G[1][3]['distance']=3.1
+
+
+
+
 
 	def setParams(self, params):
 		#try:

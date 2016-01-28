@@ -1,0 +1,14 @@
+import "/robocomp/interfaces/IDSLs/AprilTags.idsl";
+import "/robocomp/interfaces/IDSLs/InverseKinematics.idsl";
+import "/robocomp/interfaces/IDSLs/JointMotor.idsl";
+
+Component VisualBIK
+{
+	Communications
+	{
+		requires InverseKinematics, JointMotor;
+		subscribesTo AprilTags;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};

@@ -36,10 +36,27 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	try
+	{
+		RoboCompCommonBehavior::Parameter par = params.at("InnerModel") ;
+		if( QFile(QString::fromStdString(par.value)).exists() == true)
+		{
+			qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "Reading Innermodel file " << QString::fromStdString(par.value);
+			innerModel = new InnerModel(par.value);
+		}
+		else
+			qFatal("Exiting now.");
+	}
+	catch(std::exception e) { qFatal("Error reading Innermodel param");}
 
+	InnerModelNode *nodeParent = innerModel->getNode("root");
+	if( innerModel->getNode("target") == NULL)
+	{
+		InnerModelTransform *node = innerModel->newTransform("target", "static", nodeParent, 0, 0, 0,        0, 0., 0,      0.);
+		nodeParent->addChild(node);
+	}
 
-
-	
+	QMutexLocker ml(mutex);
 	timer.start(Period);
 
 	return true;

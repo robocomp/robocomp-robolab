@@ -27,7 +27,9 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
+#include <DifferentialRobot.h>
 #include <InverseKinematics.h>
+#include <RGBD.h>
 #include <JointMotor.h>
 #include <AprilTags.h>
 
@@ -40,7 +42,9 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
+using namespace RoboCompDifferentialRobot;
 using namespace RoboCompInverseKinematics;
+using namespace RoboCompRGBD;
 using namespace RoboCompJointMotor;
 using namespace RoboCompAprilTags;
 

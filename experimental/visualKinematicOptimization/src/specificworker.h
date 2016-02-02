@@ -22,17 +22,17 @@
        @author authorname
 */
 
-
-
-
-
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+
+#include <osgviewer/osgview.h>
+#include <innermodel/innermodelviewer.h>
+
+#include <djk.h>
+#include <graph.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -41,14 +41,26 @@ public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-
 	void newAprilTag(const tagsList &tags);
 
 public slots:
 	void compute();
 
 private:
+	OsgView *osgView;
 	InnerModel *innerModel;
+	InnerModelViewer *innerViewer;
+
+	RoboCompRGBD::ColorSeq color;
+	RoboCompRGBD::DepthSeq depth;
+	RoboCompRGBD::PointSeq points;
+
+
+	uint32_t target_index;
+	std::vector<ConnectivityGraph::VertexData> myVertices;
+	ConnectivityGraph *graph;
+private:
+	void renderAndGenerateImages();
 };
 
 #endif

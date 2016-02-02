@@ -1,8 +1,9 @@
 import "/robocomp/interfaces/IDSLs/AprilTags.idsl";
 import "/robocomp/interfaces/IDSLs/InverseKinematics.idsl";
 import "/robocomp/interfaces/IDSLs/JointMotor.idsl";
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
 
-Component VisualBIK
+Component visualKinematicOptimization
 {
 	Communications
 	{

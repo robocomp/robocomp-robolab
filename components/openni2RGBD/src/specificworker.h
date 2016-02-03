@@ -52,8 +52,8 @@ template <class T> class DoubleBuffer
 {
 	QMutex bufferMutex;
 	T bufferA, *writer, *reader, bufferB;
-	int size;
 	public:
+		int size;
 		DoubleBuffer(){};
 		void resize(int size_)
 		{

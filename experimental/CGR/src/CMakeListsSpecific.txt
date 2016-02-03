@@ -1,5 +1,5 @@
-find_package(Lua52)
-if(NOT LUA52_FOUND)
+find_package(Lua53)
+if(NOT LUA53_FOUND)
 	find_package(Lua51 REQUIRED)
 	MESSAGE(WARNING "-- Lua5.2 NOT found --> Using Lua5.1")
 endif()

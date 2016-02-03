@@ -1,0 +1,12 @@
+
+import "/robocomp/interfaces/IDSLs/InfiniTAM.idsl";
+
+Component infinitam
+{
+	Communications
+	{
+		implements InfiniTAM;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};

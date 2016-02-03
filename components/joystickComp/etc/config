@@ -14,7 +14,7 @@ Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
 Joy.SampleRate = 5
 Joy.MaxSteering = 1.
-Joy.MaxAdvance = 200.
+Joy.MaxAdvance = 500.
 
 # Component properties
 #

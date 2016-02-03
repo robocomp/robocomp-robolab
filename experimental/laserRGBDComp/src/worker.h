@@ -38,8 +38,8 @@
 
 #include "config.h"
 
-//#include <pcl/io/pcd_io.h>
-//#include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 
 
 #define BASIC_PERIOD 100
@@ -137,11 +137,12 @@ private:
 	
 	ExtendedRangeSensor *extended;
 
-
-	int32_t angle2bin(float ang);
+	void updateInnerModel();
+	int32_t angle2bin(double ang);
 	void medianFilter();
 
-//	void writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+	void writePCD(std::string path, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+	void writePCD_Y0(std::string path);
 signals:
 	void kill();
 };

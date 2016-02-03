@@ -25,7 +25,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	//namedWindow("img",1);
+	namedWindow("img",1);
 }
 
 /**
@@ -62,7 +62,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		grabber.open(camParams.name);
 	
 
-if(grabber.isOpened() == false)  // check if we succeeded
+	if(grabber.isOpened() == false)  // check if we succeeded
 		qFatal("Aborting. Could not open default camera %s", camParams.name.c_str());
 	else
 		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
@@ -88,12 +88,13 @@ if(grabber.isOpened() == false)  // check if we succeeded
 	cameraParamsMap[camParams.name] = camParams;
 
 	timer.start(30);
-
+	printf("params done\n");
 	return true;
 }
 
 void SpecificWorker::compute()
 {
+	printf("dd\n");
 	static QTime reloj = QTime::currentTime();
 	static int fps=0;
 	
@@ -101,8 +102,8 @@ void SpecificWorker::compute()
 	grabber.read(frame); 	
 	cvtColor( frame, frameRGB, CV_BGR2RGB );
 	memcpy( &writeBuffer[0], frameRGB.data, frameRGB.size().area() * 3);
-	//qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
-	//imshow("img", frame);
+	qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
+	imshow("img", frame);
 	QMutexLocker ml(mutex);
 	readBuffer.swap( writeBuffer);
 	

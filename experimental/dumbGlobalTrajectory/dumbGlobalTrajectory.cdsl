@@ -1,0 +1,14 @@
+import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+import "/robocomp/interfaces/IDSLs/TrajectoryRobot2D.idsl";
+import "/robocomp/interfaces/IDSLs/Laser.idsl";
+
+Component dumbTrajectoryRobot2DComp
+{
+	Communications
+	{
+		requires TrajectoryRobot2D, OmniRobot;
+		implements TrajectoryRobot2D;
+	};
+	language python;
+	gui Qt(QWidget);
+};

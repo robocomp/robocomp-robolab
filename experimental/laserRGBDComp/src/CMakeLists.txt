@@ -31,10 +31,10 @@ ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( CommonBehavior  Laser OmniRobot DifferentialRobot JointMotor RGBD JointMotor RGBDBus )
 
 # PCL
-#find_package(PCL 1.6 REQUIRED COMPONENTS common io )
-#include_directories(${PCL_INCLUDE_DIRS})
-#link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib )
-#add_definitions(${PCL_DEFINITIONS})
+find_package(PCL 1.6 REQUIRED COMPONENTS common io )
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib )
+add_definitions(${PCL_DEFINITIONS})
 
 # IPP
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/ipp.cmake )

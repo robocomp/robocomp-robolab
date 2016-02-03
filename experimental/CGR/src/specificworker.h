@@ -59,7 +59,7 @@ private:
 	QTime t;
 	string curMapName;
 	vector2f initialLoc;
-	vector2f curLoc;
+	vector2f curLoc, curLocOld;
 	float curAngle;
 	float initialAngle;
 	float locUncertainty, angleUncertainty;

@@ -56,6 +56,7 @@ def sameSigns(a, b):
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
+		self.generalState = NavState()
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
@@ -111,13 +112,15 @@ class SpecificWorker(GenericWorker):
 					tzRef = self.zRef
 				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
 				self.path = self.path[1:]
+		else:
+			self.generalState.state = "idle"
+
 
 	#
 	# getState
 	#
 	def getState(self):
-		ret = NavState()
-		return ret
+		return self.generalState
 
 
 	#
@@ -132,7 +135,6 @@ class SpecificWorker(GenericWorker):
 	#
 	def stop(self):
 		l = QtCore.QMutexLocker(self.mutex)
-		self.state.state = "IDLE"
 		self.omnirobot_proxy.setSpeedBase(0,0,0)
 
 

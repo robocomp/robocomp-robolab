@@ -58,7 +58,7 @@ class SpecificWorker(GenericWorker):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.generalState = NavState()
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 1000
 		self.timer.start(self.Period)
 		self.currentTarget = None
 		lines = open("/home/robocomp/robocomp/components/robocomp-ursus/files/navigation.graph").readlines()
@@ -94,11 +94,13 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
+		print 's'
 		if self.currentTarget != None:
 			print 'got target'
 			s = self.omnirobot_proxy.getBaseState()
 			sV = np.array([s.correctedX, s.correctedZ])
 			sT = np.array([self.currentTarget.x, self.currentTarget.z])
+			sFT = np.array([self.xRef, self.zRef])
 			if np.linalg.norm(sV-sT) < 80:
 				self.currentTarget = copy.deepcopy(self.target)
 				self.currentTarget.x = self.coordinates[self.path[0]][0]
@@ -112,7 +114,10 @@ class SpecificWorker(GenericWorker):
 					tzRef = self.zRef
 				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
 				self.path = self.path[1:]
+				if np.linalg.norm(sV-sFT) < 80:
+					self.currentTarget = None
 		else:
+			print 'idle'
 			self.generalState.state = "idle"
 
 
@@ -135,6 +140,7 @@ class SpecificWorker(GenericWorker):
 	#
 	def stop(self):
 		l = QtCore.QMutexLocker(self.mutex)
+		print 'stoppppp'
 		self.omnirobot_proxy.setSpeedBase(0,0,0)
 
 
@@ -159,7 +165,8 @@ class SpecificWorker(GenericWorker):
 		b = None
 		bDist = -1
 
-
+		print 'XXXXXXXXXXXXXXXX'
+		print targetV
 		for c in self.coordinates:
 			dist = np.linalg.norm(self.coordinates[c]-stateV)
 			if (dist < aDist or aDist < 0) and sameSigns(self.coordinates[c], stateV):
@@ -169,31 +176,37 @@ class SpecificWorker(GenericWorker):
 			if (dist < bDist or bDist < 0) and sameSigns(self.coordinates[c], targetV):
 				b = c
 				bDist = dist
+		
 		if a == None:
 			self.path = []
 		else:
-			self.path = nx.shortest_path(self.G, source=a,target=b, weight='distance')
+			self.path = nx.shortest_path(self.G, source=a, target=b, weight='distance')
+			print a,b
 
 		print '----------------'
 		print self.state.x, self.state.z
+		print type(self.path)
 		for p in self.path:
 			print self.coordinates[p][0], self.coordinates[p][1], p
 		self.path.append(np.array([self.target.x, self.target.z]))
 		print self.target.x, self.target.z
 
 		
-		self.currentTarget = copy.deepcopy(target)
-		self.currentTarget.x = self.coordinates[self.path[0]][0]
-		self.currentTarget.z = self.coordinates[self.path[0]][1]
+		self.currentTargetT = copy.deepcopy(target)
+		self.currentTargetT.x = self.coordinates[self.path[0]][0]
+		self.currentTargetT.z = self.coordinates[self.path[0]][1]
 		txRef = xRef
 		tzRef = zRef
 		if len(self.path) != 1:
 			txRef = 0.
 			tzRef = 0.
-			self.currentTarget.doRotation = False
-		self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
-
-
+			self.currentTargetT.doRotation = False
+		print 'scT1'
+		if self.currentTargetT != self.currentTarget:
+			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
+		print 'scT2'
+		self.compute()
+		print 'scT2'
 		return np.linalg.norm(stateV-targetV)
 	#
 	# changeTarget

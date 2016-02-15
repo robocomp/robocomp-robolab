@@ -96,26 +96,32 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print 's'
 		if self.currentTarget != None:
-			print 'got target'
+			print 'got target', self
+			if len(self.path) > 1:
+				self.currentTarget.doRotation = False
+				txRef = 0.
+				tzRef = 0.
+			else:
+				txRef = self.xRef
+				tzRef = self.zRef
+			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
+			print 'send ('+str(self.currentTarget.x)+','+str(self.currentTarget.z)+') ['+str(txRef)+','+str(tzRef)+']  ', self.currentTarget.doRotation
 			s = self.omnirobot_proxy.getBaseState()
-			sV = np.array([s.correctedX, s.correctedZ])
-			sT = np.array([self.currentTarget.x, self.currentTarget.z])
-			sFT = np.array([self.xRef, self.zRef])
-			if np.linalg.norm(sV-sT) < 80:
+			currentPose = np.array([s.correctedX, s.correctedZ])
+			currentTarget = np.array([self.currentTarget.x, self.currentTarget.z])
+			finalTarget = np.array([self.target.x, self.target.z])
+			print np.linalg.norm(currentPose-currentTarget), self.threshold
+			if np.linalg.norm(currentPose-currentTarget) < self.threshold:
+				print 'got to waypoint'
+				self.path = self.path[1:]
 				self.currentTarget = copy.deepcopy(self.target)
 				self.currentTarget.x = self.coordinates[self.path[0]][0]
 				self.currentTarget.z = self.coordinates[self.path[0]][1]
-				if len(self.path) > 1:
-					self.currentTarget.doRotation = False
-					txRef = 0.
-					tzRef = 0.
-				else:
-					txRef = self.xRef
-					tzRef = self.zRef
 				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
-				self.path = self.path[1:]
-				if np.linalg.norm(sV-sFT) < 80:
+				if np.linalg.norm(currentPose-finalTarget) < self.threshold:
+					self.trajectoryrobot2d_proxy.stop()
 					self.currentTarget = None
+			print 'distxxxance', np.linalg.norm(currentPose-currentTarget)
 		else:
 			print 'idle'
 			self.generalState.state = "idle"
@@ -153,6 +159,8 @@ class SpecificWorker(GenericWorker):
 		self.xRef = xRef
 		self.zRef = zRef
 		self.threshold = threshold
+		if self.threshold < 50:
+			self.threshold = 50
 		self.state = self.omnirobot_proxy.getBaseState()
 		self.state.x  = self.state.correctedX
 		self.state.z  = self.state.correctedZ
@@ -203,6 +211,7 @@ class SpecificWorker(GenericWorker):
 			self.currentTargetT.doRotation = False
 		print 'scT1'
 		if self.currentTargetT != self.currentTarget:
+			self.currentTarget = self.currentTargetT
 			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
 		print 'scT2'
 		self.compute()

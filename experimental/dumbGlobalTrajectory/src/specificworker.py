@@ -17,7 +17,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, Ice, traceback, time
+import sys, os, Ice, traceback, time, math
 
 from PySide import *
 from genericworker import *
@@ -65,7 +65,7 @@ class SpecificWorker(GenericWorker):
 		nodes = int(lines[0])
 
 		##http://networkx.github.io/documentation/latest/tutorial/tutorial.html
-		self.coordinates = {}
+		self.knownCoordinates = {}
 		self.G = nx.Graph()
 		
 		lines = lines[1:]
@@ -74,14 +74,14 @@ class SpecificWorker(GenericWorker):
 			self.G.add_node(node)
 			line = lines[i]
 			c = line.split('#')
-			self.coordinates[node] = np.array([float(c[0]), float(c[1])])
+			self.knownCoordinates[node] = np.array([float(c[0]), float(c[1])])
 			
 		lines = lines[nodes:]
 		for line in lines:
 			src, dst = line.split('#')
 			src = int(src)
 			dst = int(dst)
-			dist = np.linalg.norm(self.coordinates[src]-self.coordinates[dst])
+			dist = np.linalg.norm(self.knownCoordinates[src]-self.knownCoordinates[dst])
 			self.G.add_edge(src, dst)
 			self.G.add_edge(dst, src)
 			self.G[src][dst]['distance'] = dist
@@ -102,23 +102,23 @@ class SpecificWorker(GenericWorker):
 				txRef = 0.
 				tzRef = 0.
 			else:
-				txRef = self.xRef
-				tzRef = self.zRef
-			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
+				txRef = self.receivedXRef
+				tzRef = self.receivedZRef
+			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.receivedThreshold)
 			print 'send ('+str(self.currentTarget.x)+','+str(self.currentTarget.z)+') ['+str(txRef)+','+str(tzRef)+']  ', self.currentTarget.doRotation
 			s = self.omnirobot_proxy.getBaseState()
 			currentPose = np.array([s.correctedX, s.correctedZ])
 			currentTarget = np.array([self.currentTarget.x, self.currentTarget.z])
-			finalTarget = np.array([self.target.x, self.target.z])
-			print np.linalg.norm(currentPose-currentTarget), self.threshold
-			if np.linalg.norm(currentPose-currentTarget) < self.threshold:
+			finalTarget = np.array([self.receivedTarget.x, self.receivedTarget.z])
+			print np.linalg.norm(currentPose-currentTarget), self.receivedThreshold
+			if np.linalg.norm(currentPose-currentTarget) < self.receivedThreshold:
 				print 'got to waypoint'
 				self.path = self.path[1:]
-				self.currentTarget = copy.deepcopy(self.target)
-				self.currentTarget.x = self.coordinates[self.path[0]][0]
-				self.currentTarget.z = self.coordinates[self.path[0]][1]
-				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
-				if np.linalg.norm(currentPose-finalTarget) < self.threshold:
+				self.currentTarget = copy.deepcopy(self.receivedTarget)
+				self.currentTarget.x = self.path[0][0]
+				self.currentTarget.z = self.path[0][1]
+				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.receivedThreshold)
+				if np.linalg.norm(currentPose-finalTarget) < self.receivedThreshold:
 					self.trajectoryrobot2d_proxy.stop()
 					self.currentTarget = None
 			print 'distxxxance', np.linalg.norm(currentPose-currentTarget)
@@ -155,68 +155,92 @@ class SpecificWorker(GenericWorker):
 	#
 	def goReferenced(self, target, xRef, zRef, threshold):
 		ret = float()
-		self.target = target
-		self.xRef = xRef
-		self.zRef = zRef
-		self.threshold = threshold
-		if self.threshold < 50:
-			self.threshold = 50
-		self.state = self.omnirobot_proxy.getBaseState()
-		self.state.x  = self.state.correctedX
-		self.state.z  = self.state.correctedZ
-		self.state.ry = self.state.correctedAlpha
-		stateV  = np.array([ self.state.x,  self.state.z])
-		targetV = np.array([self.target.x, self.target.z])
+		self.receivedTarget = target
+		self.receivedXRef = xRef
+		self.receivedZRef = zRef
+		self.receivedThreshold = threshold
+		if self.receivedThreshold < 50:
+			self.receivedThreshold = 50
 
-		a = None
-		aDist = np.linalg.norm(stateV-targetV)
-		b = None
+		baseState = self.omnirobot_proxy.getBaseState()
+		baseState.x  = baseState.correctedX
+		baseState.z  = baseState.correctedZ
+		baseState.ry = baseState.correctedAlpha
+
+		currentVector  = np.array([ baseState.x,  baseState.z])
+		targetVector = np.array([self.receivedTarget.x, self.receivedTarget.z])
+
+		nodeA = None
+		aDist = np.linalg.norm(currentVector-targetVector)
+		nodeB = None
 		bDist = -1
 
 		print 'XXXXXXXXXXXXXXXX'
-		print targetV
-		for c in self.coordinates:
-			dist = np.linalg.norm(self.coordinates[c]-stateV)
-			if (dist < aDist or aDist < 0) and sameSigns(self.coordinates[c], stateV):
-				a = c
+		print 'targetvector', targetVector
+		for c in self.knownCoordinates:
+			dist = np.linalg.norm(self.knownCoordinates[c]-currentVector)
+			if (dist < aDist and dist > self.receivedThreshold) and sameSigns(self.knownCoordinates[c], currentVector):
+				nodeA = c
 				aDist = dist
-			dist = np.linalg.norm(self.coordinates[c]-targetV)
-			if (dist < bDist or bDist < 0) and sameSigns(self.coordinates[c], targetV):
-				b = c
+			dist = np.linalg.norm(self.knownCoordinates[c]-targetVector)
+			if (dist < bDist or bDist < 0) and sameSigns(self.knownCoordinates[c], targetVector):
+				nodeB = c
 				bDist = dist
-		
-		if a == None:
-			self.path = []
+
+		if nodeA == None:
+			path = []
 		else:
-			self.path = nx.shortest_path(self.G, source=a, target=b, weight='distance')
-			print a,b
+			path = nx.shortest_path(self.G, source=nodeA, target=nodeB, weight='distance')
 
 		print '----------------'
-		print self.state.x, self.state.z
-		print type(self.path)
-		for p in self.path:
-			print self.coordinates[p][0], self.coordinates[p][1], p
-		self.path.append(np.array([self.target.x, self.target.z]))
-		print self.target.x, self.target.z
+		print 'current pose', baseState.correctedX, baseState.correctedZ
+		self.path = []
+		for p in path:
+			self.path.append(np.array([self.knownCoordinates[p][0], self.knownCoordinates[p][1]]))
+		self.path.append(np.array([self.receivedTarget.x, self.receivedTarget.z]))
+		print 'path1', self.path
+		
+		print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+		while len(self.path)>1:
+			robotToFirst  = currentVector - self.path[0]
+			robotToSecond = currentVector - self.path[1]
+			print robotToFirst
+			print robotToSecond
+			c = np.dot(robotToFirst,robotToSecond)/np.linalg.norm(robotToFirst)/np.linalg.norm(robotToSecond)
+			angle = np.arccos(np.clip(c, -1, 1))
+			print angle
+			if abs(angle) > math.pi/2:
+				self.path = self.path[1:]
+				print 'removed one'
+			else:
+				print 'continue'
+				break
+		print '############################################'
+
+
+		print 'path2', self.path
 
 		
-		self.currentTargetT = copy.deepcopy(target)
-		self.currentTargetT.x = self.coordinates[self.path[0]][0]
-		self.currentTargetT.z = self.coordinates[self.path[0]][1]
+		
+		currentTargetT = copy.deepcopy(target)
+		currentTargetT.x = self.path[0][0]
+		currentTargetT.z = self.path[0][1]
 		txRef = xRef
 		tzRef = zRef
-		if len(self.path) != 1:
+		if len(self.path) > 1:
 			txRef = 0.
 			tzRef = 0.
-			self.currentTargetT.doRotation = False
+			diff = self.path[1]-self.path[0]
+			currentTargetT.ry = math.atan2(diff[0], diff[1])
+			currentTargetT.doRotation = True
 		print 'scT1'
-		if self.currentTargetT != self.currentTarget:
-			self.currentTarget = self.currentTargetT
-			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.threshold)
+		if currentTargetT != self.currentTarget:
+			self.currentTarget = currentTargetT
+			self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.receivedThreshold)
 		print 'scT2'
 		self.compute()
 		print 'scT2'
-		return np.linalg.norm(stateV-targetV)
+		return np.linalg.norm(currentVector-targetVector)
 	#
 	# changeTarget
 	#

@@ -121,7 +121,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	{
 		aux.editable = false;
 		std::string s = QString::number(i).toStdString();
-		configGetString( "joystickUniversal.Axis_" + s, aux.value , "");
+		configGetString( "joystickUniversal.Axis_" + s, aux.value , "4");
 		params["joystickUniversal.Axis_" + s] = aux;
 		rDebug("joystickUniversal.Axis_"+QString::fromStdString(s)+" = " + QString::fromStdString(params.at("joystickUniversal.Axis_" + s).value));
 		QStringList list = QString::fromStdString(aux.value).split(",");

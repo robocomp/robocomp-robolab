@@ -12,11 +12,11 @@ AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
-InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus/etc/ursus.xml
-#InnerModelPath=/home/robocomp/robocomp/files/innermodel/genericRobot.xml
+#InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus/etc/ursus.xml
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 
 #CameraName=RGBDCeiling
-CameraName=rgb
+CameraName=rgbd
 
 CameraResolution=640x480
 InputInterface = RGBD 

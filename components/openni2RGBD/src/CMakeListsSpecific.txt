@@ -14,7 +14,7 @@ SET ( HEADERS
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/openni2.cmake)
 
-ADD_DEFINITIONS( -std=c++11 -fopenmp )
+ADD_DEFINITIONS( -std=c++11 -fopenmp -L$ENV{OPENNI2_REDIST} -L/opt )
 
 SET(LIBS ${LIBS} -lgomp)
 

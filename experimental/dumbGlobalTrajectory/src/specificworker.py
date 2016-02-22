@@ -98,7 +98,7 @@ class SpecificWorker(GenericWorker):
 			s = self.omnirobot_proxy.getBaseState()
 			sV = np.array([s.correctedX, s.correctedZ])
 			sT = np.array([self.currentTarget.x, self.currentTarget.z])
-			if np.linalg.norm(sV-sT) < 80:
+			if np.linalg.norm(sV-sT) < 100:
 				self.currentTarget = copy.deepcopy(self.target)
 				self.currentTarget.x = self.coordinates[self.path[0]][0]
 				self.currentTarget.z = self.coordinates[self.path[0]][1]

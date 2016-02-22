@@ -203,7 +203,7 @@ void Worker::compute()
 	{
 		if (rgbds[r].bus != true) /// If the proxy is a bus
 		{
-			printf("<< %s\n", rgbds[r].id.c_str());
+			//printf("<< %s\n", rgbds[r].id.c_str());
 			RoboCompRGBD::PointSeq points;
 			try
 			{
@@ -214,8 +214,10 @@ void Worker::compute()
 				cout << "Can't connect to rgbd: " << ex << endl;
 				continue;
 			}
-			printf("   %s >>\n", rgbds[r].id.c_str());
+			//printf("   %s >>\n", rgbds[r].id.c_str());
+			printf("<\n");
 			map->update_include_rgbd(&points, QString::fromStdString(rgbds[r].id));
+			printf(">\n");
 		}
 	}
 

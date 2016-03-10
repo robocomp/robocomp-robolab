@@ -61,7 +61,7 @@ class SpecificWorker(GenericWorker):
 		self.Period = 1000
 		self.timer.start(self.Period)
 		self.currentTarget = None
-		lines = open("/home/robocomp/robocomp/components/robocomp-ursus/files/navigation.graph").readlines()
+		lines = open("/home/robocomp/robocomp/components/robocomp-shelly/files/navigation.graph").readlines()
 		nodes = int(lines[0])
 
 		##http://networkx.github.io/documentation/latest/tutorial/tutorial.html

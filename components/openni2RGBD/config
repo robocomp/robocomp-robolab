@@ -1,25 +1,16 @@
-#
-# This property is used to configure the endpoints of the subscriber adapter.
-#
-RGBDComp.Endpoints=tcp -p 10096
-CommonBehavior.Endpoints=tcp -p 12213
+CommonBehavior.Endpoints=tcp -p 11001
 
-# Remote servers proxies example
-#RemoteProxy = remote:tcp -h remotehost -p 10001
+# Endpoints for implemented interfaces
+RGBDComp.Endpoints=tcp -p 11000
 
-#############################
-### Ice-related properties ##
-#############################
-# Warn about connection exceptions
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
 Ice.Warn.Connections=0
-# Network Tracing: (0: no network tracing; 1: trace connection establishment and closure; 2: like 1, but more detailed; 3: like 2, but also trace data transfer).
 Ice.Trace.Network=0
-# Protocol Tracing: (0: no protocol tracing; 1: trace protocol messages)
 Ice.Trace.Protocol=0
-
-# Faster ACM
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 
-Ice.MessageSizeMax=102400
-
+Ice.MessageSizeMax=1248580

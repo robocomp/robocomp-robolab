@@ -52,11 +52,14 @@ void SpecificWorker::compute()
 	int x, z;
 	float alpha;
 	
-	
 	if (distance<0)
 	{
 		distance = 0;
-		omnirobot_proxy->getBasePose(lastX, lastZ, alpha);
+		try
+		{
+			omnirobot_proxy->getBasePose(lastX, lastZ, alpha);
+		}
+		catch(Ice::Exception &ex) {std::cout<<ex.what()<<std::endl;};
 	}
 
 	omnirobot_proxy->getBasePose(x, z, alpha);
@@ -72,29 +75,21 @@ void SpecificWorker::compute()
 
 
 ///////////////////////////////
-///SUSCRIBES METHODS
+///SUBSCRIPTION METHODS
 ///////////////////////////////
-/*
-void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
-{
-	if (lastAprilUpdate.elapsed() > 1000)
-	{
-		printf("pose: %f %f %f", x, z, alpha);
-		omnirobot_proxy->correctOdometer(x, z, alpha);
-		cgr_proxy->resetPose(x, z, alpha);
-		lastAprilUpdate = QTime::currentTime();
-	}
-}
-*/
 
 
 void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 {
-	if (lastAprilUpdate.elapsed() > 1000)
+//	if (lastAprilUpdate.elapsed() > 1000)
 	{ 
 		printf("pose: %f %f %f", x, z, alpha);
-		omnirobot_proxy->correctOdometer(x, z, alpha);
-		cgr_proxy->resetPose(x, z, alpha);
+		try	{	omnirobot_proxy->correctOdometer(x, z, alpha); }
+		catch(Ice::Exception &ex) {std::cout<<ex.what()<<std::endl;};
+		
+		try	{	cgr_proxy->resetPose(x, z, alpha); }
+		catch(Ice::Exception &ex) {std::cout<<ex.what()<<std::endl;};
+		
 		lastAprilUpdate = QTime::currentTime();
 	}
 }
@@ -102,23 +97,26 @@ void SpecificWorker::newAprilBasedPose(float x, float z, float alpha)
 
 void SpecificWorker::newCGRPose(const float poseCertainty, float x, float z, float alpha)
 {
-	if (lastAprilUpdate.elapsed() > 5000)
+	//if (lastAprilUpdate.elapsed() > 5000)
 	{
-		if (lastCGRUpdate.elapsed() > 1000)
+		//if (lastCGRUpdate.elapsed() > 1000)
 		{
-// 			printf("%f\n", poseCertainty);
+//  			printf("%f\n", poseCertainty);
 			C = poseCertainty;
-			if (poseCertainty < 0.6)
+//			if (poseCertainty < 0.6)
 			{
 // 				omnirobot_proxy->correctOdometer(x, z, alpha);
 // 				lastCGRUpdate = QTime::currentTime();
 				RoboCompOmniRobot::TBaseState bState;
-				omnirobot_proxy->getBaseState(bState);
+				try	{	omnirobot_proxy->getBaseState(bState); }
+				catch(Ice::Exception &ex) {std::cout<<ex.what()<<std::endl;};
+				
 				float xC = 0.8 * bState.x + 0.2 * x;
 				float zC = 0.8 * bState.z + 0.2 * z;
 				float alphaC = 0.8 * bState.alpha + 0.2 * alpha;
-				// TODO: set correction or not
-				omnirobot_proxy->correctOdometer(x, z, alpha);
+		
+				try	{	omnirobot_proxy->correctOdometer(x, z, alpha); }
+				catch(Ice::Exception &ex) {std::cout<<ex.what()<<std::endl;};
 				lastCGRUpdate = QTime::currentTime();
 			}
 		}

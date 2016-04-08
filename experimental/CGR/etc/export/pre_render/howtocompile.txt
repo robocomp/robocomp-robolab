@@ -1,0 +1,1 @@
+g++ -I/usr/include/lua5.1 -I../map -I../shared/math -I../shared/util ../shared/util/proghelp.cc ../shared/util/watch_files.cpp ../shared/util/configreader.cpp ../shared/util/terminal_utils.cpp ../shared/math/gvector.cpp ../map/vector_map.cpp pre_render.cpp -o pre_render -mmmx -msse -msse2 -msse4.1 -L/usr/lib/x86_64-linux-gnu -std=c++11 -lpthread -lpopt -llua5.1

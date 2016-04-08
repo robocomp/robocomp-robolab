@@ -24,6 +24,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
+	innermodel = NULL;
 }
 
 /**
@@ -118,10 +119,18 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	m_px = m_width/2;
 	m_py = m_height/2;
 
+	printf("w:%d   h:%d\n", m_width, m_height);
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
 
-	innermodel = new InnerModel(innermodel_path);
+	try
+	{
+		innermodel = new InnerModel(innermodel_path);
+	}
+	catch (QString &s)
+	{
+		printf("error reading iner model %s\n", s.toStdString().c_str());
+	}
 	m_fx = innermodel->getCameraFocal(camera_name.c_str());
 	m_fy = innermodel->getCameraFocal(camera_name.c_str());
 
@@ -176,6 +185,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	if (innermodel == NULL) return;
+printf("---------------------\n"); 
+
 	static int frame = 0;
 	static double last_t = tic();
 
@@ -185,6 +197,7 @@ void SpecificWorker::compute()
 // 		printf("%d:%f ", it.key(), it.value());
 // 	}
 	printf("]\n");
+
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -205,12 +218,14 @@ void SpecificWorker::compute()
 	{
 		try
 		{
+
 			//For RGBD
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
-//			memset(image_color.data, 127, m_width*m_height*3);
+			//memset(image_color.data, 127, m_width*m_height*3);
+
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);
 		}

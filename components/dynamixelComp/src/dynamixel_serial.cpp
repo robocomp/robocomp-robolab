@@ -206,10 +206,7 @@ void Dynamixel::initialize() throw (QString)
 		
 		if (!usbCorrect)
 		{
-			qDebug()<<"Reset devices";
-			system("sh /home/robocomp/robocomp/components/robocomp-ursus/files/setDynamixel.sh");
-			qDebug()<<"Reset devices OK";
-			qFatal("Please, relaunch dynamixel one more time");
+			qFatal("Can't initialize dynamyxel");
 		}
 
 		///Read current position

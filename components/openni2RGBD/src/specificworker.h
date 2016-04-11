@@ -79,6 +79,10 @@ template <class T> class DoubleBuffer
 				points = *reader;
 			bufferMutex.unlock();
 		}
+		T* getWriter()
+		{
+		  return writer;
+		}
 };
 
 
@@ -125,7 +129,7 @@ Q_OBJECT
       
       DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
 	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
-	  
+	 
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
            
 public:

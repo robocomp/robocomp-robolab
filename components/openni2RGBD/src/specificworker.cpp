@@ -414,3 +414,4 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 
 
 
+

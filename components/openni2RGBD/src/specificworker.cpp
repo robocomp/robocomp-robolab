@@ -183,9 +183,7 @@ void SpecificWorker::compute( )
 	bool doCoordinates = readFrame();
 	if (doCoordinates)
 	{
-		printf("compute<\n");
 		computeCoordinates();
-		printf(">compute\n");
 		pointsBuff.swap();
 	}
         if (reloj.elapsed() > 1000)
@@ -284,7 +282,7 @@ void SpecificWorker::computeCoordinates()
 	static const float flength_x = 545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
 	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
 	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
-	#pragma omp for
+	//#pragma omp for schedule(static, 5)
 	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
 	{
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
@@ -411,6 +409,5 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 {
 	pointsBuff.copy(points);
 }
-
 
 

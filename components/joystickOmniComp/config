@@ -3,7 +3,7 @@
 #
 JoyStickComp.Endpoints=tcp -p 10002
 
-OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
+OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 
 # User config parameters
 # Example = value

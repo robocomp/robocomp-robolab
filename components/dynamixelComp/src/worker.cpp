@@ -44,7 +44,7 @@ Worker::~Worker()
  */
 void Worker::run( )
 {
-	rInfo("Starting update loop.");
+	qDebug()<<"Starting update loop.";
 	forever
 	{
 		if (active)

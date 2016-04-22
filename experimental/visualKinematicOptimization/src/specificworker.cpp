@@ -94,7 +94,9 @@ void SpecificWorker::compute()
 {
 	static float v = 0;
 	innerModel->updateTransformValues("rgbd_transform", 0,0,0,  v+=0.5,0,0);
-
+	innerViewer->update();
+		osgView->autoResize();
+		osgView->frame();
 	renderAndGenerateImages();
 }
 
@@ -103,9 +105,9 @@ void SpecificWorker::renderAndGenerateImages()
 {
 	if (innerViewer)
 	{
-		innerViewer->update();
-		osgView->autoResize();
-		osgView->frame();
+// 		innerViewer->update();
+// 		osgView->autoResize();
+// 		osgView->frame();
 		IMVCamera cam = innerViewer->cameras["rgbd"];
 		cam.viewerCamera->frame();
 

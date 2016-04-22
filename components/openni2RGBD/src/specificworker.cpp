@@ -24,7 +24,7 @@
 */
 
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
-{	
+{
 	openDevice();
 	initializeStreams();
 
@@ -63,8 +63,7 @@ void SpecificWorker::openDevice()
 
 	if(device.isFile())
 	{
-		qDebug("Es un fichero");
-		device.getPlaybackControl()->setRepeatEnabled(true);
+		qDebug("Es un archivo");
 	}
 	else
 	{
@@ -203,7 +202,8 @@ void SpecificWorker::compute( )
 {
 	static QTime reloj = QTime::currentTime();
 	
-	if( readFrame() )
+	bool doCoordinates = readFrame();
+	if (doCoordinates)
 	{
 		computeCoordinates();
 		pointsBuff.swap();
@@ -230,16 +230,16 @@ bool SpecificWorker::readFrame()
 	{
 		switch (changedIndex)
 		{
-			case 0:
-				readDepth();
-				doCoordinates = true;
-				fps++;
-				break;
-			case 1:
-				readColor();
-				break;
-			default:
-				printf("Error in wait\n");
+		case 0:
+			readDepth();
+			doCoordinates = true;
+			fps++;
+			break;
+		case 1:
+			readColor();
+			break;
+		default:
+			printf("Error in wait\n");
 		}
 	}
 	return doCoordinates;
@@ -248,8 +248,6 @@ bool SpecificWorker::readFrame()
 void SpecificWorker::readDepth()
 {
 	openniRc = depth.readFrame(&depthFrame);
-	//openniRc = depth.readFrame(doubleDepthBuff.getWriter());
-	
 	if (openniRc != openni::STATUS_OK)
 	{
 		printf("Read depth failed!\n%s\n", OpenNI::getExtendedError());
@@ -282,9 +280,12 @@ void SpecificWorker::readColor()
 
 	uint8_t *pixColor = (uint8_t *)colorFrame.getData();
 
+//	printf("%d %d\n", IMAGE_HEIGHT, IMAGE_WIDTH);
 	RGBMutex->lock();
 	  memcpy(&colorImage->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
 	//  memcpy(&colorBuffer->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
+	memcpy(&colorImage->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
+
 	RGBMutex->unlock();
 	
 }
@@ -298,7 +299,7 @@ void SpecificWorker::computeCoordinates()
 	static const float flength_x = 545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
 	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
 	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
-	#pragma omp for
+	//#pragma omp for schedule(static, 5)
 	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
 	{
 		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
@@ -328,6 +329,7 @@ void SpecificWorker::computeCoordinates()
 				pointsBuff[offset].w = 1.0;
 			}
 		}
+		
 	}
 }
 
@@ -380,10 +382,10 @@ Registration SpecificWorker::getRegistration ( ){
 void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
 	RGBMutex->lock();
-	  rgbMatrix=*colorImage;
+	rgbMatrix=*colorImage;
 	RGBMutex->unlock();
 	depthMutex->lock();
-	  distanceMatrix=*depthImage;
+	distanceMatrix=*depthImage;
 	depthMutex->unlock();
 
 }
@@ -407,11 +409,7 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
-//  	RGBMutex->lock();
-// 	  color.swap(*colorBuffer);
-//  	RGBMutex->unlock();
-
-	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+        color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
 	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
@@ -421,6 +419,7 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 {
 	pointsBuff.copy(points);
 }
+
 
 
 

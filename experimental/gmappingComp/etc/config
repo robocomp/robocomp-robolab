@@ -1,0 +1,55 @@
+CommonBehavior.Endpoints=tcp -p 11059
+
+
+# Endpoints for implemented interfaces
+SlamLaser.Endpoints=tcp -p 10059
+
+
+# Proxies for required interfaces
+LaserProxy = laser:tcp -h localhost -p 10003
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+
+GMapping.maxUrange=20.0
+GMapping.maxrange=30.0
+GMapping.sigma=0.05
+GMapping.regscore=10000.0
+GMapping.kernelSize=1
+GMapping.lstep=0.05
+GMapping.astep=0.05
+GMapping.critscore=0.0
+GMapping.maxMove=1
+GMapping.iterations=10
+GMapping.lsigma=0.075
+GMapping.ogain=3
+GMapping.lskip=0
+GMapping.srr=0.1
+GMapping.srt=0.01
+GMapping.str=0.1
+GMapping.stt=0.01
+GMapping.linearUpdate=0.2
+GMapping.angularUpdate=0.1
+GMapping.resampleThreshold=0.5
+GMapping.xmin=-20.0
+GMapping.xmax=20.0
+GMapping.ymin=-20.0
+GMapping.ymax=20.0
+GMapping.particles=50
+GMapping.delta=0.05
+GMapping.llsamplerange=0.1
+GMapping.llsamplestep=0.1
+GMapping.lasamplerange=0.01
+GMapping.lasamplestep=0.02
+GMapping.enlargestep=1
+
+GMapping.generateMap=true
+GMapping.Map=/home/lmanso/cyclic.map
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+Ice.MessageSizeMax=10240
+

@@ -1,0 +1,15 @@
+import "/robocomp/interfaces/IDSLs/Laser.idsl";
+import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+import "/robocomp/interfaces/IDSLs/SlamLaser.idsl";
+
+Component gmappingComp
+{
+	Communications
+	{
+		implements SlamLaser;
+		requires OmniRobot, Laser;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

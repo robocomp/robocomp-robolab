@@ -1,0 +1,35 @@
+
+# Sources set
+SET ( SOURCES
+	specificworker.cpp
+	specificmonitor.cpp
+	GridFastSlamMapHandling.cpp
+	fastslamsrc/utils/stat.cpp
+	fastslamsrc/utils/printmemusage.cpp
+	fastslamsrc/utils/movement
+	fastslamsrc/sensor/sensor_base/sensorreading.cpp
+	fastslamsrc/sensor/sensor_base/sensor.cpp
+	fastslamsrc/sensor/sensor_range/rangesensor.cpp
+	fastslamsrc/sensor/sensor_range/rangereading.cpp
+	fastslamsrc/sensor/sensor_odometry/odometrysensor.cpp
+	fastslamsrc/sensor/sensor_odometry/odometryreading.cpp
+	fastslamsrc/log/sensorstream.cpp
+	fastslamsrc/configfile/configfile.cpp
+	fastslamsrc/scanmatcher/scanmatcherprocessor.cpp
+	fastslamsrc/scanmatcher/scanmatcher.cpp
+	fastslamsrc/scanmatcher/smmap.cpp
+	fastslamsrc/scanmatcher/eig3.cpp
+	fastslamsrc/gridfastslam/motionmodel.cpp
+	fastslamsrc/gridfastslam/gridslamprocessor.cpp
+	fastslamsrc/gridfastslam/gridslamprocessor_tree.cpp
+
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
+
+INCLUDE_DIRECTORIES(fastslamsrc fastslamsrc/grid fastslamsrc/utils fastslamsrc/sensor/sensor_base fastslamsrc/sensor/sensor_range fastslamsrc/sensor/sensor_odometry fastslamsrc/scanmatcher fastslamsrc/log fastslamsrc/particlefilter fastslamsrc/gridfastslam fastslamsrc/configfile)
+
+
+
+ADD_DEFINITIONS( -std=c++11 )
+

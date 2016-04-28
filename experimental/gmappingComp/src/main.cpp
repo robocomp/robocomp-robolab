@@ -83,6 +83,7 @@
 #include <Laser.h>
 #include <OmniRobot.h>
 #include <SlamLaser.h>
+#include <CGR.h>
 
 
 // User includes here
@@ -94,6 +95,7 @@ using namespace RoboCompCommonBehavior;
 using namespace RoboCompLaser;
 using namespace RoboCompOmniRobot;
 using namespace RoboCompSlamLaser;
+using namespace RoboCompCGR;
 
 
 
@@ -126,28 +128,12 @@ int ::gmappingComp::run(int argc, char* argv[])
 #endif
 	int status=EXIT_SUCCESS;
 
-	LaserPrx laser_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 	OmniRobotPrx omnirobot_proxy;
+	LaserPrx laser_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "LaserProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy LaserProxy\n";
-		}
-		laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("LaserProxy initialized Ok!");
-	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
 
 
 	try
@@ -167,6 +153,47 @@ int ::gmappingComp::run(int argc, char* argv[])
 	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 
 
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "LaserProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy LaserProxy\n";
+		}
+		laser_proxy = LaserPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("LaserProxy initialized Ok!");
+	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
+
+	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+	IceStorm::TopicPrx cgrtopic_topic;
+	while (!cgrtopic_topic)
+	{
+		try
+		{
+			cgrtopic_topic = topicManager->retrieve("CGRTopic");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			try
+			{
+				cgrtopic_topic = topicManager->create("CGRTopic");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+			}
+		}
+	}
+	Ice::ObjectPrx cgrtopic_pub = cgrtopic_topic->getPublisher()->ice_oneway();
+	CGRTopicPrx cgrtopic = CGRTopicPrx::uncheckedCast(cgrtopic_pub);
+	mprx["CGRTopicPub"] = (::IceProxy::Ice::Object*)(&cgrtopic);
+
+
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -182,7 +209,7 @@ int ::gmappingComp::run(int argc, char* argv[])
 	{
 		usleep(10000);
 	}
-qDebug()<<"monitor ready";	
+	
 	try
 	{
 		// Server adapter creation and publication

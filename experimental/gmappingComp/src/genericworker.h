@@ -29,6 +29,7 @@
 #include <CommonBehavior.h>
 #include <OmniRobot.h>
 #include <DifferentialRobot.h>
+#include <CGR.h>
 #include <Laser.h>
 #include <SlamLaser.h>
 
@@ -43,6 +44,7 @@ using namespace std;
 
 using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
+using namespace RoboCompCGR;
 using namespace RoboCompLaser;
 using namespace RoboCompSlamLaser;
 
@@ -67,6 +69,7 @@ public:
 	QMutex *mutex;
 	
 
+	CGRTopicPrx cgrtopic_proxy;
 	OmniRobotPrx omnirobot_proxy;
 	LaserPrx laser_proxy;
 

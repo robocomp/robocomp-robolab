@@ -102,8 +102,6 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["GMapping.lstep"] = aux;
 	configGetString("", "GMapping.astep", aux.value,"0.05");
 	params["GMapping.astep"] = aux;
-	configGetString("", "GMapping.critscore", aux.value,"0.0");
-	params["GMapping.critscore"] = aux;
 	configGetString("", "GMapping.maxMove", aux.value,"1");
 	params["GMapping.maxMove"] = aux;
 	configGetString("", "GMapping.iterations", aux.value,"10");

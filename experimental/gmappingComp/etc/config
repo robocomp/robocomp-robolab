@@ -6,7 +6,7 @@ SlamLaser.Endpoints=tcp -p 10059
 
 
 # Proxies for required interfaces
-LaserProxy = laser:tcp -h localhost -p 10003
+LaserProxy = laser:tcp -h 10.0.30.33 -p 10003
 OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 GMapping.maxUrange=20.0
@@ -16,25 +16,24 @@ GMapping.regscore=10000.0
 GMapping.kernelSize=1
 GMapping.lstep=0.05
 GMapping.astep=0.05
-GMapping.critscore=0.0
 GMapping.maxMove=1
 GMapping.iterations=10
 GMapping.lsigma=0.075
 GMapping.ogain=3
 GMapping.lskip=0
 GMapping.srr=0.1
-GMapping.srt=0.01
+GMapping.srt=0.2
 GMapping.str=0.1
-GMapping.stt=0.01
+GMapping.stt=0.2
 GMapping.linearUpdate=0.2
 GMapping.angularUpdate=0.1
-GMapping.resampleThreshold=0.5
-GMapping.xmin=-20.0
-GMapping.xmax=20.0
-GMapping.ymin=-20.0
-GMapping.ymax=20.0
-GMapping.particles=200
-GMapping.delta=0.05
+GMapping.resampleThreshold=0.4
+GMapping.xmin=-10.0
+GMapping.xmax=10.0
+GMapping.ymin=-10.0
+GMapping.ymax=10.0
+GMapping.particles=40
+GMapping.delta=0.03
 GMapping.llsamplerange=0.1
 GMapping.llsamplestep=0.1
 GMapping.lasamplerange=0.01

@@ -332,7 +332,7 @@ void SpecificWorker::compute()
 		cgrtopic_proxy->newCGRPose(poseCertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
 	}
 	updateParticles();
-        
+
 	innerModelViewer->update();
  	osgView->autoResize();
  	osgView->frame();

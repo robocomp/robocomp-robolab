@@ -28,9 +28,10 @@ QObject()
 #endif
 
 {
-	laser_proxy = (*(LaserPrx*)mprx["LaserProxy"]);
 	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
+	laser_proxy = (*(LaserPrx*)mprx["LaserProxy"]);
 
+	cgrtopic_proxy = (*(CGRTopicPrx*)mprx["CGRTopicPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
@@ -40,6 +41,7 @@ QObject()
 	#endif
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+// 	timer.start(Period);
 }
 
 /**

@@ -1383,6 +1383,7 @@ int Dunker_syncGetPosition(VSCAN_HANDLE Handle, int node_count, uint8_t* NodeIds
 	for(count=0;count<node_count;count++)
 	{
 		msgs[count]=Dunker_getMessageData(NodeIds[count],Dunker_getDefaultReadCommandSpecifier(),0x3762, 0x00);
+		printf("position %d\n",msgs[0]);
 	}
 	int status = Dunker_multiWriteWaitReadMessage(Handle,msgs, node_count);
 	for(count=0;count<node_count;count++)

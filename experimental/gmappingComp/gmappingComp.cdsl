@@ -1,6 +1,7 @@
 import "/robocomp/interfaces/IDSLs/Laser.idsl";
 import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
 import "/robocomp/interfaces/IDSLs/SlamLaser.idsl";
+import "/robocomp/interfaces/IDSLs/CGR.idsl";
 
 Component gmappingComp
 {
@@ -8,6 +9,7 @@ Component gmappingComp
 	{
 		implements SlamLaser;
 		requires OmniRobot, Laser;
+		publishes CGRTopic;
 	};
 	language Cpp;
 	gui Qt(QWidget);

@@ -472,7 +472,7 @@ void GridSlamProcessor::setMotionModelParameters
 	}
 	resample(plainReading, adaptParticles, registerScan);
 	
-      } else {
+      } else if (registerScan){
 	m_infoStream << "Registering First Scan"<< endl;
 	for (ParticleVector::iterator it=m_particles.begin(); it!=m_particles.end(); it++){	
 	  m_matcher.invalidateActiveArea();

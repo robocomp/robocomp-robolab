@@ -143,11 +143,14 @@ void ScanMatcher::computeActiveArea(ScanMatcherMap& map, const OrientedPoint& p,
 	if ( !map.isInside(min)	|| !map.isInside(max)){
 		Point lmin(map.map2world(0,0));
 		Point lmax(map.map2world(map.getMapSizeX()-1,map.getMapSizeY()-1));
+		//cerr << "CURRENT MAP " << lmin.x << " " << lmin.y << " " << lmax.x << " " << lmax.y << endl;
+		//cerr << "BOUNDARY OVERRIDE " << min.x << " " << min.y << " " << max.x << " " << max.y << endl;
 		min.x=( min.x >= lmin.x )? lmin.x: min.x-m_enlargeStep;
 		max.x=( max.x <= lmax.x )? lmax.x: max.x+m_enlargeStep;
 		min.y=( min.y >= lmin.y )? lmin.y: min.y-m_enlargeStep;
 		max.y=( max.y <= lmax.y )? lmax.y: max.y+m_enlargeStep;
 		map.resize(min.x, min.y, max.x, max.y);
+		//cerr << "RESIZE " << min.x << " " << min.y << " " << max.x << " " << max.y << endl;
 	}
 	
 	HierarchicalArray2D<PointAccumulator>::PointSet activeArea;
@@ -192,6 +195,13 @@ void ScanMatcher::computeActiveArea(ScanMatcherMap& map, const OrientedPoint& p,
 	
 	//this allocates the unallocated cells in the active area of the map
 	//cout << "activeArea::size() " << activeArea.size() << endl;
+/*	
+	cerr << "ActiveArea=";
+	for (HierarchicalArray2D<PointAccumulator>::PointSet::const_iterator it=activeArea.begin(); it!= activeArea.end(); it++){
+		cerr << "(" << it->x <<"," << it->y << ") ";
+	}
+	cerr << endl;
+*/		
 	map.storage().setActiveArea(activeArea, true);
 	m_activeAreaComputed=true;
 }
@@ -282,6 +292,7 @@ void ScanMatcher::registerScan(ScanMatcherMap& map, const OrientedPoint& p, cons
 			for (int i=0; i<line.num_points-1; i++){
 				IntPoint ci=map.storage().patchIndexes(line.points[i]);
 				if (map.storage().getActiveArea().find(ci)==map.storage().getActiveArea().end())
+					cerr << "BIG ERROR" <<endl;
 				map.cell(line.points[i]).update(false, Point(0,0));
 			}
 			if (d<=m_usableRange){
@@ -308,9 +319,12 @@ double ScanMatcher::icpOptimize(OrientedPoint& pnew, const ScanMatcherMap& map, 
 	do{
 		currentScore=sc;
 		sc=icpStep(pnew, map, start, readings);
+		//cerr << "pstart=" << start.x << " " <<start.y << " " << start.theta << endl;
+		//cerr << "pret=" << pnew.x << " " <<pnew.y << " " << pnew.theta << endl;
 		start=pnew;
 		iterations++;
 	} while (sc>currentScore);
+	cerr << "i="<< iterations << endl;
 	return currentScore;
 }
 

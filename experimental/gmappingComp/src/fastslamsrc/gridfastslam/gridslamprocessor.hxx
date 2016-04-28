@@ -17,13 +17,13 @@ inline void GridSlamProcessor::scanMatch(const double* plainReading){
     //    it->pose=corrected;
     if (score>m_minimumScore){
       it->pose=corrected;
-    }/* else {
+    } else {
 	if (m_infoStream){
 	  m_infoStream << "Scan Matching Failed, using odometry. Likelihood=" << l <<std::endl;
 	  m_infoStream << "lp:" << m_lastPartPose.x << " "  << m_lastPartPose.y << " "<< m_lastPartPose.theta <<std::endl;
 	  m_infoStream << "op:" << m_odoPose.x << " " << m_odoPose.y << " "<< m_odoPose.theta <<std::endl;
 	}
-    }*/
+    }
 
     m_matcher.likelihoodAndScore(s, l, it->map, it->pose, plainReading);
     sumScore+=score;
@@ -35,7 +35,7 @@ inline void GridSlamProcessor::scanMatch(const double* plainReading){
     m_matcher.invalidateActiveArea();
     m_matcher.computeActiveArea(it->map, it->pose, plainReading);
   }
-  if (false and m_infoStream)
+  if (m_infoStream)
     m_infoStream << "Average Scan Matching Score=" << sumScore/m_particles.size() << std::endl;	
 }
 
@@ -78,7 +78,7 @@ inline bool GridSlamProcessor::resample(const double* plainReading, int adaptSiz
   
   if (m_neff<m_resampleThreshold*m_particles.size()){		
     
-    if (false and m_infoStream)
+    if (m_infoStream)
       m_infoStream  << "*************RESAMPLE***************" << std::endl;
     
     uniform_resampler<double, double> resampler;
@@ -140,8 +140,8 @@ inline bool GridSlamProcessor::resample(const double* plainReading, int adaptSiz
     for (ParticleVector::iterator it=temp.begin(); it!=temp.end(); it++){
       it->setWeight(0);
       m_matcher.invalidateActiveArea();
-      if(registerScan)
-	m_matcher.registerScan(it->map, it->pose, plainReading);
+	  if (registerScan)
+		m_matcher.registerScan(it->map, it->pose, plainReading);
       m_particles.push_back(*it);
     }
     std::cerr  << " Done" <<std::endl;
@@ -161,8 +161,8 @@ inline bool GridSlamProcessor::resample(const double* plainReading, int adaptSiz
 
       //END: BUILDING TREE
       m_matcher.invalidateActiveArea();
-       if(registerScan)
-        m_matcher.registerScan(it->map, it->pose, plainReading);
+	  if (registerScan)
+		m_matcher.registerScan(it->map, it->pose, plainReading);
       it->previousIndex=index;
       index++;
       node_it++;

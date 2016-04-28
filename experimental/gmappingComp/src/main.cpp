@@ -182,7 +182,7 @@ int ::gmappingComp::run(int argc, char* argv[])
 	{
 		usleep(10000);
 	}
-	
+qDebug()<<"monitor ready";	
 	try
 	{
 		// Server adapter creation and publication

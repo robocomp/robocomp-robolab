@@ -142,10 +142,10 @@ namespace GMapping {
     
     //methods for accessing the parameters
     void setSensorMap(const SensorMap& smap);
-    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, OrientedPoint initialPose=OrientedPoint(0,0,0));
-    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose);    
-    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, OrientedPoint initialPose, const ScanMatcherMap& lmap);
-    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose, const ScanMatcherMap& lmap);    
+    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, 
+	      std::vector<OrientedPoint> initialPose);
+    void init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, 
+	      std::vector<OrientedPoint> initialPose, ScanMatcherMap& lmap);
     void setMatchingParameters(double urange, double range, double sigma, int kernsize, double lopt, double aopt, 
 			       int iterations, double likelihoodSigma=1, double likelihoodGain=1, unsigned int likelihoodSkip=0);
     void setMotionModelParameters(double srr, double srt, double str, double stt);
@@ -153,7 +153,7 @@ namespace GMapping {
     
     //the "core" algorithm
     void processTruePos(const OdometryReading& odometry);
-    bool processScan(const RangeReading & reading, int adaptParticles=0, bool registerScans = true);
+    bool processScan(const RangeReading & reading, int adaptParticles=0, bool registerScan=true);
     
     /**This method copies the state of the filter in a tree.
      The tree is represented through reversed pointers (each node has a pointer to its parent).
@@ -316,9 +316,9 @@ namespace GMapping {
     inline void normalize();
     
     // return if a resampling occured or not
- 
-    inline bool resample(const double* plainReading, int adaptParticles, bool registerScan = true, const RangeReading* rr=0);
-    //tree utilities
+    inline bool resample(const double* plainReading, int adaptParticles, bool registerScan, const RangeReading* rr=0);
+    
+    //tree utilitcdies
     
     void updateTreeWeights(bool weightsAlreadyNormalized = false);
     void resetTree();

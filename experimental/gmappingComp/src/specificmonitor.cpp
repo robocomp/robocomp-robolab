@@ -85,18 +85,90 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-// 	RoboCompCommonBehavior::Parameter aux;
-// 	aux.editable = true;
-// 	string name = PROGRAM_NAME;
-// 	
-// 	configGetString(name+".param_name", aux.value, "default");
-// 	//Check valid ranges
-// 	if( aux.value != "val1" and aux.value != "val2")
-// 	{
-// 		std::cout << __FUNCTION__ << "Warning. Wrong XXX value. Using default xxx" << std::endl;
-// 		params[name+".param_name"] = "xxx";
-// 	}
-// 	params[name+".param_name"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	configGetString("", "GMapping.maxUrange", aux.value,"20.0");
+	params["GMapping.maxUrange"] = aux;
+	configGetString("", "GMapping.maxrange", aux.value,"30.0");
+	params["GMapping.maxrange"] = aux;
+// 	configGetString("", "GMapping.sigma", aux.value,"0.1");
+	configGetString("", "GMapping.sigma", aux.value,"0.05");
+	params["GMapping.sigma"] = aux;
+	configGetString("", "GMapping.regscore", aux.value,"10000.0");
+	params["GMapping.regscore"] = aux;
+	configGetString("", "GMapping.kernelSize", aux.value,"1");
+	params["GMapping.kernelSize"] = aux;
+	configGetString("", "GMapping.lstep", aux.value,"0.05");
+	params["GMapping.lstep"] = aux;
+	configGetString("", "GMapping.astep", aux.value,"0.05");
+	params["GMapping.astep"] = aux;
+	configGetString("", "GMapping.critscore", aux.value,"0.0");
+	params["GMapping.critscore"] = aux;
+	configGetString("", "GMapping.maxMove", aux.value,"1");
+	params["GMapping.maxMove"] = aux;
+	configGetString("", "GMapping.iterations", aux.value,"10");
+// 	configGetString("", "GMapping.iterations", aux.value,"5");
+	params["GMapping.iterations"] = aux;
+	configGetString("", "GMapping.lsigma", aux.value,"0.075");
+// 	configGetString("", "GMapping.lsigma", aux.value,"0.75");
+	params["GMapping.lsigma"] = aux;
+	configGetString("", "GMapping.ogain", aux.value,"3");
+	params["GMapping.ogain"] = aux;
+	configGetString("", "GMapping.lskip", aux.value,"0");
+	params["GMapping.lskip"] = aux;
+	configGetString("", "GMapping.srr", aux.value,"0.1");
+// 	configGetString("", "GMapping.srr", aux.value,"0.01");
+	params["GMapping.srr"] = aux;
+	configGetString("", "GMapping.srt", aux.value,"0.01");
+	params["GMapping.srt"] = aux;
+// 	configGetString("", "GMapping.str", aux.value,"0.01");
+	configGetString("", "GMapping.str", aux.value,"0.1");
+	params["GMapping.str"] = aux;
+	configGetString("", "GMapping.stt", aux.value,"0.01");
+	params["GMapping.stt"] = aux;
+	configGetString("", "GMapping.linearUpdate", aux.value,"0.2");//"0.3");
+	params["GMapping.linearUpdate"] = aux;
+	configGetString("", "GMapping.angularUpdate", aux.value,"0.1");//"0.1");
+	params["GMapping.angularUpdate"] = aux;
+	configGetString("", "GMapping.resampleThreshold", aux.value,"0.5");
+	params["GMapping.resampleThreshold"] = aux;
+	configGetString("", "GMapping.xmin", aux.value,"-20.0");
+	params["GMapping.xmin"] = aux;
+	configGetString("", "GMapping.xmax", aux.value,"20.0");
+	params["GMapping.xmax"] = aux;
+	configGetString("", "GMapping.ymin", aux.value,"-20.0");
+	params["GMapping.ymin"] = aux;
+	configGetString("", "GMapping.ymax", aux.value,"20.0");
+	params["GMapping.ymax"] = aux;
+	configGetString("", "GMapping.particles", aux.value,"50");
+	params["GMapping.particles"] = aux;
+	printf("PARTICLES: %s\n", aux.value.c_str());
+	
+	configGetString("", "GMapping.delta", aux.value,"0.05");
+	params["GMapping.delta"] = aux;
+	configGetString("", "GMapping.llsamplerange", aux.value,"0.1");
+	params["GMapping.llsamplerange"] = aux;
+	configGetString("", "GMapping.llsamplestep", aux.value,"0.1");
+	params["GMapping.llsamplestep"] = aux;
+	configGetString("", "GMapping.lasamplerange", aux.value,"0.01");
+	params["GMapping.lasamplerange"] = aux;
+	configGetString("", "GMapping.lasamplestep", aux.value,"0.02");
+	params["GMapping.llsamplestep"] = aux;
+	configGetString("", "GMapping.enlargestep", aux.value,"1");
+	params["GMapping.enlargestep"] = aux;
+	
+	
+	
+	configGetString("", "GMapping.generateMap", aux.value,"true");
+	params["GMapping.generateMap"] = aux;
+
+	try{
+		configGetString("", "GMapping.Map", aux.value, "");
+	} catch(...)
+	{
+		aux.value = "";
+	}
+	params["GMapping.Map"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

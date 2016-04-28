@@ -17,7 +17,7 @@ const double m_distanceThresholdCheck = 20;
  
 using namespace std;
 
-  GridSlamProcessor::GridSlamProcessor() : m_infoStream(cout){
+  GridSlamProcessor::GridSlamProcessor(): m_infoStream(cout){
     
     m_obsSigmaGain=1;
     m_resampleThreshold=0.5;
@@ -210,18 +210,18 @@ void GridSlamProcessor::setMotionModelParameters
   m_motionModel.srt=srt;
   m_motionModel.str=str;
   m_motionModel.stt=stt;	
- /* 
+  
   if (m_infoStream)
     m_infoStream << " -srr "<< srr 	<< " -srt "<< srt  
 		 << " -str "<< str 	<< " -stt "<< stt << endl;
-  */
+  
 }
   
   void GridSlamProcessor::setUpdateDistances(double linear, double angular, double resampleThreshold){
     m_linearThresholdDistance=linear; 
     m_angularThresholdDistance=angular;
     m_resampleThreshold=resampleThreshold;	
-    if (false and m_infoStream)
+    if (m_infoStream)
       m_infoStream << " -linearUpdate " << linear
 		   << " -angularUpdate "<< angular
 		   << " -resampleThreshold " << m_resampleThreshold << endl;
@@ -261,144 +261,81 @@ void GridSlamProcessor::setMotionModelParameters
     delete [] angles;
   }
   
-  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, OrientedPoint initialPose)
-  {
+  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose){
     m_xmin=xmin;
     m_ymin=ymin;
     m_xmax=xmax;
     m_ymax=ymax;
     m_delta=delta;
-    if (false and m_infoStream)
+    if (m_infoStream)
       m_infoStream 
-      << " -xmin "<< m_xmin
-      << " -xmax "<< m_xmax
-      << " -ymin "<< m_ymin
-      << " -ymax "<< m_ymax
-      << " -delta "<< m_delta
-      << " -particles "<< size << endl;
-
-    m_particles.clear();
-    TNode* node=new TNode(initialPose, 0, 0, 0);
-    ScanMatcherMap lmap(Point(xmin+xmax, ymin+ymax)*.5, xmax-xmin, ymax-ymin, delta);
-    for (unsigned int i=0; i<size; i++){
-      m_particles.push_back(Particle(lmap));
-      m_particles.back().pose=initialPose;
-      m_particles.back().previousPose=initialPose;
-      m_particles.back().setWeight(0);
-      m_particles.back().previousIndex=0;
-      m_particles.back().node= node;
-    }
-    m_neff=(double)size;
-    m_count=0;
-    m_readingCount=0;
-    m_linearDistance=m_angularDistance=0;
-  }
-
-  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose)
-  {
-    m_xmin=xmin;
-    m_ymin=ymin;
-    m_xmax=xmax;
-    m_ymax=ymax;
-    m_delta=delta;
-    if (false and m_infoStream)
-      m_infoStream 
-      << " -xmin "<< m_xmin
-      << " -xmax "<< m_xmax
-      << " -ymin "<< m_ymin
-      << " -ymax "<< m_ymax
-      << " -delta "<< m_delta
-      << " -particles "<< size << endl;
+	<< " -xmin "<< m_xmin
+	<< " -xmax "<< m_xmax
+	<< " -ymin "<< m_ymin
+	<< " -ymax "<< m_ymax
+	<< " -delta "<< m_delta
+	<< " -particles "<< size << endl;
+    
 
     m_particles.clear();
     ScanMatcherMap lmap(Point(xmin+xmax, ymin+ymax)*.5, xmax-xmin, ymax-ymin, delta);
     for (unsigned int i=0; i<size; i++){
-      TNode* node=new TNode(initialPose[i], 0, 0, 0);      
+      TNode* node=new TNode(initialPose[i], 0, 0, 0);
       m_particles.push_back(Particle(lmap));
       m_particles.back().pose=initialPose[i];
       m_particles.back().previousPose=initialPose[i];
       m_particles.back().setWeight(0);
       m_particles.back().previousIndex=0;
-      // we use the root directly
-      m_particles.back().node= node;
+      
+		// this is not needed
+		//		m_particles.back().node=new TNode(initialPose, 0, node, 0);
+
+		// we use the root directly
+		m_particles.back().node= node;
     }
     m_neff=(double)size;
     m_count=0;
     m_readingCount=0;
     m_linearDistance=m_angularDistance=0;
+  }
+
+  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose, ScanMatcherMap& lmap){
+    m_xmin=xmin;
+    m_ymin=ymin;
+    m_xmax=xmax;
+    m_ymax=ymax;
+    m_delta=delta;
+    if (m_infoStream)
+      m_infoStream 
+	<< " -xmin "<< m_xmin
+	<< " -xmax "<< m_xmax
+	<< " -ymin "<< m_ymin
+	<< " -ymax "<< m_ymax
+	<< " -delta "<< m_delta
+	<< " -particles "<< size << endl;
     
-  }
 
-
-  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, OrientedPoint initialPose, const ScanMatcherMap& lmap)
-  {
-    m_xmin=xmin;
-    m_ymin=ymin;
-    m_xmax=xmax;
-    m_ymax=ymax;
-    m_delta=delta;
-    if (false and m_infoStream)
-      m_infoStream 
-      << " -xmin "<< m_xmin
-      << " -xmax "<< m_xmax
-      << " -ymin "<< m_ymin
-      << " -ymax "<< m_ymax
-      << " -delta "<< m_delta
-      << " -particles "<< size << endl;
-
+	printf("SIZE %d\n", size);
     m_particles.clear();
-    TNode* node=new TNode(initialPose, 0, 0, 0);
     for (unsigned int i=0; i<size; i++){
-      m_particles.push_back(Particle(lmap));
-      m_particles.back().pose=initialPose;
-      m_particles.back().previousPose=initialPose;
-      m_particles.back().setWeight(0);
-      m_particles.back().previousIndex=0;
-      // we use the root directly
-      m_particles.back().node= node;
-    }
-    m_neff=(double)size;
-    m_count=0;
-    m_readingCount=0;
-    m_linearDistance=m_angularDistance=0;
-  }
-  
-  
-  void GridSlamProcessor::init(unsigned int size, double xmin, double ymin, double xmax, double ymax, double delta, std::vector<OrientedPoint> initialPose, const ScanMatcherMap& lmap)
-  {
-    m_xmin=xmin;
-    m_ymin=ymin;
-    m_xmax=xmax;
-    m_ymax=ymax;
-    m_delta=delta;
-    if (false and m_infoStream)
-      m_infoStream 
-      << " -xmin "<< m_xmin
-      << " -xmax "<< m_xmax
-      << " -ymin "<< m_ymin
-      << " -ymax "<< m_ymax
-      << " -delta "<< m_delta
-      << " -particles "<< size << endl;
-
-    m_particles.clear();
-
-    for (unsigned int i=0; i<size; i++){
-      TNode* node=new TNode(initialPose[i], 0, 0, 0);      
+      TNode* node=new TNode(initialPose[i], 0, 0, 0);
       m_particles.push_back(Particle(lmap));
       m_particles.back().pose=initialPose[i];
       m_particles.back().previousPose=initialPose[i];
       m_particles.back().setWeight(0);
       m_particles.back().previousIndex=0;
-      // we use the root directly
-      m_particles.back().node= node;
+      
+		// this is not needed
+		//		m_particles.back().node=new TNode(initialPose, 0, node, 0);
+
+		// we use the root directly
+		m_particles.back().node= node;
     }
     m_neff=(double)size;
     m_count=0;
     m_readingCount=0;
     m_linearDistance=m_angularDistance=0;
-    
   }
-
 
   void GridSlamProcessor::processTruePos(const OdometryReading& o){
     const OdometrySensor* os=dynamic_cast<const OdometrySensor*>(o.getSensor());
@@ -408,8 +345,10 @@ void GridSlamProcessor::setMotionModelParameters
       m_outputStream << setiosflags(ios::fixed) << setprecision(6) << o.getPose().theta << " " <<  o.getTime() << endl;
     }
   }
-
+  
+  
   bool GridSlamProcessor::processScan(const RangeReading & reading, int adaptParticles, bool registerScan){
+    
     /**retireve the position from the reading, and compute the odometry*/
     OrientedPoint relPose=reading.getPose();
     if (!m_count){
@@ -472,88 +411,80 @@ void GridSlamProcessor::setMotionModelParameters
     m_odoPose=relPose;
     
     bool processed=false;
-	
+
     // process a scan only if the robot has traveled a given distance
     if (! m_count 
 	|| m_linearDistance>m_linearThresholdDistance 
-	|| m_angularDistance>m_angularThresholdDistance)
-	{
-      if (m_outputStream.is_open())
-	  {
-		m_outputStream << setiosflags(ios::fixed) << setprecision(6);
-		m_outputStream << "FRAME " <<  m_readingCount;
-		m_outputStream << " " << m_linearDistance;
-		m_outputStream << " " << m_angularDistance << endl;
+	|| m_angularDistance>m_angularThresholdDistance){
+      
+      if (m_outputStream.is_open()){
+	m_outputStream << setiosflags(ios::fixed) << setprecision(6);
+	m_outputStream << "FRAME " <<  m_readingCount;
+	m_outputStream << " " << m_linearDistance;
+	m_outputStream << " " << m_angularDistance << endl;
       }
       
-      if (false and m_infoStream)
-		m_infoStream << "update frame " <<  m_readingCount << endl << "update ld=" << m_linearDistance << " ad=" << m_angularDistance << endl;
-     
+      if (m_infoStream)
+	m_infoStream << "update frame " <<  m_readingCount << endl
+		     << "update ld=" << m_linearDistance << " ad=" << m_angularDistance << endl;
+      
+      
       cerr << "Laser Pose= " << reading.getPose().x << " " << reading.getPose().y 
 	   << " " << reading.getPose().theta << endl;
+      
       
       //this is for converting the reading in a scan-matcher feedable form
       assert(reading.size()==m_beams);
       double * plainReading = new double[m_beams];
-      for(unsigned int i=0; i<m_beams; i++)
-	  {
-		plainReading[i]=reading[i];
+      for(unsigned int i=0; i<m_beams; i++){
+	plainReading[i]=reading[i];
       }
-      //m_infoStream << "m_count " << m_count << endl;
-      if (m_count>0)
-	  {
-		scanMatch(plainReading);
-		if (m_outputStream.is_open())
-		{
-		  m_outputStream << "LASER_READING "<< reading.size() << " ";
-		  m_outputStream << setiosflags(ios::fixed) << setprecision(2);
-		  for (RangeReading::const_iterator b=reading.begin(); b!=reading.end(); b++)
-		  {
-			m_outputStream << *b << " ";
-		  }
-		  OrientedPoint p=reading.getPose();
-		  m_outputStream << setiosflags(ios::fixed) << setprecision(6);
-		  m_outputStream << p.x << " " << p.y << " " << p.theta << " " << reading.getTime()<< endl;
-		  m_outputStream << "SM_UPDATE "<< m_particles.size() << " ";
-		  for (ParticleVector::const_iterator it=m_particles.begin(); it!=m_particles.end(); it++)
-		  {
-			const OrientedPoint& pose=it->pose;
-			m_outputStream << setiosflags(ios::fixed) << setprecision(3) <<  pose.x << " " << pose.y << " ";
-			m_outputStream << setiosflags(ios::fixed) << setprecision(6) <<  pose.theta << " " << it-> weight << " ";
-		  }
-		  m_outputStream << endl;
-		}
-		onScanmatchUpdate();
+      m_infoStream << "m_count " << m_count << endl;
+      if (m_count>0){
+	scanMatch(plainReading);
+	if (m_outputStream.is_open()){
+	  m_outputStream << "LASER_READING "<< reading.size() << " ";
+	  m_outputStream << setiosflags(ios::fixed) << setprecision(2);
+	  for (RangeReading::const_iterator b=reading.begin(); b!=reading.end(); b++){
+	    m_outputStream << *b << " ";
+	  }
+	  OrientedPoint p=reading.getPose();
+	  m_outputStream << setiosflags(ios::fixed) << setprecision(6);
+	  m_outputStream << p.x << " " << p.y << " " << p.theta << " " << reading.getTime()<< endl;
+	  m_outputStream << "SM_UPDATE "<< m_particles.size() << " ";
+	  for (ParticleVector::const_iterator it=m_particles.begin(); it!=m_particles.end(); it++){
+	    const OrientedPoint& pose=it->pose;
+	    m_outputStream << setiosflags(ios::fixed) << setprecision(3) <<  pose.x << " " << pose.y << " ";
+	    m_outputStream << setiosflags(ios::fixed) << setprecision(6) <<  pose.theta << " " << it-> weight << " ";
+	  }
+	  m_outputStream << endl;
+	}
+	onScanmatchUpdate();
 	
-		updateTreeWeights(false);
+	updateTreeWeights(false);
 				
-		if (false and m_infoStream)
-		{
-		  m_infoStream << "neff= " << m_neff  << endl;
-		}
-		if (m_outputStream.is_open())
-		{
-		  m_outputStream << setiosflags(ios::fixed) << setprecision(6);
-		  m_outputStream << "NEFF " << m_neff << endl;
-		}
-		resample(plainReading, adaptParticles, registerScan);
+	if (m_infoStream){
+	  m_infoStream << "neff= " << m_neff  << endl;
+	}
+	if (m_outputStream.is_open()){
+	  m_outputStream << setiosflags(ios::fixed) << setprecision(6);
+	  m_outputStream << "NEFF " << m_neff << endl;
+	}
+	resample(plainReading, adaptParticles, registerScan);
 	
-      } 
-      else 
-	  {
-		//m_infoStream << "Registering First Scan"<< endl;
-		for (ParticleVector::iterator it=m_particles.begin(); it!=m_particles.end(); it++)
-		{  
-		  m_matcher.invalidateActiveArea();
-		  m_matcher.computeActiveArea(it->map, it->pose, plainReading);
-		  if(registerScan)
-		    m_matcher.registerScan(it->map, it->pose, plainReading);
-	 
-		  // cyr: not needed anymore, particles refer to the root in the beginning!
-		  TNode* node=new	TNode(it->pose, 0., it->node,  0);
-		  node->reading=0;
-		  it->node=node;
-		}
+      } else {
+	m_infoStream << "Registering First Scan"<< endl;
+	for (ParticleVector::iterator it=m_particles.begin(); it!=m_particles.end(); it++){	
+	  m_matcher.invalidateActiveArea();
+	  m_matcher.computeActiveArea(it->map, it->pose, plainReading);
+	  m_matcher.registerScan(it->map, it->pose, plainReading);
+	  
+	  // cyr: not needed anymore, particles refer to the root in the beginning!
+	  TNode* node=new	TNode(it->pose, 0., it->node,  0);
+	  node->reading=0;
+	  it->node=node;
+	  
+	}
       }
       //		cerr  << "Tree: normalizing, resetting and propagating weights at the end..." ;
       updateTreeWeights(false);

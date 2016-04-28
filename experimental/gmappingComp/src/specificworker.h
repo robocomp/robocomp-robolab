@@ -29,7 +29,7 @@
 
 #include <genericworker.h>
 #include <qlog/qlog.h>
-#include <QGraphicsView>
+#include <rcdraw/rcdraw.h>
 #include <innermodel/innermodel.h>
 
 #include <values.h>
@@ -69,7 +69,7 @@ public slots:
 
 private:
 	RoboCompLaser::TLaserData laserData;
-	RoboCompDifferentialRobot::TBaseState bState;
+	RoboCompOmniRobot::TBaseState bState;
 	float previousAlpha;
 
 	bool active;
@@ -77,7 +77,6 @@ private:
 	RoboCompSlamLaser::Pose2D interfacePoseA, interfacePoseB, *interfacePoseWrite, *interfacePoseRead;
 
 	QMutex *mutex;
-	QTimer timer;
 	QRect worldSize;
 	int period;
 	InnerModel *innerModel;
@@ -90,7 +89,7 @@ private:
 	double xmin, xmax, ymin, ymax;
 	int nParticles;
 	bool registerScan;
-	GMapping::RangeReading robocompWrapper(RoboCompDifferentialRobot::TBaseState usedState);
+	GMapping::RangeReading robocompWrapper(RoboCompOmniRobot::TBaseState usedState);
 	double *distances_laser;
 	void initialize();
 
@@ -98,15 +97,12 @@ private:
 	uint8_t *gridMapBuffer;
 	QVector<double> v2DData;
 
-//	qWorld *map;
-	QGraphicsView *view;
-	QGraphicsScene *scene;
+	RCDraw *map;
+//	QGraphicsView *view;
+//	QGraphicsScene *scene;
 	QImage *result;
 	QImage *map_buffer;
 	QList<QVector <float>*> trajectory;
-//	Q2DViewer<double> *viewer2D;
-
-	
 	
 	
 };

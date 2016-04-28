@@ -7,7 +7,7 @@ SlamLaser.Endpoints=tcp -p 10059
 
 # Proxies for required interfaces
 LaserProxy = laser:tcp -h localhost -p 10003
-OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
 GMapping.maxUrange=20.0
 GMapping.maxrange=30.0
@@ -33,7 +33,7 @@ GMapping.xmin=-20.0
 GMapping.xmax=20.0
 GMapping.ymin=-20.0
 GMapping.ymax=20.0
-GMapping.particles=50
+GMapping.particles=200
 GMapping.delta=0.05
 GMapping.llsamplerange=0.1
 GMapping.llsamplestep=0.1
@@ -42,7 +42,7 @@ GMapping.lasamplestep=0.02
 GMapping.enlargestep=1
 
 GMapping.generateMap=true
-GMapping.Map=/home/lmanso/cyclic.map
+GMapping.Map=
 
 
 Ice.Warn.Connections=0

@@ -31,13 +31,15 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	interfaceMapRead = &interfaceMapB;
 
 // GUI
-	scene = new QGraphicsScene(QRect(0,0,1000,1000));
+	/*scene = new QGraphicsScene(QRect(0,0,1000,1000));
 	view = new QGraphicsView(scene, this->frame);
 	view->resize(this->frame->size());
 	view->setRenderHints( QPainter::Antialiasing );
 	
-	view->show();
-	
+	view->show();*/
+	QRect worldSize(-10000,10000,20000,-20000);
+	map = new RCDraw(worldSize, this->frame);
+	map->show();
 //	connect(map, SIGNAL(newWorldCoor(QPointF)), this, SLOT(newWorldCoor(QPointF)));
 	v2DData.resize(1);
 	connect(saveMapButton,SIGNAL(clicked()), this, SLOT(saveMap()));
@@ -56,13 +58,12 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-
+	qDebug()<<"setting params";
+	this->params = params;
 	initialize();
 	timer.start(Period);
 
-	QMutexLocker lock(mutex);
 	active = true;
-	
 	return true;
 }
 
@@ -79,13 +80,13 @@ void SpecificWorker::initialize()
 	//SENSOR MAP
 	try
 	{
-		laserData = laser_proxy->getLaserAndBStateData(bState);
+		RoboCompDifferentialRobot::TBaseState dd;
+		laserData = laser_proxy->getLaserAndBStateData(dd);
 	}
 	catch(const Ice::Exception &ex)
 	{
 			qFatal("gmappingComp::initialize(): Error, no laser connection");
 	}
-
 
 	distances_laser = new double[laserData.size()];
 	if (laserData.size()<10)
@@ -140,7 +141,16 @@ void SpecificWorker::initialize()
 	processor->setenlargeStep((bool)QString::fromStdString(params["GMapping.lasamplestep"].value).toInt());
 
 	//bState update
-	laser_proxy->getLaserAndBStateData(bState);
+	try
+	{
+		RoboCompDifferentialRobot::TBaseState dd;
+		laserData = laser_proxy->getLaserAndBStateData(dd);
+		omnirobot_proxy->getBaseState(bState);
+	}
+	catch(const Ice::Exception &ex)
+	{
+		qFatal("gmappingComp::initialize(): Error, no laser connection");
+	}
 	
 	//INITIALIZATION
 	rInfo("Worker::Initializing processor");
@@ -158,6 +168,7 @@ void SpecificWorker::initialize()
 		initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
 	}
 
+	printf("params size: %s\n", params["GMapping.particles"].value.c_str());
 	if (params["GMapping.Map"].value.size() > 0)
 	{
 		ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
@@ -184,11 +195,12 @@ void SpecificWorker::initialize()
 }
 
 /// Last value of RangeSensor constructor should be changed. :-?
-GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompDifferentialRobot::TBaseState usedState)
+GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseState usedState)
 {
 	static QTime baseTime = QTime::currentTime();
 	for (uint i=0; i<laserData.size();++i)
 	{
+//qDebug()<<laserData.size()<<i<<laserData[i].dist;
 		if (laserData[i].dist<300.)
 			distances_laser[i] = 40.;
 		else
@@ -198,7 +210,6 @@ GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompDifferentialRobot
 	baseTime.restart();
 	RangeReading rr(laserData.size(), distances_laser, rs, t);
 	OrientedPoint p(usedState.z/1000.f, usedState.x/1000.f, usedState.alpha);
-
 	rr.setPose( p );
 	return rr;
 }
@@ -212,12 +223,15 @@ void SpecificWorker::compute()
 
 	try
 	{
-		laserData = laser_proxy->getLaserAndBStateData(bState);
-		qDebug()<<"laser data: "<<laserData.size();;
+		RoboCompDifferentialRobot::TBaseState dd;
+		laserData = laser_proxy->getLaserAndBStateData(dd);
+		omnirobot_proxy->getBaseState(bState);
+qDebug()<<"laser data: "<<laserData.size();
+qDebug()<<"base pose"<<bState.x<<bState.z<<bState.alpha;		
+
 		// This returns true when the algorithm effectively processes (the traveled path since the last processing is over a given threshold)
 		processed = processor->processScan(robocompWrapper(bState), nParticles, registerScan);
-
-// 		if (processed)
+//  		if (processed)
 		{
 			//for searching for the BEST PARTICLE INDEX
 			best_idx=processor->getBestParticleIndex();
@@ -227,21 +241,20 @@ void SpecificWorker::compute()
 
 			mymap = processor->getParticles()[best_idx].map.toDoubleMap();
 			OrientedPoint po = processor->getParticles()[best_idx].pose;
-			RoboCompDifferentialRobot::TBaseState estimatedPose;
+			RoboCompOmniRobot::TBaseState estimatedPose;
 			estimatedPose.x=po.y*1000.;
 			estimatedPose.z=po.x*1000.;
 			estimatedPose.alpha=po.theta;
-
-//			printf(" - - - - - - - - - PERFORMING CORRECTION - - - - - - - - - \n");
-			RoboCompDifferentialRobot::TBaseState correction;
+			printf(" - - - - - - - - - PERFORMING CORRECTION - - - - - - - - - \n");
+			RoboCompOmniRobot::TBaseState correction;
 			correction.x     = estimatedPose.x     ;//- bState.correctedX;
 			correction.z     = estimatedPose.z     ;//- bState.correctedZ;
 			correction.alpha = estimatedPose.alpha ;//- bState.correctedAlpha;
-//			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
-//			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-//			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
+			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
+			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
+			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
 			omnirobot_proxy->correctOdometer(correction.x, correction.z, correction.alpha);
-//			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
+			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
 
 			v2DData[0]=((double) processor->getneff())/((double) nParticles);
 		}
@@ -254,11 +267,12 @@ void SpecificWorker::compute()
 
 	if (mymap != NULL)
 	{
+qDebug()<<"drawign";
 		drawMap(mymap);
 		drawAllParticles(mymap);
 		drawBestParticle(mymap);
 		drawOdometry(mymap);
-//		map->update();
+		map->update();
 	}
 
 	if (mymap != NULL)
@@ -336,9 +350,9 @@ void SpecificWorker::drawMap(Map<double, DoubleArray2D, false>* mymap)
 			double v = mymap->cell(p);
 			if (v>=0)
 			{
-				qDebug()<<"pinta"<<p.x<<p.y;
-//				map->drawSquare(QPointF(p.y*1000,p.x*1000), 100, 100, Qt::darkBlue, true);
-				drawSquare(QRect(p.y,p.x,100,100));
+// 				qDebug()<<"pinta"<<p.x<<p.y;
+				map->drawSquare(QPointF(p.y*1000,p.x*1000), 100, 100, Qt::darkBlue, true);
+//				drawSquare(QRect(p.y,p.x,100,100));
 			}
 		}
 	}
@@ -351,7 +365,7 @@ void SpecificWorker::drawAllParticles(Map<double, DoubleArray2D, false>* mymap)
 	for(uint k=0; k<particles.size(); k++)
 	{
 		pPose = particles[k].pose;
-//		map->drawSquare(QPointF(pPose.y*1000, pPose.x*1000), 500, 500, Qt::cyan, true);
+		map->drawSquare(QPointF(pPose.y*1000, pPose.x*1000), 500, 500, Qt::cyan, true);
 	}
 }
 
@@ -360,13 +374,13 @@ void SpecificWorker::drawBestParticle(Map<double, DoubleArray2D, false>* mymap)
 	const GridSlamProcessor::ParticleVector& particles = processor->getParticles();
 
 	OrientedPoint po = particles[best_idx].pose;
-//	map->drawSquare(QPointF(po.y*1000, po.x*1000), 600, 600, Qt::red, true);
+	map->drawSquare(QPointF(po.y*1000, po.x*1000), 600, 600, Qt::red, true);
 }
 
 void SpecificWorker::drawOdometry(Map<double, DoubleArray2D, false>* mymap)
 {
-//	map->drawSquare(QPointF(bState.x, bState.z), 600, 600, Qt::green, true);
-//	map->drawSquare(QPointF(bState.correctedX, bState.correctedZ), 400, 400, Qt::black, true);
+	map->drawSquare(QPointF(bState.x, bState.z), 600, 600, Qt::green, true);
+	map->drawSquare(QPointF(bState.correctedX, bState.correctedZ), 400, 400, Qt::black, true);
 }
 
 /**
@@ -507,11 +521,11 @@ void SpecificWorker::getPartialGrid(const MapRect &rect, GridMap &map, Pose2D &p
 	QMutexLocker locker(mutex);
 }
 
-
+/*
 void SpecificWorker::drawSquare(const QRect &rect)
 {
 	scene->addRect(rect, QPen(Qt::darkBlue), QBrush(Qt::darkBlue));
-/*	QPainter painter ( map );
+//	QPainter painter ( map );
 	//painter.setWindow ( worldSize );
 	painter.setRenderHint(QPainter::HighQualityAntialiasing);
 	painter.setBrush ( Qt::darkBlue );
@@ -519,10 +533,10 @@ void SpecificWorker::drawSquare(const QRect &rect)
 	pen.setColor( Qt::darkBlue  );
 	pen.setWidth( 100 );
 	painter.setPen(pen);
-	painter.drawRect( rect );*/
+	painter.drawRect( rect );
 	
 }
-
+*/
 
 
 

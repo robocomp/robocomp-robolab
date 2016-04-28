@@ -319,7 +319,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
  		
 		cout << m_fx << "  " << m_fy << endl;
 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
-
+		rDebug2(("TAG: Distance=%d x=%d y=%d z=%d rx=%d ry=%d rz=%d")%T.norm2()%T(0)%T(1)%T(2)%rx%ry%rz);
 		// Also note that for SLAM/multi-view application it is better to
 		// use reprojection error of corner points, because the noise in
 		// this relative pose is very non-Gaussian; see iSAM source code

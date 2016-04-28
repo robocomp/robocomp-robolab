@@ -137,10 +137,12 @@ Array2D<Cell>* HierarchicalArray2D<Cell>::createPatch(const IntPoint& ) const{
 template <class Cell>
 AccessibilityState  HierarchicalArray2D<Cell>::cellState(int x, int y) const {
 	if (this->isInside(patchIndexes(x,y)))
+	{
 		if(isAllocated(x,y))
 			return (AccessibilityState)((int)Inside|(int)Allocated);
 		else
 			return Inside;
+	}
 	return Outside;
 }
 

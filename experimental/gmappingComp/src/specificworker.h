@@ -97,6 +97,10 @@ private:
 	uint8_t *gridMapBuffer;
 	QVector<double> v2DData;
 
+	
+	QMat mapTransform;
+	float mapTransform_ry;
+	
 	RCDraw *map;
 //	QGraphicsView *view;
 //	QGraphicsScene *scene;

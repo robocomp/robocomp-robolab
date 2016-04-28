@@ -114,7 +114,7 @@ void ScanMatcher::computeActiveArea(ScanMatcherMap& map, const OrientedPoint& p,
 	lp.x+=cos(p.theta)*m_laserPose.x-sin(p.theta)*m_laserPose.y;
 	lp.y+=sin(p.theta)*m_laserPose.x+cos(p.theta)*m_laserPose.y;
 	lp.theta+=m_laserPose.theta;
-	IntPoint p0=map.world2map(lp);
+//	IntPoint p0=map.world2map(lp);
 	
 	Point min(map.map2world(0,0));
 	Point max(map.map2world(map.getMapSizeX()-1,map.getMapSizeY()-1));
@@ -426,27 +426,28 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 	double bestScore=-1;
 	OrientedPoint currentPose=init;
 	ScoredMove sm={currentPose,0,0};
-	unsigned int matched=likelihoodAndScore(sm.score, sm.likelihood, map, currentPose, readings);
+	/*unsigned int matched = */likelihoodAndScore(sm.score, sm.likelihood, map, currentPose, readings);
 	double currentScore=sm.score;
 	moveList.push_back(sm);
 	double adelta=m_optAngularDelta, ldelta=m_optLinearDelta;
 	unsigned int refinement=0;
 	int count=0;
 	enum Move{Front, Back, Left, Right, TurnLeft, TurnRight, Done};
-	do{
-		if (bestScore>=currentScore){
+	do
+	{
+		if (bestScore>=currentScore)
+		{
 			refinement++;
 			adelta*=.5;
 			ldelta*=.5;
 		}
 		bestScore=currentScore;
-//		cout <<"score="<< currentScore << " refinement=" << refinement;
-//		cout <<  "pose=" << currentPose.x  << " " << currentPose.y << " " << currentPose.theta << endl;
 		OrientedPoint bestLocalPose=currentPose;
 		OrientedPoint localPose=currentPose;
 
 		Move move=Front;
-		do {
+		do
+		{
 			localPose=currentPose;
 			switch(move){
 				case Front:
@@ -491,7 +492,7 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 			localScore=odo_gain*score(map, localPose, readings);
 			//update the score
 			count++;
-			matched=likelihoodAndScore(localScore, localLikelihood, map, localPose, readings);
+			/*matched=*/likelihoodAndScore(localScore, localLikelihood, map, localPose, readings);
 			if (localScore>currentScore){
 				currentScore=localScore;
 				bestLocalPose=localPose;
@@ -501,13 +502,11 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 			sm.pose=localPose;
 			moveList.push_back(sm);
 			//update the move list
-		} while(move!=Done);
+		}
+		while(move!=Done);
 		currentPose=bestLocalPose;
-		//cout << __PRETTY_FUNCTION__ << "currentScore=" << currentScore<< endl;
-		//here we look for the best move;
-	}while (currentScore>bestScore || refinement<m_optRecursiveIterations);
-	//cout << __PRETTY_FUNCTION__ << "bestScore=" << bestScore<< endl;
-	//cout << __PRETTY_FUNCTION__ << "iterations=" << count<< endl;
+	}
+	while (currentScore>bestScore || refinement<m_optRecursiveIterations);
 	
 	//normalize the likelihood
 	double lmin=1e9;
@@ -530,7 +529,6 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 	}
 	mean=mean*(1./lacc);
 	//OrientedPoint delta=mean-currentPose;
-	//cout << "delta.x=" << delta.x << " delta.y=" << delta.y << " delta.theta=" << delta.theta << endl;
 	CovarianceMatrix cov={0.,0.,0.,0.,0.,0.};
 	for (ScoredMoveList::const_iterator it=moveList.begin(); it!=moveList.end(); it++){
 		OrientedPoint delta=it->pose-mean;

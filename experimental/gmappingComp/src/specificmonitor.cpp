@@ -160,6 +160,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString("", "GMapping.generateMap", aux.value,"true");
 	params["GMapping.generateMap"] = aux;
 
+
 	try{
 		configGetString("", "GMapping.Map", aux.value, "");
 	} catch(...)
@@ -167,6 +168,16 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		aux.value = "";
 	}
 	params["GMapping.Map"] = aux;
+
+	
+	configGetString("", "GMapping.tx", aux.value,"0");
+	params["GMapping.generateMap"] = aux;
+	configGetString("", "GMapping.tz", aux.value,"0");
+	params["GMapping.generateMap"] = aux;
+	configGetString("", "GMapping.ry", aux.value,"0");
+	params["GMapping.generateMap"] = aux;
+
+	
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

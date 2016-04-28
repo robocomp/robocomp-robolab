@@ -249,7 +249,7 @@ double GridSlamProcessor::propagateWeights(){
 		lastNodeWeight+=propagateWeight(n->parent,n->accWeight);
 		w++;
 	}
-	printf("particles: %d\n", m_particles.size());
+	printf("particles: %ld\n", m_particles.size());
 	printf("ws: %d\n", m_weights.size());
 	
 	if (fabs(aw-1.0) > 0.0001 || fabs(lastNodeWeight-1.0) > 0.0001) {

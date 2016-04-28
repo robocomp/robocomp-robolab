@@ -135,6 +135,21 @@ void SpecificWorker::initialize()
 	ymin = QString::fromStdString(params["GMapping.ymin"].value).toDouble();
 	ymax = QString::fromStdString(params["GMapping.ymax"].value).toDouble();
 
+	
+	
+	mapTransform = RTMat::RTMat(
+	  0,                                                                         QString::fromStdString(params["GMapping.ry"].value).toDouble(),                                                               0,
+	  QVec::vec3(QString::fromStdString(params["GMapping.tx"].value).toDouble(),                                                              0, QString::fromStdString(params["GMapping.tz"].value).toDouble())
+	);
+	mapTransform_ry = QString::fromStdString(params["GMapping.ry"].value).toDouble();
+
+		configGetString("", "GMapping.generateMap", aux.value,"true");
+	params["GMapping.generateMap"] = aux;
+	configGetString("", "GMapping.generateMap", aux.value,"true");
+	params["GMapping.generateMap"] = aux;
+	configGetString("", "GMapping.generateMap", aux.value,"true");
+	params["GMapping.generateMap"] = aux;
+
 
 	processor->setllsamplerange(QString::fromStdString(params["GMapping.llsamplerange"].value).toDouble());
 	processor->setllsamplestep(QString::fromStdString(params["GMapping.llsamplestep"].value).toDouble());
@@ -259,7 +274,8 @@ void SpecificWorker::compute()
 			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
 			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
 // 			omnirobot_proxy->correctOdometer(correction.x, correction.z, correction.alpha);
-			cgrtopic_proxy->newCGRPose(1, correction.x, correction.z, correction.alpha);
+			QVec finalCorrection = mapTransform_ry * QVec::vec3(correction.x, 0, correction.z);
+			cgrtopic_proxy->newCGRPose(1, finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
 			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
 		}
 

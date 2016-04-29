@@ -25,7 +25,7 @@
      <item>
       <widget class="QFrame" name="frame">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>5</horstretch>
          <verstretch>1</verstretch>
         </sizepolicy>
@@ -70,6 +70,73 @@
        <widget class="QPushButton" name="resetMapButton">
         <property name="text">
          <string>Reset map</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>offset</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>tx</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="txSB">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="minimum">
+         <double>-10000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="tzSByr">
+        <property name="text">
+         <string>tz</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="tzSB">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="minimum">
+         <double>-10000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="werrewerwre">
+        <property name="text">
+         <string>ry</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="rySB">
+        <property name="decimals">
+         <number>4</number>
+        </property>
+        <property name="minimum">
+         <double>-9.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>9.000000000000000</double>
         </property>
        </widget>
       </item>

@@ -47,6 +47,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	connect(saveMapButton,SIGNAL(clicked()), this, SLOT(saveMap()));
 	connect(loadMapButton,SIGNAL(clicked()), this, SLOT(loadMap()));
 	connect(resetMapButton,SIGNAL(clicked()), this, SLOT(resetMap()));
+	connect(txSB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
+	connect(tzSB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
+	connect(rySB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
 	
 }
 
@@ -136,19 +139,18 @@ void SpecificWorker::initialize()
 	ymax = QString::fromStdString(params["GMapping.ymax"].value).toDouble();
 
 	
-	
-	mapTransform = RTMat::RTMat(
-	  0,                                                                         QString::fromStdString(params["GMapping.ry"].value).toDouble(),                                                               0,
-	  QVec::vec3(QString::fromStdString(params["GMapping.tx"].value).toDouble(),                                                              0, QString::fromStdString(params["GMapping.tz"].value).toDouble())
-	);
-	mapTransform_ry = QString::fromStdString(params["GMapping.ry"].value).toDouble();
+	auto s2d = [](std::string v)->double { return QString::fromStdString(v).toDouble(); };
+	txSB->setValue(s2d(params["GMapping.tx"].value));
+	tzSB->setValue(s2d(params["GMapping.tz"].value));
+	rySB->setValue(s2d(params["GMapping.ry"].value));
+	regenerateRT();
 
-		configGetString("", "GMapping.generateMap", aux.value,"true");
-	params["GMapping.generateMap"] = aux;
-	configGetString("", "GMapping.generateMap", aux.value,"true");
-	params["GMapping.generateMap"] = aux;
-	configGetString("", "GMapping.generateMap", aux.value,"true");
-	params["GMapping.generateMap"] = aux;
+// 	configGetString("", "GMapping.generateMap", aux.value,"true");
+// 	params["GMapping.generateMap"] = aux;
+// 	configGetString("", "GMapping.generateMap", aux.value,"true");
+// 	params["GMapping.generateMap"] = aux;
+// 	configGetString("", "GMapping.generateMap", aux.value,"true");
+// 	params["GMapping.generateMap"] = aux;
 
 
 	processor->setllsamplerange(QString::fromStdString(params["GMapping.llsamplerange"].value).toDouble());
@@ -180,26 +182,31 @@ void SpecificWorker::initialize()
 	QVec ag = QVec::uniformVector(numParticles, 0, 2.*M_PI);
 
 
-	for(int i=0; i< numParticles; i++)
-	{
-		initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
-	}
 
 	printf("params size: %s\n", params["GMapping.particles"].value.c_str());
 	if (params["GMapping.Map"].value.size() > 0)
 	{
+		for (int i=0; i< numParticles; i++)
+		{
+			initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
+		}
 		ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
 		processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
 		delete loadedMap;
 	}
 	else
 	{
+		for(int i=0; i< numParticles; i++)
+		{
+			initialPose.push_back( OrientedPoint(0,0,0) );
+		}
 		processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose);
 	}
 
 	nParticles=numParticles;
 
 	QString rs = QString::fromStdString(params["GMapping.generateMap"].value).toLower();
+// 	qFatal("%s\n", rs.toStdString().c_str());
 	if (rs == "true" or rs == "yes" or rs == "1" or rs == "y")
 		registerScan = true;
 	else
@@ -244,10 +251,10 @@ void SpecificWorker::compute()
 		RoboCompDifferentialRobot::TBaseState dd;
 		laserData = laser_proxy->getLaserAndBStateData(dd);
 		omnirobot_proxy->getBaseState(bState);
-		qDebug()<<"base pose"<<bState.x<<bState.z<<bState.alpha;
+// 		qDebug()<<"base pose"<<bState.x<<bState.z<<bState.alpha;
 
 		// This returns true when the algorithm effectively processes (the traveled path since the last processing is over a given threshold)
-		printf("register: %d\n", registerScan);
+// 		printf("register: %d\n", registerScan);
 		processed = processor->processScan(robocompWrapper(bState), nParticles, registerScan);
 		//for searching for the BEST PARTICLE INDEX
 		best_idx=processor->getBestParticleIndex();
@@ -266,17 +273,17 @@ void SpecificWorker::compute()
 			estimatedPose.z=po.x*1000.;
 			estimatedPose.alpha=po.theta;
 			printf(" - - - - - - - - - PERFORMING CORRECTION - - - - - - - - - \n");
-			RoboCompOmniRobot::TBaseState correction;
 			correction.x     = estimatedPose.x     ;//- bState.correctedX;
 			correction.z     = estimatedPose.z     ;//- bState.correctedZ;
 			correction.alpha = estimatedPose.alpha ;//- bState.correctedAlpha;
-			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
-			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
+// 			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
+// 			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
+// 			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
 // 			omnirobot_proxy->correctOdometer(correction.x, correction.z, correction.alpha);
-			QVec finalCorrection = mapTransform_ry * QVec::vec3(correction.x, 0, correction.z);
-			cgrtopic_proxy->newCGRPose(1, finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
-			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
+			finalCorrection = ((*mapTransform) * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates();
+			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
+			cgrtopic_proxy->newCGRPose(0, finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
+// 			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
 		}
 
 		v2DData[0] = ((double) processor->getneff())/((double) nParticles);
@@ -290,7 +297,6 @@ void SpecificWorker::compute()
 	if (mymap != NULL)
 	{
 		lastDrawn = QTime::currentTime();
-qDebug()<<"drawign";
 		drawMap(mymap);
 		drawAllParticles(mymap);
 		drawBestParticle(mymap);
@@ -374,7 +380,7 @@ void SpecificWorker::drawMap(Map<double, DoubleArray2D, false>* mymap)
 			if (v>=0)
 			{
 // 				qDebug()<<"pinta"<<p.x<<p.y;
-				map->drawSquare(QPointF(p.y*1000,p.x*1000), 100, 100, Qt::darkBlue, true);
+				map->drawSquare(QPointF(p.y*1000,p.x*1000), 10, 10, Qt::darkBlue, true);
 //				drawSquare(QRect(p.y,p.x,100,100));
 			}
 		}
@@ -493,8 +499,8 @@ void SpecificWorker::newWorldCoor(QPointF p)
 	int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
 // 	OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
 	std::vector<OrientedPoint> initialPose;
-	QVec xg = QVec::uniformVector(numParticles, p.y()/1000.-0.75, p.y()/1000.+0.75);
-	QVec yg = QVec::uniformVector(numParticles, p.x()/1000.-0.75, p.x()/1000.+0.75);
+	QVec xg = QVec::uniformVector(numParticles, p.y()/1000.-1., p.y()/1000.+-1.);
+	QVec yg = QVec::uniformVector(numParticles, p.x()/1000.-1., p.x()/1000.+-1.);
 	QVec ag = QVec::uniformVector(numParticles, -M_PI, M_PI);
 
 	for(int i=0; i< numParticles; i++)
@@ -562,6 +568,16 @@ void SpecificWorker::drawSquare(const QRect &rect)
 	
 }
 */
+
+void SpecificWorker::regenerateRT()
+{
+	mapTransform = new RTMat(0, rySB->value(), 0, QVec::vec3(txSB->value(), 0, tzSB->value()));
+	mapTransform_ry = rySB->value();
+	finalCorrection = ((*mapTransform) * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates();
+	printf("%f %f   __   %f\n", finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
+	printf("regenerateRT %f %f %f\n", rySB->value(), txSB->value(), tzSB->value());
+}
+
 
 
 

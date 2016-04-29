@@ -157,7 +157,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	
 	
 	
-	configGetString("", "GMapping.generateMap", aux.value,"true");
+	configGetString("", "GMapping.generateMap", aux.value, "true");
 	params["GMapping.generateMap"] = aux;
 
 
@@ -171,11 +171,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
 	
 	configGetString("", "GMapping.tx", aux.value,"0");
-	params["GMapping.generateMap"] = aux;
+	params["GMapping.tx"] = aux;
 	configGetString("", "GMapping.tz", aux.value,"0");
-	params["GMapping.generateMap"] = aux;
+	params["GMapping.tz"] = aux;
 	configGetString("", "GMapping.ry", aux.value,"0");
-	params["GMapping.generateMap"] = aux;
+	params["GMapping.ry"] = aux;
 
 	
 }

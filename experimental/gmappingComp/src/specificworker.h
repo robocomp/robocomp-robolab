@@ -66,8 +66,11 @@ public slots:
 	void loadMap();
 	void resetMap();
 	void newWorldCoor(QPointF p);
+	void regenerateRT();
 
 private:
+	
+	
 	RoboCompLaser::TLaserData laserData;
 	RoboCompOmniRobot::TBaseState bState;
 	float previousAlpha;
@@ -97,8 +100,9 @@ private:
 	uint8_t *gridMapBuffer;
 	QVector<double> v2DData;
 
-	
-	QMat mapTransform;
+	QVec finalCorrection;
+	RoboCompOmniRobot::TBaseState correction;
+	RTMat *mapTransform;
 	float mapTransform_ry;
 	
 	RCDraw *map;

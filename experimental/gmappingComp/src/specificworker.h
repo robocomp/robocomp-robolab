@@ -29,7 +29,7 @@
 
 #include <genericworker.h>
 #include <qlog/qlog.h>
-#include <rcdraw/rcdraw.h>
+#include <rcdraw/rcdrawrobot.h>
 #include <innermodel/innermodel.h>
 
 #include <values.h>

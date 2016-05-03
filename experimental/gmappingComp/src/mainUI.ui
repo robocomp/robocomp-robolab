@@ -81,6 +81,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="setBox">
+        <property name="text">
+         <string>set location</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label_2">
         <property name="text">
          <string>tx</string>

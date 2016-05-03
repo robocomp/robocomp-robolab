@@ -9,6 +9,8 @@ SlamLaser.Endpoints=tcp -p 10059
 LaserProxy = laser:tcp -h 10.0.30.33 -p 10003
 OmniRobotProxy = omnirobot:tcp -h localhost -p 12238
 
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
 GMapping.maxUrange=20.0
 GMapping.maxrange=30.0
 GMapping.sigma=0.05

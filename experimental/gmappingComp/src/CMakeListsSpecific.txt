@@ -2,6 +2,7 @@
 # Sources set
 SET ( SOURCES
 	$ENV{ROBOCOMP}/classes/rcdraw/rcdraw.cpp
+	$ENV{ROBOCOMP}/classes/rcdraw/rcdrawrobot.cpp
 	specificworker.cpp
 	specificmonitor.cpp
 	GridFastSlamMapHandling.cpp

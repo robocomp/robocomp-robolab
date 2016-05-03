@@ -38,7 +38,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	
 	view->show();*/
 	QRect worldSize(-10000,10000,20000,-20000);
-	map = new RCDraw(worldSize, this->frame);
+	map = new RCDrawRobot(worldSize, this->frame);
 	map->show();
 
 	v2DData.resize(1);
@@ -403,13 +403,39 @@ void SpecificWorker::drawBestParticle(Map<double, DoubleArray2D, false>* mymap)
 	const GridSlamProcessor::ParticleVector& particles = processor->getParticles();
 
 	OrientedPoint po = particles[best_idx].pose;
-	map->drawSquare(QPointF(po.y*1000, po.x*1000), 600, 600, Qt::red, true);
+	
+	
+	QPoint center(1000.*po.y, 1000.*po.x);
+	map->drawSquare(center, 100, 100, Qt::green, true);
+	
+	QLine l;
+	l.setP1(center);
+	QPoint p2a(-1000.*sin(po.theta-0.3), -1000.*cos(po.theta-0.3));
+	l.setP2(center+p2a);
+	map->drawLine(l, Qt::black);
+	
+	QPoint p2b(-1000.*sin(po.theta+0.3), -1000.*cos(po.theta+0.3));
+	l.setP2(center+p2b);
+	map->drawLine(l, Qt::blue);
+
+	map->drawSquare(QPointF(po.y*1000, po.x*1000), 100, 100, Qt::red, true);
 }
 
 void SpecificWorker::drawOdometry(Map<double, DoubleArray2D, false>* mymap)
 {
-	map->drawSquare(QPointF(bState.x, bState.z), 600, 600, Qt::green, true);
-	map->drawSquare(QPointF(bState.correctedX, bState.correctedZ), 400, 400, Qt::black, true);
+	QPoint center(bState.x, bState.z);
+	map->drawSquare(center, 100, 100, Qt::green, true);
+	
+	printf("a: %f\n", bState.alpha);
+	QLine l;
+	l.setP1(center);
+	QPoint p2a(-1000.*sin(bState.alpha-0.3), -1000.*cos(bState.alpha-0.3));
+	l.setP2(center+p2a);
+	map->drawLine(l, Qt::black);
+	
+	QPoint p2b(-1000.*sin(bState.alpha+0.3), -1000.*cos(bState.alpha+0.3));
+	l.setP2(center+p2b);
+	map->drawLine(l, Qt::blue);
 }
 
 /**
@@ -487,25 +513,19 @@ bool SpecificWorker::saveMap(const std::string &path)
 
 void SpecificWorker::newWorldCoor(QPointF p)
 {
-	RoboCompOmniRobot::TBaseState sentState;
-	sentState.x = sentState.correctedX = p.x();
-	sentState.z = sentState.correctedZ = p.y();
-	sentState.alpha = sentState.correctedAlpha = 0;
-
-// 	cgrtopic_proxy->newCGRPose(poseCertainty,-curLoc.y*1000, curLoc.x*1000, -curAngle);
-
-	//qFatal("%f %f\n", p.y()/1000.f, p.x()/1000.f);
+	if (not setBox->isChecked()) return;
+	
 	printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
 	int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
 // 	OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
 	std::vector<OrientedPoint> initialPose;
-	QVec xg = QVec::uniformVector(numParticles, p.y()/1000.-1., p.y()/1000.+-1.);
-	QVec yg = QVec::uniformVector(numParticles, p.x()/1000.-1., p.x()/1000.+-1.);
+	QVec xg = QVec::uniformVector(numParticles, (-p.y()/1000.)-1., (-p.y()/1000.)+1.);
+	QVec yg = QVec::uniformVector(numParticles, (+p.x()/1000.)-1., (+p.x()/1000.)+1.);
 	QVec ag = QVec::uniformVector(numParticles, -M_PI, M_PI);
 
 	for(int i=0; i< numParticles; i++)
 	{
-		initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
+		initialPose.push_back( OrientedPoint(xg[i], yg[i], ag[i]) );
 	}
 
 	if (params["GMapping.Map"].value.size() > 0)

@@ -410,11 +410,11 @@ void SpecificWorker::drawBestParticle(Map<double, DoubleArray2D, false>* mymap)
 	
 	QLine l;
 	l.setP1(center);
-	QPoint p2a(-1000.*sin(po.theta-0.3), -1000.*cos(po.theta-0.3));
+	QPoint p2a(-400.*sin(po.theta-0.3), -400.*cos(po.theta-0.3));
 	l.setP2(center+p2a);
 	map->drawLine(l, Qt::black);
 	
-	QPoint p2b(-1000.*sin(po.theta+0.3), -1000.*cos(po.theta+0.3));
+	QPoint p2b(-400.*sin(po.theta+0.3), -400.*cos(po.theta+0.3));
 	l.setP2(center+p2b);
 	map->drawLine(l, Qt::blue);
 
@@ -429,11 +429,11 @@ void SpecificWorker::drawOdometry(Map<double, DoubleArray2D, false>* mymap)
 	printf("a: %f\n", bState.alpha);
 	QLine l;
 	l.setP1(center);
-	QPoint p2a(-1000.*sin(bState.alpha-0.3), -1000.*cos(bState.alpha-0.3));
+	QPoint p2a(-400.*sin(bState.alpha-0.3), -400.*cos(bState.alpha-0.3));
 	l.setP2(center+p2a);
 	map->drawLine(l, Qt::black);
 	
-	QPoint p2b(-1000.*sin(bState.alpha+0.3), -1000.*cos(bState.alpha+0.3));
+	QPoint p2b(-400.*sin(bState.alpha+0.3), -400.*cos(bState.alpha+0.3));
 	l.setP2(center+p2b);
 	map->drawLine(l, Qt::blue);
 }
@@ -519,8 +519,8 @@ void SpecificWorker::newWorldCoor(QPointF p)
 	int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
 // 	OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
 	std::vector<OrientedPoint> initialPose;
-	QVec xg = QVec::uniformVector(numParticles, (-p.y()/1000.)-1., (-p.y()/1000.)+1.);
-	QVec yg = QVec::uniformVector(numParticles, (+p.x()/1000.)-1., (+p.x()/1000.)+1.);
+	QVec xg = QVec::uniformVector(numParticles, (-p.y()/1000.)-0.5, (-p.y()/1000.)+0.5);
+	QVec yg = QVec::uniformVector(numParticles, (+p.x()/1000.)-0.5, (+p.x()/1000.)+0.5);
 	QVec ag = QVec::uniformVector(numParticles, -M_PI, M_PI);
 
 	for(int i=0; i< numParticles; i++)

@@ -56,7 +56,7 @@ void Dynamixel::initialize() throw (QString)
 	else
 	{
 		if (counter > 0) counter--;
-		qDebug()<<"||  ERROR DYNAMIXEL::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
+		qDebug()<<"||  ERROR DYNAMIXEL serial::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
 		qFatal("Aborted");
 	}
 

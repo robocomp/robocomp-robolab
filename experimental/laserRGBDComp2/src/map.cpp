@@ -19,10 +19,10 @@ LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movable
 	mapLaser = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
 	mapRGBDs = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
 	mapBlend = cv::Mat(bins, bins, CV_8UC1, cv::Scalar(128));
-	cv::namedWindow("mapLaser", cv::WINDOW_AUTOSIZE);
-	cv::namedWindow("mapRGBDs", cv::WINDOW_AUTOSIZE);
-	cv::namedWindow("mapBlend", cv::WINDOW_AUTOSIZE);
-	cv::namedWindow("mapThreshold", cv::WINDOW_AUTOSIZE);
+//	cv::namedWindow("mapLaser", cv::WINDOW_AUTOSIZE);
+//	cv::namedWindow("mapRGBDs", cv::WINDOW_AUTOSIZE);
+//	cv::namedWindow("mapBlend", cv::WINDOW_AUTOSIZE);
+//	cv::namedWindow("mapThreshold", cv::WINDOW_AUTOSIZE);
 }
 
 
@@ -217,12 +217,12 @@ void LMap::update_done(QString actualLaserID, float minDist)
 	cv::dilate(mapThreshold, mapThreshold, element);
 
 	// Show
-	cv::imshow("mapLaser", mapLaser);
-	cv::imshow("mapRGBDs", mapRGBDs);
-	cv::imshow("mapBlend", mapBlend);
-	cv::imshow("mapThreshold", mapThreshold);
-	if (cv::waitKey(3) == 27)
-		exit(0);
+//	cv::imshow("mapLaser", mapLaser);
+//	cv::imshow("mapRGBDs", mapRGBDs);
+//	cv::imshow("mapBlend", mapBlend);
+//	cv::imshow("mapThreshold", mapThreshold);
+//	if (cv::waitKey(3) == 27)
+//		exit(0);
 }
 
 

@@ -7,7 +7,6 @@
 #include<cmath>
 #include<utils/gvalues.h>
 
-#include <float.h>
 /**
 the particle class has to be convertible into numeric data type;
 That means that a particle must define the Numeric conversion operator;
@@ -23,7 +22,7 @@ typedef std::pair<uint,uint> UIntPair;
 template <class OutputIterator, class Iterator>
 double toNormalForm(OutputIterator& out, const Iterator & begin, const Iterator & end){
 	//determine the maximum
-	double lmax=-DBL_MAX;
+	double lmax=-MAXDOUBLE;
 	for (Iterator it=begin; it!=end; it++){
 		lmax=lmax>((double)(*it))? lmax: (double)(*it);
 	}

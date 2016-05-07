@@ -426,7 +426,7 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 	double bestScore=-1;
 	OrientedPoint currentPose=init;
 	ScoredMove sm={currentPose,0,0};
-	/*unsigned int matched = */likelihoodAndScore(sm.score, sm.likelihood, map, currentPose, readings);
+	unsigned int matched = likelihoodAndScore(sm.score, sm.likelihood, map, currentPose, readings);
 	double currentScore=sm.score;
 	moveList.push_back(sm);
 	double adelta=m_optAngularDelta, ldelta=m_optLinearDelta;
@@ -492,7 +492,7 @@ double ScanMatcher::optimize(OrientedPoint& _mean, ScanMatcher::CovarianceMatrix
 			localScore=odo_gain*score(map, localPose, readings);
 			//update the score
 			count++;
-			/*matched=*/likelihoodAndScore(localScore, localLikelihood, map, localPose, readings);
+			matched=likelihoodAndScore(localScore, localLikelihood, map, localPose, readings);
 			if (localScore>currentScore){
 				currentScore=localScore;
 				bestLocalPose=localPose;

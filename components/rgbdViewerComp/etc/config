@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 13000
 
 
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h 10.0.30.33 -p 10096
+RGBDProxy = rgbd:tcp -h localhost -p 10096
 
 
 

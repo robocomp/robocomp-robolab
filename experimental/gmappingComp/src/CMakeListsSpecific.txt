@@ -33,5 +33,5 @@ INCLUDE_DIRECTORIES(fastslamsrc fastslamsrc/grid fastslamsrc/utils fastslamsrc/s
 
 
 
-ADD_DEFINITIONS( -std=c++11 )
+ADD_DEFINITIONS( -std=c++14 )
 

@@ -566,6 +566,7 @@ void SpecificWorker::newWorldCoor(QPointF p)
 		processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
 		delete loadedMap;
 	}
+	setBox->setChecked(false);
 }
 
 void SpecificWorker::resetMap()

@@ -26,9 +26,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	mutex = new QMutex();
 	active = false;
 	interfacePoseWrite = &interfacePoseA;
-	interfacePoseRead = &interfacePoseB;
-	interfaceMapWrite = &interfaceMapA;
-	interfaceMapRead = &interfaceMapB;
+	interfacePoseRead  = &interfacePoseB;
+	interfaceMapWrite  = &interfaceMapA;
+	interfaceMapRead   = &interfaceMapB;
 
 // GUI
 	/*scene = new QGraphicsScene(QRect(0,0,1000,1000));
@@ -50,6 +50,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	connect(txSB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
 	connect(tzSB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
 	connect(rySB, SIGNAL(valueChanged(double)), this, SLOT(regenerateRT()));
+	
+	connect(map, SIGNAL(iniMouseCoor(QPoint)), this, SLOT(iniMouseCoor(QPoint)));
+	connect(map, SIGNAL(endMouseCoor(QPoint)), this, SLOT(endMouseCoor(QPoint)));
 	
 }
 
@@ -244,6 +247,25 @@ GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseS
 void SpecificWorker::compute()
 {
 	static QTime lastDrawn = QTime::currentTime();
+	static QTime lastSent = QTime::currentTime();
+	static QVec lastPosSent = QVec::vec3();
+	static float lastAngleSent = 0;
+
+	auto setLast = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
+	{
+		lastSent = QTime::currentTime();
+		lastPosSent = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
+		lastAngleSent = bState.correctedAlpha;
+	};
+	auto shouldISend = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
+	{
+		const QVec p = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
+		auto moved = fabs(bState.correctedAlpha-lastAngleSent)>0.01 or (lastPosSent-p).norm2()>8;
+		moved = moved and lastSent.elapsed() > 500;
+		
+		return moved or lastSent.elapsed() > 5000;
+	};
+
 	Map<double, DoubleArray2D, false>* mymap=NULL;
 
 	try
@@ -276,14 +298,23 @@ void SpecificWorker::compute()
 			correction.x     = estimatedPose.x     ;//- bState.correctedX;
 			correction.z     = estimatedPose.z     ;//- bState.correctedZ;
 			correction.alpha = estimatedPose.alpha ;//- bState.correctedAlpha;
-// 			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
+			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
 // 			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-// 			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
-// 			omnirobot_proxy->correctOdometer(correction.x, correction.z, correction.alpha);
-			finalCorrection = ((*mapTransform) * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates();
-			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
-			cgrtopic_proxy->newCGRPose(0, finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
+			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
+			QVec init = QVec::vec3(correction.x, 0, correction.z);
+			finalCorrection = (mapTransform * init.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
+			finalCorrection.print("f1");
+			(mapTransform.invert() * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates().print("f1**-1");
+			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
+			cgrtopic_proxy->newCGRPose(0, finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
 // 			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
+			setLast(bState, lastSent, lastPosSent, lastAngleSent);
+		}
+		else if (shouldISend(bState, lastSent, lastPosSent, lastAngleSent))
+		{
+			setLast(bState, lastSent, lastPosSent, lastAngleSent);
+			cgrtopic_proxy->newCGRPose(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha);
+// 			printf(bState.correctedX, bState.correctedZ, bState.correctedAlpha);
 		}
 
 		v2DData[0] = ((double) processor->getneff())/((double) nParticles);
@@ -426,7 +457,6 @@ void SpecificWorker::drawOdometry(Map<double, DoubleArray2D, false>* mymap)
 	QPoint center(bState.x, bState.z);
 	map->drawSquare(center, 100, 100, Qt::green, true);
 	
-	printf("a: %f\n", bState.alpha);
 	QLine l;
 	l.setP1(center);
 	QPoint p2a(-400.*sin(bState.alpha-0.3), -400.*cos(bState.alpha-0.3));
@@ -591,11 +621,11 @@ void SpecificWorker::drawSquare(const QRect &rect)
 
 void SpecificWorker::regenerateRT()
 {
-	mapTransform = new RTMat(0, rySB->value(), 0, QVec::vec3(txSB->value(), 0, tzSB->value()));
+	mapTransform = RTMat(0, rySB->value(), 0, QVec::vec3(txSB->value(), 0, tzSB->value())).invert();
 	mapTransform_ry = rySB->value();
-	finalCorrection = ((*mapTransform) * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates();
-	printf("%f %f   __   %f\n", finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
-	printf("regenerateRT %f %f %f\n", rySB->value(), txSB->value(), tzSB->value());
+// 	finalCorrection = ((*mapTransform) * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates();
+// 	printf("%f %f   __   %f\n", finalCorrection(0), finalCorrection(2), correction.alpha+mapTransform_ry);
+// 	printf("regenerateRT %f %f %f\n", rySB->value(), txSB->value(), tzSB->value());
 }
 
 

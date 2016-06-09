@@ -67,8 +67,36 @@ public slots:
 	void resetMap();
 	void newWorldCoor(QPointF p);
 	void regenerateRT();
+	
+	void iniMouseCoor(QPoint p)
+	{
+		pressEvent =         QVec::vec3(p.x(), 0, -p.y());
+	}
+	
+	void endMouseCoor(QPoint p)
+	{
+		auto f = [](QVec &vc)
+		{
+			vc(0) -= WIDGETWIDTH/2;
+			vc(0) *= 20000./600.;
+			vc(2) += WIDGETWIDTH/2;
+			vc(2) *= 20000./600.;
+		};
 
+		QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
+		f(releaseEvent);
+		f(pressEvent);
+		QVec inc = releaseEvent-pressEvent;
+		pressEvent.print("pressEvent");
+		releaseEvent.print("releaseEvent");
+		inc.print("inc");
+		printf("norm inc %f\n", inc.norm2());
+		QVec zero = pressEvent;
+		float r = -atan2(inc(2), inc(0));
+		printf("calibration: %f %f __ %f\n", zero(0), zero(2), r);
+	}
 private:
+	QVec pressEvent;
 	
 	
 	RoboCompLaser::TLaserData laserData;
@@ -102,7 +130,7 @@ private:
 
 	QVec finalCorrection;
 	RoboCompOmniRobot::TBaseState correction;
-	RTMat *mapTransform;
+	RTMat mapTransform;
 	float mapTransform_ry;
 	
 	RCDraw *map;

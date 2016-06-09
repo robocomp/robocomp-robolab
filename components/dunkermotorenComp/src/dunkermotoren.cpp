@@ -362,8 +362,8 @@ printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 
 	
-printf("_____ %s: %d\n", __FILE__, __LINE__);
-printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
 foreach( Servo *s, motors)
 {
 	uint8_t id = s->params.busId;
@@ -384,8 +384,8 @@ foreach( Servo *s, motors)
 		qDebug() << "Dunkermotoren::initialize(): ERROR setting Deceleration"<<ret;
 	}
 }
-printf("_____ %s: %d\n", __FILE__, __LINE__);
-printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 
 	

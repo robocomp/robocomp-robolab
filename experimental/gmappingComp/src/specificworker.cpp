@@ -543,6 +543,37 @@ bool SpecificWorker::saveMap(const std::string &path)
 
 void SpecificWorker::newWorldCoor(QPointF p)
 {
+	if (action_cb->currentText() == "Set position")
+	{
+	
+		printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
+		int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
+	// 	OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
+		std::vector<OrientedPoint> initialPose;
+		QVec xg = QVec::uniformVector(numParticles, (-p.y()/1000.)-0.5, (-p.y()/1000.)+0.5);
+		QVec yg = QVec::uniformVector(numParticles, (+p.x()/1000.)-0.5, (+p.x()/1000.)+0.5);
+		QVec ag = QVec::uniformVector(numParticles, -M_PI, M_PI);
+
+		for(int i=0; i< numParticles; i++)
+		{
+			initialPose.push_back( OrientedPoint(xg[i], yg[i], ag[i]) );
+		}
+
+		if (params["GMapping.Map"].value.size() > 0)
+		{
+			ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
+			printf("processor->init(%d, %g, %g, %g, %g, %g, POSES)\n", QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble());
+
+			processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
+			delete loadedMap;
+		}
+		action_cb->setCurrentIndex(0);
+	}
+	else if (action_cb->currentText() == "Set lines")
+	{
+		printf(" - - - - - - - - -   Setting LINES   - - - - - - - - - \n");
+		
+	}
 }
 
 void SpecificWorker::resetMap()

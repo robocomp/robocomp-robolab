@@ -261,9 +261,9 @@ void SpecificWorker::compute()
 	{
 		const QVec p = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
 		auto moved = fabs(bState.correctedAlpha-lastAngleSent)>0.01 or (lastPosSent-p).norm2()>8;
-		moved = moved and lastSent.elapsed() > 500;
+		moved = moved and lastSent.elapsed() > 200;
 		
-		return moved or lastSent.elapsed() > 5000;
+		return moved or lastSent.elapsed() > 2000;
 	};
 
 	Map<double, DoubleArray2D, false>* mymap=NULL;
@@ -307,13 +307,13 @@ void SpecificWorker::compute()
 			(mapTransform.invert() * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates().print("f1**-1");
 			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
 			cgrtopic_proxy->newCGRPose(0, finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
-// 			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
+			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
 			setLast(bState, lastSent, lastPosSent, lastAngleSent);
 		}
 		else if (shouldISend(bState, lastSent, lastPosSent, lastAngleSent))
 		{
-			setLast(bState, lastSent, lastPosSent, lastAngleSent);
-			cgrtopic_proxy->newCGRPose(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha);
+// 			setLast(bState, lastSent, lastPosSent, lastAngleSent);
+// 			cgrtopic_proxy->newCGRPose(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha);
 // 			printf(bState.correctedX, bState.correctedZ, bState.correctedAlpha);
 		}
 
@@ -543,30 +543,6 @@ bool SpecificWorker::saveMap(const std::string &path)
 
 void SpecificWorker::newWorldCoor(QPointF p)
 {
-	if (not setBox->isChecked()) return;
-	
-	printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
-	int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
-// 	OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
-	std::vector<OrientedPoint> initialPose;
-	QVec xg = QVec::uniformVector(numParticles, (-p.y()/1000.)-0.5, (-p.y()/1000.)+0.5);
-	QVec yg = QVec::uniformVector(numParticles, (+p.x()/1000.)-0.5, (+p.x()/1000.)+0.5);
-	QVec ag = QVec::uniformVector(numParticles, -M_PI, M_PI);
-
-	for(int i=0; i< numParticles; i++)
-	{
-		initialPose.push_back( OrientedPoint(xg[i], yg[i], ag[i]) );
-	}
-
-	if (params["GMapping.Map"].value.size() > 0)
-	{
-		ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
-		printf("processor->init(%d, %g, %g, %g, %g, %g, POSES)\n", QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble());
-
-		processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
-		delete loadedMap;
-	}
-	setBox->setChecked(false);
 }
 
 void SpecificWorker::resetMap()

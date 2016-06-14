@@ -70,7 +70,7 @@ public slots:
 	
 	void iniMouseCoor(QPoint p)
 	{
-		pressEvent =         QVec::vec3(p.x(), 0, -p.y());
+		pressEvent = QVec::vec3(p.x(), 0, -p.y());
 	}
 	
 	void endMouseCoor(QPoint p)
@@ -87,14 +87,50 @@ public slots:
 		f(releaseEvent);
 		f(pressEvent);
 		QVec inc = releaseEvent-pressEvent;
-		pressEvent.print("pressEvent");
-		releaseEvent.print("releaseEvent");
-		inc.print("inc");
-		printf("norm inc %f\n", inc.norm2());
-		QVec zero = pressEvent;
-		float r = -atan2(inc(2), inc(0));
-		printf("calibration: %f %f __ %f\n", zero(0), zero(2), r);
+		float r = atan2(inc(0), inc(2));
+
+		
+		if (setBox->isChecked())
+		{
+			printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
+			int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
+			//OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
+			std::vector<OrientedPoint> initialPose;
+			QVec xg = QVec::uniformVector(numParticles, (pressEvent(2)/1000.)-0.5, (pressEvent(2)/1000.)+0.5);
+			QVec yg = QVec::uniformVector(numParticles, (pressEvent(0)/1000.)-0.5, (pressEvent(0)/1000.)+0.5);
+			QVec ag = QVec::uniformVector(numParticles, r-0.9, r+0.9);
+
+			for(int i=0; i< numParticles; i++)
+			{
+				initialPose.push_back( OrientedPoint(xg[i], yg[i], ag[i]) );
+			}
+
+			if (params["GMapping.Map"].value.size() > 0)
+			{
+				ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
+				printf("processor->init(%d, %g, %g, %g, %g, %g, POSES)\n", QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble());
+
+				processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
+				delete loadedMap;
+			}
+			setBox->setChecked(false);
+		}
+		else
+		{
+			QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
+			f(releaseEvent);
+			f(pressEvent);
+			QVec inc = releaseEvent-pressEvent;
+			pressEvent.print("pressEvent");
+			releaseEvent.print("releaseEvent");
+			inc.print("inc");
+			printf("norm inc %f\n", inc.norm2());
+			QVec zero = pressEvent;
+			float r = -atan2(inc(2), inc(0));
+			printf("calibration: %f %f __ %f\n", zero(0), zero(2), r);
+		}
 	}
+
 private:
 	QVec pressEvent;
 	

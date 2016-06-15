@@ -90,7 +90,11 @@ public slots:
 		float r = atan2(inc(0), inc(2));
 
 		
-		if (setBox->isChecked())
+		if (action_cb->currentIndex() == 1)
+		{
+			printf("%f %f %f %f\n", pressEvent(0)/1000., pressEvent(2)/1000., releaseEvent(0)/1000., releaseEvent(2)/1000.);
+		}
+		if (action_cb->currentIndex() == 2)
 		{
 			printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
 			int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
@@ -113,7 +117,7 @@ public slots:
 				processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
 				delete loadedMap;
 			}
-			setBox->setChecked(false);
+			action_cb->setCurrentIndex(0);
 		}
 		else
 		{

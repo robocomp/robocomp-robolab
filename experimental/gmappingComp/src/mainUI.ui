@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>761</width>
-    <height>620</height>
+    <width>1125</width>
+    <height>964</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,15 +25,21 @@
      <item>
       <widget class="QFrame" name="frame">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>5</horstretch>
          <verstretch>1</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>600</width>
-         <height>600</height>
+         <width>950</width>
+         <height>950</height>
+        </size>
+       </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>950</width>
+         <height>950</height>
         </size>
        </property>
        <property name="frameShape">

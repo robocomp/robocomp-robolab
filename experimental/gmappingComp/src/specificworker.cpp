@@ -37,7 +37,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	view->setRenderHints( QPainter::Antialiasing );
 	
 	view->show();*/
-	QRect worldSize(-10000,10000,20000,-20000);
+	QRect worldSize(-VISUALMAPWITDH/2,VISUALMAPWITDH/2,VISUALMAPWITDH,-VISUALMAPWITDH);
 	map = new RCDrawRobot(worldSize, this->frame);
 	map->show();
 

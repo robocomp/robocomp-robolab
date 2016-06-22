@@ -36,7 +36,8 @@
 #include <gridfastslam/gridslamprocessor.h>
 #include "GridFastSlamMapHandling.h"
 
-#define WIDGETWIDTH 600
+#define VISUALMAPWITDH 12000.
+#define WIDGETWIDTH 950.
 
 using namespace GMapping;
 
@@ -70,23 +71,35 @@ public slots:
 	
 	void iniMouseCoor(QPoint p)
 	{
+		printf("iniMouseCoor\n");
 		pressEvent = QVec::vec3(p.x(), 0, -p.y());
+		auto f = [](QVec &vc)
+		{
+			vc(0) -= float(WIDGETWIDTH)/2;
+			vc(0) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+			vc(2) += float(WIDGETWIDTH)/2;
+			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+		};
+		f(pressEvent);
+		pressEvent.print("ini");
 	}
 	
 	void endMouseCoor(QPoint p)
 	{
+		printf("endMouseCoor\n");
 		auto f = [](QVec &vc)
 		{
-			vc(0) -= WIDGETWIDTH/2;
-			vc(0) *= 20000./600.;
-			vc(2) += WIDGETWIDTH/2;
-			vc(2) *= 20000./600.;
+			vc(0) -= float(WIDGETWIDTH)/2;
+			vc(0) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+			vc(2) += float(WIDGETWIDTH)/2;
+			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
 		};
-
 		QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
 		f(releaseEvent);
-		f(pressEvent);
+		releaseEvent.print("end");
 		QVec inc = releaseEvent-pressEvent;
+		inc.print("inc");
+		printf("norm inc %f\n", inc.norm2());
 		float r = atan2(inc(0), inc(2));
 
 		
@@ -94,7 +107,7 @@ public slots:
 		{
 			printf("%f %f %f %f\n", pressEvent(0)/1000., pressEvent(2)/1000., releaseEvent(0)/1000., releaseEvent(2)/1000.);
 		}
-		if (action_cb->currentIndex() == 2)
+		else if (action_cb->currentIndex() == 2)
 		{
 			printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
 			int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
@@ -121,17 +134,14 @@ public slots:
 		}
 		else
 		{
-			QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
-			f(releaseEvent);
-			f(pressEvent);
-			QVec inc = releaseEvent-pressEvent;
-			pressEvent.print("pressEvent");
-			releaseEvent.print("releaseEvent");
-			inc.print("inc");
-			printf("norm inc %f\n", inc.norm2());
 			QVec zero = pressEvent;
 			float r = -atan2(inc(2), inc(0));
 			printf("calibration: %f %f __ %f\n", zero(0), zero(2), r);
+			txSB->setValue(zero(0));
+			tzSB->setValue(zero(2));
+			rySB->setValue(r);
+			regenerateRT();
+					
 		}
 	}
 

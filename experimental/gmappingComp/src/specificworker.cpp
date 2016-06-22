@@ -43,7 +43,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 
 	v2DData.resize(1);
 
-	connect(map, SIGNAL(newLeftCoor(QPointF)), this, SLOT(newWorldCoor(QPointF)));
+// 	connect(map, SIGNAL(newLeftCoor(QPointF)), this, SLOT(newWorldCoor(QPointF)));
 	connect(saveMapButton,SIGNAL(clicked()), this, SLOT(saveMap()));
 	connect(loadMapButton,SIGNAL(clicked()), this, SLOT(loadMap()));
 	connect(resetMapButton,SIGNAL(clicked()), this, SLOT(resetMap()));
@@ -540,7 +540,7 @@ bool SpecificWorker::saveMap(const std::string &path)
 }
 
 
-
+/*
 void SpecificWorker::newWorldCoor(QPointF p)
 {
 	if (action_cb->currentText() == "Set position")
@@ -575,7 +575,7 @@ void SpecificWorker::newWorldCoor(QPointF p)
 		
 	}
 }
-
+*/
 void SpecificWorker::resetMap()
 {
 // 	OrientedPoint OdomPose(bState.z/1000.f, bState.x/1000.f, bState.alpha);
@@ -602,7 +602,7 @@ void SpecificWorker::getWholeGrid(GridMap &map, Pose2D &pose)
 
 void SpecificWorker::initializeRobotPose(const Pose2D &pose)
 {
-	newWorldCoor(QPointF(pose.x, pose.z));
+// 	newWorldCoor(QPointF(pose.x, pose.z));
 }
 
 void SpecificWorker::getPartialGrid(const MapRect &rect, GridMap &map, Pose2D &pose)

@@ -66,12 +66,12 @@ public slots:
 	void saveMap();
 	void loadMap();
 	void resetMap();
-	void newWorldCoor(QPointF p);
+// 	void newWorldCoor(QPointF p);
 	void regenerateRT();
 	
 	void iniMouseCoor(QPoint p)
 	{
-		printf("iniMouseCoor\n");
+// 		printf("iniMouseCoor\n");
 		pressEvent = QVec::vec3(p.x(), 0, -p.y());
 		auto f = [](QVec &vc)
 		{
@@ -81,12 +81,12 @@ public slots:
 			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
 		};
 		f(pressEvent);
-		pressEvent.print("ini");
+// 		pressEvent.print("ini");
 	}
 	
 	void endMouseCoor(QPoint p)
 	{
-		printf("endMouseCoor\n");
+// 		printf("endMouseCoor\n");
 		auto f = [](QVec &vc)
 		{
 			vc(0) -= float(WIDGETWIDTH)/2;
@@ -96,16 +96,19 @@ public slots:
 		};
 		QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
 		f(releaseEvent);
-		releaseEvent.print("end");
+// 		releaseEvent.print("end");
 		QVec inc = releaseEvent-pressEvent;
-		inc.print("inc");
-		printf("norm inc %f\n", inc.norm2());
+// 		inc.print("inc");
+// 		printf("norm inc %f\n", inc.norm2());
 		float r = atan2(inc(0), inc(2));
 
 		
 		if (action_cb->currentIndex() == 1)
 		{
-			printf("%f %f %f %f\n", pressEvent(0)/1000., pressEvent(2)/1000., releaseEvent(0)/1000., releaseEvent(2)/1000.);
+			QVec p1 = (mapTransform * pressEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
+			QVec p2 = (mapTransform * releaseEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
+
+			printf("%f %f %f %f\n", p1(0), p1(2), p2(0), p2(2));
 		}
 		else if (action_cb->currentIndex() == 2)
 		{

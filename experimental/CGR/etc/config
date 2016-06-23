@@ -3,10 +3,8 @@ CommonBehavior.Endpoints=tcp -p 12010
 # Endpoints for subscriptions
 FSPFTopic.Endpoints=tcp -p 10098
 
-
 # Endpoints for implemented interfaces
 CGR.Endpoints=tcp -p 15445
-
 
 # Proxies for required interfaces
 LaserProxy = laser:tcp -h robonuc1.local -p 10003

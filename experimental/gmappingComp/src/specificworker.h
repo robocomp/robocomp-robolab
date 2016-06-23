@@ -107,8 +107,7 @@ public slots:
 		{
 			QVec p1 = (mapTransform * pressEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
 			QVec p2 = (mapTransform * releaseEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
-
-			printf("%f %f %f %f\n", p1(0), p1(2), p2(0), p2(2));
+			printf("%f,%f,%f,%f\n", p1(0)/1000., p1(2)/1000., p2(0)/1000., p2(2)/1000.);
 		}
 		else if (action_cb->currentIndex() == 2)
 		{

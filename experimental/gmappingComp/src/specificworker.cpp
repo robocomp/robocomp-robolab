@@ -29,6 +29,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	interfacePoseRead  = &interfacePoseB;
 	interfaceMapWrite  = &interfaceMapA;
 	interfaceMapRead   = &interfaceMapB;
+	std::setlocale(LC_ALL, "C");
 
 // GUI
 	/*scene = new QGraphicsScene(QRect(0,0,1000,1000));

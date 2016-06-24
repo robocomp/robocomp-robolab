@@ -1,0 +1,19 @@
+name_machine{
+    [states name_state *[, name_state];]
+    [initial_state name_state;]
+    [end_state name_state;]
+    [transition{
+        name_state => name_state *[, name_state];
+        *[name_state => name_state *[, name_state];]
+    };]
+};
+
+[:parent_state [parallel]{
+    states name_state *[, name_state];
+    [initial_state name_state;]
+    [end_state name_state;]
+    [transition{
+        name_state => name_state *[, name_state];
+        *[name_state => name_state *[, name_state];]
+    };]
+};]

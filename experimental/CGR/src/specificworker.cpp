@@ -292,6 +292,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static QTime fp = QTime::currentTime();
+	if (fp.elapsed() < 300)
+	{
+		return;
+	}
+	fp = QTime::currentTime();
+ 
 	qDebug()<<"<<<<<<<<<<<<<<< compute >>>>>>>>>>>";
 	bool forcePredict = false;
 	mutex->lock();

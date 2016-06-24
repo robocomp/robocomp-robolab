@@ -151,7 +151,7 @@ void JoyStickHandler::sendJoyStickEvent()
 	try
 	{
 		//printf("send: (%f %f) %f\n", xv, zv, rv);
-		base_proxy->setSpeedBase(xv, zv, rv);
+		base_proxy->setSpeedBase(xv, zv, 0.2*rv);
 	}
 	catch(const Ice::Exception& ex)
 	{

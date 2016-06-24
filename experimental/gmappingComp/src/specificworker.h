@@ -36,7 +36,8 @@
 #include <gridfastslam/gridslamprocessor.h>
 #include "GridFastSlamMapHandling.h"
 
-#define WIDGETWIDTH 600
+#define VISUALMAPWITDH 12000.
+#define WIDGETWIDTH 950.
 
 using namespace GMapping;
 
@@ -65,10 +66,89 @@ public slots:
 	void saveMap();
 	void loadMap();
 	void resetMap();
-	void newWorldCoor(QPointF p);
+// 	void newWorldCoor(QPointF p);
 	void regenerateRT();
+	
+	void iniMouseCoor(QPoint p)
+	{
+// 		printf("iniMouseCoor\n");
+		pressEvent = QVec::vec3(p.x(), 0, -p.y());
+		auto f = [](QVec &vc)
+		{
+			vc(0) -= float(WIDGETWIDTH)/2;
+			vc(0) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+			vc(2) += float(WIDGETWIDTH)/2;
+			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+		};
+		f(pressEvent);
+// 		pressEvent.print("ini");
+	}
+	
+	void endMouseCoor(QPoint p)
+	{
+// 		printf("endMouseCoor\n");
+		auto f = [](QVec &vc)
+		{
+			vc(0) -= float(WIDGETWIDTH)/2;
+			vc(0) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+			vc(2) += float(WIDGETWIDTH)/2;
+			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+		};
+		QVec releaseEvent = QVec::vec3(p.x(), 0, -p.y());
+		f(releaseEvent);
+// 		releaseEvent.print("end");
+		QVec inc = releaseEvent-pressEvent;
+// 		inc.print("inc");
+// 		printf("norm inc %f\n", inc.norm2());
+		float r = atan2(inc(0), inc(2));
+
+		
+		if (action_cb->currentIndex() == 1)
+		{
+			QVec p1 = (mapTransform * pressEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
+			QVec p2 = (mapTransform * releaseEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
+			printf("%f,%f,%f,%f\n", p1(0)/1000., p1(2)/1000., p2(0)/1000., p2(2)/1000.);
+		}
+		else if (action_cb->currentIndex() == 2)
+		{
+			printf(" - - - - - - - - -   PERFORMING RESET   - - - - - - - - - \n");
+			int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();
+			//OrientedPoint OdomPose(p.y()/1000.f, p.x()/1000.f, 0.);
+			std::vector<OrientedPoint> initialPose;
+			QVec xg = QVec::uniformVector(numParticles, (pressEvent(2)/1000.)-0.5, (pressEvent(2)/1000.)+0.5);
+			QVec yg = QVec::uniformVector(numParticles, (pressEvent(0)/1000.)-0.5, (pressEvent(0)/1000.)+0.5);
+			QVec ag = QVec::uniformVector(numParticles, r-0.9, r+0.9);
+
+			for(int i=0; i< numParticles; i++)
+			{
+				initialPose.push_back( OrientedPoint(xg[i], yg[i], ag[i]) );
+			}
+
+			if (params["GMapping.Map"].value.size() > 0)
+			{
+				ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
+				printf("processor->init(%d, %g, %g, %g, %g, %g, POSES)\n", QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble());
+
+				processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
+				delete loadedMap;
+			}
+			action_cb->setCurrentIndex(0);
+		}
+		else
+		{
+			QVec zero = pressEvent;
+			float r = -atan2(inc(2), inc(0));
+			printf("calibration: %f %f __ %f\n", zero(0), zero(2), r);
+			txSB->setValue(zero(0));
+			tzSB->setValue(zero(2));
+			rySB->setValue(r);
+			regenerateRT();
+					
+		}
+	}
 
 private:
+	QVec pressEvent;
 	
 	
 	RoboCompLaser::TLaserData laserData;
@@ -102,7 +182,7 @@ private:
 
 	QVec finalCorrection;
 	RoboCompOmniRobot::TBaseState correction;
-	RTMat *mapTransform;
+	RTMat mapTransform;
 	float mapTransform_ry;
 	
 	RCDraw *map;

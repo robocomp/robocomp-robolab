@@ -52,13 +52,13 @@ void Dynamixel::initialize() throw (QString)
 			if(dev->descriptor.idVendor == 0x0403 and dev->descriptor.idProduct == 0x6001) counter++;
 		}
 	}
-	if (counter == 2)  qDebug()<<"||  DYNAMIXEL::initialize -----> USB CONNECTED!!  ||";
+/*	if (counter == 2)  qDebug()<<"||  DYNAMIXEL::initialize -----> USB CONNECTED!!  ||";
 	else
 	{
 		if (counter > 0) counter--;
 		qDebug()<<"||  ERROR DYNAMIXEL serial::initialize ---> The USB is not connected. Dynamixel locate "<<counter<<" times  ||";
 		qFatal("Aborted");
-	}
+	}*/
 
 	// 2) Open and initialize the device
 	port.setName( device );
@@ -139,7 +139,7 @@ void Dynamixel::initialize() throw (QString)
 		//set specific parameters
 	    setPunch(params.busId, 32);
 		setBothComplianceMargins(params.busId, 1);
-		setBothComplianceSlopes(params.busId, 20);
+		setBothComplianceSlopes(params.busId, 64);
 
 		bool usbCorrect = true;
 		///Return delay time
@@ -443,7 +443,7 @@ void Dynamixel::setPosition( const QString &motor,  float  pos, float maxSpeed )
 	  qDebug()<<"motor.contains";
 	  throw MotorHandlerUnknownMotorException( motor.toStdString());
 	}
-	qDebug()<<"done:setting position of motor"<<motor;
+//	qDebug()<<"done:setting position of motor"<<motor;
 
 }
 

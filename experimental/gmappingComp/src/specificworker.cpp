@@ -330,6 +330,7 @@ void SpecificWorker::compute()
 	{
 		lastDrawn = QTime::currentTime();
 		drawMap(mymap);
+		drawAllLines();
 		drawAllParticles(mymap);
 		drawBestParticle(mymap);
 		drawOdometry(mymap);
@@ -429,6 +430,25 @@ void SpecificWorker::drawAllParticles(Map<double, DoubleArray2D, false>* mymap)
 		map->drawSquare(QPointF(pPose.y*1000, pPose.x*1000), 25, 25, Qt::cyan, true);
 	}
 }
+
+void SpecificWorker::drawAllLines()
+{
+	for (auto lineToDraw : linesToDraw)
+	{
+		map->drawLine(QLine(lineToDraw.first.first, lineToDraw.first.second, lineToDraw.second.first, lineToDraw.second.second), Qt::red, 25);
+
+	}
+// 	std::vector<std::pair<std::pair<float, float>>> linesToDraw;
+	
+// 	const GridSlamProcessor::ParticleVector& particles = processor->getParticles();
+// 	OrientedPoint pPose;
+// 	for(uint k=0; k<particles.size(); k++)
+// 	{
+// 		pPose = particles[k].pose;
+// 		map->drawSquare(QPointF(pPose.y*1000, pPose.x*1000), 25, 25, Qt::cyan, true);
+// 	}
+}
+
 
 void SpecificWorker::drawBestParticle(Map<double, DoubleArray2D, false>* mymap)
 {

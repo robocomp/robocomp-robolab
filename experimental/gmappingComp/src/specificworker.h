@@ -56,6 +56,7 @@ public:
 
 	void drawMap(Map<double, DoubleArray2D, false>* mymap);
 	void drawAllParticles(Map<double, DoubleArray2D, false>*);
+	void drawAllLines();
 	void drawBestParticle(Map<double, DoubleArray2D, false>*);
 	void drawOdometry(Map<double, DoubleArray2D, false>*);
 	void queueLastPose();
@@ -105,9 +106,16 @@ public slots:
 		
 		if (action_cb->currentIndex() == 1)
 		{
+			std::pair<std::pair<float, float>, std::pair<float, float>> lineToDraw;
+			lineToDraw.first.first =  pressEvent(0);
+			lineToDraw.first.second = pressEvent(2);
+			lineToDraw.second.first = releaseEvent(0);
+			lineToDraw.second.second = releaseEvent(2);
+			linesToDraw.push_back(lineToDraw);
 			QVec p1 = (mapTransform * pressEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
 			QVec p2 = (mapTransform * releaseEvent.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
-			printf("%f,%f,%f,%f\n", p1(0)/1000., p1(2)/1000., p2(0)/1000., p2(2)/1000.);
+			printf("m  %f,%f,%f,%f\n", p1(0)/1000., p1(2)/1000., p2(0)/1000., p2(2)/1000.);
+			printf("mm %f,%f,%f,%f\n", p1(0), p1(2), p2(0), p2(2));
 		}
 		else if (action_cb->currentIndex() == 2)
 		{
@@ -148,6 +156,8 @@ public slots:
 	}
 
 private:
+	std::vector < std::pair< std::pair<float, float>, std::pair<float, float> > > linesToDraw;
+	
 	QVec pressEvent;
 	
 	

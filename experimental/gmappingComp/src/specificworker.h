@@ -36,8 +36,8 @@
 #include <gridfastslam/gridslamprocessor.h>
 #include "GridFastSlamMapHandling.h"
 
-#define VISUALMAPWITDH 12000.
-#define WIDGETWIDTH 950.
+#define VISUALMAPWITDH 17000.
+#define WIDGETWIDTH 900.
 
 using namespace GMapping;
 

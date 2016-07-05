@@ -74,15 +74,16 @@ public slots:
 	{
 // 		printf("iniMouseCoor\n");
 		pressEvent = QVec::vec3(p.x(), 0, -p.y());
+		pressEvent.print("ini1");
+		pressEvent = QVec::vec3(p.x()-float(WIDGETWIDTH)/2., 0, -p.y()+float(WIDGETWIDTH)/2.);
+		pressEvent.print("ini2");
 		auto f = [](QVec &vc)
 		{
-			vc(0) -= float(WIDGETWIDTH)/2;
-			vc(0) *= VISUALMAPWITDH/float(WIDGETWIDTH);
-			vc(2) += float(WIDGETWIDTH)/2;
-			vc(2) *= VISUALMAPWITDH/float(WIDGETWIDTH);
+			vc(0) *= float(VISUALMAPWITDH)/float(WIDGETWIDTH);
+			vc(2) *= float(VISUALMAPWITDH)/float(WIDGETWIDTH);
 		};
 		f(pressEvent);
-// 		pressEvent.print("ini");
+		pressEvent.print("ini");
 	}
 	
 	void endMouseCoor(QPoint p)

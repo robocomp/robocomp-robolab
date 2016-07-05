@@ -38,8 +38,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	view->setRenderHints( QPainter::Antialiasing );
 	
 	view->show();*/
+	widget->setFixedSize(WIDGETWIDTH, WIDGETWIDTH);
 	QRect worldSize(-VISUALMAPWITDH/2,VISUALMAPWITDH/2,VISUALMAPWITDH,-VISUALMAPWITDH);
-	map = new RCDrawRobot(worldSize, this->frame);
+	map = new RCDrawRobot(worldSize, widget);
 	map->show();
 
 	v2DData.resize(1);
@@ -397,6 +398,9 @@ void SpecificWorker::updateMap(Map<double, DoubleArray2D, false>* mymap)
 
 void SpecificWorker::drawMap(Map<double, DoubleArray2D, false>* mymap)
 {
+	map->drawLine(QLine(-10000, 0, 10000, 0), Qt::black, 25);
+	map->drawLine(QLine(0, -10000, 0, 10000), Qt::black, 25);
+
 	double xMin, yMin, xMax, yMax;
 	mymap->getSize(xMin, yMin, xMax, yMax);
 
@@ -408,12 +412,12 @@ void SpecificWorker::drawMap(Map<double, DoubleArray2D, false>* mymap)
 		for (int j=0; j<WIDGETWIDTH and p.x<xMax; ++j)
 		{
 			p.x = xMin + deltaX*j;
-			p.y=  yMin + deltaY*i;
+			p.y = yMin + deltaY*i;
 			double v = mymap->cell(p);
 			if (v>=0)
 			{
 // 				qDebug()<<"pinta"<<p.x<<p.y;
-				map->drawSquare(QPointF(p.y*1000,p.x*1000), 10, 10, Qt::darkBlue, true);
+				map->drawSquare(QPointF(p.y*1000 - 5,p.x*1000-5), 10, 10, Qt::darkBlue, true);
 //				drawSquare(QRect(p.y,p.x,100,100));
 			}
 		}

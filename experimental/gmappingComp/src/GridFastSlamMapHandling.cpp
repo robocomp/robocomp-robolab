@@ -17,7 +17,7 @@ void GridFastSlamMapHandling::saveMap(const GMapping::ScanMatcherMap& map, const
   mapFile = fopen(mapName.c_str(), "wb+" );
   if(!mapFile) // In case of error
   {
-    std::cout << mapName << " cannot be opened.";
+    std::cout << mapName << " cannot be opened.\n";
     return;
   }
 
@@ -27,11 +27,11 @@ void GridFastSlamMapHandling::saveMap(const GMapping::ScanMatcherMap& map, const
   double xmin, ymin, xmax, ymax;
   map.getSize(xmin, ymin, xmax, ymax);
   fwrite(&center, sizeof(double), 2, mapFile);
-  fwrite(&delta, sizeof(double), 1, mapFile);
-  fwrite(&xmin, sizeof(double), 1, mapFile);
-  fwrite(&ymin, sizeof(double), 1, mapFile);
-  fwrite(&xmax, sizeof(double), 1, mapFile);
-  fwrite(&ymax, sizeof(double), 1, mapFile);
+  fwrite(&delta,  sizeof(double), 1, mapFile);
+  fwrite(&xmin,   sizeof(double), 1, mapFile);
+  fwrite(&ymin,   sizeof(double), 1, mapFile);
+  fwrite(&xmax,   sizeof(double), 1, mapFile);
+  fwrite(&ymax,   sizeof(double), 1, mapFile);
 
   // Save members of HierarchicalArray2D class:
   const HierarchicalArray2D<PointAccumulator>::PointSet& activeArea = map.storage().getActiveArea();
@@ -102,7 +102,7 @@ GMapping::ScanMatcherMap* GridFastSlamMapHandling::loadMap(const std::string& ma
   mapFile = fopen(mapName.c_str(), "rb" );
   if(!mapFile) // In case of error
   {
-    std::cout << mapName << " cannot be opened.";
+    std::cout << mapName << " cannot be opened.\n";
     return 0;
   }
 
@@ -116,6 +116,7 @@ GMapping::ScanMatcherMap* GridFastSlamMapHandling::loadMap(const std::string& ma
   fread(&ymin, sizeof(double), 1, mapFile);
   fread(&xmax, sizeof(double), 1, mapFile);
   fread(&ymax, sizeof(double), 1, mapFile);
+  printf("center(%g,%g) delta(%g) xmin(%g) xmax(%g) ymin(%g) ymax(%g)\n", center.x, center.y, delta, xmin, xmax, ymin, ymax);
   ScanMatcherMap* map = new ScanMatcherMap(center, xmin, ymin, xmax, ymax, delta);
 
   // Read members of HierarchicalArray2D class:
@@ -131,6 +132,8 @@ GMapping::ScanMatcherMap* GridFastSlamMapHandling::loadMap(const std::string& ma
   map->storage().setActiveArea(activeAreas);
   int numberOfActiveHCells;
   fread(&numberOfActiveHCells, sizeof(int), 1, mapFile);
+  
+  printf("numberOfActiveHCells %d\n", numberOfActiveHCells);
   for(int i=0; i<numberOfActiveHCells; i++)
   {
     //Get position in hierarchical grid and the number of inner cells:
@@ -139,8 +142,10 @@ GMapping::ScanMatcherMap* GridFastSlamMapHandling::loadMap(const std::string& ma
     fread(&y, sizeof(int), 1, mapFile);
     fread(&numberOfActiveCells, sizeof(int), 1, mapFile);
     int patchMagnitude = map->storage().getPatchMagnitude();
+	printf("< %d\n", i);
     Array2D<PointAccumulator>* patch = new Array2D<PointAccumulator>(1<<patchMagnitude, 1<<patchMagnitude);
-		map->storage().m_cells[x][y] = autoptr< Array2D<PointAccumulator> >(patch);
+	map->storage().m_cells[x][y] = autoptr< Array2D<PointAccumulator> >(patch);
+	printf(">\n");
     autoptr< Array2D<PointAccumulator> >& localArray = map->storage().m_cells[x][y];
     for(int j=0; j<numberOfActiveCells; j++)
     {

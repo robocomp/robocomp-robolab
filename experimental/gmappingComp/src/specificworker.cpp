@@ -182,9 +182,9 @@ void SpecificWorker::initialize()
 
 // 	OrientedPoint OdomPose(bState.z/1000.f, bState.x/1000.f, bState.alpha);
 	std::vector<OrientedPoint> initialPose;
-	QVec xg = QVec::uniformVector(numParticles, bState.z/1000.-2.,bState.z/1000.+2.);
-	QVec yg = QVec::uniformVector(numParticles, bState.x/1000.-2.,bState.x/1000.+2.);
-	QVec ag = QVec::uniformVector(numParticles, 0, 2.*M_PI);
+// 	QVec xg = QVec::uniformVector(numParticles, bState.z/1000.-2.,bState.z/1000.+2.);
+// 	QVec yg = QVec::uniformVector(numParticles, bState.x/1000.-2.,bState.x/1000.+2.);
+// 	QVec ag = QVec::uniformVector(numParticles, 0, 2.*M_PI);
 
 
 
@@ -193,9 +193,12 @@ void SpecificWorker::initialize()
 	{
 		for (int i=0; i< numParticles; i++)
 		{
-			initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
+// 			initialPose.push_back( OrientedPoint(xg[i],yg[i],ag[i]) );
+			initialPose.push_back( OrientedPoint(0,0,0) );
 		}
+		printf("loadMap\n");
 		ScanMatcherMap* loadedMap = GridFastSlamMapHandling::loadMap(params["GMapping.Map"].value);
+		printf("processor->init\n");
 		processor->init(QString::fromStdString(params["GMapping.particles"].value).toInt(), xmin, ymin, xmax, ymax, QString::fromStdString(params["GMapping.delta"].value).toDouble(), initialPose, *loadedMap);
 		delete loadedMap;
 	}

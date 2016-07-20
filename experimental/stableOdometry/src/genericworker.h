@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,11 +26,10 @@
 
 
 #include <CommonBehavior.h>
+
 #include <OmniRobot.h>
-#include <CGR.h>
 #include <AprilBasedLocalization.h>
-
-
+#include <CGR.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -65,11 +64,14 @@ public:
 
 	virtual void newAprilBasedPose(const float x, const float z, const float alpha) = 0;
 	virtual void newCGRPose(const float poseUncertainty, const float x, const float z, const float alpha) = 0;
-
+	virtual void newCGRCorrection(const float poseUncertainty, const float x1, const float z1, const float alpha1, const float x2, const float z2, const float alpha2) = 0;
 
 protected:
 	QTimer timer;
 	int Period;
+
+private:
+
 
 public slots:
 	virtual void compute() = 0;

@@ -48,7 +48,7 @@ bool noLidar = false;
 int numParticles = 20;
 int debugLevel = -1;
 
-int cont=0;	//to calculate fps
+int cont=0; //to calculate fps
 
 RoboCompOmniRobot::TBaseState bStateOld;
 

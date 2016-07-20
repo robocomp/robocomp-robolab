@@ -192,7 +192,7 @@ private:
 	QVector<double> v2DData;
 
 	QVec finalCorrection;
-	RoboCompOmniRobot::TBaseState correction;
+// 	RoboCompOmniRobot::TBaseState correction;
 	RTMat mapTransform;
 	float mapTransform_ry;
 	

@@ -59,6 +59,8 @@
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
@@ -81,6 +83,7 @@
 #include <slamlaserI.h>
 
 #include <Laser.h>
+#include <DifferentialRobot.h>
 #include <OmniRobot.h>
 #include <SlamLaser.h>
 #include <CGR.h>
@@ -93,6 +96,7 @@ using namespace std;
 using namespace RoboCompCommonBehavior;
 
 using namespace RoboCompLaser;
+using namespace RoboCompDifferentialRobot;
 using namespace RoboCompOmniRobot;
 using namespace RoboCompSlamLaser;
 using namespace RoboCompCGR;
@@ -126,10 +130,21 @@ int ::gmappingComp::run(int argc, char* argv[])
 #else
 	QCoreApplication a(argc, argv);  // NON-GUI application
 #endif
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+
+
 	int status=EXIT_SUCCESS;
 
-	CGRTopicPrx cgrtopic_proxy;
 	OmniRobotPrx omnirobot_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
 
 	string proxy, tmp;

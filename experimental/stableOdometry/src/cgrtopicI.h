@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -39,6 +39,7 @@ public:
 	~CGRTopicI();
 	
 	void newCGRPose(const float  poseUncertainty, const float  x, const float  z, const float  alpha, const Ice::Current&);
+	void newCGRCorrection(const float  poseUncertainty, const float  x1, const float  z1, const float  alpha1, const float  x2, const float  z2, const float  alpha2, const Ice::Current&);
 
 	QMutex *mutex;
 private:

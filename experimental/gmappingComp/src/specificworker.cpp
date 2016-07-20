@@ -233,8 +233,8 @@ GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseS
 	for (uint i=0; i<laserData.size();++i)
 	{
 //qDebug()<<laserData.size()<<i<<laserData[i].dist;
-		if (laserData[i].dist<300.)
-			distances_laser[i] = 40.;
+		if (laserData[i].dist<100.)
+			distances_laser[i] = 0.;
 		else
 			distances_laser[i] = laserData[i].dist/1000.;
 	}
@@ -252,24 +252,24 @@ GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseS
 void SpecificWorker::compute()
 {
 	static QTime lastDrawn = QTime::currentTime();
-	static QTime lastSent = QTime::currentTime();
-	static QVec lastPosSent = QVec::vec3();
-	static float lastAngleSent = 0;
+// 	static QTime lastSent = QTime::currentTime();
+// 	static QVec lastPosSent = QVec::vec3();
+// 	static float lastAngleSent = 0;
 
-	auto setLast = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
-	{
-		lastSent = QTime::currentTime();
-		lastPosSent = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
-		lastAngleSent = bState.correctedAlpha;
-	};
-	auto shouldISend = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
-	{
-		const QVec p = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
-		auto moved = fabs(bState.correctedAlpha-lastAngleSent)>0.01 or (lastPosSent-p).norm2()>8;
-		moved = moved and lastSent.elapsed() > 200;
-		
-		return moved or lastSent.elapsed() > 2000;
-	};
+// 	auto setLast = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
+// 	{
+// 		lastSent = QTime::currentTime();
+// 		lastPosSent = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
+// 		lastAngleSent = bState.correctedAlpha;
+// 	};
+// 	auto shouldISend = [](auto &bState, auto &lastSent, auto &lastPosSent, auto &lastAngleSent)
+// 	{
+// 		const QVec p = QVec::vec3(bState.correctedX, 0, bState.correctedZ);
+// 		auto moved = fabs(bState.correctedAlpha-lastAngleSent)>0.01 or (lastPosSent-p).norm2()>8;
+// 		moved = moved and lastSent.elapsed() > 200;
+// 		
+// 		return moved or lastSent.elapsed() > 2000;
+// 	};
 
 	Map<double, DoubleArray2D, false>* mymap=NULL;
 
@@ -300,27 +300,22 @@ void SpecificWorker::compute()
 			estimatedPose.z=po.x*1000.;
 			estimatedPose.alpha=po.theta;
 			printf(" - - - - - - - - - PERFORMING CORRECTION - - - - - - - - - \n");
-			correction.x     = estimatedPose.x     ;//- bState.correctedX;
-			correction.z     = estimatedPose.z     ;//- bState.correctedZ;
-			correction.alpha = estimatedPose.alpha ;//- bState.correctedAlpha;
 			printf("             estimated: (%f %f [%f])\n", estimatedPose.x, estimatedPose.z, estimatedPose.alpha);
-// 			printf("             corrected: (%f %f [%f])\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-			printf("            correction: (%f %f [%f])\n", correction.x, correction.z, correction.alpha);
-			QVec init = QVec::vec3(correction.x, 0, correction.z);
+			QVec init = QVec::vec3(estimatedPose.x, 0, estimatedPose.z);
 			finalCorrection = (mapTransform * init.toHomogeneousCoordinates()).fromHomogeneousCoordinates();
-			finalCorrection.print("f1");
-			(mapTransform.invert() * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates().print("f1**-1");
-			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
-			cgrtopic_proxy->newCGRPose(0, finalCorrection(0), finalCorrection(2), correction.alpha-mapTransform_ry);
-			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f)\n", correction.x, correction.z, correction.alpha);
-			setLast(bState, lastSent, lastPosSent, lastAngleSent);
+// 			finalCorrection.print("f1");
+// 			(mapTransform.invert() * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates().print("f1**-1");
+			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
+			cgrtopic_proxy->newCGRCorrection(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
+			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f),  (%f,  %f,  %f)\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
+// 			setLast(bState, lastSent, lastPosSent, lastAngleSent);
 		}
-		else if (shouldISend(bState, lastSent, lastPosSent, lastAngleSent))
-		{
+// 		else if (shouldISend(bState, lastSent, lastPosSent, lastAngleSent))
+// 		{
 // 			setLast(bState, lastSent, lastPosSent, lastAngleSent);
 // 			cgrtopic_proxy->newCGRPose(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-// 			printf(bState.correctedX, bState.correctedZ, bState.correctedAlpha);
-		}
+//			printf(bState.correctedX, bState.correctedZ, bState.correctedAlpha);
+// 		}
 
 		v2DData[0] = ((double) processor->getneff())/((double) nParticles);
 	}

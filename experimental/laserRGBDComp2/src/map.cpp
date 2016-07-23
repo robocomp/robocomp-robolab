@@ -1,3 +1,4 @@
+#include <math.h>
 #include "map.h"
 
 LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_, const QString &robotID_, const float robotRadius_)
@@ -179,7 +180,7 @@ void LMap::update_include_rgbd(RoboCompRGBD::PointSeq *points, QString rgbdID)
 			uint32_t ioi = rr*pw+cc;
 			if (ioi<rgbd_size)
 			{
-				if (isnan(points->operator[](ioi).x) or isnan(points->operator[](ioi).y) or isnan(points->operator[](ioi).z))
+				if (std::isnan(points->operator[](ioi).x) or std::isnan(points->operator[](ioi).y) or std::isnan(points->operator[](ioi).z))
 					continue;
 				if (points->operator[](ioi).z<0)
 					continue;

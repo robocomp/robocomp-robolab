@@ -1,5 +1,7 @@
 #include "map.h"
 
+using namespace std;
+
 LMap::LMap(float side_, int32_t bins_, float laserRange_, const QString &movableRootID_, const QString &virtualLaserID_, InnerModel *innerModel_, const QString &robotID_, const float robotRadius_)
 {
 	Q_ASSERT(0.5*side_ > 1.25 * laserRange);

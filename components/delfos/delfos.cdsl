@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+
+Component delfos
+{
+	Communications
+	{
+		implements OmniRobot;
+	};
+	language Cpp;
+};
+

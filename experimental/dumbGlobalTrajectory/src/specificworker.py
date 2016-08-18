@@ -70,7 +70,7 @@ class SpecificWorker(GenericWorker):
 		
 		lines = lines[1:]
 		for i in xrange(nodes):
-			node = i+1
+			node = i
 			self.G.add_node(node)
 			line = lines[i]
 			c = line.split('#')
@@ -113,16 +113,22 @@ class SpecificWorker(GenericWorker):
 			if np.linalg.norm(currentPose-currentTarget) < self.receivedThreshold:
 				print 'got to waypoint'
 				self.path = self.path[1:]
-				self.currentTarget = copy.deepcopy(self.receivedTarget)
-				self.currentTarget.x = self.path[0][0]
-				self.currentTarget.z = self.path[0][1]
+				try:
+					self.currentTarget = copy.deepcopy(self.receivedTarget)
+					self.currentTarget.x = self.path[0][0]
+					self.currentTarget.z = self.path[0][1]
+				except IndexError:
+					self.currentTarget = None
+				print "I'd go to ("+str(len(self.path))+")", self.currentTarget
 				self.trajectoryrobot2d_proxy.goReferenced(self.currentTarget, txRef, tzRef, self.receivedThreshold)
 				if np.linalg.norm(currentPose-finalTarget) < self.receivedThreshold:
 					self.trajectoryrobot2d_proxy.stop()
 					self.currentTarget = None
+			else:
+				print 'lalala', np.linalg.norm(currentPose-currentTarget), 'less than', self.receivedThreshold
 			print 'distxxxance', np.linalg.norm(currentPose-currentTarget)
 		else:
-			print 'idle'
+			#print 'idle'
 			self.generalState.state = "idle"
 
 

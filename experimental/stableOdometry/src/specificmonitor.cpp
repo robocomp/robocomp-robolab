@@ -22,6 +22,7 @@
 */
 SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _communicator):GenericMonitor(_worker, _communicator)
 {
+		ready = false;
 
 }
 /**
@@ -35,6 +36,8 @@ SpecificMonitor::~SpecificMonitor()
 void SpecificMonitor::run()
 {
 	initialize();
+	ready = true;
+
 	forever
 	{
 		//rDebug("specific monitor run");

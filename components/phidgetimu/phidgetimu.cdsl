@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/IMU.idsl";
+
+Component phidgetimu
+{
+	Communications
+	{
+		implements IMU;
+	};
+	language Cpp;
+};
+

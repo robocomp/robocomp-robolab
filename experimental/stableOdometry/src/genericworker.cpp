@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,12 +26,11 @@ QObject()
 	cgr_proxy = (*(CGRPrx*)mprx["CGRProxy"]);
 	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
 
-
 	mutex = new QMutex(QMutex::Recursive);
 
-		
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+// 	timer.start(Period);
 }
 
 /**

@@ -19,7 +19,7 @@ else:
 		else:
 			# world conversion value: robocomp2rcis or cgr2rcis
 			conversion = 'robocomp2rcis'
-			head='<innerModel>\n\t<transform id="world">\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n\t\t</transform>\n'
+			head='<innerModel>\n\t<transform id="world">\n\t\t<include path="/home/robocomp/robocomp/components/robocomp-shelly/etc/shelly.xml" />\n\t\t<transform id="floor">\n\t\t\t<plane id="back" ny="1" size="30000,30000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" />\n\t\t</transform>\n'
 			tail='\n\t</transform>\n</innerModel>'
 			
 			texture = '/home/robocomp/robocomp/files/osgModels/textures/Metal.jpg'

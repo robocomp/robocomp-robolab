@@ -48,7 +48,7 @@ bool noLidar = false;
 int numParticles = 20;
 int debugLevel = -1;
 
-int cont=0;	//to calculate fps
+int cont=0; //to calculate fps
 
 RoboCompOmniRobot::TBaseState bStateOld;
 
@@ -292,6 +292,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static QTime fp = QTime::currentTime();
+	if (fp.elapsed() < 300)
+	{
+		return;
+	}
+	fp = QTime::currentTime();
+ 
 	qDebug()<<"<<<<<<<<<<<<<<< compute >>>>>>>>>>>";
 	bool forcePredict = false;
 	mutex->lock();
@@ -399,7 +406,7 @@ void SpecificWorker::drawLines()
 			  QString::fromStdString("LINEA_"+oss.str()), "floor",
 			  QVec::vec3(-(p0y+p1y)/2,0,(p0x+p1x)/2),
 			  QVec::vec3(n(1),0,n(0)),"#00A0A0",
-			  QVec::vec3(width, 100, 100)
+			  QVec::vec3(width, 5, 5)
 			);	
 			printf("tx: %f| tz: %f| nx: %f| nz: %f| width %f\n",-(p0y+p1y)/2,(p0x+p1x)/2,-n(1),n(0),width);
 			i++;                        

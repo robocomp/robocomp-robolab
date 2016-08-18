@@ -221,11 +221,19 @@ printf("_____ %s: %d\n", __FILE__, __LINE__);
 printf("_____ %s: %d\n", __FILE__, __LINE__);
 
 	//TODO: CHAPUZA, HABRIA QUE COMPROBARLO PARA CADA MOTOR
+        if((ret = Dunker_syncSetVelKps(this->devHandler, motors.size(), NodeIds, velKps)) == 0){
+		qDebug()<<"************VEL KPS**********";
+		for (uint i= 0;i<motors.size();i++)
+			qDebug()<<"motor "<<i<<"value"<<velKps[i];
+	}
+
+
 	if(setPID[0]!=0)
 	{
 		if((ret = Dunker_syncSetVelKps(this->devHandler, motors.size(), NodeIds, velKps)) == 0)
 		{
 			qDebug() << "Dunkermotoren::initialize(): VelKps set";
+                     
 		}
 		else
 		{
@@ -362,12 +370,12 @@ printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 
 	
-printf("_____ %s: %d\n", __FILE__, __LINE__);
-printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
 foreach( Servo *s, motors)
 {
 	uint8_t id = s->params.busId;
-	if ((ret = Dunker_setAcceleration(this->devHandler, id, 500, 100)) == 0)
+	if ((ret = Dunker_setAcceleration(this->devHandler, id, 70, 100)) == 0)
 	{
 		qDebug() << "Dunkermotoren::initialize(): Acceleration set.";
 	}
@@ -375,7 +383,7 @@ foreach( Servo *s, motors)
 	{
 		qDebug() << "Dunkermotoren::initialize(): ERROR setting Acceleration"<<ret;
 	}
-	if ((ret = Dunker_setDecceleration(this->devHandler, id, 50, 10)) == 0)
+	if ((ret = Dunker_setDecceleration(this->devHandler, id, 70, 100)) == 0)
 	{
 		qDebug() << "Dunkermotoren::initialize(): Deceleration set.";
 	}
@@ -384,8 +392,8 @@ foreach( Servo *s, motors)
 		qDebug() << "Dunkermotoren::initialize(): ERROR setting Deceleration"<<ret;
 	}
 }
-printf("_____ %s: %d\n", __FILE__, __LINE__);
-printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
+//printf("_____ %s: %d\n", __FILE__, __LINE__);
 	
 
 	

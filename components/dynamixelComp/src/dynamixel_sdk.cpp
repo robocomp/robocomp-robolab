@@ -47,7 +47,7 @@ void DynamixelSDK::initialize() throw (QString)
 {	
 	//check device string to transform into integer
 	int deviceIndex = 0;
-	switch (busParams->device)
+	switch ( "/dev/ttyUSB0")
 	{
 		case "/dev/ttyUSB0":
 			deviceIndex = 0;

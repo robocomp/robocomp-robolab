@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,6 +59,8 @@
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
@@ -111,40 +113,34 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void stableOdometry::initialize()
+void ::stableOdometry::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int stableOdometry::run(int argc, char* argv[])
+int ::stableOdometry::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+
+
 	int status=EXIT_SUCCESS;
 
-	CGRPrx cgr_proxy;
 	OmniRobotPrx omnirobot_proxy;
+	CGRPrx cgr_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CGRProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CGRProxy\n";
-		}
-		cgr_proxy = CGRPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("CGRProxy initialized Ok!");
-	mprx["CGRProxy"] = (::IceProxy::Ice::Object*)(&cgr_proxy);//Remote server proxy creation example
 
 
 	try
@@ -163,18 +159,41 @@ int stableOdometry::run(int argc, char* argv[])
 	rInfo("OmniRobotProxy initialized Ok!");
 	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 
-IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CGRProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CGRProxy\n";
+		}
+		cgr_proxy = CGRPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CGRProxy initialized Ok!");
+	mprx["CGRProxy"] = (::IceProxy::Ice::Object*)(&cgr_proxy);//Remote server proxy creation example
+
+	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 
 
-	GenericWorker *worker = new SpecificWorker(mprx);
+	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
-	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
+	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
 		return status;
+	
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+	
 	try
 	{
 		// Server adapter creation and publication
@@ -186,6 +205,7 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
+
 
 
 
@@ -311,7 +331,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	stableOdometry app(prefix);
+	::stableOdometry app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

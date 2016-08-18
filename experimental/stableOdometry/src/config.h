@@ -6,6 +6,4 @@
 #define PROGRAM_NAME    "stableOdometry"
 #define SERVER_FULL_NAME   "RoboComp stableOdometry:: stableOdometry"
 
-// #define DEBUG
-
 #endif

@@ -27,13 +27,12 @@
 #include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
-#include <OmniRobot.h>
-#include <DifferentialRobot.h>
-#include <CGR.h>
+
 #include <Laser.h>
+#include <DifferentialRobot.h>
+#include <OmniRobot.h>
 #include <SlamLaser.h>
-
-
+#include <CGR.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -69,19 +68,21 @@ public:
 	QMutex *mutex;
 	
 
-	CGRTopicPrx cgrtopic_proxy;
-	OmniRobotPrx omnirobot_proxy;
 	LaserPrx laser_proxy;
+	OmniRobotPrx omnirobot_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 
 	virtual bool saveMap(const string &path) = 0;
 	virtual void getWholeGrid(GridMap &map, Pose2D &pose) = 0;
 	virtual void initializeRobotPose(const Pose2D &pose) = 0;
 	virtual void getPartialGrid(const MapRect &rect, GridMap &map, Pose2D &pose) = 0;
 
-
 protected:
 	QTimer timer;
 	int Period;
+
+private:
+
 
 public slots:
 	virtual void compute() = 0;

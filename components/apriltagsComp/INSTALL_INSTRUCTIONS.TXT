@@ -1,0 +1,10 @@
+# Install instructions for Apriltags
+
+Follow install intructions in http://people.csail.mit.edu/kaess/apriltags/
+
+- You can clone the repository anywhere you want
+- After compiling you need to copy the AprilTags/ directory located at build/include to /usr/local/include
+- Also, copy the static library libapriltags.a located at build/lib to /usr/local/lib
+
+
+

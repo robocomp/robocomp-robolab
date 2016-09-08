@@ -143,7 +143,7 @@ public slots:
 			}
 			action_cb->setCurrentIndex(0);
 		}
-		else
+		else if (action_cb->currentIndex() == 3)
 		{
 			QVec zero = pressEvent;
 			float r = -atan2(inc(2), inc(0));
@@ -153,6 +153,10 @@ public slots:
 			rySB->setValue(r);
 			regenerateRT();
 					
+		}
+		else 
+		{
+			printf("No action selected, check combo box options\n");
 		}
 	}
 

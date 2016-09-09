@@ -131,11 +131,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		printf("error reading iner model %s\n", s.toStdString().c_str());
 	}
-	m_fx = innermodel->getCameraFocal(camera_name.c_str());
-	m_fy = innermodel->getCameraFocal(camera_name.c_str());
+	m_fx = innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
+	m_fy = innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
-	qDebug() << "FOCAL LENGHT:" << innermodel->getCameraFocal(camera_name.c_str());
+	qDebug() << "FOCAL LENGHT:" << innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
 
 	//Reading id sets size to create a map
 
@@ -192,12 +192,11 @@ printf("---------------------\n");
 	static double last_t = tic();
 
 	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
-// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
-// 	{
-// 		printf("%d:%f ", it.key(), it.value());
-// 	}
+	// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
+	// 	{
+	// 		printf("%d:%f ", it.key(), it.value());
+	// 	}
 	printf("]\n");
-
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -218,16 +217,12 @@ printf("---------------------\n");
 	{
 		try
 		{
-
-			//For RGBD
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
-			//memset(image_color.data, 127, m_width*m_height*3);
-
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-			searchTags(image_gray);
+			searchTags(image_gray);			
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -252,7 +247,6 @@ printf("---------------------\n");
 		qFatal("Input device not defined. Please specify one in the config file");
 	}
 
-
 	// print out the frame rate at which image frames are being processed
 	frame++;
 	if (frame % 30 == 0)
@@ -263,19 +257,12 @@ printf("---------------------\n");
 	}
 }
 
-
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
 {
-
 	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
 
-	// print out each detection
- 	cout << detections.size() << " tags detected:" << endl;
-
+	cout << detections.size() << " tags detected:" << endl;
 	print_detection(detections);
-
-//imshow("AprilTags", image_gray); // OpenCV call
-//cv::waitKey(1);
 
 }
 void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detections)
@@ -289,16 +276,8 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 
  		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
 
-		// recovering the relative pose of a tag:
-
-		// NOTE: for this to be accurate, it is necessary to use the
-		// actual camera parameters here as well as the actual tag size
-		// (m_fx, m_fy, m_px, m_py, m_tagSize)
-
 		Eigen::Vector3d translation;
 		Eigen::Matrix3d rotation;
-
-		//detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py, translation, rotation);
 
 		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
 		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
@@ -316,15 +295,10 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
 
- 		
 		cout << m_fx << "  " << m_fy << endl;
 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 		rDebug2(("TAG: Distance=%d x=%d y=%d z=%d rx=%d ry=%d rz=%d")%T.norm2()%T(0)%T(1)%T(2)%rx%ry%rz);
-		// Also note that for SLAM/multi-view application it is better to
-		// use reprojection error of corner points, because the noise in
-		// this relative pose is very non-Gaussian; see iSAM source code
-		// for suitable factors.
-		// fill in tag to send
+		
 		RoboCompAprilTags::tag t;
 		RoboCompGetAprilTags::marca mar;
 

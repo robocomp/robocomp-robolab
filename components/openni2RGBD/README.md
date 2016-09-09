@@ -1,6 +1,6 @@
 #openNI2RGBDComp
 
-This component provides accest to a Xtion or Kinect device through the OpenNI2 driver.
+This component provides accest to a Xtion or Kinect device through the OpenNI2 driver, offering the RGBD.idsl interface
 
 You can download a versión of OpenNI2.2 for Ubuntu x64 from:
     

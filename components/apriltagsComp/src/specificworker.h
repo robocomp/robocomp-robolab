@@ -52,7 +52,7 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	//virtual void  newAprilTag(int id, float tx, float ty, float tz, float rx, float ry, float rz){};
-		listaMarcas checkMarcas();
+	listaMarcas checkMarcas();
 public slots:
 	void compute(); 	
 

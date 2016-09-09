@@ -1,8 +1,14 @@
 #aprilTagsComp: wrapping E. Olson's AprilTags in RoboComp
 
-AprilTags is an augmented reality tag system developed by E. Olson at U. of Michigan, USA. A complete explanation and related papers can be found [here](http://april.eecs.umich.edu/wiki/index.php/AprilTags). There is a C++ version written by Michael Kaes [here](http://people.csail.mit.edu/kaess/apriltags/) which is the one we use. It can be downloaded from its subversion repository typing the following command:
+AprilTags is an augmented reality tag system developed by E. Olson at U. of Michigan, USA. A complete explanation and related papers can be found [here](http://april.eecs.umich.edu/wiki/index.php/AprilTags). There is a C++ version written by Michael Kaes [here](http://people.csail.mit.edu/kaess/apriltags/) and it can be downloaded from its subversion repository typing the following command:
 
     svn co https://svn.csail.mit.edu/apriltags
+
+but we use a cmake-only version located at
+
+    https://github.com/NifTK/apriltags
+
+Please, execute the install.sh script located in the component directory.
 
 April tags are AR tags designed to be esily detected by (robot) cameras. When the tag is seen by the camera, the algorithm computes the tag's complete pose defining its own reference system relative to the camera. This reference system is defined as follows: if we look perpendicularly to a non rotated tag, the Z+ axis comes out towards us from the center of the tag plane, the X+ axis points leftwards and the Y+ axis points upwards (a left-hand reference system). The values computed by *apriltagsComp* are the translation vector from the camera to the center of the tag's reference system, and the three Euler angles that encode the relative orientation of the tag's reference system wrt to the camera reference system.
 

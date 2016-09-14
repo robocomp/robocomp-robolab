@@ -31,14 +31,6 @@ ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( CommonBehavior  GetAprilTags Camera CommonHead RGBDBus RGBD JointMotor  DifferentialRobot AprilTags)
 ROBOCOMP_LIBRARY( qmat )
 
-
-# IPP
-INCLUDE( $ENV{ROBOCOMP}/cmake/modules/ipp.cmake )
-
-
-
-
-
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
 FIND_PACKAGE( Qt4 REQUIRED )

@@ -306,7 +306,11 @@ void SpecificWorker::compute()
 // 			finalCorrection.print("f1");
 // 			(mapTransform.invert() * QVec::vec4(correction.x, 0, correction.z, 1)).fromHomogeneousCoordinates().print("f1**-1");
 			printf("%f %f   __   %f\n",   finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
-			cgrtopic_proxy->newCGRCorrection(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
+			
+			
+ 			cgrtopic_proxy->newCGRCorrection(0, bState.correctedX, bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
+			
+			
 			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f),  (%f,  %f,  %f)\n", bState.correctedX, bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2), estimatedPose.alpha-mapTransform_ry);
 // 			setLast(bState, lastSent, lastPosSent, lastAngleSent);
 		}

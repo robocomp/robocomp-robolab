@@ -37,13 +37,10 @@ ROBOCOMP_WRAP_ICE( CommonBehavior  Laser OmniRobot DifferentialRobot JointMotor 
 #link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib )
 #add_definitions(${PCL_DEFINITIONS})
 
-# IPP
-INCLUDE( $ENV{ROBOCOMP}/cmake/modules/ipp.cmake )
-
 # OPENSG
 INCLUDE ($ENV{ROBOCOMP}/cmake/modules/opensg.cmake )
 
-INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv2.cmake )
 
 
 # OpenMP

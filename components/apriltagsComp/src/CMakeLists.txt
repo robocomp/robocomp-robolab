@@ -51,11 +51,3 @@ INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/apriltagscomp DESTINATION /opt/robocomp/
 
 
 
-
-
-
-
-
-
-
-

@@ -42,19 +42,54 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 void SpecificWorker::openDevice()
 {
 	openniRc = OpenNI::initialize();
+	switch (openniRc)
+	{
+		case openni::STATUS_OK:
+			printf("openni::STATUS_OK\n");
+			break;
+		case STATUS_ERROR:
+			printf("openni::STATUS_ERROR\n");
+			break;
+		case STATUS_NOT_IMPLEMENTED:
+			printf("openni::STATUS_NOT_IMPLEMENTED\n");
+			break;
+		case STATUS_NOT_SUPPORTED:
+			printf("openni::STATUS_NOT_SUPPORTED\n");
+			break;
+		case STATUS_BAD_PARAMETER:
+			printf("openni::STATUS_BAD_PARAMETER\n");
+			break;
+		case STATUS_OUT_OF_FLOW:
+			printf("openni::STATUS_OUT_OF_FLOW\n");
+			break;
+		case STATUS_NO_DEVICE:
+			printf("openni::STATUS_NO_DEVICE\n");
+			break;
+		case STATUS_TIME_OUT:
+			printf("openni::STATUS_TIME_OUT\n");
+			break;
+		default:
+			printf("openni:: UNKNOWN!!!\n");
+			exit(-2);
+			break;
+	}
 	if (openniRc != openni::STATUS_OK)
 	{
 		OpenNI::shutdown();
 		qFatal("openNi2Comp: OpenNI initialize failed: \n%s\n", OpenNI::getExtendedError());
 	}
 
+/*
 	if( QFile::exists("file.oni") )
 	{		
 		openniRc = device.open("file.oni");
 	}
-	else	
-		openniRc = device.open(ANY_DEVICE);
-	
+	else
+	{
+*/
+	openniRc = device.open(ANY_DEVICE);
+// 	}
+
 	if (openniRc != openni::STATUS_OK)
 	{
 		OpenNI::shutdown();
@@ -74,23 +109,48 @@ void SpecificWorker::openDevice()
 	const openni::SensorInfo* depthInfo;
 	const openni::SensorInfo* colorInfo;
 
+	
+	int selD = 0;
 	depthInfo = device.getSensorInfo(openni::SENSOR_DEPTH);
 	const openni::Array<openni::VideoMode>& depthModes = depthInfo->getSupportedVideoModes();
-	qDebug() << __FUNCTION__ << "Supported DEPTH modes:";
+	qDebug() << "\nSupported DEPTH modes:";
 	for (int i = 0; i < depthModes.getSize(); ++i)
 	{
-					const openni::VideoMode* pSupportedMode = &depthModes[i];
-					printf("%d x %d @ %d\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps());
+		const openni::VideoMode* pSupportedMode = &depthModes[i];
+		//  PIXEL_FORMAT_DEPTH_1_MM  (100)        PIXEL_FORMAT_DEPTH_100_UM (101)
+		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
+		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_DEPTH_1_MM)
+		{
+			selD = i;
+			printf("GOOD! %d\n", i);
+		}
 	}
+//     openniRc = depth.setVideoMode(depthModes[selD]);
+//     if (openniRc != openni::STATUS_OK)
+//     {
+//         printf("error: can't set depth fromat\n");
+//     }
 
-	colorInfo = device.getSensorInfo(openni::SENSOR_COLOR);
+    int selC = 0;
+    colorInfo = device.getSensorInfo(openni::SENSOR_COLOR);
 	const openni::Array<openni::VideoMode>& colorModes = colorInfo->getSupportedVideoModes();
-	printf("	Supported COLOR modes:\n");
+	printf("\nSupported COLOR modes:\n");
 	for (int i = 0; i < colorModes.getSize(); ++i)
 	{
-					const openni::VideoMode* pSupportedMode = &colorModes[i];
-					printf("%d x %d @ %d\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps());
+		const openni::VideoMode* pSupportedMode = &colorModes[i];
+		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
+		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_RGB888) // 200 rgb888
+		{
+			selC = i;
+			printf("GOOD! %d\n", i);
+		}
 	}
+//     openniRc = color.setVideoMode(colorModes[selC]);
+//     if (openniRc != openni::STATUS_OK)
+//     {
+//         printf("error: can't set color fromat\n");
+//     }
+	
 }
 
 void SpecificWorker::initializeStreams()
@@ -134,30 +194,30 @@ bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
 		return false;
 	}
 
-  if( QFile::exists("file.oni") == false)		
+	if (QFile::exists("file.oni") == false)		
 	{
 		openniRc = stream->setMirroringEnabled(false);
-					if (openniRc != openni::STATUS_OK)
-					{
-									printf("openNi2Comp: Couldn't disable mirrorirng:\n%s\n", OpenNI::getExtendedError());
-									stream->destroy();
-									return false;
-					}
+		if (openniRc != openni::STATUS_OK)
+		{
+			printf("openNi2Comp: Couldn't disable mirrorirng:\n%s\n", OpenNI::getExtendedError());
+			stream->destroy();
+			return false;
+		}
 
 		openni::VideoMode mode;
-    mode = stream->getVideoMode();
-    mode.setResolution(640, 480);
-    mode.setFps(30);
-				
-    openniRc = stream->setVideoMode(mode);
-    if (openniRc != openni::STATUS_OK)
-    {
-       printf("openNi2Comp: Couldn't setVideoMode:\n%s\n", OpenNI::getExtendedError());
-       stream->destroy();
-       return false;
-    }
+		mode = stream->getVideoMode();
+		mode.setResolution(640, 480);
+		mode.setFps(30);
+					
+		openniRc = stream->setVideoMode(mode);
+		if (openniRc != openni::STATUS_OK)
+		{
+			printf("openNi2Comp: Couldn't setVideoMode:\n%s\n", OpenNI::getExtendedError());
+			stream->destroy();
+			return false;
+		}
 	}
-	
+
 	openniRc = stream->start();
 	if (openniRc != openni::STATUS_OK)
 	{
@@ -166,7 +226,9 @@ bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
 		return false;
 	}
 	if (!stream->isValid())
+	{
 		return false;
+	}
 
 	return true;
 }

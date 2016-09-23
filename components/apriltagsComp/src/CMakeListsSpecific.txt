@@ -28,9 +28,10 @@ SET ( HEADERS
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
+    set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS})
+    set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
+endif(OPENMP_FOUND)
+message(STATUS "OPENMP: ${OPENMP_FOUND}")
 
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv2.cmake )
@@ -41,9 +42,9 @@ MESSAGE(STATUS, ${LIBS} )
 
 ADD_DEFINITIONS( -std=c++11 )
 
-ADD_LIBRARY(apriltags STATIC IMPORTED)
-SET_TARGET_PROPERTIES(apriltags PROPERTIES IMPORTED_LOCATION /usr/local/lib/libapriltags.a)
-SET (STATIC_LIBS ${STATIC_LIBS} apriltags)
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -msse -msse2 -msse3 ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -msse -msse2 -msse3 ")
+
 
 
 

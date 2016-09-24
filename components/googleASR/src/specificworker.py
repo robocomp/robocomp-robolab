@@ -96,14 +96,14 @@ class SpecificWorker(GenericWorker):
 			wf.writeframes(b''.join(frames))
 			wf.close()
 
-			r = sr.Recognizer(language= "es-ES")
+			r = sr.Recognizer()
 			with sr.Microphone() as source:                # use the default microphone as the audio source
 			    audio = r.adjust_for_ambient_noise(source) # listen for 1 second to calibrate the energy threshold for ambient noise levels
 
 			with sr.WavFile("output.wav") as source:
 			    audio = r.record(source)
 			try:
-			    command = r.recognize(audio)    # recognize speech using Google Speech Recognition
+			    command = r.recognize_google(audio, language="es-ES")    # recognize speech using Google Speech Recognition
 			    print command
 			    self.asrpublish.newText(command)
 			except LookupError:                            # speech is unintelligible

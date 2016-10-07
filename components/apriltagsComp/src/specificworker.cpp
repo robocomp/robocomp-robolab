@@ -189,7 +189,7 @@ void SpecificWorker::compute()
 printf("---------------------\n"); 
 
 	static int frame = 0;
-	static double last_t = tic();
+	static QTime lastTime = QTime::currentTime();
 
 	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
 	// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
@@ -249,11 +249,10 @@ printf("---------------------\n");
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
-	if (frame % 30 == 0)
+	if (frame >= 30)
 	{
-		double t = tic();
-		cout << "  " << 10./(t-last_t) << " fps" << endl;
-		last_t = t;
+		cout << "*********************************************************" <<  1000.*frame/lastTime.elapsed()  << " fps" << endl;
+		frame = 0;
 	}
 }
 

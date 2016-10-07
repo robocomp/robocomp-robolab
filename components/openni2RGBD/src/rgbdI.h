@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,9 +19,6 @@
 #ifndef RGBD_H
 #define RGBD_H
 
-// QT includes
-#include <QtCore/QObject>
-
 // Ice includes
 #include <Ice/Ice.h>
 #include <RGBD.h>
@@ -31,29 +28,25 @@
 
 using namespace RoboCompRGBD;
 
-class RGBDI : public QObject , public virtual RoboCompRGBD::RGBD
+class RGBDI : public virtual RoboCompRGBD::RGBD
 {
-Q_OBJECT
 public:
-	RGBDI( GenericWorker *_worker, QObject *parent = 0 );
+	RGBDI(GenericWorker *_worker);
 	~RGBDI();
 	
 	Registration getRegistration(const Ice::Current&);
-	void getImage( ColorSeq  & color,  DepthSeq  & depth,  PointSeq  & points,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
-	void getXYZ( PointSeq  & points,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
-	void getRGB( ColorSeq  & color,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
+	void getData( imgType  &rgbMatrix,  depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	void getXYZ( PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	void getRGB( ColorSeq  &color,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
 	TRGBDParams getRGBDParams(const Ice::Current&);
-	void getDepth( DepthSeq  & depth,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
-	void setRegistration(Registration  value, const Ice::Current&);
-	void getData( imgType  & rgbMatrix,  depthType  & distanceMatrix,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
-	void getDepthInIR( depthType  & distanceMatrix,  RoboCompJointMotor::MotorStateMap  & hState,  RoboCompDifferentialRobot::TBaseState  & bState, const Ice::Current&);
+	void getDepth( DepthSeq  &depth,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	void setRegistration( Registration  value, const Ice::Current&);
+	void getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	void getDepthInIR( depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
 
-	QMutex *mutex;
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

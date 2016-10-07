@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::openNI2Comp
+/** \mainpage RoboComp::hokuyo
  *
  * \section intro_sec Introduction
  *
- * The openNI2Comp component...
+ * The hokuyo component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd openNI2Comp
+ * cd hokuyo
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/openNI2Comp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/hokuyo --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -80,10 +80,10 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <rgbdI.h>
+#include <laserI.h>
 
-#include <RGBD.h>
-#include <JointMotor.h>
+#include <Laser.h>
+#include <DifferentialRobot.h>
 #include <DifferentialRobot.h>
 
 
@@ -93,10 +93,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class openNI2Comp : public RoboComp::Application
+class hokuyo : public RoboComp::Application
 {
 public:
-	openNI2Comp (QString prfx) { prefix = prfx.toStdString(); }
+	hokuyo (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -106,14 +106,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::openNI2Comp::initialize()
+void ::hokuyo::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::openNI2Comp::run(int argc, char* argv[])
+int ::hokuyo::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -129,9 +129,27 @@ int ::openNI2Comp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	DifferentialRobotPrx differentialrobot_proxy;
 
 	string proxy, tmp;
 	initialize();
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
+		}
+		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("DifferentialRobotProxy initialized Ok!");
+	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
 
 
 
@@ -166,15 +184,15 @@ int ::openNI2Comp::run(int argc, char* argv[])
 
 
 		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
 		}
-		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
-		RGBDI *rgbd = new RGBDI(worker);
-		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
-		adapterRGBD->activate();
-		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
+		Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
+		LaserI *laser = new LaserI(worker);
+		adapterLaser->add(laser, communicator()->stringToIdentity("laser"));
+		adapterLaser->activate();
+		cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
 
 
 
@@ -243,7 +261,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::openNI2Comp app(prefix);
+	::hokuyo app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

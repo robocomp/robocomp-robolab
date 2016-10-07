@@ -18,6 +18,7 @@
  */
 
  #include "specificworker.h"
+#include<opencv2/highgui/highgui.hpp>
 
 /**
 * \brief Default constructor
@@ -25,6 +26,7 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
 	innermodel = NULL;
+	cv::namedWindow("deo");
 }
 
 /**
@@ -122,7 +124,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	printf("w:%d   h:%d\n", m_width, m_height);
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
-
 	try
 	{
 		innermodel = new InnerModel(innermodel_path);
@@ -222,7 +223,9 @@ printf("---------------------\n");
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-			searchTags(image_gray);			
+			searchTags(image_gray);	
+			imshow("deo", image_gray);
+			cv::waitKey(10);		
 		}
 		catch(const Ice::Exception &e)
 		{

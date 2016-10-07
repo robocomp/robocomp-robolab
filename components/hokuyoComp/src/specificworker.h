@@ -1,6 +1,5 @@
-
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -17,31 +16,45 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SPECIFICMONITOR_H
-#define SPECIFICMONITOR_H
-
-#include "genericmonitor.h"
 
 /**
        \brief
        @author authorname
 */
-class SpecificMonitor : public GenericMonitor
-{
-  Q_OBJECT
-  
-  public:
-	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
-	~SpecificMonitor();
-	
-	void readConfig(RoboCompCommonBehavior::ParameterList &params );
-	void run();
-	void initialize();
-    
-	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
-	bool checkParams(RoboCompCommonBehavior::ParameterList l);
 
-	bool ready;
+
+
+#ifndef SPECIFICWORKER_H
+#define SPECIFICWORKER_H
+
+#include <constants.h>
+#include <genericworker.h>
+#include <innermodel/innermodel.h>
+#include <generichandler.h>
+#include <hokuyogenerichandler.h>
+#include <hokuyohandler.h>
+
+
+class SpecificWorker : public GenericWorker
+{
+Q_OBJECT
+public:
+	SpecificWorker(MapPrx& mprx);
+	~SpecificWorker();
+	bool setParams(RoboCompCommonBehavior::ParameterList params);
+
+	TLaserData getLaserData();
+	LaserConfData getLaserConfData();
+	TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState);
+
+public slots:
+	void compute();
+
+private:
+	InnerModel *innerModel;
+	GenericLaserHandler *lh;
+	RoboCompLaser::LaserConfData laserConf;
 };
 
-#endif // GENERICMONITOR_H
+#endif
+

@@ -27,8 +27,8 @@
 
 #include <CommonBehavior.h>
 
-#include <RGBD.h>
-#include <JointMotor.h>
+#include <Laser.h>
+#include <DifferentialRobot.h>
 #include <DifferentialRobot.h>
 
 #define CHECK_PERIOD 5000
@@ -38,9 +38,8 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompRGBD;
 using namespace RoboCompDifferentialRobot;
-using namespace RoboCompJointMotor;
+using namespace RoboCompLaser;
 
 
 
@@ -59,16 +58,11 @@ public:
 	QMutex *mutex;
 	
 
+	DifferentialRobotPrx differentialrobot_proxy;
 
-	virtual Registration getRegistration() = 0;
-	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual TRGBDParams getRGBDParams() = 0;
-	virtual void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void setRegistration(const Registration &value) = 0;
-	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
+	virtual TLaserData getLaserData() = 0;
+	virtual LaserConfData getLaserConfData() = 0;
+	virtual TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState) = 0;
 
 protected:
 	QTimer timer;

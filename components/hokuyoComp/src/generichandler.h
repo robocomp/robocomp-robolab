@@ -26,7 +26,7 @@
 #include <qlog/qlog.h>
 #include <q4serialport/q4serialport.h>
 
-#include "config.h"
+#include "constants.h"
 #include <math.h>
 
 

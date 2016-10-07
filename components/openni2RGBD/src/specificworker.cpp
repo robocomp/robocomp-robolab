@@ -183,7 +183,6 @@ void SpecificWorker::initializeStreams()
 	///INICIALIZACION ATRIBUTOS PARA PINTAR
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
-	printf("\nStart moving around to get detected...\n(PSI pose may be required for skeleton calibration, depending on the configuration)\n");
 }
 
 bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
@@ -345,9 +344,6 @@ void SpecificWorker::readColor()
 //	printf("%d %d\n", IMAGE_HEIGHT, IMAGE_WIDTH);
 	RGBMutex->lock();
 	  memcpy(&colorImage->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
-	//  memcpy(&colorBuffer->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
-	memcpy(&colorImage->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
-
 	RGBMutex->unlock();
 	
 }

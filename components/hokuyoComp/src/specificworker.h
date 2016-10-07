@@ -16,32 +16,45 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LASER_H
-#define LASER_H
 
-// Ice includes
-#include <Ice/Ice.h>
-#include <Laser.h>
+/**
+       \brief
+       @author authorname
+*/
 
-#include <config.h>
-#include "genericworker.h"
 
-using namespace RoboCompLaser;
 
-class LaserI : public virtual RoboCompLaser::Laser
+#ifndef SPECIFICWORKER_H
+#define SPECIFICWORKER_H
+
+#include <constants.h>
+#include <genericworker.h>
+#include <innermodel/innermodel.h>
+#include <generichandler.h>
+#include <hokuyogenerichandler.h>
+#include <hokuyohandler.h>
+
+
+class SpecificWorker : public GenericWorker
 {
+Q_OBJECT
 public:
-	LaserI(GenericWorker *_worker);
-	~LaserI();
-	
-	TLaserData getLaserData(const Ice::Current&);
-	LaserConfData getLaserConfData(const Ice::Current&);
-	TLaserData getLaserAndBStateData( RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	SpecificWorker(MapPrx& mprx);
+	~SpecificWorker();
+	bool setParams(RoboCompCommonBehavior::ParameterList params);
+
+	TLaserData getLaserData();
+	LaserConfData getLaserConfData();
+	TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState);
+
+public slots:
+	void compute();
 
 private:
-
-	GenericWorker *worker;
-
+	InnerModel *innerModel;
+	GenericLaserHandler *lh;
+	RoboCompLaser::LaserConfData laserConf;
 };
 
 #endif
+

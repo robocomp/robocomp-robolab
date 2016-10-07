@@ -110,7 +110,7 @@ void SpecificWorker::openDevice()
 	const openni::SensorInfo* colorInfo;
 
 	
-	int selD = 0;
+// 	int selD = 0;
 	depthInfo = device.getSensorInfo(openni::SENSOR_DEPTH);
 	const openni::Array<openni::VideoMode>& depthModes = depthInfo->getSupportedVideoModes();
 	qDebug() << "\nSupported DEPTH modes:";
@@ -121,7 +121,7 @@ void SpecificWorker::openDevice()
 		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
 		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_DEPTH_1_MM)
 		{
-			selD = i;
+// 			selD = i;
 			printf("GOOD! %d\n", i);
 		}
 	}
@@ -131,7 +131,7 @@ void SpecificWorker::openDevice()
 //         printf("error: can't set depth fromat\n");
 //     }
 
-    int selC = 0;
+//     int selC = 0;
     colorInfo = device.getSensorInfo(openni::SENSOR_COLOR);
 	const openni::Array<openni::VideoMode>& colorModes = colorInfo->getSupportedVideoModes();
 	printf("\nSupported COLOR modes:\n");
@@ -141,7 +141,7 @@ void SpecificWorker::openDevice()
 		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
 		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_RGB888) // 200 rgb888
 		{
-			selC = i;
+// 			selC = i;
 			printf("GOOD! %d\n", i);
 		}
 	}
@@ -428,7 +428,7 @@ TRGBDParams SpecificWorker::getRGBDParams( )
 	return params;
 }
 
-void SpecificWorker::setRegistration (RoboCompRGBD::Registration value)
+void SpecificWorker::setRegistration (const RoboCompRGBD::Registration &value)
 {
 	registration=value;
 }
@@ -467,7 +467,7 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
 {
-        color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
 	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();

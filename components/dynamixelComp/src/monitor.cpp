@@ -25,6 +25,7 @@
 */
 Monitor::Monitor( Worker *_worker, Ice::CommunicatorPtr _communicator )
 {
+	ready = false;
 	period = 100;
 	worker = _worker;
 	this->communicator = _communicator;
@@ -43,6 +44,7 @@ Monitor::~Monitor()
 void Monitor::run()
 {
 	initialize();
+	ready = true;
 	forever
 	{
 		rDebug("Monitor::run()");

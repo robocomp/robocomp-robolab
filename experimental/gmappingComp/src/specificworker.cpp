@@ -55,6 +55,13 @@ SpecificWorker::SpecificWorker(MapPrx &mprx) : GenericWorker(mprx)
 
 	connect(map, SIGNAL(iniMouseCoor(QPoint)), this, SLOT(iniMouseCoor(QPoint)));
 	connect(map, SIGNAL(endMouseCoor(QPoint)), this, SLOT(endMouseCoor(QPoint)));
+	
+	worker_params_mutex = new QMutex();
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = false;
+	aux.type = "float";
+	aux.value = "0";
+	worker_params["frameRate"] = aux;
 
 }
 
@@ -246,6 +253,7 @@ GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseS
 void SpecificWorker::compute()
 {
 	static QTime lastDrawn = QTime::currentTime();
+	static QTime reloj = QTime::currentTime();
 	// 	static QTime lastSent = QTime::currentTime();
 	// 	static QVec lastPosSent = QVec::vec3();
 	// 	static float lastAngleSent = 0;
@@ -342,6 +350,10 @@ void SpecificWorker::compute()
 		updateMap(mymap);
 	delete mymap;
 
+	worker_params_mutex->lock();
+		//save framerate in params
+		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	worker_params_mutex->unlock();
 }
 
 void SpecificWorker::updateMap(Map<double, DoubleArray2D, false> *mymap)
@@ -671,5 +683,9 @@ void SpecificWorker::regenerateRT()
 }
 
 
-
+RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
+{
+	QMutexLocker locker(worker_params_mutex);
+	return worker_params;
+}
 

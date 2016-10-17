@@ -37,6 +37,13 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	fps = 0;
+	
+	worker_params_mutex = new QMutex();
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = false;
+	aux.type = "float";
+	aux.value = "0";
+	worker_params["frameRate"] = aux;
 }
 
 void SpecificWorker::openDevice()
@@ -261,6 +268,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute( )
 {
+	static QTime fpsReloj = QTime::currentTime();
 	static QTime reloj = QTime::currentTime();
 	
 	bool doCoordinates = readFrame();
@@ -270,14 +278,18 @@ void SpecificWorker::compute( )
 		pointsBuff.swap();
 		depthBuff.swap();
 
-		if (reloj.elapsed() > 1000)
+		if (fpsReloj.elapsed() > 1000)
 		{
 			qDebug()<<"Grabbing at:"<<fps<<"fps";
-			reloj.restart();
+			fpsReloj.restart();
 			fps=0;
 		}
 		fps++;
 	}
+	worker_params_mutex->lock();
+		//save framerate in params
+		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	worker_params_mutex->unlock();
 }
 
 bool SpecificWorker::readFrame()
@@ -477,6 +489,13 @@ void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap 
 {
 	pointsBuff.copy(points);
 }
+
+RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
+{
+	QMutexLocker locker(worker_params_mutex);
+	return worker_params;
+}
+
 
 
 

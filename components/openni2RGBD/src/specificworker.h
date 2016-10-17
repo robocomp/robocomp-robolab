@@ -130,12 +130,14 @@ Q_OBJECT
 	DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 	
 	RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
-           
+    RoboCompCommonBehavior::ParameterList worker_params;
+	QMutex *worker_params_mutex;
+	
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	
+	RoboCompCommonBehavior::ParameterList getWorkerParams();
 	///RGBD INTERFACE
 	TRGBDParams getRGBDParams( );
 	void setRegistration (const RoboCompRGBD::Registration &value);

@@ -24,15 +24,12 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-#include <ui_mainUI.h>
 
 #include <CommonBehavior.h>
 
 #include <Laser.h>
 #include <DifferentialRobot.h>
-#include <OmniRobot.h>
-#include <SlamLaser.h>
-#include <CGR.h>
+#include <DifferentialRobot.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -41,21 +38,14 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompOmniRobot;
 using namespace RoboCompDifferentialRobot;
-using namespace RoboCompCGR;
 using namespace RoboCompLaser;
-using namespace RoboCompSlamLaser;
 
 
 
 
 class GenericWorker : 
-#ifdef USE_QTGUI
-public QWidget, public Ui_guiDlg
-#else
 public QObject
-#endif
 {
 Q_OBJECT
 public:
@@ -65,18 +55,14 @@ public:
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	virtual RoboCompCommonBehavior::ParameterList getWorkerParams() = 0;	
 	QMutex *mutex;
 	
 
-	LaserPrx laser_proxy;
-	OmniRobotPrx omnirobot_proxy;
-	CGRTopicPrx cgrtopic_proxy;
+	DifferentialRobotPrx differentialrobot_proxy;
 
-	virtual bool saveMap(const string &path) = 0;
-	virtual void getWholeGrid(GridMap &map, Pose2D &pose) = 0;
-	virtual void initializeRobotPose(const Pose2D &pose) = 0;
-	virtual void getPartialGrid(const MapRect &rect, GridMap &map, Pose2D &pose) = 0;
+	virtual TLaserData getLaserData() = 0;
+	virtual LaserConfData getLaserConfData() = 0;
+	virtual TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState) = 0;
 
 protected:
 	QTimer timer;

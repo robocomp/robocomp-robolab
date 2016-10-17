@@ -1,3 +1,4 @@
+
 /*
  *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
@@ -16,51 +17,32 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef MONITOR_H
-#define MONITOR_H
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-#include <Ice/Ice.h>
-#include <QtCore>
-#include "worker.h"
-#include "config.h"
-#include <qlog/qlog.h>
-#include <CommonBehavior.h>
+#include "genericmonitor.h"
+#include "constants.h"
+
 /**
        \brief
        @author authorname
 */
-class Monitor : public QThread
+class SpecificMonitor : public GenericMonitor
 {
   Q_OBJECT
   
   public:
-	Monitor(Worker *_worker, Ice::CommunicatorPtr _communicator);
-	~Monitor();
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
 	
 	void readConfig(RoboCompCommonBehavior::ParameterList &params );
 	void run();
 	void initialize();
-    //CommonBehavior
-	int getPeriod();
-	void setPeriod(int period);
-	void killYourSelf();
-	int timeAwake();
-	RoboCompCommonBehavior::ParameterList getParameterList();
-	void setParameterList(RoboCompCommonBehavior::ParameterList l);
-	RoboCompCommonBehavior::State getState();
-  private:
-	int period;
-	Worker *worker;
-	Ice::CommunicatorPtr communicator;
-	QTime initialTime;
-	RoboCompCommonBehavior::ParameterList config_params;
-	RoboCompCommonBehavior::State state;
-	
+    
 	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
 	bool checkParams(RoboCompCommonBehavior::ParameterList l);
-	bool configGetString( const std::string name, std::string &value,  const std::string default_value, QStringList *list = NULL);
-  signals:
-	void kill();
+	
+	bool ready;
 };
 
-#endif // MONITOR_H
+#endif // GENERICMONITOR_H

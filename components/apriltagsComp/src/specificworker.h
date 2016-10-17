@@ -53,6 +53,7 @@ public:
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	//virtual void  newAprilTag(int id, float tx, float ty, float tz, float rx, float ry, float rz){};
 	listaMarcas checkMarcas();
+	RoboCompCommonBehavior::ParameterList getWorkerParams();
 public slots:
 	void compute(); 	
 
@@ -94,6 +95,9 @@ private:
 	void searchTags(const cv::Mat &image_gray);
 	cv::Mat image_gray, image_color;
 	int INPUTIFACE;
+	
+	RoboCompCommonBehavior::ParameterList worker_params;
+	QMutex *worker_params_mutex;
 };
 
 #endif

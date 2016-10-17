@@ -1,4 +1,3 @@
-
 /*
  *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
@@ -46,11 +45,8 @@ void SpecificMonitor::run()
 
 /**
  * \brief Reads components parameters and checks set integrity before signaling the Worker thread to start running
- * There can be four (4) types of parameteres:
- *		(1) Ice parameters
- *		(2) Nexus (configuration) parameters	
- *		(3) Local component parameters read at start
- *		(4) Local parameters read from other running component
+ *   (1) Ice parameters
+ *   (2) Local component parameters read at start
  *
  */
 void SpecificMonitor::initialize()
@@ -67,6 +63,7 @@ void SpecificMonitor::initialize()
 	}
 	state = RoboCompCommonBehavior::Running;
 }
+
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)
 {
 	if(checkParams(params))
@@ -82,31 +79,53 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 	return false;
 
 }
+
 ///Local Component parameters read at start
 ///Reading parameters from config file or passed in command line, with Ice machinery
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-	//Read params from config file
-	//Example
-	    //RoboCompCommonBehavior::Parameter aux;
-	    //aux.editable = true;
-	    //configGetString( "DRobot.Device", aux.value,"/dev/ttyUSB0");
-	    //params["DRobot.Device"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	configGetString("",LASER_DRIVER_PROPERTY_NAME, aux.value, LASER_DRIVER_PROPERTY_DEFAULT);
+	aux.type = "string";
+	params[LASER_DRIVER_PROPERTY_NAME] = aux;
+	configGetString("",LASER_DEVICE_PROPERTY_NAME, aux.value, LASER_DEVICE_PROPERTY_DEFAULT);
+	params[LASER_DEVICE_PROPERTY_NAME] = aux;
+
+	aux.type = "int";
+	configGetString("",LASER_START_PROPERTY_NAME, aux.value, LASER_START_PROPERTY_DEFAULT);
+	params[LASER_START_PROPERTY_NAME] = aux;
+	configGetString("",LASER_END_PROPERTY_NAME, aux.value, LASER_END_PROPERTY_DEFAULT);
+	params[LASER_END_PROPERTY_NAME] = aux;
+	configGetString("",LASER_SKIP_PROPERTY_NAME, aux.value, LASER_SKIP_PROPERTY_DEFAULT);
+	params[LASER_SKIP_PROPERTY_NAME] = aux;
+	configGetString("",LASER_SAMPLERATE_PROPERTY_NAME, aux.value, LASER_SAMPLERATE_PROPERTY_DEFAULT);
+	params[LASER_SAMPLERATE_PROPERTY_NAME] = aux;
+	configGetString("",LASER_MAX_DEGREES_PROPERTY_NAME, aux.value, LASER_MAX_DEGREES_DEFAULT);
+	params[LASER_MAX_DEGREES_PROPERTY_NAME] = aux;
+	configGetString("",LASER_MAX_RANGE_PROPERTY_NAME, aux.value, LASER_MAX_RANGE_DEFAULT);
+	params[LASER_MAX_RANGE_PROPERTY_NAME] = aux;
+	configGetString("",LASER_MIN_RANGE_PROPERTY_NAME, aux.value, LASER_MIN_RANGE_DEFAULT);
+	params[LASER_MIN_RANGE_PROPERTY_NAME] = aux;
+	configGetString("",LASER_STATIC_CONF_PROPERTY_NAME, aux.value, LASER_STATIC_CONF_DEFAULT);
+	params[LASER_STATIC_CONF_PROPERTY_NAME] = aux;
+	
+	aux.type = "float";
+	configGetString("",LASER_RESOLUTION_PROPERTY_NAME, aux.value, LASER_ANGLE_RESOLUTION_DEFAULT);
+	params[LASER_RESOLUTION_PROPERTY_NAME] = aux;
+	configGetString("",LASER_INITIAL_ANGLE_PROPERTY_NAME, aux.value, LASER_INITIAL_ANGLE_DEFAULT);
+	params[LASER_INITIAL_ANGLE_PROPERTY_NAME] = aux;
+	
+	aux.type = "bool";
+	configGetString("",LASER_TALKTOBASE_PROPERTY_NAME,aux.value,LASER_TALKTOBASE_DEFAULT);
+	params[LASER_TALKTOBASE_PROPERTY_NAME] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;
-	//Check parameters
-	//Example
-// 	    if(l["DRobot.Handler"].value != "Robex" and l["DRobot.Handler"].value != "Gazebo" and l["DRobot.Handler"].value != "Player")
-// 		    correct = false;
-	
-	//copy parameters
-// 	if(correct)
-// 		config_params = l;
 	return correct;
 }
 

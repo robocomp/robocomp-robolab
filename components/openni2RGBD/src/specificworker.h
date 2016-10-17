@@ -36,12 +36,11 @@
 #define READ_WAIT_TIMEOUT 2000
 #define PI 3.14159265359
 
-///DEFINICIONES TEMPORALES, A ESPERA DE INTERFAZ DE TRACKING
-///TEMPORAL
-struct TRadRotations{
-  double rx;
-  double ry;
-  double rz;
+struct TRadRotations
+{
+	double rx;
+	double ry;
+	double rz;
 };
 
 //using namespace nite;
@@ -76,7 +75,7 @@ template <class T> class DoubleBuffer
 		{
 			points.resize(size);
 			bufferMutex.lock();
-				points = *reader;
+			points = *reader;
 			bufferMutex.unlock();
 		}
 		T* getWriter()
@@ -89,57 +88,59 @@ template <class T> class DoubleBuffer
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
-      int IMAGE_WIDTH, IMAGE_HEIGHT;
-     int fps; 
+	int IMAGE_WIDTH, IMAGE_HEIGHT;
+	int fps; 
 
-      openni::Status openniRc;
-      Device device;
-      VideoStream depth;
-      VideoStream color;
-      VideoFrameRef depthFrame;
-      VideoFrameRef colorFrame;
-      
-      VideoStream* pStream;
-      int changedStreamDummy;
-      DepthPixel* pixDepth;
-      RoboCompRGBD::DepthSeq* depthBuffer;
-      RoboCompRGBD::ColorSeq* colorBuffer;
-      imgType* colorImage;
-      depthType* depthImage;
+	openni::Status openniRc;
+	Device device;
+	VideoStream depth;
+	VideoStream color;
+	VideoFrameRef depthFrame;
+	VideoFrameRef colorFrame;
+	
+	VideoStream* pStream;
+	int changedStreamDummy;
+	DepthPixel* pixDepth;
+	RoboCompRGBD::DepthSeq* depthBuffer;
+	RoboCompRGBD::ColorSeq* colorBuffer;
+	imgType* colorImage;
+	depthType* depthImage;
 
-      ///MUTEX
-      QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
-      
-      vector<short> normalDepth;
-      uint16_t *mColor;
-      uint8_t *auxDepth;
-      CoordinateConverter conversor;
+	///MUTEX
+	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
+	
+	vector<short> normalDepth;
+	uint16_t *mColor;
+	uint8_t *auxDepth;
+	CoordinateConverter conversor;
 
-      Registration registration;
-      
-      void openDevice();
-      bool openStream(SensorType sensorType, VideoStream *stream);
-      void initializeStreams();
+	Registration registration;
+	
+	void openDevice();
+	bool openStream(SensorType sensorType, VideoStream *stream);
+	void initializeStreams();
 	bool readFrame();
-      void computeCoordinates();
-      void readColor();
-      void readDepth();
-      
-      void normalizeDepth();
-      
-      DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
-	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
-	 
-      RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
-           
+	void computeCoordinates();
+	void readColor();
+	void readDepth();
+	
+	void normalizeDepth();
+	
+	DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
+	DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+	
+	RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
+    RoboCompCommonBehavior::ParameterList worker_params;
+	QMutex *worker_params_mutex;
+	
 public:
-	SpecificWorker(MapPrx& mprx);	
+	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	
+	RoboCompCommonBehavior::ParameterList getWorkerParams();
 	///RGBD INTERFACE
 	TRGBDParams getRGBDParams( );
-	void setRegistration (RoboCompRGBD::Registration value);
+	void setRegistration (const RoboCompRGBD::Registration &value);
 	Registration getRegistration ( );
 	void getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
 	void getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
@@ -149,7 +150,7 @@ public:
 	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
 
 public slots:
- 	void compute(); 	
+	void compute();
 };
 
 #endif

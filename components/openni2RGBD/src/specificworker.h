@@ -133,6 +133,8 @@ Q_OBJECT
 	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 	 
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
+	QMutex *worker_params_mutex;
+	RoboCompCommonBehavior::ParameterList worker_params;
            
 public:
 	SpecificWorker(MapPrx& mprx);	

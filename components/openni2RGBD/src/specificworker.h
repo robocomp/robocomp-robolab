@@ -76,7 +76,7 @@ template <class T> class DoubleBuffer
 		{
 			points.resize(size);
 			bufferMutex.lock();
-				points = *reader;
+			points = *reader;
 			bufferMutex.unlock();
 		}
 		T* getWriter()
@@ -89,8 +89,8 @@ template <class T> class DoubleBuffer
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
-      int IMAGE_WIDTH, IMAGE_HEIGHT;
-     int fps; 
+	int IMAGE_WIDTH, IMAGE_HEIGHT;
+	int fps; 
 
       openni::Status openniRc;
       Device device;
@@ -107,13 +107,13 @@ Q_OBJECT
       imgType* colorImage;
       depthType* depthImage;
 
-      ///MUTEX
-      QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
-      
-      vector<short> normalDepth;
-      uint16_t *mColor;
-      uint8_t *auxDepth;
-      CoordinateConverter conversor;
+	///MUTEX
+	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
+	
+	vector<short> normalDepth;
+	uint16_t *mColor;
+	uint8_t *auxDepth;
+	CoordinateConverter conversor;
 
       Registration registration;
       
@@ -138,7 +138,7 @@ public:
 	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	
+	RoboCompCommonBehavior::ParameterList getWorkerParams();
 	///RGBD INTERFACE
 	TRGBDParams getRGBDParams( );
 	void setRegistration (const RoboCompRGBD::Registration &value);

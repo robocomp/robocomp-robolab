@@ -56,6 +56,7 @@ public:
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
+	virtual RoboCompCommonBehavior::ParameterList getWorkerParams() = 0;	
 	QMutex *mutex;
 	
 

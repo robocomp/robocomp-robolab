@@ -26,7 +26,13 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
 	innermodel = NULL;
-	cv::namedWindow("deo");
+//	cv::namedWindow("deo");
+	worker_params_mutex = new QMutex();
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = false;
+	aux.type = "float";
+	aux.value = "0";
+	worker_params["frameRate"] = aux;
 }
 
 /**
@@ -186,6 +192,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static QTime reloj = QTime::currentTime();
 	if (innermodel == NULL) return;
 printf("---------------------\n"); 
 
@@ -225,7 +232,7 @@ printf("---------------------\n");
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);	
 			imshow("deo", image_gray);
-			cv::waitKey(10);		
+			cv::waitKey(10);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -257,6 +264,11 @@ printf("---------------------\n");
 		cout << "*********************************************************" <<  1000.*frame/lastTime.elapsed()  << " fps" << endl;
 		frame = 0;
 	}
+	worker_params_mutex->lock();
+		//save framerate in params
+		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	worker_params_mutex->unlock();
+	
 }
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
@@ -390,6 +402,10 @@ listaMarcas SpecificWorker::checkMarcas()
   QMutexLocker locker(mutex);
   return  listaDeMarcas;
 }
-
+RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
+{
+	QMutexLocker locker(worker_params_mutex);
+	return worker_params;
+}
 
 

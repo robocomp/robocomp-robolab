@@ -28,8 +28,7 @@
 #include <CommonBehavior.h>
 
 #include <Laser.h>
-#include <DifferentialRobot.h>
-#include <DifferentialRobot.h>
+#include <GenericBase.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -38,7 +37,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompGenericBase;
 using namespace RoboCompLaser;
 
 
@@ -58,11 +57,11 @@ public:
 	QMutex *mutex;
 	
 
-	DifferentialRobotPrx differentialrobot_proxy;
+	GenericBasePrx genericbase_proxy;
 
 	virtual TLaserData getLaserData() = 0;
 	virtual LaserConfData getLaserConfData() = 0;
-	virtual TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState) = 0;
+	virtual TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
 
 protected:
 	QTimer timer;

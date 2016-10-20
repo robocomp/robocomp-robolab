@@ -45,7 +45,7 @@ public:
 
 	TLaserData getLaserData();
 	LaserConfData getLaserConfData();
-	TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState);
+	TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
 
 public slots:
 	void compute();

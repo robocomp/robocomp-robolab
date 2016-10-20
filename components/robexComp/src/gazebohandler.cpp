@@ -137,7 +137,7 @@ bool GazeboHandler::stopBase()
  * @return bState
  */
 
-RoboCompDifferentialRobot::TBaseState GazeboHandler::getBaseState()
+RoboCompGenericBase::TBaseState GazeboHandler::getBaseState()
 {
 #ifdef OLD_API
     gazebo::Pose pose;
@@ -298,7 +298,7 @@ bool GazeboHandler::resetOdometer()
 * @param _bState State to set odometer values
 * @return true if command was sended successfully, else return false
 */
-bool GazeboHandler::setOdometer(RoboCompDifferentialRobot::TBaseState _bState)
+bool GazeboHandler::setOdometer(RoboCompGenericBase::TBaseState _bState)
 {
         posIface->Lock(1);
 	  antX = -posIface->data->pose.pos.y*1000.;

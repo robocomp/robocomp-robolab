@@ -79,11 +79,13 @@
 #include "commonbehaviorI.h"
 #include "differentialrobotI.h"
 #include "joystickadapterI.h"
+#include "genericbaseI.h"
 
 using namespace std;
 using namespace RoboCompCommonBehavior;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompJoystickAdapter;
+using namespace RoboCompGenericBase;
 
 
 class DifferentialRobotComp : public RoboComp::Application 
@@ -149,7 +151,10 @@ int DifferentialRobotComp::run(int argc, char* argv[])
 		adapterJoy->add(joystickadapterI,communicator()->stringToIdentity("joystickadapter"));
 		adapterJoy->activate();
 		
-
+		Ice::ObjectAdapterPtr adapterGenericBase = communicator()->createObjectAdapter("GenericBase");
+		GenericBaseI *genericbaseI = new GenericBaseI(worker);
+		adapterGenericBase->add(genericbaseI,communicator()->stringToIdentity("genericbase"));
+		adapterGenericBase->activate();
 
 		cout << SERVER_FULL_NAME " started" << endl;
 

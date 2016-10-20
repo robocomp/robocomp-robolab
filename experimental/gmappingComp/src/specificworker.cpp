@@ -88,7 +88,7 @@ void SpecificWorker::initialize()
 	//SENSOR MAP
 	try
 	{
-		RoboCompDifferentialRobot::TBaseState dd;
+		RoboCompGenericBase::TBaseState dd;
 		laserData = laser_proxy->getLaserAndBStateData(dd);
 	}
 	catch (const Ice::Exception &ex)
@@ -168,9 +168,9 @@ void SpecificWorker::initialize()
 	//bState update
 	try
 	{
-		RoboCompDifferentialRobot::TBaseState dd;
+		RoboCompGenericBase::TBaseState dd;
 		laserData = laser_proxy->getLaserAndBStateData(dd);
-		omnirobot_proxy->getBaseState(bState);
+		genericbase_proxy->getBaseState(bState);
 	}
 	catch (const Ice::Exception &ex)
 	{
@@ -230,7 +230,7 @@ void SpecificWorker::initialize()
 }
 
 /// Last value of RangeSensor constructor should be changed. :-?
-GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompOmniRobot::TBaseState usedState)
+GMapping::RangeReading SpecificWorker::robocompWrapper(RoboCompGenericBase::TBaseState usedState)
 {
 	static QTime baseTime = QTime::currentTime();
 	for (uint i = 0; i < laserData.size(); ++i)
@@ -277,9 +277,9 @@ void SpecificWorker::compute()
 
 	try
 	{
-		RoboCompDifferentialRobot::TBaseState dd;
+		RoboCompGenericBase::TBaseState dd;
 		laserData = laser_proxy->getLaserAndBStateData(dd);
-		omnirobot_proxy->getBaseState(bState);
+		genericbase_proxy->getBaseState(bState);
 		// qDebug()<<"base pose"<<bState.x<<bState.z<<bState.alpha;
 
 		// This returns true when the algorithm effectively processes (the traveled path since the last processing is over a given threshold)
@@ -297,7 +297,7 @@ void SpecificWorker::compute()
 		if (processed)
 		{
 			OrientedPoint po = processor->getParticles()[best_idx].pose;
-			RoboCompOmniRobot::TBaseState estimatedPose;
+			RoboCompGenericBase::TBaseState estimatedPose;
 			estimatedPose.x = po.y * 1000.;
 			estimatedPose.z = po.x * 1000.;
 			estimatedPose.alpha = po.theta;
@@ -315,7 +315,7 @@ void SpecificWorker::compute()
 			                                 estimatedPose.alpha - mapTransform_ry);
 
 
-			printf("omnirobot_proxy->correctOdometer(%f,  %f,  %f),  (%f,  %f,  %f)\n", bState.correctedX,
+			printf("genericbase_proxy->correctOdometer(%f,  %f,  %f),  (%f,  %f,  %f)\n", bState.correctedX,
 			       bState.correctedZ, bState.correctedAlpha, finalCorrection(0), finalCorrection(2),
 			       estimatedPose.alpha - mapTransform_ry);
 			// 			setLast(bState, lastSent, lastPosSent, lastAngleSent);

@@ -18,10 +18,9 @@
  */
 #include "slamlaserI.h"
 
-SlamLaserI::SlamLaserI(GenericWorker *_worker, QObject *parent) : QObject(parent)
+SlamLaserI::SlamLaserI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
 }
 
 

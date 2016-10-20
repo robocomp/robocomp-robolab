@@ -29,7 +29,7 @@ QObject()
 
 {
 	laser_proxy = (*(LaserPrx*)mprx["LaserProxy"]);
-	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
+	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
 	cgrtopic_proxy = (*(CGRTopicPrx*)mprx["CGRTopicPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);

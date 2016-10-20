@@ -29,8 +29,7 @@
 #include <CommonBehavior.h>
 
 #include <Laser.h>
-#include <DifferentialRobot.h>
-#include <OmniRobot.h>
+#include <GenericBase.h>
 #include <SlamLaser.h>
 #include <CGR.h>
 
@@ -41,9 +40,8 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompOmniRobot;
-using namespace RoboCompDifferentialRobot;
 using namespace RoboCompCGR;
+using namespace RoboCompGenericBase;
 using namespace RoboCompLaser;
 using namespace RoboCompSlamLaser;
 
@@ -65,13 +63,12 @@ public:
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	virtual RoboCompCommonBehavior::ParameterList getWorkerParams() = 0;	
 	QMutex *mutex;
 	
 
-	LaserPrx laser_proxy;
-	OmniRobotPrx omnirobot_proxy;
 	CGRTopicPrx cgrtopic_proxy;
+	LaserPrx laser_proxy;
+	GenericBasePrx genericbase_proxy;
 
 	virtual bool saveMap(const string &path) = 0;
 	virtual void getWholeGrid(GridMap &map, Pose2D &pose) = 0;

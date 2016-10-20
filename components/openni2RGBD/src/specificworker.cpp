@@ -34,7 +34,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
-
+	bStateMutex = new QMutex();
+	mStateMutex = new QMutex();
+	
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	fps = 0;
@@ -45,6 +47,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
+	talkToJoint = false;
+	talkToBase = false;
 }
 
 void SpecificWorker::openDevice()
@@ -118,7 +122,7 @@ void SpecificWorker::openDevice()
 	const openni::SensorInfo* colorInfo;
 
 	
-	int selD = 0;
+//	int selD = 0;
 	depthInfo = device.getSensorInfo(openni::SENSOR_DEPTH);
 	const openni::Array<openni::VideoMode>& depthModes = depthInfo->getSupportedVideoModes();
 	qDebug() << "\nSupported DEPTH modes:";
@@ -129,7 +133,7 @@ void SpecificWorker::openDevice()
 		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
 		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_DEPTH_1_MM)
 		{
-			selD = i;
+//			selD = i;
 			printf("GOOD! %d\n", i);
 		}
 	}
@@ -139,7 +143,7 @@ void SpecificWorker::openDevice()
 //         printf("error: can't set depth fromat\n");
 //     }
 
-    int selC = 0;
+//    int selC = 0;
     colorInfo = device.getSensorInfo(openni::SENSOR_COLOR);
 	const openni::Array<openni::VideoMode>& colorModes = colorInfo->getSupportedVideoModes();
 	printf("\nSupported COLOR modes:\n");
@@ -149,7 +153,7 @@ void SpecificWorker::openDevice()
 		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
 		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_RGB888) // 200 rgb888
 		{
-			selC = i;
+//			selC = i;
 			printf("GOOD! %d\n", i);
 		}
 	}
@@ -306,11 +310,17 @@ void SpecificWorker::closeStreams()
 	delete usersMutex;
 	delete RGBMutex;
 	delete depthMutex;
+	delete mStateMutex;
+	delete bStateMutex;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {	
 	timer.start(30);
+	
+	talkToBase = params["talkToBase"].value.compare("true");
+	talkToJoint = params["talkToJoint"].value.compare("true");
+	
 	return true;
 }
 
@@ -319,6 +329,35 @@ void SpecificWorker::compute( )
 	static QTime fpsReloj = QTime::currentTime();
 	static QTime reloj = QTime::currentTime();
 	
+	//read base state
+	if(talkToBase)
+	{
+		try
+		{
+			bStateMutex->lock();
+			genericbase_proxy->getBaseState(bState); 
+		}
+		catch (const Ice::Exception &ex)
+		{
+			cout<<"--> Exception reading bState:" << ex.what()<<std::endl;
+		}
+		bStateMutex->unlock();
+	}
+	
+	//read motor state
+	if(talkToJoint)
+	{
+		try
+		{
+			mStateMutex->lock();
+			jointmotor_proxy->getAllMotorState(mState); 
+		}
+		catch (const Ice::Exception &ex)
+		{
+			cout<<"--> Exception reading MotorStateMap:" << ex.what()<<std::endl;
+		}
+		mStateMutex->unlock();
+	}
 	bool doCoordinates = readFrame();
 	if (doCoordinates)
 	{
@@ -500,7 +539,7 @@ Registration SpecificWorker::getRegistration ( ){
 	return registration;
 }
 
-void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState_, RoboCompGenericBase::TBaseState& bState_)
 {
 	RGBMutex->lock();
 	rgbMatrix=*colorImage;
@@ -508,37 +547,67 @@ void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, Robo
 	depthMutex->lock();
 	distanceMatrix=*depthImage;
 	depthMutex->unlock();
-
+	mStateMutex->lock();
+	hState_ = mState;
+	mStateMutex->lock();
+	bStateMutex->lock();
+	bState_ = bState;
+	bStateMutex->unlock();
 }
 
-void SpecificWorker::getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState_, RoboCompGenericBase::TBaseState& bState_)
 {
+	mStateMutex->lock();
+	hState_ = mState;
+	mStateMutex->lock();
+	bStateMutex->lock();
+	bState_ = bState;
+	bStateMutex->unlock();
 	qDebug()<<"getDepthInIR not implemented yet";
 }
 
-void SpecificWorker::getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
 {
 	getDepth(depth,hState,bState);
 	getRGB(color,hState,bState);
 	getXYZ(points,hState,bState);
 }
 
-void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState )
+void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState_, RoboCompGenericBase::TBaseState& bState_ )
 {
 	depthBuff.copy(depth);
+	mStateMutex->lock();
+	hState_ = mState;
+	mStateMutex->lock();
+	bStateMutex->lock();
+	bState_ = bState;
+	bStateMutex->unlock();
+	
 }
 
-void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState_, RoboCompGenericBase::TBaseState& bState_)
 {
-        color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
 	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
+		mStateMutex->lock();
+	hState_ = mState;
+	mStateMutex->lock();
+	bStateMutex->lock();
+	bState_ = bState;
+	bStateMutex->unlock();
 }
 
-void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState_, RoboCompGenericBase::TBaseState& bState_)
 {
 	pointsBuff.copy(points);
+	mStateMutex->lock();
+	hState_ = mState;
+	mStateMutex->lock();
+	bStateMutex->lock();
+	bState_ = bState;
+	bStateMutex->unlock();
 }
 
 RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()

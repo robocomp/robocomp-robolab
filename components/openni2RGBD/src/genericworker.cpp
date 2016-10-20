@@ -23,7 +23,9 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-
+	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
+	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
+	
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;

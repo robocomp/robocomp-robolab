@@ -37,7 +37,7 @@ class HokuyoHandler : public GenericLaserHandler
 {
 Q_OBJECT
 public:
-	HokuyoHandler(RoboCompLaser::LaserConfData &config, RoboCompDifferentialRobot::DifferentialRobotPrx base_prx, QObject *_parent = 0);
+	HokuyoHandler(RoboCompLaser::LaserConfData &config, RoboCompGenericBase::GenericBasePrx base_prx, QObject *_parent = 0);
 	~HokuyoHandler();
 
 	void setConfig(RoboCompLaser::LaserConfData & config);

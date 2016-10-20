@@ -78,7 +78,7 @@
 #include "monitor.h"
 #include "commonbehaviorI.h"
 #include "differentialrobotI.h"
-
+#include "genericbaseI.h"
 
 
 // Includes for remote proxy example
@@ -91,7 +91,7 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 using namespace RoboCompDifferentialRobot;
-
+using namespace RoboCompGenericBase;
 
 
 class DifferentialRobotComp : public RoboComp::Application 
@@ -181,6 +181,8 @@ int DifferentialRobotComp::run(int argc, char* argv[])
 		DifferentialRobotI *differentialrobotI = new DifferentialRobotI(worker );
 		adapter->add(differentialrobotI, communicator()->stringToIdentity("differentialrobot"));
 
+		GenericBaseI *genericbaseI = new GenericBaseI(worker );
+		adapter->add(genericbaseI, communicator()->stringToIdentity("genericbase"));
 		adapter->activate();
 
 		cout << SERVER_FULL_NAME " started" << endl;

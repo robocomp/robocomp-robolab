@@ -19,7 +19,7 @@
 
 #include "hokuyogenerichandler.h"
 
-HokuyoGenericHandler::HokuyoGenericHandler(RoboCompLaser::LaserConfData &config, RoboCompDifferentialRobot::DifferentialRobotPrx base_prx, QObject *_parent) : GenericLaserHandler(base_prx, _parent)
+HokuyoGenericHandler::HokuyoGenericHandler(RoboCompLaser::LaserConfData &config, RoboCompGenericBase::GenericBasePrx base_prx, QObject *_parent) : GenericLaserHandler(base_prx, _parent)
 {
 	// Create the sampling timer
 	timer = new QTimer(this );

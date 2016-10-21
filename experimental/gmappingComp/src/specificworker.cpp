@@ -170,13 +170,20 @@ void SpecificWorker::initialize()
 	{
 		RoboCompGenericBase::TBaseState dd;
 		laserData = laser_proxy->getLaserAndBStateData(dd);
-		genericbase_proxy->getBaseState(bState);
 	}
 	catch (const Ice::Exception &ex)
 	{
 		qFatal("gmappingComp::initialize(): Error, no laser connection");
 	}
-
+	try
+	{
+		genericbase_proxy->getBaseState(bState);
+	}
+	catch (const Ice::Exception &ex)
+	{
+		qFatal("gmappingComp::initialize(): Error, no genericbase connection");
+	}
+		
 	//INITIALIZATION
 	rInfo("Worker::Initializing processor");
 	int numParticles = QString::fromStdString(params["GMapping.particles"].value).toInt();

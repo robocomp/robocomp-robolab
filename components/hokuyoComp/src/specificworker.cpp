@@ -51,8 +51,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	laserConf.staticConf = QString::fromStdString(params[LASER_STATIC_CONF_PROPERTY_NAME].value).toInt();
 	laserConf.angleRes = QString::fromStdString(params[LASER_RESOLUTION_PROPERTY_NAME].value).toFloat();
 	laserConf.angleIni = QString::fromStdString(params[LASER_INITIAL_ANGLE_PROPERTY_NAME].value).toFloat();
-	laserConf.maxMeasures = 600;
-	laserConf.cluster = QString::fromStdString(params[LASER_SKIP_PROPERTY_DEFAULT].value).toInt();	
+	laserConf.cluster = QString::fromStdString(params[LASER_CLUSTER_PROPERTY_NAME].value).toInt();	
 	
 	if ((laserConf.driver == "HokuyoURG")) // HOKUYO URG04LX
 	{

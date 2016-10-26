@@ -30,6 +30,8 @@
 #include <RGBD.h>
 #include <JointMotor.h>
 #include <DifferentialRobot.h>
+#include <OmniRobot.h>
+#include <JointMotor.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -38,6 +40,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
+using namespace RoboCompOmniRobot;
 using namespace RoboCompRGBD;
 using namespace RoboCompDifferentialRobot;
 using namespace RoboCompJointMotor;
@@ -56,10 +59,11 @@ public:
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	virtual RoboCompCommonBehavior::ParameterList getWorkerParams() = 0;	
 	QMutex *mutex;
 	
 
+	JointMotorPrx jointmotor_proxy;
+	OmniRobotPrx omnirobot_proxy;
 
 	virtual Registration getRegistration() = 0;
 	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;

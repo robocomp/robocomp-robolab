@@ -45,6 +45,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
+	talkToBase = false;
+	talkToJointMotor = false;
 }
 
 void SpecificWorker::openDevice()
@@ -226,6 +228,7 @@ void SpecificWorker::checkInitialization()
 			default:
 				printf("Error in wait\n");
 			}
+qDebug()<<"average "<<i<<average;
 			if ( average < 25)
 			{
 				qFatal("RGBD is not working, obtaining black images");
@@ -310,6 +313,8 @@ void SpecificWorker::closeStreams()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {	
+	talkToBase = (bool) (QString::fromStdString(params["TalkToBase"].value).toInt());
+	talkToJointMotor = (bool)(QString::fromStdString(params["TalkToJointMotor"].value).toInt());
 	timer.start(30);
 	return true;
 }
@@ -318,7 +323,33 @@ void SpecificWorker::compute( )
 {
 	static QTime fpsReloj = QTime::currentTime();
 	static QTime reloj = QTime::currentTime();
-	
+
+	// read motor state	
+	if (talkToJointMotor)
+	{
+		try
+		{
+			RoboCompJointMotor::MotorStateMap map;
+			jointmotor_proxy->getAllMotorState(map);
+		}
+		catch (const Ice::Exception& ex)
+		{
+			std::cout << ex << " - Error reading JointMotor state"<< std::endl;
+		}
+	}
+	//read robot base state
+	if (talkToBase)
+	{
+		try{
+			omnirobot_proxy->getBaseState (bState);
+		}
+		catch ( const Ice::Exception& ex )
+		{ 
+			std::cout << ex << " - Error reading Base state" << std::endl; 
+		}
+	}
+
+
 	bool doCoordinates = readFrame();
 	if (doCoordinates)
 	{

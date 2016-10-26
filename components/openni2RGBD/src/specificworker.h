@@ -106,7 +106,7 @@ Q_OBJECT
       RoboCompRGBD::ColorSeq* colorBuffer;
       imgType* colorImage;
       depthType* depthImage;
-
+	
 	///MUTEX
 	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
 	
@@ -135,6 +135,9 @@ Q_OBJECT
       RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
 	QMutex *worker_params_mutex;
 	RoboCompCommonBehavior::ParameterList worker_params;
+	bool talkToBase,talkToJointMotor;
+	RoboCompOmniRobot::TBaseState bState;
+	RoboCompJointMotor::MotorStateMap motorMap;
            
 public:
 	SpecificWorker(MapPrx& mprx);	

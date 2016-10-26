@@ -20,7 +20,7 @@ SET ( HEADERS
 # RoboComp
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( JoyStick OmniRobot )
+ROBOCOMP_WRAP_ICE( JoyStick OmniRobot GenericBase )
 
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )

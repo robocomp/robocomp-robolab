@@ -83,8 +83,7 @@
 #include <laserI.h>
 
 #include <Laser.h>
-#include <DifferentialRobot.h>
-#include <DifferentialRobot.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -129,7 +128,7 @@ int ::hokuyo::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	DifferentialRobotPrx differentialrobot_proxy;
+	GenericBasePrx genericbase_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -137,19 +136,19 @@ int ::hokuyo::run(int argc, char* argv[])
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
 		}
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		genericbase_proxy = GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
+	rInfo("GenericBaseProxy initialized Ok!");
+	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
 
 
 

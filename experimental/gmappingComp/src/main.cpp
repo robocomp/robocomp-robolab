@@ -83,8 +83,7 @@
 #include <slamlaserI.h>
 
 #include <Laser.h>
-#include <DifferentialRobot.h>
-#include <OmniRobot.h>
+#include <GenericBase.h>
 #include <SlamLaser.h>
 #include <CGR.h>
 
@@ -94,14 +93,6 @@
 // Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
-
-using namespace RoboCompLaser;
-using namespace RoboCompDifferentialRobot;
-using namespace RoboCompOmniRobot;
-using namespace RoboCompSlamLaser;
-using namespace RoboCompCGR;
-
-
 
 class gmappingComp : public RoboComp::Application
 {
@@ -143,29 +134,12 @@ int ::gmappingComp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	OmniRobotPrx omnirobot_proxy;
-	CGRTopicPrx cgrtopic_proxy;
 	LaserPrx laser_proxy;
+	GenericBasePrx genericbase_proxy;
+	CGRTopicPrx cgrtopic_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "OmniRobotProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy OmniRobotProxy\n";
-		}
-		omnirobot_proxy = OmniRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("OmniRobotProxy initialized Ok!");
-	mprx["OmniRobotProxy"] = (::IceProxy::Ice::Object*)(&omnirobot_proxy);//Remote server proxy creation example
 
 
 	try
@@ -183,6 +157,23 @@ int ::gmappingComp::run(int argc, char* argv[])
 	}
 	rInfo("LaserProxy initialized Ok!");
 	mprx["LaserProxy"] = (::IceProxy::Ice::Object*)(&laser_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
+		}
+		genericbase_proxy = GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("GenericBaseProxy initialized Ok!");
+	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
 
 	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
 

@@ -162,7 +162,7 @@ bool Worker::stopBase()
  * \brief Return current base state
  * @return bState Struct contains base position compute by odometry
  */
-RoboCompDifferentialRobot::TBaseState Worker::getBaseState()
+RoboCompGenericBase::TBaseState Worker::getBaseState()
 {
 	return handler->getBaseState();
 }
@@ -192,7 +192,7 @@ void Worker::correctOdometer(float x, float z, float alpha)
 * @param bState State to set odometer values
 * @return true if command was sended successfully, else return false
 */
-bool Worker::setOdometer(RoboCompDifferentialRobot::TBaseState bState)
+bool Worker::setOdometer(RoboCompGenericBase::TBaseState bState)
 {
 	return handler->setOdometer(bState);
 }

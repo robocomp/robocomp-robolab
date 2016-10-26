@@ -89,11 +89,10 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = false;
-	configGetString( "","TalkToBase", aux.value,"false");
-	params["TalkToBase"] = aux;
-
-	configGetString( "","TalkToJointMotor", aux.value,"false");
-	params["TalkToJointMotor"] = aux;
+	configGetString("", "talkToBase", aux.value,"false");
+	params["talkToBase"] = aux;
+	configGetString("", "talkToJoint", aux.value,"false");
+	params["talkToJoint"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

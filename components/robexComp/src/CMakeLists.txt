@@ -9,6 +9,7 @@ SET ( SOURCES
   commonbehaviorI.cpp
   differentialrobotI.cpp
   joystickadapterI.cpp
+  genericbaseI.cpp
   worker.cpp
   $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
   $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
@@ -16,25 +17,19 @@ SET ( SOURCES
 
 # Headers set
 SET ( HEADERS
-  commonbehaviorI.h
   handler.h
-  robexhandler.h
-  monitor.h
-  joystickadapterI.h
-  worker.h
-  differentialrobotI.h
-  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.h
 )
 
 # RoboComp
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP} )
-ROBOCOMP_WRAP_ICE( DifferentialRobot Logger CommonBehavior JoystickAdapter)
+ROBOCOMP_WRAP_ICE( DifferentialRobot Logger CommonBehavior JoystickAdapter GenericBase)
 
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
 FIND_PACKAGE( Qt4 REQUIRED )
 INCLUDE( ${QT_USE_FILE} )
+SET( CMAKE_AUTOMOC TRUE )
 QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
 
 # Specify construction and link process

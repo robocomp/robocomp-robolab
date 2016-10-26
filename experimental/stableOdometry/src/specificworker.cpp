@@ -162,7 +162,7 @@ void SpecificWorker::newCGRCorrection(float poseUncertainty, float x1, float z1,
 	
 	inc.print("inc");
 	
-	RoboCompOmniRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	try { omnirobot_proxy->getBaseState(bState); }
 	catch(Ice::Exception &ex) { std::cout<<ex.what()<<std::endl; }
 	innermodel->updateTransformValues("corrREALBack", bState.correctedX,0.,bState.correctedZ,   0,bState.correctedAlpha,0);

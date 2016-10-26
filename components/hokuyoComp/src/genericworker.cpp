@@ -23,7 +23,7 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
+	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

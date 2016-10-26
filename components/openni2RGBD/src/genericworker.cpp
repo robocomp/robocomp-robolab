@@ -23,9 +23,10 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
-	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
 
+	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
+	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
+	
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;

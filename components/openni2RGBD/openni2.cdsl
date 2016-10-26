@@ -1,10 +1,10 @@
 import "/robocomp/interfaces/IDSLs/RGBD.idsl";
-import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
-import "/robocomp/interfaces/IDSLs/JointMotor.idsl";
+import "/robocomp/interfaces/IDSLs/JointMotor.idsl;
+import "/robocomp/interfaces/IDSLs/GenericBase.idsl;
 
 Component openNI2Comp{
 	Communications{
-			requires OmniRobot,JointMotor;
+			requires GenerBase,JointMotor;
 			implements RGBD;
 	};
 	language Cpp;

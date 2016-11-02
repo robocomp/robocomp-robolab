@@ -34,7 +34,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
-
+	bStateMutex = new QMutex();
+	mStateMutex = new QMutex();
+	
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	fps = 0;
@@ -45,6 +47,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
+	talkToJoint = false;
+	talkToBase = false;
 }
 
 void SpecificWorker::openDevice()

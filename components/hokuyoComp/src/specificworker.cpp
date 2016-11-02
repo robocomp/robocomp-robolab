@@ -51,16 +51,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	laserConf.staticConf = QString::fromStdString(params[LASER_STATIC_CONF_PROPERTY_NAME].value).toInt();
 	laserConf.angleRes = QString::fromStdString(params[LASER_RESOLUTION_PROPERTY_NAME].value).toFloat();
 	laserConf.angleIni = QString::fromStdString(params[LASER_INITIAL_ANGLE_PROPERTY_NAME].value).toFloat();
-	laserConf.maxMeasures = 600;
-	laserConf.cluster = QString::fromStdString(params[LASER_SKIP_PROPERTY_DEFAULT].value).toInt();	
+	laserConf.cluster = QString::fromStdString(params[LASER_CLUSTER_PROPERTY_NAME].value).toInt();	
 	
 	if ((laserConf.driver == "HokuyoURG")) // HOKUYO URG04LX
 	{
-		lh = new HokuyoHandler(laserConf, differentialrobot_proxy);
+		lh = new HokuyoHandler(laserConf, genericbase_proxy);
 	}
 	else if ((laserConf.driver == "Hokuyo30LX") || (laserConf.driver == "HokuyoURG04LX-UG01"))
 	{
-		 lh = new HokuyoGenericHandler(laserConf, differentialrobot_proxy);
+		 lh = new HokuyoGenericHandler(laserConf, genericbase_proxy);
 	}
 	if ( !lh->open() )
 	{
@@ -102,7 +101,7 @@ LaserConfData SpecificWorker::getLaserConfData()
 	return laserConf;
 }
 
-TLaserData SpecificWorker::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState)
+TLaserData SpecificWorker::getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
 {
 	bState = lh->getBaseState();
 	return lh->getNewData();

@@ -28,39 +28,39 @@
 
 class Monitor : public QThread
 {
-	Q_OBJECT
+Q_OBJECT
 
-	public:
-		Monitor( Worker *_worker, Ice::CommunicatorPtr _communicator);
-		~Monitor();
-		
-		void readConfig(RoboCompCommonBehavior::ParameterList &params );
-		bool initialize();
-		void run();
-		//CommonBehavior
-		int getPeriod();
-		void setPeriod(int period);
-		void killYourSelf();
-		int timeAwake();
-		RoboCompCommonBehavior::ParameterList getParameterList();
-		void setParameterList(RoboCompCommonBehavior::ParameterList l);
-		RoboCompCommonBehavior::State getState();
+public:
+	Monitor( Worker *_worker, Ice::CommunicatorPtr _communicator);
+	~Monitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	bool initialize();
+	void run();
+	//CommonBehavior
+	int getPeriod();
+	void setPeriod(int period);
+	void killYourSelf();
+	int timeAwake();
+	RoboCompCommonBehavior::ParameterList getParameterList();
+	void setParameterList(RoboCompCommonBehavior::ParameterList l);
+	RoboCompCommonBehavior::State getState();
+	bool ready;
 
-	private:
-		int period;
-		Worker *worker;
-		Ice::CommunicatorPtr communicator;
-		QTime initialTime;
-		RoboCompCommonBehavior::ParameterList config_params;
-		RoboCompCommonBehavior::State state;
-	
-		bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
-		bool checkParams(RoboCompCommonBehavior::ParameterList l);
-		bool configGetString( const std::string name, std::string &value,  const std::string default_value, QStringList *list = NULL);
-		
-  signals:
-		void kill();
-	
+private:
+	int period;
+	Worker *worker;
+	Ice::CommunicatorPtr communicator;
+	QTime initialTime;
+	RoboCompCommonBehavior::ParameterList config_params;
+	RoboCompCommonBehavior::State state;
+
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+	bool configGetString( const std::string name, std::string &value,  const std::string default_value, QStringList *list = NULL);
+
+signals:
+	void kill();
 };
 
 #endif // MONITOR_H

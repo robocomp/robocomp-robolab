@@ -22,7 +22,6 @@ SET ( HEADERS
   monitor.h
   commonbehaviorI.h
   $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.h
-  TSQHash.h
 )
 
 # RoboComp

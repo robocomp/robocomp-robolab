@@ -1,5 +1,4 @@
 import "/robocomp/interfaces/IDSLs/Laser.idsl";
-import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
 import "/robocomp/interfaces/IDSLs/SlamLaser.idsl";
 import "/robocomp/interfaces/IDSLs/CGR.idsl";
 
@@ -8,7 +7,7 @@ Component gmappingComp
 	Communications
 	{
 		implements SlamLaser;
-		requires OmniRobot, Laser;
+		requires GenericBase, Laser;
 		publishes CGRTopic;
 	};
 	language Cpp;

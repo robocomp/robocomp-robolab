@@ -186,7 +186,7 @@ private:
 
 
 	RoboCompLaser::TLaserData laserData;
-	RoboCompOmniRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	float previousAlpha;
 
 	bool active;
@@ -207,7 +207,7 @@ private:
 	int nParticles;
 	bool registerScan;
 
-	GMapping::RangeReading robocompWrapper(RoboCompOmniRobot::TBaseState usedState);
+	GMapping::RangeReading robocompWrapper(RoboCompGenericBase::TBaseState usedState);
 
 	double *distances_laser;
 
@@ -219,7 +219,7 @@ private:
 	QVector<double> v2DData;
 
 	QVec finalCorrection;
-// 	RoboCompOmniRobot::TBaseState correction;
+// 	RoboCompGenericBase::TBaseState correction;
 	RTMat mapTransform;
 	float mapTransform_ry;
 

@@ -92,49 +92,53 @@ Q_OBJECT
 	int IMAGE_WIDTH, IMAGE_HEIGHT;
 	int fps; 
 
-      openni::Status openniRc;
-      Device device;
-      VideoStream depth;
-      VideoStream color;
-      VideoFrameRef depthFrame;
-      VideoFrameRef colorFrame;
-      
-      VideoStream* pStream;
-      int changedStreamDummy;
-      DepthPixel* pixDepth;
-      RoboCompRGBD::DepthSeq* depthBuffer;
-      RoboCompRGBD::ColorSeq* colorBuffer;
-      imgType* colorImage;
-      depthType* depthImage;
+	openni::Status openniRc;
+	Device device;
+	VideoStream depth;
+	VideoStream color;
+	VideoFrameRef depthFrame;
+	VideoFrameRef colorFrame;
 
+	VideoStream* pStream;
+	int changedStreamDummy;
+	DepthPixel* pixDepth;
+	RoboCompRGBD::DepthSeq* depthBuffer;
+	RoboCompRGBD::ColorSeq* colorBuffer;
+	imgType* colorImage;
+	depthType* depthImage;
+	
 	///MUTEX
-	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
+	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex, *bStateMutex, *mStateMutex;
 	
 	vector<short> normalDepth;
 	uint16_t *mColor;
 	uint8_t *auxDepth;
 	CoordinateConverter conversor;
 
-      Registration registration;
-      
-      void openDevice();
-      bool openStream(SensorType sensorType, VideoStream *stream);
-      void initializeStreams();
-      bool readFrame();
-      void computeCoordinates();
-      void readColor();
-      void readDepth();
-      
-      void normalizeDepth();
-      void checkInitialization();
-      void closeStreams();
-	  
-      DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
-	  DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
-	 
-      RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
+	Registration registration;
+
+	void openDevice();
+	bool openStream(SensorType sensorType, VideoStream *stream);
+	void initializeStreams();
+	bool readFrame();
+	void computeCoordinates();
+	void readColor();
+	void readDepth();
+
+	void normalizeDepth();
+	void checkInitialization();
+	void closeStreams();
+
+	DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
+	DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+	
+	RoboCompGenericBase::TBaseState bState;
+	RoboCompJointMotor::MotorStateMap mState;
+
+	RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
 	QMutex *worker_params_mutex;
 	RoboCompCommonBehavior::ParameterList worker_params;
+	bool talkToJoint,talkToBase;
            
 public:
 	SpecificWorker(MapPrx& mprx);	
@@ -145,12 +149,12 @@ public:
 	TRGBDParams getRGBDParams( );
 	void setRegistration (const RoboCompRGBD::Registration &value);
 	Registration getRegistration ( );
-	void getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState );
-	void getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
+	void getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState );
+	void getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
 
 public slots:
  	void compute(); 	

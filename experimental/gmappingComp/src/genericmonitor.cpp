@@ -85,8 +85,6 @@ int GenericMonitor::timeAwake()
 */
 RoboCompCommonBehavior::ParameterList GenericMonitor::getParameterList()
 {
-	RoboCompCommonBehavior::ParameterList wparams = worker->getWorkerParams();
-	config_params["frameRate"] = wparams["frameRate"];
 	return config_params;
 }
 /**

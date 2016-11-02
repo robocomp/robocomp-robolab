@@ -84,7 +84,8 @@
 
 #include <RGBD.h>
 #include <JointMotor.h>
-#include <DifferentialRobot.h>
+#include <GenericBase.h>
+#include <JointMotor.h>
 
 
 // User includes here

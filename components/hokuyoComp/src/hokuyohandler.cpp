@@ -18,7 +18,7 @@
  */
 #include "hokuyohandler.h"
 
-HokuyoHandler::HokuyoHandler(RoboCompLaser::LaserConfData &config, RoboCompDifferentialRobot::DifferentialRobotPrx base_prx, QObject *_parent) : GenericLaserHandler (base_prx, _parent)
+HokuyoHandler::HokuyoHandler(RoboCompLaser::LaserConfData &config, RoboCompGenericBase::GenericBasePrx base_prx, QObject *_parent) : GenericLaserHandler (base_prx, _parent)
 {
 	if (config.device.size() == 0)
 	{

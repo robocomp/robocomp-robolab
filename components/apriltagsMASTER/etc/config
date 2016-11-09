@@ -1,14 +1,25 @@
-CommonBehavior.Endpoints=tcp -p 1
+CommonBehavior.Endpoints=tcp -p 14358
 
 
 # Endpoints for implemented interfaces
-GetAprilTags.Endpoints=tcp -p 0
-
+GetAprilTags.Endpoints=tcp -p 14310
 
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h localhost -p 0
-RGBDBusProxy = rgbdbus:tcp -h localhost -p 0
-CameraProxy = camera:tcp -h localhost -p 0
+CameraProxy = camera:tcp -h localhost -p 10001
+RGBDProxy = rgbd:tcp -h localhost -p 10096
+RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239
+
+AprilTagsProxy = apriltags:tcp -h localhost -p 10261
+
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
+CameraName=rgbd
+
+InputInterface = RGBD
+AprilTagsFamily = tagCodes36h11
+AprilTagsSize = 70
+ID:0-10 = 70   #tag size
+ID:11-20 = 70   #tag size
+ID:21-100 = 70   #tag size
 
 
 # This property is used by the clients to connect to IceStorm.

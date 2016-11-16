@@ -504,7 +504,7 @@ Registration SpecificWorker::getRegistration ( ){
 	return registration;
 }
 
-void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState, RoboCompGenericBase::TBaseState& bState)
 {
 	RGBMutex->lock();
 	rgbMatrix=*colorImage;
@@ -515,24 +515,24 @@ void SpecificWorker::getData(imgType& rgbMatrix, depthType& distanceMatrix, Robo
 
 }
 
-void SpecificWorker::getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
 {
 	qDebug()<<"getDepthInIR not implemented yet";
 }
 
-void SpecificWorker::getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
 {
 	getDepth(depth,hState,bState);
 	getRGB(color,hState,bState);
 	getXYZ(points,hState,bState);
 }
 
-void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState )
+void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState )
 {
 	depthBuff.copy(depth);
 }
 
-void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
 {
         color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
@@ -540,7 +540,7 @@ void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &
 	RGBMutex->unlock();
 }
 
-void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState)
+void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
 {
 	pointsBuff.copy(points);
 }

@@ -37,6 +37,7 @@ void SpecificMonitor::run()
 {
 	initialize();
 	ready = true;
+qDebug()<<"monitor is ready";
 	forever
 	{
 		//rDebug("specific monitor run");

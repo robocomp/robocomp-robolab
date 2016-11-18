@@ -315,6 +315,8 @@ void SpecificWorker::closeStreams()
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {	
 	timer.start(30);
+	talkToJoint = QString::fromStdString(params["talkToJoint"].value).contains("true");
+	talkToBase = QString::fromStdString(params["talkToBase"].value).contains("true");
 	return true;
 }
 
@@ -342,6 +344,30 @@ void SpecificWorker::compute( )
 		//save framerate in params
 		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
 	worker_params_mutex->unlock();
+	if(talkToBase)
+	{
+		bStateMutex->lock();
+		try{
+			genericbase_proxy->getBaseState(bState);
+		}catch(...)
+		{
+			qDebug()<<"Exception: error reading genericbase state";
+		}	
+		bStateMutex->unlock();
+	}
+	if(talkToJoint)
+	{
+		mStateMutex->lock();
+		try{
+			jointmotor_proxy->getAllMotorState(mState);
+		}catch(...)
+		{
+			qDebug()<<"Exception: error reading motorStates";
+		}	
+		mStateMutex->unlock();
+	
+	}
+	
 }
 
 bool SpecificWorker::readFrame()
@@ -532,12 +558,18 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 	depthBuff.copy(depth);
 }
 
-void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
+void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState_)
 {
         color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
-	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
+		memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
+	mStateMutex->lock();
+		hState = mState;
+	mStateMutex->unlock();
+	bStateMutex->lock();
+		bState_ = bState;
+	bStateMutex->unlock();
 }
 
 void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)

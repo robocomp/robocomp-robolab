@@ -25,6 +25,7 @@
 // Ice includes
 #include <Ice/Ice.h>
 #include <DifferentialRobot.h>
+#include <GenericBase.h>
 
 #include <config.h>
 #include "worker.h"
@@ -41,12 +42,12 @@ public:
 	DifferentialRobotI( Worker *_worker, QObject *parent = 0 );
 	~DifferentialRobotI();
 	
-	void getBaseState(TBaseState &state, const Ice::Current & = Ice::Current());
+	void getBaseState(RoboCompGenericBase::TBaseState &state, const Ice::Current & = Ice::Current());
 	void getBasePose(int &x, int &z, float &alpha, const Ice::Current & = Ice::Current());
 	void setSpeedBase(float adv, float rot, const Ice::Current & = Ice::Current());
 	void stopBase( const Ice::Current & = Ice::Current());
 	void resetOdometer( const Ice::Current & = Ice::Current());
-	void setOdometer(const RoboCompDifferentialRobot::TBaseState &state, const Ice::Current & = Ice::Current());
+	void setOdometer(const RoboCompGenericBase::TBaseState &state, const Ice::Current & = Ice::Current());
 	void setOdometerPose(int x, int z, float alpha, const Ice::Current & = Ice::Current());
 	void correctOdometer(int x, int z, float alpha, const Ice::Current & = Ice::Current());
 	void getMechParams(RoboCompDifferentialRobot::TMechParams &mechParams, const Ice::Current & = Ice::Current());

@@ -342,6 +342,17 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		{
 			std::cout << ex << std::endl;
 		}
+		try
+		{
+qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
+			apriltags->newAprilTagAndPose(detections2send,bState,hState);
+		}
+		catch(const Ice::Exception &ex)
+		{
+			std::cout << ex << std::endl;
+		}		
+		
+		
 	}
 }
 

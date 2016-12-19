@@ -99,7 +99,7 @@ private:
 	bool result;
     
 	QMutex *bstate_mutex,*speed_mutex;
-	RoboCompDifferentialRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	unsigned char stringEnviado[200], stringRecibido[200];
 	int numEnviado, numRecibido;
 
@@ -110,12 +110,12 @@ public:
 //accesible
 	//odometer
 	bool resetOdometer();	
-	bool setOdometer(RoboCompDifferentialRobot::TBaseState bState);
+	bool setOdometer(RoboCompGenericBase::TBaseState bState);
 	void correctOdometer(float x, float z, float alpha);
 	//speed
 	bool stopBase();
 	bool setSpeedBase(float adv,float rot);
-	RoboCompDifferentialRobot::TBaseState getBaseState();
+	RoboCompGenericBase::TBaseState getBaseState();
 	RoboCompDifferentialRobot::TMechParams getMechParams();
 	void compute();
 

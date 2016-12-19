@@ -61,7 +61,7 @@ private:
 	::AprilTags::TagDetector* m_tagDetector;
 	::AprilTags::TagCodes m_tagCodes;
 	RoboCompCamera::TCamParams camParams;
-	RoboCompDifferentialRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	RoboCompJointMotor::MotorStateMap hState;
 	RoboCompCommonHead::THeadState cState;
 	enum  {Camera, RGBD, RGBDBus};  	

@@ -29,7 +29,7 @@
 
 #include <RGBD.h>
 #include <JointMotor.h>
-#include <DifferentialRobot.h>
+#include <JointMotor.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -39,7 +39,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 using namespace std;
 
 using namespace RoboCompRGBD;
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompGenericBase;
 using namespace RoboCompJointMotor;
 
 
@@ -56,20 +56,20 @@ public:
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	virtual RoboCompCommonBehavior::ParameterList getWorkerParams() = 0;	
 	QMutex *mutex;
 	
-
+	JointMotorPrx jointmotor_proxy;
+	GenericBasePrx genericbase_proxy;
 
 	virtual Registration getRegistration() = 0;
-	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
+	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual TRGBDParams getRGBDParams() = 0;
-	virtual void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
+	virtual void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void setRegistration(const Registration &value) = 0;
-	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
-	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState &bState) = 0;
+	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 
 protected:
 	QTimer timer;

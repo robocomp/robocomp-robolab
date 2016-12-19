@@ -36,11 +36,12 @@
 #define READ_WAIT_TIMEOUT 2000
 #define PI 3.14159265359
 
-struct TRadRotations
-{
-	double rx;
-	double ry;
-	double rz;
+///DEFINICIONES TEMPORALES, A ESPERA DE INTERFAZ DE TRACKING
+///TEMPORAL
+struct TRadRotations{
+  double rx;
+  double ry;
+  double rz;
 };
 
 //using namespace nite;
@@ -97,7 +98,7 @@ Q_OBJECT
 	VideoStream color;
 	VideoFrameRef depthFrame;
 	VideoFrameRef colorFrame;
-	
+
 	VideoStream* pStream;
 	int changedStreamDummy;
 	DepthPixel* pixDepth;
@@ -105,9 +106,9 @@ Q_OBJECT
 	RoboCompRGBD::ColorSeq* colorBuffer;
 	imgType* colorImage;
 	depthType* depthImage;
-
+	
 	///MUTEX
-	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex;
+	QMutex *usersMutex, *RGBMutex, *depthMutex, *pointsMutex, *bStateMutex, *mStateMutex;
 	
 	vector<short> normalDepth;
 	uint16_t *mColor;
@@ -115,7 +116,7 @@ Q_OBJECT
 	CoordinateConverter conversor;
 
 	Registration registration;
-	
+
 	void openDevice();
 	bool openStream(SensorType sensorType, VideoStream *stream);
 	void initializeStreams();
@@ -123,18 +124,24 @@ Q_OBJECT
 	void computeCoordinates();
 	void readColor();
 	void readDepth();
-	
+
 	void normalizeDepth();
-	
+	void checkInitialization();
+	void closeStreams();
+
 	DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
 	DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 	
+	RoboCompGenericBase::TBaseState bState;
+	RoboCompJointMotor::MotorStateMap mState;
+
 	RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
-    RoboCompCommonBehavior::ParameterList worker_params;
 	QMutex *worker_params_mutex;
-	
+	RoboCompCommonBehavior::ParameterList worker_params;
+	bool talkToJoint,talkToBase;
+           
 public:
-	SpecificWorker(MapPrx& mprx);
+	SpecificWorker(MapPrx& mprx);	
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	RoboCompCommonBehavior::ParameterList getWorkerParams();
@@ -142,15 +149,15 @@ public:
 	TRGBDParams getRGBDParams( );
 	void setRegistration (const RoboCompRGBD::Registration &value);
 	Registration getRegistration ( );
-	void getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState );
-	void getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
-	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompDifferentialRobot::TBaseState& bState);
+	void getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState );
+	void getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
+	void getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState);
 
 public slots:
-	void compute();
+ 	void compute(); 	
 };
 
 #endif

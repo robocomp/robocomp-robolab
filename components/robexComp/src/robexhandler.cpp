@@ -129,7 +129,7 @@ bool RobexHandler::resetOdometer()
 * @param _bState State to set odometer values
 * @return true if command was sended successfully, else return false
 */
-bool RobexHandler::setOdometer(RoboCompDifferentialRobot::TBaseState _bState)
+bool RobexHandler::setOdometer(RoboCompGenericBase::TBaseState _bState)
 {
 	if (setSpeedBase (0.f, 0.f))
 	{
@@ -149,7 +149,7 @@ bool RobexHandler::setOdometer(RoboCompDifferentialRobot::TBaseState _bState)
  * \brief Return current base state
  * @return bState Struct contains base position compute by odometry
  */
-RoboCompDifferentialRobot::TBaseState RobexHandler::getBaseState()
+RoboCompGenericBase::TBaseState RobexHandler::getBaseState()
 {
 	return bState;
 }
@@ -343,11 +343,11 @@ void RobexHandler::computePosBase()
 			bState.correctedAlpha = -atan2(Cc,Ca);
 
 			float t=(float)reloj.restart();
-			bState.adv = incA;
-			bState.rot = al;
-			bState.advV = incA / t * 1000.f ;
+			//bState.x = incA;
+			bState.alpha = al;
+			bState.advVx = incA / t * 1000.f ;
 			bState.rotV = al/ t * 1000.f;
-			bState.isMoving = fabs(bState.adv) > 0.5 or fabs(bState.rot) > 0.005;
+			bState.isMoving = fabs(bState.x) > 0.5 or fabs(bState.alpha) > 0.005;
 		bstate_mutex->unlock();	
 	}
 	else

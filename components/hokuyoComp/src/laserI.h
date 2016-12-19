@@ -36,7 +36,7 @@ public:
 	
 	TLaserData getLaserData(const Ice::Current&);
 	LaserConfData getLaserConfData(const Ice::Current&);
-	TLaserData getLaserAndBStateData( RoboCompDifferentialRobot::TBaseState  &bState, const Ice::Current&);
+	TLaserData getLaserAndBStateData( RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 
 private:
 

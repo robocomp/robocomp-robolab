@@ -28,7 +28,7 @@
 
 #include <CommonBehavior.h>
 #include <RGBD.h>
-#include <DifferentialRobot.h>
+#include <GenericBase.h>
 #include <JointMotor.h>
 
 
@@ -41,7 +41,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 using namespace std;
 
 using namespace RoboCompRGBD;
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompGenericBase;
 using namespace RoboCompJointMotor;
 
 

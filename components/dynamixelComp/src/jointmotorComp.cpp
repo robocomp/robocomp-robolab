@@ -144,6 +144,12 @@ int JointMotorComp::run(int argc, char* argv[])
 	
 	if (!monitor->isRunning())
 		return status;
+
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+
 	try
 	{
 		// Server adapter creation and publication

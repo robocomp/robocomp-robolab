@@ -43,7 +43,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-    static RoboCompDifferentialRobot::TBaseState bState;
+    static RoboCompGenericBase::TBaseState bState;
     static RoboCompJointMotor::MotorStateMap hState;
     static RoboCompRGBD::imgType rgbMatrix;
     static RoboCompRGBD::depthType distanceMatrix;

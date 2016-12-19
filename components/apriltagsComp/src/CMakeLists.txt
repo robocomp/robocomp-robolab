@@ -16,19 +16,10 @@ SET ( SOURCES
   $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
 )
 
-# Headers set
-SET ( HEADERS
-  ${HEADERS}
-  getapriltagsI.h
-  genericmonitor.h
-  commonbehaviorI.h
-  genericworker.h
-)
-
 # RoboComp
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior  GetAprilTags Camera CommonHead RGBDBus RGBD JointMotor  DifferentialRobot AprilTags)
+ROBOCOMP_WRAP_ICE( CommonBehavior  GetAprilTags Camera CommonHead RGBDBus RGBD JointMotor GenericBase AprilTags)
 ROBOCOMP_LIBRARY( qmat )
 
 # Qt4
@@ -40,8 +31,7 @@ SET( QT_USE_QTXML TRUE )
 SET( QT_USE_QTSTATE TRUE )
 SET( QT_USE_QTSTATEMACHINE TRUE )
 INCLUDE( ${QT_USE_FILE} )
-QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
-
+SET( CMAKE_AUTOMOC TRUE )
 
 # Specify construction and link process
 SET (EXECUTABLE_OUTPUT_PATH ../bin)

@@ -84,7 +84,7 @@
 
 #include <RGBD.h>
 #include <JointMotor.h>
-#include <DifferentialRobot.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -125,7 +125,8 @@ int ::openNI2Comp::run(int argc, char* argv[])
 	sigaddset(&sigs, SIGTERM);
 	sigprocmask(SIG_UNBLOCK, &sigs, 0);
 
-
+        GenericBasePrx genericbase_proxy;
+        JointMotorPrx jointmotor_proxy;
 
 	int status=EXIT_SUCCESS;
 
@@ -133,8 +134,35 @@ int ::openNI2Comp::run(int argc, char* argv[])
 	string proxy, tmp;
 	initialize();
 
+        try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
+		}
+		genericbase_proxy = GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("GenericBaseProxy initialized Ok!");
+	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
+        
+        try
+	{
+		jointmotor_proxy = JointMotorPrx::uncheckedCast( communicator()->stringToProxy( getProxyString("JointMotorProxy") ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("JointMotorProxy initialized Ok!");
+	mprx["JointMotorProxy"] = (::IceProxy::Ice::Object*)(&jointmotor_proxy);
 
-
+        
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

@@ -25,11 +25,13 @@
 // Ice includes
 #include <Ice/Ice.h>
 #include <DifferentialRobot.h>
+#include <GenericBase.h>
 
 #include <config.h>
 #include "worker.h"
 
 using namespace RoboCompDifferentialRobot;
+using namespace RoboCompGenericBase;
 /**
 	\class DifferentialRobotI <p>Servant for DifferentialRobotComp. This class implements the methods of the public interface of DifferentialRobotComp.
 	It derives from DifferentialRobot that is the Ice proxy that will be include by other remote components using this</p>
@@ -46,7 +48,7 @@ public:
 	void setSpeedBase(float adv, float rot, const Ice::Current & = Ice::Current());
 	void stopBase( const Ice::Current & = Ice::Current());
 	void resetOdometer( const Ice::Current & = Ice::Current());
-	void setOdometer(const RoboCompDifferentialRobot::TBaseState &state, const Ice::Current & = Ice::Current());
+	void setOdometer(const RoboCompGenericBase::TBaseState &state, const Ice::Current & = Ice::Current());
 	void setOdometerPose(int x, int z, float alpha, const Ice::Current & = Ice::Current());
 	void correctOdometer(int x, int z, float alpha, const Ice::Current & = Ice::Current());
 	void getMechParams(RoboCompDifferentialRobot::TMechParams &mechParams, const Ice::Current & = Ice::Current());

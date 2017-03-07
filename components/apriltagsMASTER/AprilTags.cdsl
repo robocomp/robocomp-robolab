@@ -11,4 +11,5 @@ Component AprilTagsComp{
 		implements GetAprilTags;
 	};
 	language Cpp;
+
 };

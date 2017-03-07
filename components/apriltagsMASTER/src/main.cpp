@@ -139,30 +139,13 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	CameraPrx camera_proxy;
 	RGBDBusPrx rgbdbus_proxy;
-	RGBDPrx rgbd_proxy;
 	AprilTagsPrx apriltags_proxy;
+	CameraPrx camera_proxy;
+	RGBDPrx rgbd_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraProxy\n";
-		}
-		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("CameraProxy initialized Ok!");
-	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
 
 
 	try
@@ -180,6 +163,23 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 	}
 	rInfo("RGBDBusProxy initialized Ok!");
 	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraProxy\n";
+		}
+		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraProxy initialized Ok!");
+	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
 
 
 	try

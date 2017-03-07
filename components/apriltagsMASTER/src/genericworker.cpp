@@ -23,8 +23,8 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
 	camera_proxy = (*(CameraPrx*)mprx["CameraProxy"]);
+	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
 	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
 
 	apriltags_proxy = (*(AprilTagsPrx*)mprx["AprilTagsPub"]);

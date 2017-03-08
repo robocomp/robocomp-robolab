@@ -2,8 +2,8 @@
 #define CONFIG_H
 
 // Comment out this line if your application has a QtGui
-//#define USE_QTGUI
+
 #define PROGRAM_NAME    "AprilTagsComp"
-#define SERVER_FULL_NAME   "RoboCompAprilTagsComp::AprilTagsComp"
+#define SERVER_FULL_NAME   "RoboComp AprilTagsComp:: AprilTagsComp"
 
 #endif

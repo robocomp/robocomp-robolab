@@ -35,6 +35,7 @@ SpecificMonitor::~SpecificMonitor()
 void SpecificMonitor::run()
 {
 	initialize();
+	ready = true;
 	forever
 	{
 		//rDebug("specific monitor run");
@@ -87,34 +88,34 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = true;
-	configGetString( "InputInterface", aux.value,"Camera");  //Could be RGBD, RGBDBus
+	configGetString("", "InputInterface", aux.value,"Camera");  //Could be RGBD, RGBDBus
 	params["InputInterface"] = aux;
 	
 	aux.editable = false;
-	configGetString( "AprilTagsFamily", aux.value,"tagCodes36h11"); 
+	configGetString("", "AprilTagsFamily", aux.value,"tagCodes36h11"); 
 	params["AprilTagsFamily"] = aux;
 	
 	aux.editable = false;
-	configGetString("AprilTagsSize", aux.value,"70");	params["AprilTagsSize"] = aux;
+	configGetString("", "AprilTagsSize", aux.value,"70");	params["AprilTagsSize"] = aux;
 	
 	aux.editable = false;
-	configGetString("ID:0-10", aux.value,"86");
+	configGetString("", "ID:0-10", aux.value,"86");
 	params["ID:0-10"] = aux;
 	
 	aux.editable = false;
-	configGetString("ID:11-20", aux.value,"86");
+	configGetString("", "ID:11-20", aux.value,"86");
 	params["ID:11-20"] = aux;
 
 	aux.editable = false;
-	configGetString("ID:21-100", aux.value,"86");
+	configGetString("", "ID:21-100", aux.value,"86");
 	params["ID:21-100"] = aux;
 
 	aux.editable = true;
-	configGetString( "CameraName", aux.value, "rgbd");
+	configGetString("", "CameraName", aux.value, "rgbd");
 	params["CameraName"] = aux;
 	
 	aux.editable = true;
-	configGetString( "InnerModelPath", aux.value, "");
+	configGetString("", "InnerModelPath", aux.value, "");
 	params["InnerModelPath"] = aux;
 }
 

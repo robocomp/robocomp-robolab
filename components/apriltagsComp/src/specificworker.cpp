@@ -336,7 +336,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		try
 		{
-			apriltags->newAprilTag(detections2send);
+			apriltags_proxy->newAprilTag(detections2send);
 		}
 		catch(const Ice::Exception &ex)
 		{
@@ -345,7 +345,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		try
 		{
 qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
-			apriltags->newAprilTagAndPose(detections2send,bState,hState);
+			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
 		}
 		catch(const Ice::Exception &ex)
 		{

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,11 +16,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef GETAPRILTAGSI_H
-#define GETAPRILTAGSI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef GETAPRILTAGS_H
+#define GETAPRILTAGS_H
 
 // Ice includes
 #include <Ice/Ice.h>
@@ -31,21 +28,17 @@
 
 using namespace RoboCompGetAprilTags;
 
-class GetAprilTagsI : public QObject , public virtual RoboCompGetAprilTags::GetAprilTags
+class GetAprilTagsI : public virtual RoboCompGetAprilTags::GetAprilTags
 {
-Q_OBJECT
 public:
-	GetAprilTagsI( GenericWorker *_worker, QObject *parent = 0 );
+	GetAprilTagsI(GenericWorker *_worker);
 	~GetAprilTagsI();
-	listaMarcas checkMarcas(const Ice::Current& = Ice::Current());
+	
+	listaMarcas checkMarcas(const Ice::Current&);
 
-
-	QMutex *mutex;
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

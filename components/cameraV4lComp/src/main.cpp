@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,6 +59,8 @@
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
@@ -69,6 +71,7 @@
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
+#include <sigwatch/sigwatch.h>
 #include <qlog/qlog.h>
 
 #include "config.h"
@@ -89,10 +92,6 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-using namespace RoboCompRGBDBus;
-
-
-
 class CameraV4l : public RoboComp::Application
 {
 public:
@@ -106,16 +105,30 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void CameraV4l::initialize()
+void ::CameraV4l::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int CameraV4l::run(int argc, char* argv[])
+int ::CameraV4l::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+	UnixSignalWatcher sigwatch;
+	sigwatch.watchForSignal(SIGINT);
+	sigwatch.watchForSignal(SIGTERM);
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &a, SLOT(quit()));
+
 	int status=EXIT_SUCCESS;
 
 
@@ -124,15 +137,21 @@ int CameraV4l::run(int argc, char* argv[])
 
 
 
-	GenericWorker *worker = new SpecificWorker(mprx);
+	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
-	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
+	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
 		return status;
+	
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+	
 	try
 	{
 		// Server adapter creation and publication
@@ -153,9 +172,12 @@ int CameraV4l::run(int argc, char* argv[])
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBus";
 		}
-		Ice::ObjectAdapterPtr adapterRGBDBus = communicator()->createObjectAdapterWithEndpoints("rgbdbus", tmp);
+		Ice::ObjectAdapterPtr adapterRGBDBus = communicator()->createObjectAdapterWithEndpoints("RGBDBus", tmp);
 		RGBDBusI *rgbdbus = new RGBDBusI(worker);
 		adapterRGBDBus->add(rgbdbus, communicator()->stringToIdentity("rgbdbus"));
+		adapterRGBDBus->activate();
+		cout << "[" << PROGRAM_NAME << "]: RGBDBus adapter created in port " << tmp << endl;
+
 
 
 
@@ -171,6 +193,8 @@ int CameraV4l::run(int argc, char* argv[])
 #endif
 		// Run QT Application Event Loop
 		a.exec();
+		
+		
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -191,19 +215,30 @@ int CameraV4l::run(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	bool hasConfig = false;
 	string arg;
 
-	// Search in argument list for --Ice.Config= and --prefix= argument (if exist)
+	// Set config file
+	std::string configFile = "config";
+	if (argc > 1)
+	{
+		std::string initIC("--Ice.Config=");
+		size_t pos = std::string(argv[1]).find(initIC);
+		if (pos == 0)
+		{
+			configFile = std::string(argv[1]+initIC.size());
+		}
+		else
+		{
+			configFile = std::string(argv[1]);
+		}
+	}
+
+	// Search in argument list for --prefix= argument (if exist)
 	QString prefix("");
-	for (int i = 1; i < argc; ++i)
+	QString prfx = QString("--prefix=");
+	for (int i = 2; i < argc; ++i)
 	{
 		arg = argv[i];
-		if (arg.find("--Ice.Config=", 0) != string::npos)
-		{
-			hasConfig = true;
-		}
-		QString prfx = QString("--prefix=");
 		if (arg.find(prfx.toStdString(), 0) == 0)
 		{
 			prefix = QString::fromStdString(arg).remove(0, prfx.size());
@@ -212,17 +247,8 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	CameraV4l app(prefix);
+	::CameraV4l app(prefix);
 
-
-// 	app.prefix = 
-	if (hasConfig)
-	{
-		return app.main(argc, argv);
-	}
-	else
-	{
-		return app.main(argc, argv, "etc/config"); // "config" is the default config file name
-	}
+	return app.main(argc, argv, configFile.c_str());
 }
 

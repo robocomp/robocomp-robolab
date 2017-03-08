@@ -18,7 +18,7 @@
 DOXYFILE_ENCODING      = UTF-8
 
 # ROBOCOMP
-PROJECT_NAME           = camerav4l
+PROJECT_NAME           = CameraV4l 
 PROJECT_NUMBER         =
 
 

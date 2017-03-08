@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,11 +16,8 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef RGBDBUSI_H
-#define RGBDBUSI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef RGBDBUS_H
+#define RGBDBUS_H
 
 // Ice includes
 #include <Ice/Ice.h>
@@ -31,25 +28,21 @@
 
 using namespace RoboCompRGBDBus;
 
-class RGBDBusI : public QObject , public virtual RoboCompRGBDBus::RGBDBus
+class RGBDBusI : public virtual RoboCompRGBDBus::RGBDBus
 {
-Q_OBJECT
 public:
-	RGBDBusI( GenericWorker *_worker, QObject *parent = 0 );
+	RGBDBusI(GenericWorker *_worker);
 	~RGBDBusI();
-	CameraParamsMap getAllCameraParams(const Ice::Current& = Ice::Current());
-void  getImages(const CameraList& cameras, ImageMap& images, const Ice::Current& = Ice::Current());
-void  getPointClouds(const CameraList& cameras, PointCloudMap& clouds, const Ice::Current& = Ice::Current());
-void  getProtoClouds(const CameraList& cameras, PointCloudMap& protoClouds, const Ice::Current& = Ice::Current());
-void  getDecimatedImages(const CameraList& cameras, Ice::Int decimation, ImageMap& images, const Ice::Current& = Ice::Current());
+	
+	CameraParamsMap getAllCameraParams(const Ice::Current&);
+	void getPointClouds(const CameraList  &cameras,  PointCloudMap  &clouds, const Ice::Current&);
+	void getImages(const CameraList  &cameras,  ImageMap  &images, const Ice::Current&);
+	void getProtoClouds(const CameraList  &cameras,  PointCloudMap  &protoClouds, const Ice::Current&);
+	void getDecimatedImages(const CameraList  &cameras, const int  decimation,  ImageMap  &images, const Ice::Current&);
 
-
-	QMutex *mutex;
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

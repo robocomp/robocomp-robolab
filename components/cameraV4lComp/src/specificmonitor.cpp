@@ -35,6 +35,7 @@ SpecificMonitor::~SpecificMonitor()
 void SpecificMonitor::run()
 {
 	initialize();
+	ready = true;
 	forever
 	{
 		//rDebug("specific monitor run");
@@ -87,11 +88,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
  	RoboCompCommonBehavior::Parameter aux;
  	aux.editable = false;
- 	configGetString( "CameraV4L.Device0.Name", aux.value, "default");
+ 	configGetString("", "CameraV4L.Device0.Name", aux.value, "default");
  	params["CameraV4L.Device0.Name"] = aux;
 
 	aux.editable = false;
-	configGetString( "CameraV4L.Device0.FPS", aux.value, "15");
+	configGetString("",  "CameraV4L.Device0.FPS", aux.value, "15");
 	if( aux.value != "30" and aux.value != "15" and aux.value != "10" and aux.value != "5")
 	{
 		std::cout << __FUNCTION__ << "Warning. Wrong FPS value. Using default 15" << std::endl;
@@ -100,7 +101,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["CameraV4L.Device0.FPS"] = aux;
 
 	aux.editable = false;
-	configGetString( "CameraV4L.Device0.Width", aux.value, "640");
+	configGetString("",  "CameraV4L.Device0.Width", aux.value, "640");
 	if( aux.value != "640" and aux.value != "320" and aux.value != "160")
 	{
 		std::cout << __FUNCTION__ << "Warning. Wrong Width value. Using default 640" << std::endl;
@@ -109,7 +110,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["CameraV4L.Device0.Width"] = aux;
 	
 	aux.editable = false;
-	configGetString( "CameraV4L.Device0.Height", aux.value, "480");
+	configGetString("",  "CameraV4L.Device0.Height", aux.value, "480");
 	if( aux.value != "480" and aux.value != "240" and aux.value != "120")
 	{
 		std::cout << __FUNCTION__ << "Warning. Wrong Height value. Using default 480" << std::endl;

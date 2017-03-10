@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,38 +18,43 @@
  */
 #include "rgbdbusI.h"
 
-RGBDBusI::RGBDBusI(GenericWorker *_worker, QObject *parent) : QObject(parent)
+RGBDBusI::RGBDBusI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
 
 RGBDBusI::~RGBDBusI()
 {
-	// Free component resources here
 }
 
-// Component functions, implementation
-CameraParamsMap RGBDBusI::getAllCameraParams(const Ice::Current&){
+CameraParamsMap RGBDBusI::getAllCameraParams(const Ice::Current&)
+{
 	return worker->getAllCameraParams();
 }
 
-void RGBDBusI::getImages(const CameraList& cameras, ImageMap& images, const Ice::Current&){
-	worker->getImages(cameras,images);
+void RGBDBusI::getPointClouds(const CameraList  &cameras,  PointCloudMap  &clouds, const Ice::Current&)
+{
+	worker->getPointClouds(cameras, clouds);
 }
 
-void RGBDBusI::getPointClouds(const CameraList& cameras, PointCloudMap& clouds, const Ice::Current&){
-	worker->getPointClouds(cameras,clouds);
+void RGBDBusI::getImages(const CameraList  &cameras,  ImageMap  &images, const Ice::Current&)
+{
+	worker->getImages(cameras, images);
 }
 
-void RGBDBusI::getProtoClouds(const CameraList& cameras, PointCloudMap& protoClouds, const Ice::Current&){
-	worker->getProtoClouds(cameras,protoClouds);
+void RGBDBusI::getProtoClouds(const CameraList  &cameras,  PointCloudMap  &protoClouds, const Ice::Current&)
+{
+	worker->getProtoClouds(cameras, protoClouds);
 }
 
-void RGBDBusI::getDecimatedImages(const CameraList& cameras, Ice::Int decimation, ImageMap& images, const Ice::Current&){
-	worker->getDecimatedImages(cameras,decimation,images);
+void RGBDBusI::getDecimatedImages(const CameraList  &cameras, const int  decimation,  ImageMap  &images, const Ice::Current&)
+{
+	worker->getDecimatedImages(cameras, decimation, images);
 }
+
+
+
+
 
 

@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::CameraV4l
+/** \mainpage RoboComp::AprilTagsComp
  *
  * \section intro_sec Introduction
  *
- * The CameraV4l component...
+ * The AprilTagsComp component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd CameraV4l
+ * cd AprilTagsComp
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/CameraV4l --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/AprilTagsComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,9 +81,20 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <rgbdbusI.h>
+#include <getapriltagsI.h>
 
+#include <GetAprilTags.h>
+#include <AprilTags.h>
+#include <GenericBase.h>
+#include <JointMotor.h>
+#include <RGBD.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
 #include <RGBDBus.h>
+#include <Camera.h>
+#include <CommonHead.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -92,10 +103,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class CameraV4l : public RoboComp::Application
+class AprilTagsComp : public RoboComp::Application
 {
 public:
-	CameraV4l (QString prfx) { prefix = prfx.toStdString(); }
+	AprilTagsComp (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -105,14 +116,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::CameraV4l::initialize()
+void ::AprilTagsComp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::CameraV4l::run(int argc, char* argv[])
+int ::AprilTagsComp::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -131,9 +142,88 @@ int ::CameraV4l::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	RGBDPrx rgbd_proxy;
+	RGBDBusPrx rgbdbus_proxy;
+	AprilTagsPrx apriltags_proxy;
+	CameraPrx camera_proxy;
 
 	string proxy, tmp;
 	initialize();
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
+		}
+		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("RGBDProxy initialized Ok!");
+	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBusProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBusProxy\n";
+		}
+		rgbdbus_proxy = RGBDBusPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("RGBDBusProxy initialized Ok!");
+	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraProxy\n";
+		}
+		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraProxy initialized Ok!");
+	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
+
+	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+	IceStorm::TopicPrx apriltags_topic;
+	while (!apriltags_topic)
+	{
+		try
+		{
+			apriltags_topic = topicManager->retrieve("AprilTags");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			try
+			{
+				apriltags_topic = topicManager->create("AprilTags");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+			}
+		}
+	}
+	Ice::ObjectPrx apriltags_pub = apriltags_topic->getPublisher()->ice_oneway();
+	AprilTagsPrx apriltags = AprilTagsPrx::uncheckedCast(apriltags_pub);
+	mprx["AprilTagsPub"] = (::IceProxy::Ice::Object*)(&apriltags);
 
 
 
@@ -168,15 +258,15 @@ int ::CameraV4l::run(int argc, char* argv[])
 
 
 		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBus.Endpoints", tmp, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTags.Endpoints", tmp, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBus";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTags";
 		}
-		Ice::ObjectAdapterPtr adapterRGBDBus = communicator()->createObjectAdapterWithEndpoints("RGBDBus", tmp);
-		RGBDBusI *rgbdbus = new RGBDBusI(worker);
-		adapterRGBDBus->add(rgbdbus, communicator()->stringToIdentity("rgbdbus"));
-		adapterRGBDBus->activate();
-		cout << "[" << PROGRAM_NAME << "]: RGBDBus adapter created in port " << tmp << endl;
+		Ice::ObjectAdapterPtr adapterGetAprilTags = communicator()->createObjectAdapterWithEndpoints("GetAprilTags", tmp);
+		GetAprilTagsI *getapriltags = new GetAprilTagsI(worker);
+		adapterGetAprilTags->add(getapriltags, communicator()->stringToIdentity("getapriltags"));
+		adapterGetAprilTags->activate();
+		cout << "[" << PROGRAM_NAME << "]: GetAprilTags adapter created in port " << tmp << endl;
 
 
 
@@ -247,7 +337,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::CameraV4l app(prefix);
+	::AprilTagsComp app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

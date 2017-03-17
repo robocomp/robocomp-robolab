@@ -1,10 +1,12 @@
 # Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 12238
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+
 
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+LaserProxy = laser:tcp -h localhost -p 10003
+
 
 
 Ice.Warn.Connections=0

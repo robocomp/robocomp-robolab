@@ -84,12 +84,12 @@ void FalconHandler::run()
 	{
 		// Update the position
 		device.runIOLoop();
-		boost::array<double, 3> devPos = device.getPosition();
+		std::array<double, 3> devPos = device.getPosition();
 		normalizedPos = origin + scale*QVector3D( devPos[0], devPos[1], devPos[2] );
 		buttons = device.getFalconGrip()->getDigitalInputs();
 		
 		// Compute the tension
-		boost::array<double, 3> force;
+		std::array<double, 3> force;
 		force[0] = -stiffness * normalizedPos.x();
 		force[1] = -stiffness * normalizedPos.y() + 0.98;
 		force[2] = -stiffness * normalizedPos.z();

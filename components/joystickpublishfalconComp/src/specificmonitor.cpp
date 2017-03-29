@@ -22,7 +22,6 @@
 */
 SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _communicator):GenericMonitor(_worker, _communicator)
 {
-
 }
 /**
 * \brief Default destructor
@@ -35,6 +34,7 @@ SpecificMonitor::~SpecificMonitor()
 void SpecificMonitor::run()
 {
 	initialize();
+	ready=true;
 	forever
 	{
 		//rDebug("specific monitor run");

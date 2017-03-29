@@ -36,6 +36,7 @@ SpecificMonitor::~SpecificMonitor()
 void SpecificMonitor::run()
 {
 	initialize();
+	ready=true;
 	forever
 	{
 		//rDebug("specific monitor run");
@@ -90,38 +91,38 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	//Example
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = false;
-	configGetString( "joystickUniversal.Device", aux.value,"/dev/input/js0");
+	configGetString( "","joystickUniversal.Device", aux.value,"/dev/input/js0");
 	params["joystickUniversal.Device"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.NumAxes", aux.value,"2");
+	configGetString( "","joystickUniversal.NumAxes", aux.value,"2");
 	params["joystickUniversal.NumAxes"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.NumButtons", aux.value,"1");
+	configGetString( "","joystickUniversal.NumButtons", aux.value,"1");
 	params["joystickUniversal.NumButtons"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.BasicPeriod", aux.value,"100");
+	configGetString( "","joystickUniversal.BasicPeriod", aux.value,"100");
 	params["joystickUniversal.BasicPeriod"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.NormalizationValue", aux.value,"10");
+	configGetString( "","joystickUniversal.NormalizationValue", aux.value,"10");
 	params["joystickUniversal.NormalizationValue"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.VelocityAxis", aux.value,"vel");
+	configGetString( "","joystickUniversal.VelocityAxis", aux.value,"vel");
 	params["joystickUniversal.VelocityAxis"] = aux;
 	
 	aux.editable = false;
-	configGetString( "joystickUniversal.DirectionAxis", aux.value,"dir");
+	configGetString( "","joystickUniversal.DirectionAxis", aux.value,"dir");
 	params["joystickUniversal.DirectionAxis"] = aux;
 	
 	for (int i=0; i < atoi(params.at("joystickUniversal.NumAxes").value.c_str()); i++)
 	{
 		aux.editable = false;
 		std::string s = QString::number(i).toStdString();
-		configGetString( "joystickUniversal.Axis_" + s, aux.value , "4");
+		configGetString("", "joystickUniversal.Axis_" + s, aux.value , "4");
 		params["joystickUniversal.Axis_" + s] = aux;
 		rDebug("joystickUniversal.Axis_"+QString::fromStdString(s)+" = " + QString::fromStdString(params.at("joystickUniversal.Axis_" + s).value));
 		QStringList list = QString::fromStdString(aux.value).split(",");

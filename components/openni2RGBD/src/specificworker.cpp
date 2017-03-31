@@ -37,13 +37,13 @@ SpecificWorker::~SpecificWorker()
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
-{	
+{
 	timer.start(30);
 	talkToJoint = QString::fromStdString(params["talkToJoint"].value).contains("true");
 	talkToBase = QString::fromStdString(params["talkToBase"].value).contains("true");
 	depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
-	
+
 	openDevice();
 	initializeStreams();
 	checkInitialization();
@@ -55,11 +55,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	pointsMutex = new QMutex();
 	bStateMutex = new QMutex();
 	mStateMutex = new QMutex();
-	
+
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	fps = 0;
-	
+
 	worker_params_mutex = new QMutex();
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = false;
@@ -68,8 +68,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	worker_params["frameRate"] = aux;
 	talkToJoint = false;
 	talkToBase = false;
-	
-	
+
+
 	return true;
 }
 
@@ -77,8 +77,8 @@ void SpecificWorker::compute( )
 {
 	static QTime fpsReloj = QTime::currentTime();
 	static QTime reloj = QTime::currentTime();
-	
-	
+
+
 	bool doCoordinates = readFrame();
 	if (doCoordinates)
 	{
@@ -106,7 +106,7 @@ void SpecificWorker::compute( )
 		}catch(...)
 		{
 			qDebug()<<"Exception: error reading genericbase state";
-		}	
+		}
 		bStateMutex->unlock();
 	}
 	if(talkToJoint)
@@ -117,11 +117,11 @@ void SpecificWorker::compute( )
 		}catch(...)
 		{
 			qDebug()<<"Exception: error reading motorStates";
-		}	
+		}
 		mStateMutex->unlock();
-	
+
 	}
-	
+
 }
 
 //////////////////////////////
@@ -189,15 +189,15 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState_)
 {
-        color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
+	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
-		memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
+	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
 	mStateMutex->lock();
-		hState = mState;
+	hState = mState;
 	mStateMutex->unlock();
 	bStateMutex->lock();
-		bState_ = bState;
+	bState_ = bState;
 	bStateMutex->unlock();
 }
 
@@ -214,9 +214,9 @@ RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
 
 
 /*
- * 
+ *
  * ----Private method------
- * 
+ *
  */
 
 void SpecificWorker::openDevice()
@@ -224,34 +224,34 @@ void SpecificWorker::openDevice()
 	openniRc = OpenNI::initialize();
 	switch (openniRc)
 	{
-		case openni::STATUS_OK:
-			printf("openni::STATUS_OK\n");
-			break;
-		case STATUS_ERROR:
-			printf("openni::STATUS_ERROR\n");
-			break;
-		case STATUS_NOT_IMPLEMENTED:
-			printf("openni::STATUS_NOT_IMPLEMENTED\n");
-			break;
-		case STATUS_NOT_SUPPORTED:
-			printf("openni::STATUS_NOT_SUPPORTED\n");
-			break;
-		case STATUS_BAD_PARAMETER:
-			printf("openni::STATUS_BAD_PARAMETER\n");
-			break;
-		case STATUS_OUT_OF_FLOW:
-			printf("openni::STATUS_OUT_OF_FLOW\n");
-			break;
-		case STATUS_NO_DEVICE:
-			printf("openni::STATUS_NO_DEVICE\n");
-			break;
-		case STATUS_TIME_OUT:
-			printf("openni::STATUS_TIME_OUT\n");
-			break;
-		default:
-			printf("openni:: UNKNOWN!!!\n");
-			exit(-2);
-			break;
+	case openni::STATUS_OK:
+		printf("openni::STATUS_OK\n");
+		break;
+	case STATUS_ERROR:
+		printf("openni::STATUS_ERROR\n");
+		break;
+	case STATUS_NOT_IMPLEMENTED:
+		printf("openni::STATUS_NOT_IMPLEMENTED\n");
+		break;
+	case STATUS_NOT_SUPPORTED:
+		printf("openni::STATUS_NOT_SUPPORTED\n");
+		break;
+	case STATUS_BAD_PARAMETER:
+		printf("openni::STATUS_BAD_PARAMETER\n");
+		break;
+	case STATUS_OUT_OF_FLOW:
+		printf("openni::STATUS_OUT_OF_FLOW\n");
+		break;
+	case STATUS_NO_DEVICE:
+		printf("openni::STATUS_NO_DEVICE\n");
+		break;
+	case STATUS_TIME_OUT:
+		printf("openni::STATUS_TIME_OUT\n");
+		break;
+	default:
+		printf("openni:: UNKNOWN!!!\n");
+		exit(-2);
+		break;
 	}
 	if (openniRc != openni::STATUS_OK)
 	{
@@ -261,7 +261,7 @@ void SpecificWorker::openDevice()
 
 /*
 	if( QFile::exists("file.oni") )
-	{		
+	{
 		openniRc = device.open("file.oni");
 	}
 	else
@@ -289,7 +289,7 @@ void SpecificWorker::openDevice()
 	const openni::SensorInfo* depthInfo;
 	const openni::SensorInfo* colorInfo;
 
-	
+
 	int selD = 0;
 	depthInfo = device.getSensorInfo(openni::SENSOR_DEPTH);
 	const openni::Array<openni::VideoMode>& depthModes = depthInfo->getSupportedVideoModes();
@@ -316,7 +316,7 @@ void SpecificWorker::openDevice()
 //	const openni::Array<openni::VideoMode>& colorModes = colorInfo->getSupportedVideoModes();
 //	printf("\nSupported COLOR modes:\n");
 //	for (int i = 0; i < colorModes.getSize(); ++i)
-//	{	
+//	{
 //		const openni::VideoMode* pSupportedMode = &colorModes[i];
 //		printf("%d x %d @ %d (%d)\n", pSupportedMode->getResolutionX(), pSupportedMode->getResolutionY(), pSupportedMode->getFps(),  depthModes[i].getPixelFormat());
 //		if (pSupportedMode->getResolutionX()==640 and pSupportedMode->getResolutionY()==480 and pSupportedMode->getPixelFormat() == PIXEL_FORMAT_RGB888) // 200 rgb888
@@ -331,8 +331,8 @@ void SpecificWorker::openDevice()
 //     {
 //         printf("error: can't set color fromat\n");
 //     }
-	
-	
+
+
 }
 
 bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
@@ -344,7 +344,7 @@ bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
 		return false;
 	}
 
-	if (QFile::exists("file.oni") == false)		
+	if (QFile::exists("file.oni") == false)
 	{
 		openniRc = stream->setMirroringEnabled(false);
 		if (openniRc != openni::STATUS_OK)
@@ -358,7 +358,7 @@ bool SpecificWorker::openStream(SensorType sensorType, VideoStream *stream)
 		mode = stream->getVideoMode();
 		mode.setResolution(640, 480);
 		mode.setFps(30);
-					
+
 		openniRc = stream->setVideoMode(mode);
 		if (openniRc != openni::STATUS_OK)
 		{
@@ -387,7 +387,7 @@ void SpecificWorker::initializeStreams()
 {
 	if (depthB) {
 	  if ( !openStream(SENSOR_DEPTH, &depth)){ qFatal("OPEN DEPTH STREAM FAILED!");
-	    
+
 	  }else
 	    qDebug()<<"ABIERTO  DEPTH";
 	}
@@ -397,13 +397,13 @@ void SpecificWorker::initializeStreams()
 	  } else
 	    qDebug()<<"ABIERTO  COLOR";
 	}
-	
+
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
 	IMAGE_WIDTH=320;
 	IMAGE_HEIGHT=240;
 	printf("Using depth resolution:  %d x %d\n", IMAGE_WIDTH, IMAGE_HEIGHT);
-	
+
 	//RESIZE DOUBLE BUFFERS
 	pointsBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	depthBuff.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
@@ -421,7 +421,7 @@ void SpecificWorker::initializeStreams()
 	RGBMutex = new QMutex();
 	depthMutex = new QMutex();
 	pointsMutex = new QMutex();
-	
+
 	///INICIALIZACION ATRIBUTOS PARA PINTAR
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
@@ -442,7 +442,7 @@ void SpecificWorker::checkInitialization()
 			switch (imageType)
 			{
 			case 0:
-				readDepth();				
+				readDepth();
 				for(int j=0;j<IMAGE_HEIGHT*IMAGE_WIDTH;j++)
 				{
 					average += pixDepth[j];
@@ -467,7 +467,7 @@ void SpecificWorker::checkInitialization()
 		}
 		qDebug()<<"eeee";
 	}
-	
+
 }
 
 bool SpecificWorker::readFrame()
@@ -511,7 +511,7 @@ void SpecificWorker::readDepth()
 	}
 
 	pixDepth = (DepthPixel*)depthFrame.getData();
-	
+
 }
 
 void SpecificWorker::readColor()
@@ -538,7 +538,7 @@ void SpecificWorker::readColor()
 	memcpy(&colorImage->operator[](0),pixColor,IMAGE_HEIGHT*IMAGE_WIDTH*3);
 
 	RGBMutex->unlock();
-	
+
 }
 
 void SpecificWorker::computeCoordinates()
@@ -551,27 +551,27 @@ void SpecificWorker::computeCoordinates()
 	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
 	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
 	//#pragma omp for schedule(static, 5)
-	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
+	for( int y=0 ; y<IMAGE_HEIGHT ; y++ )
 	{
-		for( int x=0 ; x<IMAGE_WIDTH ; x++ ) 
+		for( int x=0 ; x<IMAGE_WIDTH ; x++ )
 		{
 			const int offset = y*IMAGE_WIDTH + x;
-			
+
 			//Copy to depth doublebuffer
 			pixDepth[offset]*=1;
 			depthBuff[offset] = pixDepth[offset];
-			
+
 			const float z = float(pixDepth[offset]);
-		
-			if( z < 0.1 ) 
+
+			if( z < 0.1 )
 			{
 				//pixDepth[offset] = 8;
 				pointsBuff[offset].x = NAN;
 				pointsBuff[offset].y = NAN;
 				pointsBuff[offset].z = NAN;
 				pointsBuff[offset].w = NAN;
-			} 
-			else 
+			}
+			else
 			{
 				//(*depthImage)[offset] = z;
 				pointsBuff[offset].x = z * (x - IMAGE_WIDTH/2) / flength_x;
@@ -580,7 +580,7 @@ void SpecificWorker::computeCoordinates()
 				pointsBuff[offset].w = 1.0;
 			}
 		}
-		
+
 	}
 }
 

@@ -62,7 +62,21 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	double a,b;
+	this->params.colorWidth = 640;
+	this->params.colorHeight = 480;
+	this->params.colorFPS = grabber->getFramesPerSecond();
+	this->params.depthWidth = 640;
+	this->params.depthHeight = 480;
+	this->params.depthFPS = grabber->getFramesPerSecond();
+	grabber->getRGBFocalLength(a, b);
+	this->params.colorFocal = (a+b)/2.;
+	grabber->getDepthFocalLength(a, b);
+	this->params.depthFocal = (a+b)/2.;
+	this->params.name = "rgbd";
+
 	timer.start(Period);
+
 	return true;
 }
 
@@ -87,71 +101,57 @@ void SpecificWorker::compute()
 
 }
 
-
-Registration SpecificWorker::getRegistration()
+CameraParamsMap SpecificWorker::getAllCameraParams()
 {
-	return ColorInDepth;
+	CameraParamsMap ret;
+	ret[params.name] = params;
+	return ret;
 }
 
-void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::getPointClouds(const CameraList &cameras, PointCloudMap &clouds)
 {
-	openni_viewer->image_mutex_.lock();
-	rgbMatrix.resize(openni_viewer->rgb_data_size_);
-	memcpy(&rgbMatrix[0], openni_viewer->rgb_data_, openni_viewer->rgb_data_size_);
-	openni_viewer->image_mutex_.unlock();
-}
+	PointCloud pc;
 
-void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
-{
 	openni_viewer->cloud_mutex_.lock();
 	if (openni_viewer->cloud != NULL)
   {
-		points.resize(openni_viewer->cloud->points.size());
+		pc.resize(openni_viewer->cloud->points.size());
 		for (int i=0; openni_viewer->cloud->points.size(); i++)
 		{
-			points[i].x = openni_viewer->cloud->points[i].x;
-			points[i].y = openni_viewer->cloud->points[i].y;
-			points[i].z = openni_viewer->cloud->points[i].z;
+			pc[i].x = openni_viewer->cloud->points[i].x;
+			pc[i].y = openni_viewer->cloud->points[i].y;
+			pc[i].z = openni_viewer->cloud->points[i].z;
+			pc[i].r = openni_viewer->cloud->points[i].r;
+			pc[i].g = openni_viewer->cloud->points[i].g;
+			pc[i].b = openni_viewer->cloud->points[i].b;
 		}
 	}
 	openni_viewer->cloud_mutex_.unlock();
+
+	clouds["rgb"] = pc;
 }
 
-void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 {
+	Image img;
+	img.camera = params;
 	openni_viewer->image_mutex_.lock();
-	color.resize(openni_viewer->rgb_data_size_/3);
-	memcpy(&color[0], openni_viewer->rgb_data_, openni_viewer->rgb_data_size_);
+	 img.colorImage.resize(openni_viewer->rgb_data_size_/3);
+	 memcpy(&img.colorImage[0], openni_viewer->rgb_data_, openni_viewer->rgb_data_size_);
 	openni_viewer->image_mutex_.unlock();
-//implementCODE
+	img.width = 640;
+	img.height = 480;
 
+	images["rgbd"] = img;
 }
 
-TRGBDParams SpecificWorker::getRGBDParams()
+void SpecificWorker::getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds)
 {
 //implementCODE
 
 }
 
-void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
-{
-//implementCODE
-
-}
-
-void SpecificWorker::setRegistration(const Registration &value)
-{
-//implementCODE
-
-}
-
-void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
-{
-//implementCODE
-
-}
-
-void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images)
 {
 //implementCODE
 

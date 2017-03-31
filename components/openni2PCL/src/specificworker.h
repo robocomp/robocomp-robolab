@@ -130,15 +130,11 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	Registration getRegistration();
-	void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	TRGBDParams getRGBDParams();
-	void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void setRegistration(const Registration &value);
-	void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	CameraParamsMap getAllCameraParams();
+	void getPointClouds(const CameraList &cameras, PointCloudMap &clouds);
+	void getImages(const CameraList &cameras, ImageMap &images);
+	void getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds);
+	void getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images);
 
 public slots:
 	void compute();
@@ -148,6 +144,7 @@ private:
 
 
 private:
+	CameraParams params;
 	pcl::io::OpenNI2Grabber *grabber;
 	OpenNI2Viewer<pcl::PointXYZRGBA> *openni_viewer;
 

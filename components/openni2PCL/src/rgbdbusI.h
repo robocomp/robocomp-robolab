@@ -16,43 +16,34 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef RGBDBUS_H
+#define RGBDBUS_H
+
+// Ice includes
+#include <Ice/Ice.h>
+#include <RGBDBus.h>
+
+#include <config.h>
 #include "genericworker.h"
-/**
-* \brief Default constructor
-*/
-GenericWorker::GenericWorker(MapPrx& mprx) :
-QObject()
+
+using namespace RoboCompRGBDBus;
+
+class RGBDBusI : public virtual RoboCompRGBDBus::RGBDBus
 {
-	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
-	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
+public:
+	RGBDBusI(GenericWorker *_worker);
+	~RGBDBusI();
+	
+	CameraParamsMap getAllCameraParams(const Ice::Current&);
+	void getPointClouds(const CameraList  &cameras,  PointCloudMap  &clouds, const Ice::Current&);
+	void getImages(const CameraList  &cameras,  ImageMap  &images, const Ice::Current&);
+	void getProtoClouds(const CameraList  &cameras,  PointCloudMap  &protoClouds, const Ice::Current&);
+	void getDecimatedImages(const CameraList  &cameras, const int  decimation,  ImageMap  &images, const Ice::Current&);
 
-	mutex = new QMutex(QMutex::Recursive);
+private:
 
-	Period = BASIC_PERIOD;
-	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
-// 	timer.start(Period);
-}
+	GenericWorker *worker;
 
-/**
-* \brief Default destructor
-*/
-GenericWorker::~GenericWorker()
-{
+};
 
-}
-void GenericWorker::killYourSelf()
-{
-	rDebug("Killing myself");
-	emit kill();
-}
-/**
-* \brief Change compute period
-* @param per Period in ms
-*/
-void GenericWorker::setPeriod(int p)
-{
-	rDebug("Period changed"+QString::number(p));
-	Period = p;
-	timer.start(Period);
-}
-
+#endif

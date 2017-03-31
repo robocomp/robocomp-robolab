@@ -1,4 +1,4 @@
-import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+import "/robocomp/interfaces/IDSLs/RGBDBus.idsl";
 import "/robocomp/interfaces/IDSLs/JointMotor.idsl";
 import "/robocomp/interfaces/IDSLs/GenericBase.idsl";
 
@@ -7,7 +7,7 @@ Component openNI2pcl
 	Communications
 	{
 			requires GenericBase, JointMotor;
-			implements RGBD;
+			implements RGBDBus;
 	};
 	language Cpp;
 };

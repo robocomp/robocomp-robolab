@@ -27,9 +27,7 @@
 
 #include <CommonBehavior.h>
 
-#include <RGBD.h>
-#include <JointMotor.h>
-#include <GenericBase.h>
+#include <RGBDBus.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
 
@@ -40,9 +38,9 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-using namespace RoboCompRGBD;
-using namespace RoboCompJointMotor;
 using namespace RoboCompGenericBase;
+using namespace RoboCompRGBDBus;
+using namespace RoboCompJointMotor;
 
 
 
@@ -64,15 +62,11 @@ public:
 	JointMotorPrx jointmotor_proxy;
 	GenericBasePrx genericbase_proxy;
 
-	virtual Registration getRegistration() = 0;
-	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual TRGBDParams getRGBDParams() = 0;
-	virtual void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void setRegistration(const Registration &value) = 0;
-	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual CameraParamsMap getAllCameraParams() = 0;
+	virtual void getPointClouds(const CameraList &cameras, PointCloudMap &clouds) = 0;
+	virtual void getImages(const CameraList &cameras, ImageMap &images) = 0;
+	virtual void getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds) = 0;
+	virtual void getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images) = 0;
 
 protected:
 	QTimer timer;

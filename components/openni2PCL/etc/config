@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 10201
 
 
 # Endpoints for implemented interfaces
-RGBD.Endpoints=tcp -p 10200
+RGBDBus.Endpoints=tcp -p 10200
 
 
 # Proxies for required interfaces

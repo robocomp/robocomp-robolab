@@ -26,14 +26,14 @@ SET ( SOURCES
   commonbehaviorI.cpp
   genericworker.cpp
   specificworker.cpp
-  rgbdI.cpp
+  rgbdbusI.cpp
 )
 
 
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor GenericBase JointMotor GenericBase )
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBDBus JointMotor GenericBase )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

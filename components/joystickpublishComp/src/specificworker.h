@@ -48,7 +48,7 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(MapPrx& mprx, QObject *parent = 0);	
+	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 

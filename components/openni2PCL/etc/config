@@ -1,0 +1,22 @@
+CommonBehavior.Endpoints=tcp -p 10201
+
+
+# Endpoints for implemented interfaces
+RGBD.Endpoints=tcp -p 10200
+
+
+# Proxies for required interfaces
+JointMotorProxy = jointmotor:tcp -h localhost -p 0
+GenericBaseProxy = genericbase:tcp -h localhost -p 0
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+# Ice.ACM.Client=10
+Ice.ACM.Client=0
+# Ice.ACM.Server=10
+Ice.ACM.Server=0
+
+

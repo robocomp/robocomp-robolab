@@ -58,6 +58,8 @@ public:
 	{
 		readIM = new ImageMap();
 		writeIM = new ImageMap();
+		readPC = new PointCloudMap();
+		writePC = new PointCloudMap();
 
 		image_init = false;
 		cloud_init = false;
@@ -78,16 +80,58 @@ public:
 
 	void cloud_callback (const CloudConstPtr& cloud)
 	{
+		static bool first = true;
 		boost::mutex::scoped_lock lock (cloud_mutex_);
-		cloud_ = cloud;
+		static PointCloud pc;
+printf("%d\n", __LINE__);
+		printf("%d\n", __LINE__);
+		if (cloud != NULL)
+		{
+			printf("%d\n", __LINE__);
+			if (pc.size() != cloud->points.size())
+			{
+				printf("%d\n", __LINE__);
+				pc.resize(cloud->points.size());
+			}
+			printf("%d\n", __LINE__);
+			for (int i=0; cloud->points.size(); i++)
+			{
+				pc[i].x = cloud->points[i].x;
+				pc[i].y = cloud->points[i].y;
+				pc[i].z = cloud->points[i].z;
+				pc[i].r = cloud->points[i].r;
+				pc[i].g = cloud->points[i].g;
+				pc[i].b = cloud->points[i].b;
+			}
+			printf("%d\n", __LINE__);
+		}
+		printf("%d\n", __LINE__);
+		// cloud_ = cloud;
+		printf("%d\n", __LINE__);
+
+		printf("%d\n", __LINE__);
+		writePC->operator[]("rgbd") = pc;
+		printf("%d\n", __LINE__);
+
+		if (first)
+		{
+			printf("%d\n", __LINE__);
+			*readPC = *writePC;
+			first = false;
+			printf("%d\n", __LINE__);
+		}
+		printf("%d\n", __LINE__);
+		std::swap(readPC, writePC);
+		printf("%d\n", __LINE__);
 	}
 
 	void image_callback (const boost::shared_ptr<pcl::io::openni2::Image>& image)
 	{
 		static bool first=true;
-		Image img;
+		static Image img;
 		if (image->getEncoding () != pcl::io::openni2::Image::RGB)
 		{
+			printf("%d\n", __LINE__);
 			if (rgb_data_size_ < image->getWidth () * image->getHeight ())
 			{
 				if (rgb_data_)
@@ -97,13 +141,19 @@ public:
 				rgb_data_size_ = image->getWidth () * image->getHeight ();
 				rgb_data_ = new unsigned char [rgb_data_size_ * 3];
 			}
-			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
-			img.colorImage.resize(image->getWidth()*image->getHeight());
+			image->fillRGB (image->getWidth(), image->getHeight(), rgb_data_);
+			if (img.colorImage.size() != image->getWidth()*image->getHeight())
+			{
+				img.colorImage.resize(image->getWidth()*image->getHeight());
+			}
 			memcpy(&img.colorImage[0], rgb_data_, image->getWidth()*image->getHeight());
 		}
 		else
 		{
-			img.colorImage.resize(image->getWidth()*image->getHeight());
+			if (img.colorImage.size() != image->getWidth()*image->getHeight())
+			{
+				img.colorImage.resize(image->getWidth()*image->getHeight());
+			}
 			memcpy(&img.colorImage[0], (const unsigned char*)image->getData(), image->getWidth()*image->getHeight());
 		}
 		img.width = image->getWidth();
@@ -122,38 +172,29 @@ public:
 		image_mutex_.unlock();
 	}
 
-  void run ()
-  {
-    boost::shared_ptr<pcl::io::openni2::Image> image;
-    // See if we can get a cloud
-    if (cloud_mutex_.try_lock ())
-    {
-      cloud_.swap (cloud);
-      cloud_mutex_.unlock ();
-    }
-    // See if we can get an image
-    if (image_mutex_.try_lock ())
-    {
-      image_.swap(image);
-      image_mutex_.unlock ();
-    }
-  }
+	void run ()
+	{
+	}
 
 	pcl::io::OpenNI2Grabber& grabber_;
 	boost::mutex cloud_mutex_;
 	boost::mutex image_mutex_;
 
-	CloudConstPtr cloud_, cloud;
-	boost::shared_ptr<pcl::io::openni2::Image> image_;
+	// CloudConstPtr cloud;
 	unsigned char *rgb_data_;
 	unsigned rgb_data_size_;
 
 	ImageMap *readIM, *writeIM;
+	PointCloudMap *readPC, *writePC;
 
 public:
 	ImageMap *getImageMap()
 	{
 		return readIM;
+	}
+	PointCloudMap *getPointCloudMap()
+	{
+		return readPC;
 	}
 };
 

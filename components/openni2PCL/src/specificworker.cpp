@@ -110,25 +110,9 @@ CameraParamsMap SpecificWorker::getAllCameraParams()
 
 void SpecificWorker::getPointClouds(const CameraList &cameras, PointCloudMap &clouds)
 {
-	PointCloud pc;
-
 	openni_viewer->cloud_mutex_.lock();
-	if (openni_viewer->cloud != NULL)
-  {
-		pc.resize(openni_viewer->cloud->points.size());
-		for (int i=0; openni_viewer->cloud->points.size(); i++)
-		{
-			pc[i].x = openni_viewer->cloud->points[i].x;
-			pc[i].y = openni_viewer->cloud->points[i].y;
-			pc[i].z = openni_viewer->cloud->points[i].z;
-			pc[i].r = openni_viewer->cloud->points[i].r;
-			pc[i].g = openni_viewer->cloud->points[i].g;
-			pc[i].b = openni_viewer->cloud->points[i].b;
-		}
-	}
+	clouds = *openni_viewer->getPointCloudMap();
 	openni_viewer->cloud_mutex_.unlock();
-
-	clouds["rgb"] = pc;
 }
 
 void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)

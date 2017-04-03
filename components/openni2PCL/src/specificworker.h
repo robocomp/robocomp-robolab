@@ -51,47 +51,76 @@ public:
 	bool image_init, cloud_init;
 	boost::signals2::connection cloud_connection;
 	boost::signals2::connection image_connection;
-  typedef pcl::PointCloud<PointType> Cloud;
-  typedef typename Cloud::ConstPtr CloudConstPtr;
+	typedef pcl::PointCloud<PointType> Cloud;
+	typedef typename Cloud::ConstPtr CloudConstPtr;
 
-  OpenNI2Viewer (pcl::io::OpenNI2Grabber& grabber) : grabber_ (grabber), rgb_data_ (0), rgb_data_size_ (0)
-  {
+	OpenNI2Viewer (pcl::io::OpenNI2Grabber& grabber) : grabber_ (grabber), rgb_data_ (0), rgb_data_size_ (0)
+	{
+		readIM = new ImageMap();
+		writeIM = new ImageMap();
+
 		image_init = false;
 		cloud_init = false;
-    boost::function<void (const CloudConstPtr&) > cloud_cb = boost::bind (&OpenNI2Viewer::cloud_callback, this, _1);
-    cloud_connection = grabber_.registerCallback (cloud_cb);
-    if (grabber_.providesCallback<void (const boost::shared_ptr<pcl::io::openni2::Image>&)>())
-    {
-      boost::function<void (const boost::shared_ptr<pcl::io::openni2::Image>&) > image_cb = boost::bind (&OpenNI2Viewer::image_callback, this, _1);
-      image_connection = grabber_.registerCallback (image_cb);
-    }
-    grabber_.start ();
-  }
+		boost::function<void (const CloudConstPtr&) > cloud_cb = boost::bind (&OpenNI2Viewer::cloud_callback, this, _1);
+		cloud_connection = grabber_.registerCallback (cloud_cb);
+		if (grabber_.providesCallback<void (const boost::shared_ptr<pcl::io::openni2::Image>&)>())
+		{
+			boost::function<void (const boost::shared_ptr<pcl::io::openni2::Image>&) > image_cb = boost::bind (&OpenNI2Viewer::image_callback, this, _1);
+			image_connection = grabber_.registerCallback (image_cb);
+		}
+		else
+		{
+			printf("Not providing image callbacks\n");
+			exit(-1);
+		}
+		grabber_.start ();
+	}
 
-  void cloud_callback (const CloudConstPtr& cloud)
-  {
-    boost::mutex::scoped_lock lock (cloud_mutex_);
-    cloud_ = cloud;
-  }
+	void cloud_callback (const CloudConstPtr& cloud)
+	{
+		boost::mutex::scoped_lock lock (cloud_mutex_);
+		cloud_ = cloud;
+	}
 
-  void image_callback (const boost::shared_ptr<pcl::io::openni2::Image>& image)
-  {
-    boost::mutex::scoped_lock lock (image_mutex_);
-    image_ = image;
-    if (image->getEncoding () != pcl::io::openni2::Image::RGB)
-    {
-      if (rgb_data_size_ < image->getWidth () * image->getHeight ())
-      {
-        if (rgb_data_)
-        {
+	void image_callback (const boost::shared_ptr<pcl::io::openni2::Image>& image)
+	{
+		static bool first=true;
+		Image img;
+		if (image->getEncoding () != pcl::io::openni2::Image::RGB)
+		{
+			if (rgb_data_size_ < image->getWidth () * image->getHeight ())
+			{
+				if (rgb_data_)
+				{
 					delete [] rgb_data_;
 				}
-        rgb_data_size_ = image->getWidth () * image->getHeight ();
-        rgb_data_ = new unsigned char [rgb_data_size_ * 3];
-      }
-      image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
-    }
-  }
+				rgb_data_size_ = image->getWidth () * image->getHeight ();
+				rgb_data_ = new unsigned char [rgb_data_size_ * 3];
+			}
+			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
+			img.colorImage.resize(image->getWidth()*image->getHeight());
+			memcpy(&img.colorImage[0], rgb_data_, image->getWidth()*image->getHeight());
+		}
+		else
+		{
+			img.colorImage.resize(image->getWidth()*image->getHeight());
+			memcpy(&img.colorImage[0], (const unsigned char*)image->getData(), image->getWidth()*image->getHeight());
+		}
+		img.width = image->getWidth();
+		img.height = image->getHeight();
+
+		image_mutex_.lock();
+		printf("cb %s %d\n", "rgbd", (int)img.colorImage.size());
+		sleep(1);
+		writeIM->operator[]("rbgd") = img;
+		if (first)
+		{
+			*readIM = *writeIM;
+			first = false;
+		}
+		std::swap(readIM, writeIM);
+		image_mutex_.unlock();
+	}
 
   void run ()
   {
@@ -110,14 +139,22 @@ public:
     }
   }
 
-  pcl::io::OpenNI2Grabber& grabber_;
-  boost::mutex cloud_mutex_;
-  boost::mutex image_mutex_;
+	pcl::io::OpenNI2Grabber& grabber_;
+	boost::mutex cloud_mutex_;
+	boost::mutex image_mutex_;
 
-  CloudConstPtr cloud_, cloud;
-  boost::shared_ptr<pcl::io::openni2::Image> image_;
-  unsigned char *rgb_data_;
-  unsigned rgb_data_size_;
+	CloudConstPtr cloud_, cloud;
+	boost::shared_ptr<pcl::io::openni2::Image> image_;
+	unsigned char *rgb_data_;
+	unsigned rgb_data_size_;
+
+	ImageMap *readIM, *writeIM;
+
+public:
+	ImageMap *getImageMap()
+	{
+		return readIM;
+	}
 };
 
 

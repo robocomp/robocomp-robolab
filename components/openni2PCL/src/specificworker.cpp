@@ -133,16 +133,14 @@ void SpecificWorker::getPointClouds(const CameraList &cameras, PointCloudMap &cl
 
 void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 {
-	Image img;
-	img.camera = params;
 	openni_viewer->image_mutex_.lock();
-	 img.colorImage.resize(openni_viewer->rgb_data_size_/3);
-	 memcpy(&img.colorImage[0], openni_viewer->rgb_data_, openni_viewer->rgb_data_size_);
+	images = *openni_viewer->getImageMap();
 	openni_viewer->image_mutex_.unlock();
-	img.width = 640;
-	img.height = 480;
-
-	images["rgbd"] = img;
+	for (auto &img : images)
+	{
+		img.second.camera = params;
+		printf("getImages: %s: %d\n", img.first.c_str(), (int)img.second.colorImage.size());
+	}
 }
 
 void SpecificWorker::getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds)

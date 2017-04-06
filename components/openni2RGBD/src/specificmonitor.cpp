@@ -94,6 +94,10 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["talkToBase"] = aux;
 	configGetString("", "talkToJoint", aux.value,"false");
 	params["talkToJoint"] = aux;
+	configGetString("", "depth", aux.value,"true");
+	params["depth"] = aux;
+	configGetString("", "color", aux.value,"true");
+	params["color"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

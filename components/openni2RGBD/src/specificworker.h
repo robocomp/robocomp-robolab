@@ -116,19 +116,7 @@ Q_OBJECT
 	CoordinateConverter conversor;
 
 	Registration registration;
-
-	void openDevice();
-	bool openStream(SensorType sensorType, VideoStream *stream);
-	void initializeStreams();
-	bool readFrame();
-	void computeCoordinates();
-	void readColor();
-	void readDepth();
-
-	void normalizeDepth();
-	void checkInitialization();
-	void closeStreams();
-
+	
 	DoubleBuffer<RoboCompRGBD::PointSeq> pointsBuff;
 	DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 	
@@ -138,7 +126,21 @@ Q_OBJECT
 	RoboCompRGBD::DepthSeq * depthMapR, * depthMapW;
 	QMutex *worker_params_mutex;
 	RoboCompCommonBehavior::ParameterList worker_params;
-	bool talkToJoint,talkToBase;
+	bool talkToJoint,talkToBase,depthB,colorB;
+	
+	//------------method---------
+	void openDevice();
+	bool openStream(SensorType sensorType, VideoStream *stream);
+	void initializeStreams();
+	void checkInitialization();
+	bool readFrame();
+	void readDepth();
+	void readColor();
+	void computeCoordinates();
+	void normalizeDepth();
+	void closeStreams();
+
+	
            
 public:
 	SpecificWorker(MapPrx& mprx);	

@@ -32,17 +32,18 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	timer.start(Period);
+	qDebug()<< "setParams";
+	timer.start(50);
 	return true;
 }
 
 void SpecificWorker::compute()
 {	
+	qDebug()<< "COMPUTE";
 	RoboCompJoystickAdapter::TData data;
 	RoboCompJoystickAdapter::AxisParams axisTemp;
 	RoboCompJoystickAdapter::ButtonParams buttonTemp;
@@ -80,7 +81,7 @@ void SpecificWorker::compute()
 	data.dirAxisIndex = 0;		
 	try 
 	{
-		joystickadapter->sendData( data );
+		joystickadapter_proxy->sendData( data );
 		
 		qDebug() << "Axis";
 		for( auto a : data.axes)

@@ -447,9 +447,9 @@ void SpecificWorker::computeCoordinates()
 	//static const float fovW = 57;
 	//static const float fovH = 43;
 	// focal: 522 sale abierto
-	static const float flength_x = 545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
-	static const float flength_y = 545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
-	//printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
+	static const float flength_x = 470;//device.getDepthFocalLength(640);//545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
+	static const float flength_y = 470;//device.getDepthFocalLength(640);//545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
+	printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
 	//#pragma omp for schedule(static, 5)
 	for( int y=0 ; y<IMAGE_HEIGHT ; y++ ) 
 	{

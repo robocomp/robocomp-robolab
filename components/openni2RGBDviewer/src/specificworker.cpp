@@ -28,7 +28,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
      viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
      viewer->addCoordinateSystem (1.0);
      viewer->initCameraParameters ();
-     return (viewer);
+	rgb_image = cv::Mat(480,640, CV_8UC3, cv::Scalar::all(0))
+
 }
 
 /**
@@ -47,6 +48,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	RoboCompJointMotor::MotorStateMap h;
 	RoboCompGenericBase::TBaseState b;
 
+	cv::Mat rgb_image;
 	rgbd_proxy->getImage(rgbMatrix, distanceMatrix, points_kinect,  h, b);
 	cout<<"SpecificWorker::grabThePointcloud rgbMatrix.size(): "<<rgbMatrix.size()<<endl;
 	for(unsigned int i=0; i<rgbMatrix.size(); i++)

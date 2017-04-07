@@ -400,8 +400,8 @@ void SpecificWorker::initializeStreams()
 
 	IMAGE_WIDTH=depth.getVideoMode().getResolutionX();
 	IMAGE_HEIGHT=depth.getVideoMode().getResolutionY();
-	IMAGE_WIDTH=320;
-	IMAGE_HEIGHT=240;
+	// IMAGE_WIDTH=320;
+	// IMAGE_HEIGHT=240;
 	printf("Using depth resolution:  %d x %d\n", IMAGE_WIDTH, IMAGE_HEIGHT);
 
 	//RESIZE DOUBLE BUFFERS
@@ -426,7 +426,6 @@ void SpecificWorker::initializeStreams()
 	mColor = new uint16_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	auxDepth = new uint8_t [IMAGE_WIDTH*IMAGE_HEIGHT*3];
 	pixDepth = new DepthPixel[IMAGE_WIDTH*IMAGE_HEIGHT];
-	printf("\nStart moving around to get detected...\n(PSI pose may be required for skeleton calibration, depending on the configuration)\n");
 }
 
 void SpecificWorker::checkInitialization()
@@ -547,8 +546,8 @@ void SpecificWorker::computeCoordinates()
 	//static const float fovW = 57;
 	//static const float fovH = 43;
 	// focal: 522 sale abierto
-	static const float flength_x = 470;//device.getDepthFocalLength(640);//545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
-	static const float flength_y = 470;//device.getDepthFocalLength(640);//545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
+	static const float flength_x = 574;//device.getDepthFocalLength(640);//545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
+	static const float flength_y = 574;//device.getDepthFocalLength(640);//545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
 	printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
 	//#pragma omp for schedule(static, 5)
 	for( int y=0 ; y<IMAGE_HEIGHT ; y++ )

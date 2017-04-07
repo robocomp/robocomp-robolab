@@ -30,6 +30,14 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 
+#include <boost/thread/thread.hpp>
+#include <pcl/common/common_headers.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/console/parse.h>
+
+
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
@@ -44,8 +52,8 @@ public slots:
 
 private:
 	InnerModel *innerModel;
-	
+	pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud;
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 };
 
 #endif
-

@@ -25,10 +25,11 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	viewer = boost::shared_ptr<pcl::visualization::PCLVisualizer>(new pcl::visualization::PCLVisualizer ("3D Viewer"));
 	viewer->setBackgroundColor (0, 0, 0);
-     viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
      viewer->addCoordinateSystem (1.0);
      viewer->initCameraParameters ();
-	rgb_image = cv::Mat(480,640, CV_8UC3, cv::Scalar::all(0))
+	cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+	viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
 
 }
 
@@ -42,47 +43,6 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	RoboCompRGBD::ColorSeq rgbMatrix;
-	RoboCompRGBD::depthType distanceMatrix;
-	RoboCompRGBD::PointSeq points_kinect;
-	RoboCompJointMotor::MotorStateMap h;
-	RoboCompGenericBase::TBaseState b;
-
-	cv::Mat rgb_image;
-	rgbd_proxy->getImage(rgbMatrix, distanceMatrix, points_kinect,  h, b);
-	cout<<"SpecificWorker::grabThePointcloud rgbMatrix.size(): "<<rgbMatrix.size()<<endl;
-	for(unsigned int i=0; i<rgbMatrix.size(); i++)
-	{
-		int row = (i/640), column = i-(row*640);
-		rgb_image.at<cv::Vec3b>(row, column) = cv::Vec3b(rgbMatrix[i].blue, rgbMatrix[i].green, rgbMatrix[i].red);
-	}
-	viewpoint_transform = innermodel->getTransformationMatrix(id_robot,id_camera_transform);
-	QMat PP = viewpoint_transform;
-	cloud->points.resize(points_kinect.size());
-	for (unsigned int i=0; i<points_kinect.size(); i++)
-	{
-		QVec p1 = (PP * QVec::vec4(points_kinect[i].x, points_kinect[i].y, points_kinect[i].z, 1)).fromHomogeneousCoordinates();
-
-		memcpy(&cloud->points[i],p1.data(),3*sizeof(float));
-
-		cloud->points[i].r=rgbMatrix[i].red;
-		cloud->points[i].g=rgbMatrix[i].green;
-		cloud->points[i].b=rgbMatrix[i].blue;
-	}
-	cloud->width = 1;
-	cloud->height = points_kinect.size();
-// 		Convert cloud from mm to m
-	if(MEDIDA==1000.)
-		cloud = PointCloudfrom_mm_to_Meters(cloud);
-
-	std::vector< int > index;
-	removeNaNFromPointCloud (*cloud, *cloud, index);
-	cloud->is_dense = false;
-	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-	viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-
-
-
 
 	timer.start(Period);
 
@@ -93,15 +53,30 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
-	//computeCODE
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+	RoboCompRGBD::ColorSeq rgbMatrix;
+	RoboCompRGBD::depthType distanceMatrix;
+	RoboCompRGBD::PointSeq points_kinect;
+	RoboCompJointMotor::MotorStateMap h;
+	RoboCompGenericBase::TBaseState b;
+
+	rgbd_proxy->getImage(rgbMatrix, distanceMatrix, points_kinect,  h, b);
+	cloud->points.resize(points_kinect.size());
+	for (unsigned int i=0; i<points_kinect.size(); i++)
+	{
+		const float div = 1000.;
+		cloud->points[i].x = points_kinect[i].x/div;
+		cloud->points[i].z = points_kinect[i].z/div;
+		cloud->points[i].y = points_kinect[i].y/div;
+
+		cloud->points[i].r=rgbMatrix[i].red;
+		cloud->points[i].g=rgbMatrix[i].green;
+		cloud->points[i].b=rgbMatrix[i].blue;
+	}
+	cloud->width = 1;
+	cloud->height = points_kinect.size();
+
+	cloud->is_dense = false;
+	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+	viewer->updatePointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+	viewer->spinOnce(10);
 }

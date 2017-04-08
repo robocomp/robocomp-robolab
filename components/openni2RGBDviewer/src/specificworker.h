@@ -52,7 +52,7 @@ public slots:
 
 private:
 	InnerModel *innerModel;
-	pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 };
 

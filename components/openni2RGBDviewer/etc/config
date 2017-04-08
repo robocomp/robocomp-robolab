@@ -1,10 +1,10 @@
-CommonBehavior.Endpoints=tcp -p 1
+CommonBehavior.Endpoints=tcp -p 13432
 
 
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h localhost -p 0
+RGBDProxy = rgbd:tcp -h localhost -p 10200
 
-
+Ice.MessageSizeMax=2000480
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

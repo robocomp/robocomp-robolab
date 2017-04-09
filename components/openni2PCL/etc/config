@@ -1,13 +1,14 @@
 CommonBehavior.Endpoints=tcp -p 10201
+RGBD.Endpoints=tcp -p 10200
 
-
-# Endpoints for implemented interfaces
-RGBDBus.Endpoints=tcp -p 10200
-
-
-# Proxies for required interfaces
-JointMotorProxy = jointmotor:tcp -h localhost -p 0
 GenericBaseProxy = genericbase:tcp -h localhost -p 0
+TalkToBase=false
+
+JointMotorProxy = jointmotor:tcp -h localhost -p 0
+TalkToJoint=false
+
+
+Ice.MessageSizeMax=2000480
 
 
 

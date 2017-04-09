@@ -14,4 +14,4 @@ SET ( HEADERS
 ADD_DEFINITIONS( -std=c++11 )
 
 INCLUDE ($ENV{ROBOCOMP}/cmake/modules/pcl.cmake )
-INCLUDE ($ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
+#INCLUDE ($ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )

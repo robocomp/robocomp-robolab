@@ -51,15 +51,20 @@ public:
 	bool image_init, cloud_init;
 	boost::signals2::connection cloud_connection;
 	boost::signals2::connection image_connection;
-	typedef pcl::PointCloud<PointType> Cloud;
-	typedef typename Cloud::ConstPtr CloudConstPtr;
+
+  typedef pcl::PointCloud<PointType> Cloud;
+  typedef typename Cloud::ConstPtr CloudConstPtr;
 
 	OpenNI2Viewer (pcl::io::OpenNI2Grabber& grabber) : grabber_ (grabber), rgb_data_ (0), rgb_data_size_ (0)
 	{
-		readIM = new ImageMap();
-		writeIM = new ImageMap();
-		readPC = new PointCloudMap();
-		writePC = new PointCloudMap();
+		readIM = new ColorSeq();
+		readIM->resize(640*480);
+		writeIM = new ColorSeq();
+		writeIM->resize(640*480);
+		readCM = new PointSeq();
+		readCM->resize(640*480);
+		writeCM = new PointSeq();
+		writeCM->resize(640*480);
 
 		image_init = false;
 		cloud_init = false;
@@ -70,131 +75,145 @@ public:
 			boost::function<void (const boost::shared_ptr<pcl::io::openni2::Image>&) > image_cb = boost::bind (&OpenNI2Viewer::image_callback, this, _1);
 			image_connection = grabber_.registerCallback (image_cb);
 		}
-		else
-		{
-			printf("Not providing image callbacks\n");
-			exit(-1);
-		}
 		grabber_.start ();
 	}
 
 	void cloud_callback (const CloudConstPtr& cloud)
 	{
-		static bool first = true;
 		boost::mutex::scoped_lock lock (cloud_mutex_);
-		static PointCloud pc;
-printf("%d\n", __LINE__);
-		printf("%d\n", __LINE__);
-		if (cloud != NULL)
+		cloud_ = cloud;
+
+		static bool first=true;
+
+		if (writeCM->size() != cloud->points.size())
+			writeCM->resize(cloud->points.size());
+
+		for (uint32_t i=0; i<cloud->points.size(); i++)
 		{
-			printf("%d\n", __LINE__);
-			if (pc.size() != cloud->points.size())
-			{
-				printf("%d\n", __LINE__);
-				pc.resize(cloud->points.size());
-			}
-			printf("%d\n", __LINE__);
-			for (int i=0; cloud->points.size(); i++)
-			{
-				pc[i].x = cloud->points[i].x;
-				pc[i].y = cloud->points[i].y;
-				pc[i].z = cloud->points[i].z;
-				pc[i].r = cloud->points[i].r;
-				pc[i].g = cloud->points[i].g;
-				pc[i].b = cloud->points[i].b;
-			}
-			printf("%d\n", __LINE__);
+			writeCM->operator[](i).x = cloud->points[i].x;
+			writeCM->operator[](i).y = cloud->points[i].y;
+			writeCM->operator[](i).z = cloud->points[i].z;
+			writeCM->operator[](i).w = 1;
 		}
-		printf("%d\n", __LINE__);
-		// cloud_ = cloud;
-		printf("%d\n", __LINE__);
-
-		printf("%d\n", __LINE__);
-		writePC->operator[]("rgbd") = pc;
-		printf("%d\n", __LINE__);
-
 		if (first)
 		{
-			printf("%d\n", __LINE__);
-			*readPC = *writePC;
+			*readCM = *writeCM;
 			first = false;
-			printf("%d\n", __LINE__);
 		}
-		printf("%d\n", __LINE__);
-		std::swap(readPC, writePC);
-		printf("%d\n", __LINE__);
+		
+		PointSeq *t = readCM;
+		readCM = writeCM;
+		writeCM = t;
 	}
 
 	void image_callback (const boost::shared_ptr<pcl::io::openni2::Image>& image)
 	{
 		static bool first=true;
-		static Image img;
+		boost::mutex::scoped_lock lock (image_mutex_);
+		image_ = image;
+
 		if (image->getEncoding () != pcl::io::openni2::Image::RGB)
 		{
 			printf("%d\n", __LINE__);
 			if (rgb_data_size_ < image->getWidth () * image->getHeight ())
 			{
+			printf("%d\n", __LINE__);
 				if (rgb_data_)
-				{
 					delete [] rgb_data_;
-				}
 				rgb_data_size_ = image->getWidth () * image->getHeight ();
 				rgb_data_ = new unsigned char [rgb_data_size_ * 3];
 			}
-			image->fillRGB (image->getWidth(), image->getHeight(), rgb_data_);
-			if (img.colorImage.size() != image->getWidth()*image->getHeight())
-			{
-				img.colorImage.resize(image->getWidth()*image->getHeight());
-			}
-			memcpy(&img.colorImage[0], rgb_data_, image->getWidth()*image->getHeight());
+			printf("%d\n", __LINE__);
+			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
 		}
-		else
-		{
-			if (img.colorImage.size() != image->getWidth()*image->getHeight())
-			{
-				img.colorImage.resize(image->getWidth()*image->getHeight());
-			}
-			memcpy(&img.colorImage[0], (const unsigned char*)image->getData(), image->getWidth()*image->getHeight());
-		}
-		img.width = image->getWidth();
-		img.height = image->getHeight();
 
-		image_mutex_.lock();
-		printf("cb %s %d\n", "rgbd", (int)img.colorImage.size());
-		sleep(1);
-		writeIM->operator[]("rbgd") = img;
+    
+//     boost::mutex::scoped_lock lock (image_mutex_);
+// 		image_ = image;
+// 
+// 		if (image->getEncoding () != pcl::io::openni2::Image::RGB)
+// 		{
+// 			if (rgb_data_size_ < image->getWidth () * image->getHeight ())
+// 			{
+// 				if (rgb_data_)
+// 					delete [] rgb_data_;
+// 				rgb_data_size_ = image->getWidth () * image->getHeight ();
+// 				rgb_data_ = new unsigned char [rgb_data_size_ * 3];
+// 			}
+// 			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
+// 			printf("d2\n");
+// 		}
+// // 
+// 		uint8_t *rgb_xxx = new unsigned char[640*480*3];
+// 		printf("%p %dx%d\n", image_->getData(), image->getWidth(), image->getHeight());
+// 		memcpy(rgb_xxx, (const unsigned char*)image_->getData(), image->getWidth()*image->getHeight());
+
+		printf("%p %dx%d\n", image_->getData(), image->getWidth(), image->getHeight());
+		memcpy(&writeIM->operator[](0), (const unsigned char*)image_->getData(), image->getWidth()*image->getHeight()*3);
+
 		if (first)
 		{
 			*readIM = *writeIM;
 			first = false;
 		}
-		std::swap(readIM, writeIM);
-		image_mutex_.unlock();
+		ColorSeq *t = readIM;
+		readIM = writeIM;
+		writeIM = t;
 	}
+
 
 	void run ()
 	{
+		boost::shared_ptr<pcl::io::openni2::Image> image;
+		// See if we can get a cloud
+		if (cloud_mutex_.try_lock ())
+		{
+			cloud_.swap (cloud);
+			cloud_mutex_.unlock ();
+		}
+
+		if (cloud)
+		{
+			if (!cloud_init)
+			{
+				cloud_init = !cloud_init;
+			}
+			if (image_mutex_.try_lock ())
+			{
+				image_.swap(image);
+				image_mutex_.unlock ();
+			}
+			if (image)
+			{
+				if (!image_init && cloud && cloud->width != 0)
+				{
+					image_init = !image_init;
+				}
+			}
+		}
 	}
 
-	pcl::io::OpenNI2Grabber& grabber_;
+public:
+	pcl::io::OpenNI2Grabber &grabber_;
 	boost::mutex cloud_mutex_;
 	boost::mutex image_mutex_;
 
-	// CloudConstPtr cloud;
-	unsigned char *rgb_data_;
+	CloudConstPtr cloud_, cloud;
+	boost::shared_ptr<pcl::io::openni2::Image> image_;
+	unsigned char* rgb_data_;
 	unsigned rgb_data_size_;
 
-	ImageMap *readIM, *writeIM;
-	PointCloudMap *readPC, *writePC;
+	ColorSeq *readIM, *writeIM;
+	PointSeq *readCM, *writeCM;
 
 public:
-	ImageMap *getImageMap()
+	ColorSeq *getImage()
 	{
 		return readIM;
 	}
-	PointCloudMap *getPointCloudMap()
+	PointSeq *getCloud()
 	{
-		return readPC;
+		return readCM;
 	}
 };
 
@@ -208,11 +227,15 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	CameraParamsMap getAllCameraParams();
-	void getPointClouds(const CameraList &cameras, PointCloudMap &clouds);
-	void getImages(const CameraList &cameras, ImageMap &images);
-	void getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds);
-	void getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images);
+	Registration getRegistration();
+	void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	TRGBDParams getRGBDParams();
+	void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void setRegistration(const Registration &value);
+	void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 
 public slots:
 	void compute();
@@ -222,10 +245,15 @@ private:
 
 
 private:
-	CameraParams params;
 	pcl::io::OpenNI2Grabber *grabber;
 	OpenNI2Viewer<pcl::PointXYZRGBA> *openni_viewer;
 
+	RoboCompGenericBase::TBaseState bState;
+	RoboCompJointMotor::MotorStateMap mState;
+	QMutex *bStateMutex, *mStateMutex;
+	bool talkToJoint,talkToBase;
+
+	
 };
 
 #endif

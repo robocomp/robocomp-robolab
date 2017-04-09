@@ -52,7 +52,7 @@ void SpecificMonitor::run()
 void SpecificMonitor::initialize()
 {
 	rInfo("Starting monitor ...");
-	initialTime=QTime::currentTime();
+	initialTime = QTime::currentTime();
 	RoboCompCommonBehavior::ParameterList params;
 	readPConfParams(params);
 	readConfig(params);
@@ -66,10 +66,10 @@ void SpecificMonitor::initialize()
 
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)
 {
-	if(checkParams(params))
+	if (checkParams(params))
 	{
 		//Set params to worker
-		if(worker->setParams(params)) 
+		if (worker->setParams(params)) 
 			return true;
 	}
 	else
@@ -85,10 +85,16 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-//	RoboCompCommonBehavior::Parameter aux;
-//	aux.editable = true;
-//	configGetString( "","InnerModel", aux.value,"nofile");
-//	params["InnerModel"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = false;
+	configGetString("", "TalkToBase", aux.value,"false");
+	params["talkToBase"] = aux;
+	configGetString("", "TalkToJoint", aux.value,"false");
+	params["talkToJoint"] = aux;
+	configGetString("", "depth", aux.value,"true");
+	params["depth"] = aux;
+	configGetString("", "color", aux.value,"true");
+	params["color"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

@@ -81,9 +81,11 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <rgbdbusI.h>
+#include <rgbdI.h>
 
-#include <RGBDBus.h>
+#include <RGBD.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
 
@@ -206,15 +208,15 @@ int ::openNI2pcl::run(int argc, char* argv[])
 
 
 		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBus.Endpoints", tmp, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBus";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
 		}
-		Ice::ObjectAdapterPtr adapterRGBDBus = communicator()->createObjectAdapterWithEndpoints("RGBDBus", tmp);
-		RGBDBusI *rgbdbus = new RGBDBusI(worker);
-		adapterRGBDBus->add(rgbdbus, communicator()->stringToIdentity("rgbdbus"));
-		adapterRGBDBus->activate();
-		cout << "[" << PROGRAM_NAME << "]: RGBDBus adapter created in port " << tmp << endl;
+		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
+		RGBDI *rgbd = new RGBDI(worker);
+		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
+		adapterRGBD->activate();
+		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
 
 
 

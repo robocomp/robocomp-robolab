@@ -25,6 +25,12 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
+	bStateMutex = new QMutex();
+	mStateMutex = new QMutex();
+	talkToJoint = false;
+	talkToBase = false;
+
+
 	std::string device_id ("");
 	pcl::io::OpenNI2Grabber::Mode depth_mode = pcl::io::OpenNI2Grabber::OpenNI_Default_Mode;
 	pcl::io::OpenNI2Grabber::Mode image_mode = pcl::io::OpenNI2Grabber::OpenNI_Default_Mode;
@@ -38,18 +44,18 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 
 	grabber = new pcl::io::OpenNI2Grabber(device_id, depth_mode, image_mode);
 
-	// if (!grabber->providesCallback<pcl::io::OpenNI2Grabber::sig_cb_openni_point_cloud_rgb> ())
-	// {
-	//   printf("a\n");
-	//   OpenNI2Viewer<pcl::PointXYZ> openni_viewer(*grabber);
-	//   openni_viewer.run();
-	// }
-	// else
+
+	if (!grabber->providesCallback<pcl::io::OpenNI2Grabber::sig_cb_openni_point_cloud_rgb> ())
 	{
-	  printf("b\n");
+	  OpenNI2Viewer<pcl::PointXYZ> openni_viewer(*grabber);
+	  openni_viewer.run();
+	}
+	else
+	{
 	  openni_viewer = new OpenNI2Viewer<pcl::PointXYZRGBA>(*grabber);
 	  openni_viewer->run();
 	}
+
 }
 
 /**
@@ -57,83 +63,134 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	double a,b;
-	this->params.colorWidth = 640;
-	this->params.colorHeight = 480;
-	this->params.colorFPS = grabber->getFramesPerSecond();
-	this->params.depthWidth = 640;
-	this->params.depthHeight = 480;
-	this->params.depthFPS = grabber->getFramesPerSecond();
-	grabber->getRGBFocalLength(a, b);
-	this->params.colorFocal = (a+b)/2.;
-	grabber->getDepthFocalLength(a, b);
-	this->params.depthFocal = (a+b)/2.;
-	this->params.name = "rgbd";
+	talkToJoint = QString::fromStdString(params["TalkToJoint"].value).contains("true");
+	talkToBase = QString::fromStdString(params["TalkToBase"].value).contains("true");
 
 	timer.start(Period);
-
 	return true;
 }
 
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
-
 	openni_viewer->run();
 
-	// openni_viewer->cloud_mutex_.lock();
-	// if (openni_viewer->cloud != NULL)
-  // {
-	// 	static int i=0;
-	// 	pcl::io::savePCDFileASCII ("pcd"+std::to_string(i++)+".pcd", *openni_viewer->cloud);
-	// }
-	// else
-	// {
-	// 	printf(".");
-	// 	fflush(stdout);
-	// }
-	// openni_viewer->cloud_mutex_.unlock();
-
-}
-
-CameraParamsMap SpecificWorker::getAllCameraParams()
-{
-	CameraParamsMap ret;
-	ret[params.name] = params;
-	return ret;
-}
-
-void SpecificWorker::getPointClouds(const CameraList &cameras, PointCloudMap &clouds)
-{
-	openni_viewer->cloud_mutex_.lock();
-	clouds = *openni_viewer->getPointCloudMap();
-	openni_viewer->cloud_mutex_.unlock();
-}
-
-void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
-{
-	openni_viewer->image_mutex_.lock();
-	images = *openni_viewer->getImageMap();
-	openni_viewer->image_mutex_.unlock();
-	for (auto &img : images)
+	if (talkToBase)
 	{
-		img.second.camera = params;
-		printf("getImages: %s: %d\n", img.first.c_str(), (int)img.second.colorImage.size());
+		bStateMutex->lock();
+		try
+		{
+			genericbase_proxy->getBaseState(bState);
+		}
+		catch(...)
+		{
+			qDebug()<<"Exception: error reading genericbase state";
+		}
+		bStateMutex->unlock();
+	}
+	if (talkToJoint)
+	{
+		mStateMutex->lock();
+		try
+		{
+			jointmotor_proxy->getAllMotorState(mState);
+		}
+		catch(...)
+		{
+			qDebug()<<"Exception: error reading motorStates";
+		}
+		mStateMutex->unlock();
+
 	}
 }
 
-void SpecificWorker::getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds)
+
+Registration SpecificWorker::getRegistration()
 {
 //implementCODE
 
 }
 
-void SpecificWorker::getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images)
+void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+//implementCODE
+
+}
+
+void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+	openni_viewer->cloud_mutex_.lock();
+	points = *openni_viewer->getCloud();
+	openni_viewer->cloud_mutex_.unlock();
+
+	mStateMutex->lock();
+	hState = mState;
+	mStateMutex->unlock();
+
+	bStateMutex->lock();
+	bState = this->bState;
+	bStateMutex->unlock();
+}
+
+void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+	openni_viewer->image_mutex_.lock();
+	color = *openni_viewer->getImage();
+	openni_viewer->image_mutex_.unlock();
+
+	
+	mStateMutex->lock();
+	hState = mState;
+	mStateMutex->unlock();
+
+	bStateMutex->lock();
+	bState = this->bState;
+	bStateMutex->unlock();
+}
+
+TRGBDParams SpecificWorker::getRGBDParams()
+{
+//implementCODE
+
+}
+
+void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+//implementCODE
+
+}
+
+void SpecificWorker::setRegistration(const Registration &value)
+{
+//implementCODE
+
+}
+
+void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+	openni_viewer->cloud_mutex_.lock();
+	points = *openni_viewer->getCloud();
+	openni_viewer->cloud_mutex_.unlock();
+
+	openni_viewer->image_mutex_.lock();
+	color = *openni_viewer->getImage();
+	openni_viewer->image_mutex_.unlock();
+
+	
+	mStateMutex->lock();
+	hState = mState;
+	mStateMutex->unlock();
+
+	bStateMutex->lock();
+	bState = this->bState;
+	bStateMutex->unlock();
+}
+
+void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
 

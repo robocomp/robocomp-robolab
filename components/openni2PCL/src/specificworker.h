@@ -90,9 +90,9 @@ public:
 
 		for (uint32_t i=0; i<cloud->points.size(); i++)
 		{
-			writeCM->operator[](i).x = cloud->points[i].x;
-			writeCM->operator[](i).y = cloud->points[i].y;
-			writeCM->operator[](i).z = cloud->points[i].z;
+			writeCM->operator[](i).x =  1000. * cloud->points[i].x;
+			writeCM->operator[](i).y = -1000. * cloud->points[i].y;
+			writeCM->operator[](i).z =  1000. * cloud->points[i].z;
 			writeCM->operator[](i).w = 1;
 		}
 		if (first)
@@ -100,7 +100,7 @@ public:
 			*readCM = *writeCM;
 			first = false;
 		}
-		
+
 		PointSeq *t = readCM;
 		readCM = writeCM;
 		writeCM = t;
@@ -127,10 +127,10 @@ public:
 			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
 		}
 
-    
+
 //     boost::mutex::scoped_lock lock (image_mutex_);
 // 		image_ = image;
-// 
+//
 // 		if (image->getEncoding () != pcl::io::openni2::Image::RGB)
 // 		{
 // 			if (rgb_data_size_ < image->getWidth () * image->getHeight ())
@@ -143,7 +143,7 @@ public:
 // 			image_->fillRGB (image_->getWidth (), image_->getHeight (), rgb_data_);
 // 			printf("d2\n");
 // 		}
-// // 
+// //
 // 		uint8_t *rgb_xxx = new unsigned char[640*480*3];
 // 		printf("%p %dx%d\n", image_->getData(), image->getWidth(), image->getHeight());
 // 		memcpy(rgb_xxx, (const unsigned char*)image_->getData(), image->getWidth()*image->getHeight());
@@ -253,7 +253,7 @@ private:
 	QMutex *bStateMutex, *mStateMutex;
 	bool talkToJoint,talkToBase;
 
-	
+
 };
 
 #endif

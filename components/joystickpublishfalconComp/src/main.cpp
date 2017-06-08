@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2015 by YOUR NAME HERE
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,6 +59,8 @@
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
@@ -69,6 +71,7 @@
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
+#include <sigwatch/sigwatch.h>
 #include <qlog/qlog.h>
 
 #include "config.h"
@@ -88,12 +91,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-using namespace RoboCompJoystickAdapter;
-
-
-
 class JoystickPublishFalcon : public RoboComp::Application
 {
+public:
+	JoystickPublishFalcon (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -103,16 +104,30 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void JoystickPublishFalcon::initialize()
+void ::JoystickPublishFalcon::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int JoystickPublishFalcon::run(int argc, char* argv[])
+int ::JoystickPublishFalcon::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+	UnixSignalWatcher sigwatch;
+	sigwatch.watchForSignal(SIGINT);
+	sigwatch.watchForSignal(SIGTERM);
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &a, SLOT(quit()));
+
 	int status=EXIT_SUCCESS;
 
 	JoystickAdapterPrx joystickadapter_proxy;
@@ -120,10 +135,16 @@ int JoystickPublishFalcon::run(int argc, char* argv[])
 	string proxy, tmp;
 	initialize();
 
-
-	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
-
-
+	IceStorm::TopicManagerPrx topicManager;
+	try
+	{
+		topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
 
 	IceStorm::TopicPrx joystickadapter_topic;
 	while (!joystickadapter_topic)
@@ -149,22 +170,34 @@ int JoystickPublishFalcon::run(int argc, char* argv[])
 
 
 
-	GenericWorker *worker = new SpecificWorker(mprx);
+	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
-	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
-	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
+	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
+	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
 		return status;
+
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+
 	try
 	{
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapter("CommonBehavior");
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		}
+		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
+
+
 
 
 
@@ -181,6 +214,8 @@ int JoystickPublishFalcon::run(int argc, char* argv[])
 #endif
 		// Run QT Application Event Loop
 		a.exec();
+
+
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -201,30 +236,39 @@ int JoystickPublishFalcon::run(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	bool hasConfig = false;
 	string arg;
- JoystickPublishFalcon app;
 
-	// Search in argument list for --Ice.Config= argument and prefix (if exist)
-	for (int i = 1; i < argc; ++i)
+	// Set config file
+	std::string configFile = "config";
+	if (argc > 1)
 	{
-		arg = argv[i];
-		if (arg.find ( "--Ice.Config=", 0 ) != string::npos )
-			hasConfig = true;
-		if (arg.find ( "--prefix=", 0 ) != string::npos )
+		std::string initIC("--Ice.Config=");
+		size_t pos = std::string(argv[1]).find(initIC);
+		if (pos == 0)
 		{
-			hasConfig = true;
+			configFile = std::string(argv[1]+initIC.size());
+		}
+		else
+		{
+			configFile = std::string(argv[1]);
 		}
 	}
 
-// 	app.prefix = 
-	if (hasConfig)
+	// Search in argument list for --prefix= argument (if exist)
+	QString prefix("");
+	QString prfx = QString("--prefix=");
+	for (int i = 2; i < argc; ++i)
 	{
-		return app.main(argc, argv);
+		arg = argv[i];
+		if (arg.find(prfx.toStdString(), 0) == 0)
+		{
+			prefix = QString::fromStdString(arg).remove(0, prfx.size());
+			if (prefix.size()>0)
+				prefix += QString(".");
+			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+		}
 	}
-	else
-	{
-		return app.main(argc, argv, "etc/config"); // "config" is the default config file name
-	}
-}
+	::JoystickPublishFalcon app(prefix);
 
+	return app.main(argc, argv, configFile.c_str());
+}

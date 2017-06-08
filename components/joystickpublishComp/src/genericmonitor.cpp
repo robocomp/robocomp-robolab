@@ -58,8 +58,8 @@ int GenericMonitor::getPeriod()
 */
 void GenericMonitor::setPeriod(int _period)
 {
-	worker->setPeriod(_period);
 	period =_period;
+	worker->setPeriod(_period);
 }
 /**
 * \brief Kill component
@@ -69,7 +69,7 @@ void GenericMonitor::killYourSelf()
 	rDebug("Killing myself");
 	worker->killYourSelf();
 	emit kill();
-	
+
 }
 /**
 * \brief Get Component time awake
@@ -83,16 +83,16 @@ int GenericMonitor::timeAwake()
 * \brief Return components parameters
 * @return  AttrList Configuration parameters list
 */
-RoboCompCommonBehavior::ParameterList GenericMonitor::getParameterList() 
-{ 
+RoboCompCommonBehavior::ParameterList GenericMonitor::getParameterList()
+{
 	return config_params;
 }
 /**
 * \brief Change configurations parameters to worker
 * @param l Configuration parameters list
 */
-void GenericMonitor::setParameterList(RoboCompCommonBehavior::ParameterList l) 
-{ 
+void GenericMonitor::setParameterList(RoboCompCommonBehavior::ParameterList l)
+{
 	rInfo("Changing configuration params");
 	sendParamsToWorker(l);
 }
@@ -106,26 +106,34 @@ void GenericMonitor::readPConfParams(RoboCompCommonBehavior::ParameterList &para
 	//nothing to do
 }
 
-//Ice Methods to read from file 
+//Ice method to read a variable from file
 //name, parameter config value
-//return value of parameter config 
+//return value of parameter config
 //default value for the parameter
 //return false if the parameter does not exist. Throw exception in other case.
 //if you need one parameter mandatory you can pass empty string in default_value
-bool GenericMonitor::configGetString( const std::string name, std::string&value,  const std::string default_value, QStringList *list)
+bool GenericMonitor::configGetString(const std::string prefix, const std::string name, std::string &value, const std::string default_value, QStringList *list)
 {
-	value = communicator->getProperties()->getProperty( name );
+	return GenericMonitor::configGetString(communicator, prefix, name, value, default_value, list);
+}
+
+bool GenericMonitor::configGetString(Ice::CommunicatorPtr communicator, const std::string prefix, const std::string name, std::string &value, const std::string default_value, QStringList *list)
+{
+	std::string compound = name;
+	if (prefix.size() > 0) compound = prefix+std::string(".")+name;
+
+	value = communicator->getProperties()->getProperty(compound);
 
 	if ( value.length() == 0)
 	{
-	   	if (default_value.length() != 0)
+		if (default_value.length() != 0)
 		{
 			value = default_value;
 			return false;
 		}
 		else if (default_value.length() == 0)
 		{
-			QString error = QString("empty configuration string, not default value for")+QString::fromStdString(name);
+			QString error = QString("Error: can't get configuration string for variable without default value: ")+QString::fromStdString(compound);
 			qDebug() << error;
 			throw error;
 		}
@@ -135,14 +143,74 @@ bool GenericMonitor::configGetString( const std::string name, std::string&value,
 	{
 		if (list->contains(QString::fromStdString(value)) == false)
 		{
-			qFatal("Reading config file: %s is not a valid string", name.c_str());
-			rError("Reading config file:"+name+" is not a valid string");
+			qFatal("Reading config file: %s is not a valid string", compound.c_str());
+			rError("Reading config file:"+compound+" is not a valid string");
 		}
 		QString error = QString("not valid configuration value");
 		qDebug() << error;
 		throw error;
 	}
 
-	std::cout << name << " " << value << std::endl;
-	return true; 
+	auto parts = QString::fromStdString(value).split("@");
+	QString variableName=QString::fromStdString(compound);
+
+
+	if (parts.size() > 1)
+	{
+		if (parts[0].size() > 0)
+		{
+			variableName = parts[0];
+		}
+		parts.removeFirst();
+		value = std::string("@") + parts.join("@").toStdString();
+	}
+
+// 	printf("variableName = %s\n", variableName.toStdString().c_str());
+// 	printf("value = %s\n", value.c_str());
+
+
+	if (value[0]=='@')
+	{
+		QString qstr = QString::fromStdString(value).remove(0,1);
+		QFile ff(qstr);
+		if (not ff.exists())
+		{
+			qFatal("Not such file: %s\n", qstr.toStdString().c_str());
+		}
+		if (!ff.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			qFatal("Can't open file: %s\n", qstr.toStdString().c_str());
+		}
+
+		bool found = false;
+		while (!ff.atEnd())
+		{
+			QString content = QString(ff.readLine()).simplified();
+// 			printf("line: %s\n", content.toStdString().c_str());
+
+			if (content.startsWith(variableName))
+			{
+// 				printf("swn %s\n", content.toStdString().c_str());
+				content = content.right(content.size()-variableName.size()).simplified();
+// 				printf("swn %s\n", content.toStdString().c_str());
+				if (content.startsWith("="))
+				{
+					content = content.remove(0,1).simplified();
+					value = content.toStdString();
+					found = true;
+				}
+				else
+				{
+					printf("warning (=) %s\n", content.toStdString().c_str());
+				}
+
+			}
+		}
+		if (not found)
+		{
+		}
+	}
+	std::cout << compound << " " << value << std::endl;
+	return true;
 }
+

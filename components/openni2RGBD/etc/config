@@ -2,7 +2,9 @@
 CommonBehavior.Endpoints=tcp -p 11111
 
 # Endpoints for implemented interfaces
-RGBDComp.Endpoints=tcp -p 10096
+RGBD.Endpoints=tcp -p 10096
+JointMotorProxy = jointmotor:tcp -h localhost -p 20000
+GenericBaseProxy = genericbase:tcp -h localhost -p 15000
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -16,4 +18,6 @@ Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 
+depth=true
+color=false
 

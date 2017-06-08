@@ -19,9 +19,6 @@
 #ifndef SLAMLASER_H
 #define SLAMLASER_H
 
-// QT includes
-#include <QtCore/QObject>
-
 // Ice includes
 #include <Ice/Ice.h>
 #include <SlamLaser.h>
@@ -31,11 +28,10 @@
 
 using namespace RoboCompSlamLaser;
 
-class SlamLaserI : public QObject , public virtual RoboCompSlamLaser::SlamLaser
+class SlamLaserI : public virtual RoboCompSlamLaser::SlamLaser
 {
-Q_OBJECT
 public:
-	SlamLaserI( GenericWorker *_worker, QObject *parent = 0 );
+	SlamLaserI(GenericWorker *_worker);
 	~SlamLaserI();
 	
 	bool saveMap(const string  &path, const Ice::Current&);
@@ -43,12 +39,9 @@ public:
 	void initializeRobotPose(const Pose2D  &pose, const Ice::Current&);
 	void getPartialGrid(const MapRect  &rect,  GridMap  &map,  Pose2D  &pose, const Ice::Current&);
 
-	QMutex *mutex;
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

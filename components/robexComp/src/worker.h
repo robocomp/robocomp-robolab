@@ -25,6 +25,7 @@
 #include <DifferentialRobot.h>
 #include <CommonBehavior.h>
 #include <JoystickAdapter.h>
+#include <GenericBase.h>
 #include "handler.h"
 #include "robexhandler.h"
 #include "gazebohandler.h"
@@ -46,10 +47,10 @@ Q_OBJECT
 	//DifferentialRobot
 	bool setSpeedBase(float adv ,float rot  );
 	bool stopBase();
-	RoboCompDifferentialRobot::TBaseState getBaseState();
+	RoboCompGenericBase::TBaseState getBaseState();
 	RoboCompDifferentialRobot::TMechParams getMechParams();
 	bool resetOdometer();
-	bool setOdometer(RoboCompDifferentialRobot::TBaseState bState);
+	bool setOdometer(RoboCompGenericBase::TBaseState bState);
 	void correctOdometer(float x, float z, float alpha);
 	//CommonBehavior
 	void setPeriod(int period);

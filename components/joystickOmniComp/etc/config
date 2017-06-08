@@ -4,7 +4,7 @@
 JoyStickComp.Endpoints=tcp -p 15002
 
 # Remote servers proxies example
-OmniRobotProxy = omnirobot:tcp -h 10.0.30.11 -p 12238
+OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 
 # User config parameters
 # Example = value
@@ -14,8 +14,8 @@ Joy.YMotionAxis = 2
 Joy.ZMotionAxis = 0
 Joy.SampleRate = 5
 Joy.MaxSteering = 0.3
-Joy.MaxAdvanceX = 450
-Joy.MaxAdvanceZ = 450
+Joy.MaxAdvanceX = 100
+Joy.MaxAdvanceZ = 100
 
 # Component properties
 #

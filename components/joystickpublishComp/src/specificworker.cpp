@@ -23,7 +23,7 @@
 * \brief Default constructor
 */
 
-SpecificWorker::SpecificWorker(MapPrx& mprx, QObject *parent) : GenericWorker(mprx, parent)	
+SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	sendEvent = false;
 	jtimer = new QTimer( );
@@ -135,7 +135,7 @@ void SpecificWorker::sendJoystickEvent()
 			}
 			if(sendEvent)
 				sendEvent = false;
-			joystickadapter->sendData(data);
+			joystickadapter_proxy->sendData(data);
 		}
 	}
 	catch(const Ice::Exception& ex)

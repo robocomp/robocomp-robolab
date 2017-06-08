@@ -68,7 +68,7 @@ private:
 	libgazebo::PositionIface *posIface;
 #endif
 	
-	RoboCompDifferentialRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	RoboCompDifferentialRobot::TMechParams mechParams;	
 
 	float r00,r01,r10,r11,t0,t1,alpha;	//rotation and translation matrix
@@ -87,11 +87,11 @@ public:
 	bool stopBase();
 	//Params
 	RoboCompDifferentialRobot::TMechParams getMechParams();
-	RoboCompDifferentialRobot::TBaseState getBaseState();
+	RoboCompGenericBase::TBaseState getBaseState();
 	//odometer
 	bool resetOdometer();
 	void correctOdometer(float x, float z, float alpha) { bState.correctedX+=x; bState.correctedZ+=z; bState.correctedAlpha+=alpha; }
-	bool setOdometer(RoboCompDifferentialRobot::TBaseState _bState);
+	bool setOdometer(RoboCompGenericBase::TBaseState _bState);
 	void compute();
 private:
 	void readMechParams();	

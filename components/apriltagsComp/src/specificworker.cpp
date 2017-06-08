@@ -18,6 +18,7 @@
  */
 
  #include "specificworker.h"
+#include<opencv2/highgui/highgui.hpp>
 
 /**
 * \brief Default constructor
@@ -25,6 +26,13 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
 	innermodel = NULL;
+//	cv::namedWindow("deo");
+	worker_params_mutex = new QMutex();
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = false;
+	aux.type = "float";
+	aux.value = "0";
+	worker_params["frameRate"] = aux;
 }
 
 /**
@@ -122,7 +130,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	printf("w:%d   h:%d\n", m_width, m_height);
 	image_gray.create(m_height,m_width,CV_8UC1);
 	image_color.create(m_height,m_width,CV_8UC3);
-
 	try
 	{
 		innermodel = new InnerModel(innermodel_path);
@@ -185,11 +192,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
+	static QTime reloj = QTime::currentTime();
 	if (innermodel == NULL) return;
 printf("---------------------\n"); 
 
 	static int frame = 0;
-	static double last_t = tic();
+	static QTime lastTime = QTime::currentTime();
 
 	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
 	// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
@@ -222,7 +230,9 @@ printf("---------------------\n");
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-			searchTags(image_gray);			
+			searchTags(image_gray);	
+			imshow("deo", image_gray);
+			cv::waitKey(10);
 		}
 		catch(const Ice::Exception &e)
 		{
@@ -249,12 +259,16 @@ printf("---------------------\n");
 
 	// print out the frame rate at which image frames are being processed
 	frame++;
-	if (frame % 30 == 0)
+	if (frame >= 30)
 	{
-		double t = tic();
-		cout << "  " << 10./(t-last_t) << " fps" << endl;
-		last_t = t;
+		cout << "*********************************************************" <<  1000.*frame/lastTime.elapsed()  << " fps" << endl;
+		frame = 0;
 	}
+	worker_params_mutex->lock();
+		//save framerate in params
+		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	worker_params_mutex->unlock();
+	
 }
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
@@ -322,12 +336,23 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		try
 		{
-			apriltags->newAprilTag(detections2send);
+			apriltags_proxy->newAprilTag(detections2send);
 		}
 		catch(const Ice::Exception &ex)
 		{
 			std::cout << ex << std::endl;
 		}
+		try
+		{
+qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
+			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
+		}
+		catch(const Ice::Exception &ex)
+		{
+			std::cout << ex << std::endl;
+		}		
+		
+		
 	}
 }
 
@@ -388,6 +413,10 @@ listaMarcas SpecificWorker::checkMarcas()
   QMutexLocker locker(mutex);
   return  listaDeMarcas;
 }
-
+RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
+{
+	QMutexLocker locker(worker_params_mutex);
+	return worker_params;
+}
 
 

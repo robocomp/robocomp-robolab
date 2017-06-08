@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,39 +16,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LASERI_H
-#define LASERI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef LASER_H
+#define LASER_H
 
 // Ice includes
 #include <Ice/Ice.h>
 #include <Laser.h>
 
 #include <config.h>
-#include "worker.h"
+#include "genericworker.h"
 
 using namespace RoboCompLaser;
 
-class LaserI : public QObject , public virtual RoboCompLaser::Laser
+class LaserI : public virtual RoboCompLaser::Laser
 {
-Q_OBJECT
 public:
-	LaserI( Worker *_worker, QObject *parent = 0 );
+	LaserI(GenericWorker *_worker);
 	~LaserI();
+	
+	TLaserData getLaserData(const Ice::Current&);
+	LaserConfData getLaserConfData(const Ice::Current&);
+	TLaserData getLaserAndBStateData( RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 
-	TLaserData getLaserData(const Ice::Current & = Ice::Current());
-	LaserConfData getLaserConfData( const Ice::Current & = Ice::Current());
-
-	TLaserData getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState,const Ice::Current & = Ice::Current());
-
-	QMutex *mutex;
 private:
 
-	Worker *worker;
-public slots:
-
+	GenericWorker *worker;
 
 };
 

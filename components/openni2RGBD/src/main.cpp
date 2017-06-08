@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 1980 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,23 +16,25 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** \mainpage RoboComp::genericComp
+
+
+/** \mainpage RoboComp::openNI2Comp
  *
  * \section intro_sec Introduction
  *
- * The genericComp component...
+ * The openNI2Comp component...
  *
  * \section interface_sec Interface
  *
- * genericComp interface...
+ * interface...
  *
  * \section install_sec Installation
  *
  * \subsection install1_ssec Software depencences
- * genericComp ...
+ * ...
  *
  * \subsection install2_ssec Compile and install
- * cd genericComp
+ * cd openNI2Comp
  * <br>
  * cmake . && make
  * <br>
@@ -45,38 +47,47 @@
  * \subsection config_ssec Configuration file
  *
  * <p>
- * The configuration file genericComp/etc/specific_config and genericComp/etc/generic_config...
+ * The configuration file etc/config...
  * </p>
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/genericComp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/openNI2Comp --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
 
 // ICE includes
 #include <Ice/Ice.h>
-
+#include <IceStorm/IceStorm.h>
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
+#include <sigwatch/sigwatch.h>
 #include <qlog/qlog.h>
-// View the config.h file for config options like
-// QtGui, etc...
+
 #include "config.h"
 #include "genericmonitor.h"
 #include "genericworker.h"
 #include "specificworker.h"
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
+
 #include <rgbdI.h>
+
+#include <RGBD.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -84,85 +95,134 @@
 // Namespaces
 using namespace std;
 using namespace RoboCompCommonBehavior;
-using namespace RoboCompRGBD;
-
 
 class openNI2Comp : public RoboComp::Application
 {
+public:
+	openNI2Comp (QString prfx) { prefix = prfx.toStdString(); }
 private:
-	// User private data here
-
 	void initialize();
+	std::string prefix;
 	MapPrx mprx;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void openNI2Comp::initialize()
+void ::openNI2Comp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
-int openNI2Comp::run(int argc, char* argv[])
+
+int ::openNI2Comp::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+	UnixSignalWatcher sigwatch;
+	sigwatch.watchForSignal(SIGINT);
+	sigwatch.watchForSignal(SIGTERM);
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &a, SLOT(quit()));
+
 	int status=EXIT_SUCCESS;
 
-	// Remote server proxy access example
-	// RemoteComponentPrx remotecomponent_proxy;
+	JointMotorPrx jointmotor_proxy;
+	GenericBasePrx genericbase_proxy;
 
-
-	string proxy;
-
-	// User variables
-
-
+	string proxy, tmp;
 	initialize();
 
-	// Remote server proxy creation example
-	// try
-	// {
-	// 	// Load the remote server proxy
-	//	proxy = getProxyString("RemoteProxy");
-	//	remotecomponent_proxy = RemotePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	//	if( !remotecomponent_proxy )
-	//	{
-	//		rInfo(QString("Error loading proxy!"));
-	//		return EXIT_FAILURE;
-	//	}
-	//catch(const Ice::Exception& ex)
-	//{
-	//	cout << "[" << PROGRAM_NAME << "]: Exception: " << ex << endl;
-	//	return EXIT_FAILURE;
-	//}
-	//rInfo("RemoteProxy initialized Ok!");
-	// 	// Now you can use remote server proxy (remotecomponent_proxy) as local object
-	//Remote server proxy creation example
-	
-	GenericWorker *worker = new SpecificWorker(mprx);
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "JointMotorProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JointMotorProxy\n";
+		}
+		jointmotor_proxy = JointMotorPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("JointMotorProxy initialized Ok!");
+	mprx["JointMotorProxy"] = (::IceProxy::Ice::Object*)(&jointmotor_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
+		}
+		genericbase_proxy = GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("GenericBaseProxy initialized Ok!");
+	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
+
+
+
+	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
-	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor,SIGNAL(kill()),&a,SLOT(quit()));
-	QObject::connect(worker,SIGNAL(kill()),&a,SLOT(quit()));
+	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
+	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
-	
+
 	if ( !monitor->isRunning() )
 		return status;
+	
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+	
 	try
 	{
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapter("CommonBehavior");
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		}
+		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
 		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
+
+
+
+
 		// Server adapter creation and publication
-		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapter("RGBDComp");
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
+		}
+		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
 		RGBDI *rgbd = new RGBDI(worker);
 		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
-
 		adapterRGBD->activate();
+		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
+
+
+
+
+
+		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
@@ -173,6 +233,8 @@ int openNI2Comp::run(int argc, char* argv[])
 #endif
 		// Run QT Application Event Loop
 		a.exec();
+		
+		
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -193,20 +255,40 @@ int openNI2Comp::run(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	bool hasConfig = false;
 	string arg;
-	openNI2Comp app;
 
-	// Search in argument list for --Ice.Config= argument
-	for (int i = 1; i < argc; ++i)
+	// Set config file
+	std::string configFile = "config";
+	if (argc > 1)
 	{
-		arg = argv[i];
-		if ( arg.find ( "--Ice.Config=", 0 ) != string::npos )
-			hasConfig = true;
+		std::string initIC("--Ice.Config=");
+		size_t pos = std::string(argv[1]).find(initIC);
+		if (pos == 0)
+		{
+			configFile = std::string(argv[1]+initIC.size());
+		}
+		else
+		{
+			configFile = std::string(argv[1]);
+		}
 	}
 
-	if ( hasConfig )
-		return app.main( argc, argv );
-	else
-		return app.main(argc, argv, "../etc/generic_config"); // "config" is the default config file name
+	// Search in argument list for --prefix= argument (if exist)
+	QString prefix("");
+	QString prfx = QString("--prefix=");
+	for (int i = 2; i < argc; ++i)
+	{
+		arg = argv[i];
+		if (arg.find(prfx.toStdString(), 0) == 0)
+		{
+			prefix = QString::fromStdString(arg).remove(0, prfx.size());
+			if (prefix.size()>0)
+				prefix += QString(".");
+			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+		}
+	}
+	::openNI2Comp app(prefix);
+
+	return app.main(argc, argv, configFile.c_str());
 }
+

@@ -145,29 +145,29 @@ void SpecificWorker::newCGRCorrection(float poseUncertainty, float x1, float z1,
 	{
 		innermodel = new InnerModel();
 		corrSLAMBack = innermodel->newTransform("corrSLAMBack", "static", innermodel->getRoot(), 0,0,0, 0,0,0, 0);
-		innermodel->getRoot()->addChild(corrSLAMBack);	
+		innermodel->getRoot()->addChild(corrSLAMBack);
 		corrSLAMNew = innermodel->newTransform("corrSLAMNew", "static", innermodel->getRoot(), 0,0,0, 0,0,0, 0);
 		innermodel->getRoot()->addChild(corrSLAMNew);
 
 		corrREALBack = innermodel->newTransform("corrREALBack", "static", innermodel->getRoot(), 0,0,0, 0,0,0, 0);
-		innermodel->getRoot()->addChild(corrREALBack);	
+		innermodel->getRoot()->addChild(corrREALBack);
 		corrREALNew = innermodel->newTransform("corrREALNew", "static", corrREALBack, 0,0,0, 0,0,0, 0);
 		corrREALBack->addChild(corrREALNew);
 	}
-	
-	
+
+
 	innermodel->updateTransformValues("corrSLAMBack",   x1, 0, z1,      0, alpha1, 0  );
 	innermodel->updateTransformValues("corrSLAMNew",    x2, 0, z2,      0, alpha2, 0  );
 	QVec inc = innermodel->transform6D("corrSLAMBack", "corrSLAMNew");
 	
 	inc.print("inc");
-	
-	RoboCompOmniRobot::TBaseState bState;
+
+	RoboCompGenericBase::TBaseState bState;
 	try { omnirobot_proxy->getBaseState(bState); }
 	catch(Ice::Exception &ex) { std::cout<<ex.what()<<std::endl; }
 	innermodel->updateTransformValues("corrREALBack", bState.correctedX,0.,bState.correctedZ,   0,bState.correctedAlpha,0);
 	innermodel->updateTransformValues("corrREALNew",   inc(0),0,inc(2),    0,inc(4),0);
-	
+
 	QVec result = innermodel->transform6D("root", "corrREALNew");
 	newCGRPose(poseUncertainty, result(0), result(2), result(4));
 }

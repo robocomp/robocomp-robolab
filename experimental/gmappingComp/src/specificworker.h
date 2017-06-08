@@ -50,6 +50,8 @@ public:
 
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	RoboCompCommonBehavior::ParameterList getWorkerParams();
+
 	bool saveMap(const string &path);
 
 	void getWholeGrid(GridMap &map, Pose2D &pose);
@@ -184,7 +186,7 @@ private:
 
 
 	RoboCompLaser::TLaserData laserData;
-	RoboCompOmniRobot::TBaseState bState;
+	RoboCompGenericBase::TBaseState bState;
 	float previousAlpha;
 
 	bool active;
@@ -205,7 +207,7 @@ private:
 	int nParticles;
 	bool registerScan;
 
-	GMapping::RangeReading robocompWrapper(RoboCompOmniRobot::TBaseState usedState);
+	GMapping::RangeReading robocompWrapper(RoboCompGenericBase::TBaseState usedState);
 
 	double *distances_laser;
 
@@ -217,7 +219,7 @@ private:
 	QVector<double> v2DData;
 
 	QVec finalCorrection;
-// 	RoboCompOmniRobot::TBaseState correction;
+// 	RoboCompGenericBase::TBaseState correction;
 	RTMat mapTransform;
 	float mapTransform_ry;
 
@@ -227,7 +229,9 @@ private:
 	QImage *result;
 	QImage *map_buffer;
 	QList<QVector<float> *> trajectory;
-
+	
+	RoboCompCommonBehavior::ParameterList worker_params;
+	QMutex *worker_params_mutex;
 
 };
 

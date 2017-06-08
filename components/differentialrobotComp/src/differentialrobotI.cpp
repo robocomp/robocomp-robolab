@@ -33,7 +33,7 @@ DifferentialRobotI::~DifferentialRobotI()
 
 // Component functions, implementation
 
-void DifferentialRobotI::getBaseState(TBaseState &bState, const Ice::Current&) 
+void DifferentialRobotI::getBaseState(RoboCompGenericBase::TBaseState &bState, const Ice::Current&) 
 { 
 	mutex->lock();
 	if(worker->active)
@@ -53,7 +53,7 @@ void DifferentialRobotI::getBasePose(int &x, int &z, float &alpha, const Ice::Cu
 	if(worker->active)
 	{
 		mutex->unlock();
-		RoboCompDifferentialRobot::TBaseState bState = worker->getBaseState();
+		RoboCompGenericBase::TBaseState bState = worker->getBaseState();
 		x=bState.x;
 		z=bState.z;
 		alpha=bState.alpha;
@@ -106,7 +106,7 @@ void DifferentialRobotI::resetOdometer( const Ice::Current&)
 	else
 		throwException("Exception: DifferentialRobotComp::Worker::resetOdometer:: Worker is sttoped by setting");
 }
-void DifferentialRobotI::setOdometer(const RoboCompDifferentialRobot::TBaseState &bState, const Ice::Current&) 
+void DifferentialRobotI::setOdometer(const RoboCompGenericBase::TBaseState &bState, const Ice::Current&) 
 {
 	mutex->lock();
 	if(worker->active)
@@ -124,7 +124,7 @@ void DifferentialRobotI::setOdometerPose(int x, int z, float alpha, const Ice::C
 	if(worker->active)
 	{
 		mutex->unlock();
-		RoboCompDifferentialRobot::TBaseState bState;
+		RoboCompGenericBase::TBaseState bState;
 		bState.correctedX     = bState.x     = x;
 		bState.correctedZ     = bState.z     = z;
 		bState.correctedAlpha = bState.alpha = alpha;
@@ -147,7 +147,7 @@ void DifferentialRobotI::getMechParams(RoboCompDifferentialRobot::TMechParams &m
 
 void DifferentialRobotI::throwException(std::string msg)
 {
-	RoboCompDifferentialRobot::HardwareFailedException ex;
+	RoboCompGenericBase::HardwareFailedException ex;
 	ex.what = msg;
 	throw ex;
 }

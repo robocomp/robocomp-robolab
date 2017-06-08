@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2016 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,34 +18,33 @@
  */
 #include "laserI.h"
 
-LaserI::LaserI(Worker *_worker, QObject *parent) : QObject(parent)
+LaserI::LaserI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
 
 LaserI::~LaserI()
 {
-	// Free component resources here
 }
 
-// Component functions, implementation
-
-TLaserData LaserI::getLaserData(const Ice::Current&) 
-{ 
-	return worker->getNewData();
-}
-TLaserData LaserI::getLaserAndBStateData(RoboCompDifferentialRobot::TBaseState &bState,const Ice::Current&)
+TLaserData LaserI::getLaserData(const Ice::Current&)
 {
-// 	bState = worker->getBaseState();
-	return worker->getNewData();
+	return worker->getLaserData();
 }
-LaserConfData LaserI::getLaserConfData( const Ice::Current&) 
-{ 
-	return worker->getLaserConf();
+
+LaserConfData LaserI::getLaserConfData(const Ice::Current&)
+{
+	return worker->getLaserConfData();
 }
+
+TLaserData LaserI::getLaserAndBStateData( RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+{
+	return worker->getLaserAndBStateData(bState);
+}
+
+
+
 
 
 

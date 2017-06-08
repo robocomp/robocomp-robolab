@@ -26,7 +26,7 @@
 #include <qlog/qlog.h>
 #include <q4serialport/q4serialport.h>
 
-#include "config.h"
+#include "constants.h"
 #include <math.h>
 
 
@@ -44,23 +44,23 @@ public:
 		int skip;
 		int samplerate;
 	};
-	GenericLaserHandler(RoboCompDifferentialRobot::DifferentialRobotPrx base_prx, QObject *_parent = 0) : QThread(_parent) {
+	GenericLaserHandler(RoboCompGenericBase::GenericBasePrx base_prx, QObject *_parent = 0) : QThread(_parent) {
 		base = base_prx;
 	}
 	~GenericLaserHandler() {}
 
 	virtual void setConfig(RoboCompLaser::LaserConfData & config) = 0;
 	virtual bool open() = 0;
-	RoboCompDifferentialRobot::DifferentialRobotPrx base;
+	RoboCompGenericBase::GenericBasePrx base;
 private:
 	virtual void run() = 0;
 	virtual bool readLaserData() = 0;
 	
 
 public slots:
-	RoboCompDifferentialRobot::TBaseState getBaseState()
+	RoboCompGenericBase::TBaseState getBaseState()
 	{
-		RoboCompDifferentialRobot::TBaseState b;
+		RoboCompGenericBase::TBaseState b;
 		try{
 			base->getBaseState(b);
 		}

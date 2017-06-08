@@ -27,6 +27,7 @@
 #include <falcon/grip/FalconGripFourButton.h>
 #include <falcon/kinematic/FalconKinematicStamper.h>
 #include <falcon/util/FalconFirmwareBinaryNvent.h>
+#include <boost/shared_ptr.hpp>
 
 #include <QThread>
 #include <QVector3D>
@@ -43,7 +44,7 @@ class FalconHandler  : public QThread
 	Q_OBJECT
 	
 private:
-	boost::shared_ptr<libnifalcon::FalconFirmware> firmware;
+	std::shared_ptr<libnifalcon::FalconFirmware> firmware;
 	libnifalcon::FalconDevice device;
 	QVector3D normalizedPos;
 	uint32_t buttons;

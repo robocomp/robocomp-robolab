@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,12 +20,15 @@
 /**
 * \brief Default constructor
 */
-GenericWorker::GenericWorker(MapPrx& mprx, QObject *parent) : QObject(parent)
+GenericWorker::GenericWorker(MapPrx& mprx) :
+QObject()
 {
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
+
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+// 	timer.start(Period);
 }
 
 /**
@@ -50,3 +53,4 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
+

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,8 +26,8 @@
 
 
 #include <CommonBehavior.h>
-#include <JoystickAdapter.h>
 
+#include <JoystickAdapter.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -37,6 +37,9 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 using namespace std;
 
 using namespace RoboCompJoystickAdapter;
+
+
+
 
 class GenericWorker : 
 public QObject
@@ -50,15 +53,18 @@ public:
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
+	
 
-
-	JoystickAdapterPrx joystickadapter;
-
+	JoystickAdapterPrx joystickadapter_proxy;
 
 
 protected:
 	QTimer timer;
 	int Period;
+
+private:
+
+
 public slots:
 	virtual void compute() = 0;
 signals:

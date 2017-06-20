@@ -6,15 +6,15 @@ CommonBehavior.Endpoints=tcp -p 14358
 
 CameraProxy = camera:tcp -h localhost -p 10001
 PrimeSenseProxy = primesense:tcp -h localhost -p 10096
-RGBDBusProxy = rgbdbus:tcp -h localhost -p 10239
+RGBDBusProxy = rgbdbus:tcp -h localhost -p 10096
 AprilTagsProxy = apriltags:tcp -h localhost -p 10261
 
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
 
-InnerModelPath=/home/robocomp/robocomp/components/robocomp-ursus/etc/ursus.xml
+InnerModelPath=/home/robocomp/cam.xml
 CameraName=rgbd
 
-InputInterface = RGBD
+InputInterface = RGBDBus
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5
 AprilTagsSize = 170

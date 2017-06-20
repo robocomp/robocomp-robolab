@@ -336,13 +336,23 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		try
 		{
-			apriltags->newAprilTag(detections2send);
-			apriltags->newAprilTagAndPose(detections2send,bState,hState);
+			apriltags_proxy->newAprilTag(detections2send);
 		}
 		catch(const Ice::Exception &ex)
 		{
 			std::cout << ex << std::endl;
 		}
+		try
+		{
+qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
+			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
+		}
+		catch(const Ice::Exception &ex)
+		{
+			std::cout << ex << std::endl;
+		}		
+		
+		
 	}
 }
 

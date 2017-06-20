@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 1980 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -25,7 +25,7 @@ QObject()
 {
 	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
 	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
-	
+
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;

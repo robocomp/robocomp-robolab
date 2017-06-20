@@ -21,6 +21,9 @@
 #define LASER_INITIAL_ANGLE_PROPERTY_NAME "Laser.angleIni"
 #define LASER_INITIAL_ANGLE_DEFAULT 	  "-2.356197"			//-135*M_PI/180
 
+#define LASER_CLUSTER_PROPERTY_DEFAULT 	  "1"		
+#define LASER_CLUSTER_PROPERTY_NAME 	  "Laser.Cluster"
+
 #define LASER_MAX_RANGE_PROPERTY_NAME     "Laser.maxRange"
 #define LASER_MAX_RANGE_DEFAULT 	  "4094"
 #define LASER_MIN_RANGE_PROPERTY_NAME     "Laser.minRange"

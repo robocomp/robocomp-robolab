@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,12 +19,14 @@
 #ifndef GENERICWORKER_H
 #define GENERICWORKER_H
 
-// #include <ipp.h>
 #include "config.h"
 #include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
+
+
 #include <CommonBehavior.h>
+
 #include <RGBDBus.h>
 
 #define CHECK_PERIOD 5000
@@ -34,32 +36,39 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
-/**
-       \brief
-       @author authorname
-*/
 using namespace RoboCompRGBDBus;
 
-class GenericWorker : public QObject
+
+
+
+class GenericWorker : 
+public QObject
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx, QObject *parent = 0);
+	GenericWorker(MapPrx& mprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
 	
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	QMutex *mutex;                //Shared mutex with servant
+	QMutex *mutex;
+	
+
 
 	virtual CameraParamsMap getAllCameraParams() = 0;
-	virtual void  getImages(const CameraList& cameras, ImageMap& images) = 0;
-	virtual void  getPointClouds(const CameraList& cameras, PointCloudMap& clouds) = 0;
-	virtual void  getProtoClouds(const CameraList& cameras, PointCloudMap& protoClouds) = 0;
-	virtual void  getDecimatedImages(const CameraList& cameras, int decimation, ImageMap& images) = 0;
+	virtual void getPointClouds(const CameraList &cameras, PointCloudMap &clouds) = 0;
+	virtual void getImages(const CameraList &cameras, ImageMap &images) = 0;
+	virtual void getProtoClouds(const CameraList &cameras, PointCloudMap &protoClouds) = 0;
+	virtual void getDecimatedImages(const CameraList &cameras, const int decimation, ImageMap &images) = 0;
+
 protected:
 	QTimer timer;
 	int Period;
+
+private:
+
+
 public slots:
 	virtual void compute() = 0;
 signals:

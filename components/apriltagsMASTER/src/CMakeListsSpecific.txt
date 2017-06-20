@@ -1,0 +1,49 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  Edge.cc
+  FloatImage.cc
+  Gaussian.cc
+  GLine2D.cc
+  GLineSegment2D.cc
+  GrayModel.cc
+  Homography33.cc
+  MathUtil.cc
+  Quad.cc
+  Segment.cc
+  TagDetection.cc
+  TagDetector.cc
+  TagFamily.cc
+  UnionFindSimple.cc
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS})
+    set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
+endif(OPENMP_FOUND)
+message(STATUS "OPENMP: ${OPENMP_FOUND}")
+
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv2.cmake )
+include_directories ( ${CMAKE_CURRENT_SOURCE_DIR}/AprilTags )
+ADD_DEFINITIONS( -I/usr/include/eigen3 -I/usr/local/include/eigen3)
+MESSAGE(STATUS, ${LIBS} )
+
+
+ADD_DEFINITIONS( -std=c++11 )
+
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -msse -msse2 -msse3 ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -msse -msse2 -msse3 ")
+
+
+
+

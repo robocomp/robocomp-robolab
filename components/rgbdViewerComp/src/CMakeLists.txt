@@ -28,18 +28,9 @@ SET ( SOURCES
   specificworker.cpp
 )
 
-# Headers set
-SET ( HEADERS
-  ${HEADERS}
-  genericmonitor.h
-  specificmonitor.h
-  commonbehaviorI.h
-  genericworker.h
-  specificworker.h
-)
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor DifferentialRobot )
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBD JointMotor GenericBase )
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 
 # Qt4
@@ -53,8 +44,7 @@ SET( QT_USE_QTSTATEMACHINE TRUE )
 INCLUDE( ${QT_USE_FILE} )
 
 QT4_WRAP_UI( UI_HEADERS mainUI.ui )
-QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
-
+SET( CMAKE_AUTOMOC TRUE )
 
 # Specify construction and link process
 ADD_EXECUTABLE( rgbdViewer ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

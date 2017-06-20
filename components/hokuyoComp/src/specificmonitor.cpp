@@ -110,7 +110,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params[LASER_MIN_RANGE_PROPERTY_NAME] = aux;
 	configGetString("",LASER_STATIC_CONF_PROPERTY_NAME, aux.value, LASER_STATIC_CONF_DEFAULT);
 	params[LASER_STATIC_CONF_PROPERTY_NAME] = aux;
-	
+	configGetString("",LASER_CLUSTER_PROPERTY_NAME, aux.value, LASER_CLUSTER_PROPERTY_DEFAULT);
+	params[LASER_CLUSTER_PROPERTY_NAME] = aux;	
+
 	aux.type = "float";
 	configGetString("",LASER_RESOLUTION_PROPERTY_NAME, aux.value, LASER_ANGLE_RESOLUTION_DEFAULT);
 	params[LASER_RESOLUTION_PROPERTY_NAME] = aux;

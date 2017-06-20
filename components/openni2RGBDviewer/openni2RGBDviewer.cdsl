@@ -1,0 +1,12 @@
+import "/robocomp/interfaces/IDSLs/RGBD.idsl";
+
+Component openni2RGBDviewer
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+	useQt qt4;
+};

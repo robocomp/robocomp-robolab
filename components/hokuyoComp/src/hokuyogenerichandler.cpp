@@ -45,8 +45,6 @@ HokuyoGenericHandler::~HokuyoGenericHandler()
 
 void HokuyoGenericHandler::setConfig (RoboCompLaser::LaserConfData & config )
 {
-
-
 	confLaser = config;
 	const char *device = confLaser.device.c_str();
 
@@ -75,7 +73,7 @@ void HokuyoGenericHandler::setConfig (RoboCompLaser::LaserConfData & config )
 	confLaser.angleIni = urg_index2rad(&urg, parameters.area_min_);
 	confLaser.angleRes = fabs(confLaser.angleIni - urg_index2rad(&urg, parameters.area_min_ + 1));
 
-	int nPoints = confLaser.endRange - confLaser.iniRange;
+	confLaser.maxMeasures = (confLaser.endRange - confLaser.iniRange)/confLaser.cluster;
 
 	std::cout << "device: " << confLaser.device << std::endl;
 	std::cout << "driver: " << confLaser.driver << std::endl;
@@ -86,14 +84,16 @@ void HokuyoGenericHandler::setConfig (RoboCompLaser::LaserConfData & config )
 	std::cout << "maxRange: " << confLaser.maxRange << std::endl;
 	std::cout << "minRange: " << confLaser.minRange << std::endl;
 
-
 	std::cout << "endRange: " << confLaser.endRange << std::endl; //confLaser.endRange << std::endl;
 	std::cout << "iniRange: " << confLaser.iniRange << std::endl;
 
+	std::cout << "cluster: " << confLaser.cluster << std::endl;
+	std::cout << "maxMeasures: " << confLaser.maxMeasures << std::endl;
+
 	urg_disconnect(&urg);
 
-	wdataR.resize( nPoints );
-	wdataW.resize( nPoints );
+	wdataR.resize( confLaser.maxMeasures );
+	wdataW.resize( confLaser.maxMeasures );
 }
 
 bool HokuyoGenericHandler::open()
@@ -163,7 +163,6 @@ bool HokuyoGenericHandler::readLaserData()
 
 	/* Reception */
 	int n;
-
 	n = urg_receiveData(&urg, data, data_max);
 	if (n < 0)
 	{
@@ -178,12 +177,11 @@ bool HokuyoGenericHandler::readLaserData()
 		min_length = urg_minDistance(&urg);
 		max_length = urg_maxDistance(&urg);
 
-
 		int i = 0;
 
 		for( int k = confLaser.iniRange; k < confLaser.endRange; ++k)
 		{
-			int x, y;
+//			int x, y;
 			long length = data[k];
 
 
@@ -193,12 +191,14 @@ bool HokuyoGenericHandler::readLaserData()
 				continue;
 			}
 
-			x = (int)(length * cos(urg_index2rad(&urg, k)));
-			y = (int)(length * sin(urg_index2rad(&urg, k)));
-
-			wdataW[i].dist = length;
-			wdataW[i].angle =  -urg_index2rad(&urg, k);
-			i++;
+//			x = (int)(length * cos(urg_index2rad(&urg, k)));
+//			y = (int)(length * sin(urg_index2rad(&urg, k)));
+			if ( k % confLaser.cluster == 0)
+			{
+				wdataW[i].dist = length;
+				wdataW[i].angle =  -urg_index2rad(&urg, k);
+				i++;
+			}
 		}
 
 

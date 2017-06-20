@@ -12,6 +12,6 @@ SET ( HEADERS
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/ipp.cmake)
-
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv2.cmake)
 ADD_DEFINITIONS( -std=c++11 )
 

@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 12238
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 
 
 

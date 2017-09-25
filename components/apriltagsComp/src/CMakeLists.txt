@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.11)
-PROJECT(  AprilTagsComp )
+PROJECT( AprilTagsComp )
 
- 
+
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
   MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
   SET (ENV{ROBOCOMP} "/opt/robocomp/")
@@ -33,7 +33,7 @@ SET ( SOURCES
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior GetAprilTags AprilTags GenericBase JointMotor RGBD JointMotor GenericBase RGBDBus Camera CommonHead JointMotor GenericBase )
+ROBOCOMP_WRAP_ICE( CommonBehavior GetAprilTags  AprilTags  GenericBase  JointMotor  RGBD  JointMotor  GenericBase  RGBDBus  Camera  CommonHead  JointMotor  GenericBase )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

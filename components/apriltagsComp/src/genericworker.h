@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2017 by YOUR NAME HERE
+ *    Copyright (C)2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,7 +59,7 @@ using namespace RoboCompAprilTags;
 
 
 
-class GenericWorker : 
+class GenericWorker :
 public QObject
 {
 Q_OBJECT
@@ -68,15 +68,15 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
 
-	RGBDPrx rgbd_proxy;
-	AprilTagsPrx apriltags_proxy;
+
 	RGBDBusPrx rgbdbus_proxy;
+	RGBDPrx rgbd_proxy;
 	CameraPrx camera_proxy;
+	AprilTagsPrx apriltags_proxy;
 
 	virtual listaMarcas checkMarcas() = 0;
 

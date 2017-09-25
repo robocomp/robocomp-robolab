@@ -33,8 +33,3 @@ listaMarcas GetAprilTagsI::checkMarcas(const Ice::Current&)
 	return worker->checkMarcas();
 }
 
-
-
-
-
-

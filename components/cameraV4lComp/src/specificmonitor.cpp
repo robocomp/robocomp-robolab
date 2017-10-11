@@ -102,7 +102,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
 	aux.editable = false;
 	configGetString("",  "CameraV4L.Device0.Width", aux.value, "640");
-	if( aux.value != "640" and aux.value != "320" and aux.value != "160")
+	if(aux.value != "1920" and aux.value != "1280" and aux.value != "640" and aux.value != "320" and aux.value != "160")
 	{
 		std::cout << __FUNCTION__ << "Warning. Wrong Width value. Using default 640" << std::endl;
 		aux.value = "640";
@@ -111,7 +111,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	
 	aux.editable = false;
 	configGetString("",  "CameraV4L.Device0.Height", aux.value, "480");
-	if( aux.value != "480" and aux.value != "240" and aux.value != "120")
+	if( aux.value!="1080" and aux.value!="720"  and aux.value != "480" and aux.value != "240" and aux.value != "120")
 	{
 		std::cout << __FUNCTION__ << "Warning. Wrong Height value. Using default 480" << std::endl;
 		aux.value = "480";

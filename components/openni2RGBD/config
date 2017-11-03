@@ -2,8 +2,7 @@ CommonBehavior.Endpoints=tcp -p 11111
 
 
 # Endpoints for implemented interfaces
-RGBDComp.Endpoints=tcp -p 10096
-
+RGBD.Endpoints=tcp -p 10096
 
 
 # This property is used by the clients to connect to IceStorm.

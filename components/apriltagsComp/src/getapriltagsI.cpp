@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,22 +18,18 @@
  */
 #include "getapriltagsI.h"
 
-GetAprilTagsI::GetAprilTagsI(GenericWorker *_worker, QObject *parent) : QObject(parent)
+GetAprilTagsI::GetAprilTagsI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
 
 GetAprilTagsI::~GetAprilTagsI()
 {
-	// Free component resources here
 }
 
-// Component functions, implementation
-listaMarcas GetAprilTagsI::checkMarcas(const Ice::Current&){
+listaMarcas GetAprilTagsI::checkMarcas(const Ice::Current&)
+{
 	return worker->checkMarcas();
 }
-
 

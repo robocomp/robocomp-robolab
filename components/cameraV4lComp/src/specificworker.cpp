@@ -25,7 +25,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	namedWindow("img",1);
+// 	namedWindow("img",1);
 }
 
 /**
@@ -68,18 +68,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		qDebug() << __FUNCTION__ << "Camera " << QString::fromStdString(camParams.name) << " opened!";
 	
 	//Setting grabber
-	
-	camParams.colorFPS = 20;
+	qDebug()<<" camParams.colorWidth"<<camParams.colorWidth<<" camParams.colorHeight"<<camParams.colorHeight<<"camParams.colorFPS"<<camParams.colorFPS;
 	grabber.set(CV_CAP_PROP_FPS, camParams.colorFPS);
-	camParams.colorFocal = 400;
-	grabber.set(CV_CAP_PROP_FRAME_HEIGHT, 480);  //Get from PARAMS
-	grabber.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+// 	camParams.colorFocal = 400;
+	grabber.set(CV_CAP_PROP_FRAME_WIDTH, camParams.colorWidth);
+	grabber.set(CV_CAP_PROP_FRAME_HEIGHT, camParams.colorHeight);  //Get from PARAMS
 
 	//One frame to get real sizes
 	Mat frame;
 	grabber >> frame; 		// get a new frame from camera
 	Size s = frame.size();
-	double rate = 30;//grabber.get(CV_CAP_PROP_FPS);
+	double rate = camParams.colorFPS;//grabber.get(CV_CAP_PROP_FPS);
 	qDebug() << __FUNCTION__ << "Current frame size:" << s.width << "x" << s.height << ". RGB 8 bits format at" << rate << "fps";
 	camParams.colorWidth = s.width;
 	camParams.colorHeight = s.height;
@@ -94,7 +93,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	printf("dd\n");
 	static QTime reloj = QTime::currentTime();
 	static int fps=0;
 	
@@ -102,8 +100,8 @@ void SpecificWorker::compute()
 	grabber.read(frame); 	
 	cvtColor( frame, frameRGB, CV_BGR2RGB );
 	memcpy( &writeBuffer[0], frameRGB.data, frameRGB.size().area() * 3);
-	qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
-	imshow("img", frame);
+// 	qDebug() << "Reading..."; // at" << grabber.get(CV_CAP_PROP_FPS) << "fps";
+// 	imshow("img", frame);
 	QMutexLocker ml(mutex);
 	readBuffer.swap( writeBuffer);
 	
@@ -145,7 +143,7 @@ void SpecificWorker::getImages(const CameraList &cameras, ImageMap &images)
 		img.colorImage.resize( readBuffer.size());
 		img.colorImage.swap( readBuffer );
 		images.insert( std::pair<std::string, RoboCompRGBDBus::Image>("default", img));
-		std::cout << "camera name " <<cameras.front() << " " << img.colorImage.size() << " " << images.empty() << std::endl;
+// 		std::cout << "camera name " <<cameras.front() << " " << img.colorImage.size() << " " << images.empty() << std::endl;
 	}
 }
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 1980 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -33,9 +33,9 @@ Registration RGBDI::getRegistration(const Ice::Current&)
 	return worker->getRegistration();
 }
 
-void RGBDI::getData( imgType  &rgbMatrix,  depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+void RGBDI::getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getData(rgbMatrix, distanceMatrix, hState, bState);
+	worker->getImage(color, depth, points, hState, bState);
 }
 
 void RGBDI::getXYZ( PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
@@ -63,9 +63,9 @@ void RGBDI::setRegistration( Registration  value, const Ice::Current&)
 	worker->setRegistration(value);
 }
 
-void RGBDI::getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+void RGBDI::getData( imgType  &rgbMatrix,  depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getImage(color, depth, points, hState, bState);
+	worker->getData(rgbMatrix, distanceMatrix, hState, bState);
 }
 
 void RGBDI::getDepthInIR( depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)

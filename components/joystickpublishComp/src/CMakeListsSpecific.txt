@@ -3,12 +3,15 @@
 SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
-  $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.cpp
+    $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.cpp
 )
 
 # Headers set
 SET ( HEADERS
   specificworker.h
   specificmonitor.h
-  $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
+    $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
 )
+
+ADD_DEFINITIONS( -std=c++11 )
+

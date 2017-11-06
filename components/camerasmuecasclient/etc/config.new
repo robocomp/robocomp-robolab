@@ -1,5 +1,6 @@
-# Endpoints for implemented interfaces
-CameraSimple.Endpoints=tcp -p 10005
+# Proxies for required interfaces
+CamerasMuecasProxy = camerasmuecas:tcp -h localhost -p 0
+
 
 
 # This property is used by the clients to connect to IceStorm.

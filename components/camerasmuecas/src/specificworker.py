@@ -23,67 +23,66 @@ import cv2
 from PySide import QtGui, QtCore
 from genericworker import *
 
-
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
-
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 50
+		self.Period = 10
 		self.timer.start(self.Period)
+		self.frames = 0
+		self.correct = True
+		self.start = time.time()
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
-		
 		self.capL = cv2.VideoCapture(0)
-		#self.capR = cv2.VideoCapture(1)
+		self.capR = cv2.VideoCapture(1)
 		return True
-    
+
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
-
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
 		retL, frameL = self.capL.read()
-		#retR, frameR = self.capR.read()
-		# Our operations on the frame come here
-		# grayL = cv2.cvtColor(frameL, cv2.COLOR_BGR2GRAY)
-		# grayR = cv2.cvtColor(frameR, cv2.COLOR_BGR2GRAY)
+		retR, frameR = self.capR.read()
 		
 		rows,cols,depth =  frameL.shape
+		if rows == 0 or cols == 0 or depth == 0:
+			self.correct = False
+			return False
+		else:
+			self.correct = True
+			
 		M = cv2.getRotationMatrix2D((cols/2,rows/2),180,1)
 		self.imgL = cv2.warpAffine(frameL, M,(cols,rows))
-		#self.imgR = cv2.warpAffine(frameR, M,(cols,rows))
+		self.imgR = cv2.warpAffine(frameR, M,(cols,rows))
 		
-		# Display the resulting frame
-		#cv2.imshow('frameL',self.imgL)
-		#cv2.imshow('frameR',self.imgR)
-		#cv2.waitKey(1)
+		self.printFrames()
 		return True
-    
+
+	# Print fps 
 	#
-	# SERVANTS ---------------------  getImage
-	#
-	def getImage(self):
-		#
-		#implementCODE
-		#
-		im = TImage()
-		im.image = self.imgL.data
-		im.width, im.height, im.depth = self.imgL.shape
-		return im
+	def printFrames(self):
+		end = time.time()
+		if (end - self.start) < 1:
+			self.frames += 1
+			return 
+		print(str(int(self.frames/ (end-self.start))) + " fps")
+		self.start = end
+		self.frames = 0
+	
+	########################################
+	# Middleware interface
+	# GetImages from remote client
+	########################################
+	def getImages(self):
+		if self.correct == True:
+			ret = ImagePair()
+			ret.leftImg = self.imgL.data
+			ret.rightImg = self.imgR.data
+			ret.width, ret.height, ret.depth = self.imgL.shape
+			return ret
+		else:
+			print "Error reading images..."
+			raise RoboCompCamerasMuecas.HardwareFailedException()
+			
+			
+			
 

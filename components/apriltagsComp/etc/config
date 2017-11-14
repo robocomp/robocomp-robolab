@@ -1,17 +1,18 @@
 #
 # This property is used to configure the endpoints of the subscriber adapter.
 #
-GetAprilTagsComp.Endpoints=tcp -p 14310
+GetAprilTags.Endpoints=tcp -p 14310
 CommonBehavior.Endpoints=tcp -p 14358
 
 CameraProxy = camera:tcp -h localhost -p 10001
 PrimeSenseProxy = primesense:tcp -h localhost -p 10096
 RGBDBusProxy = rgbdbus:tcp -h localhost -p 10096
 AprilTagsProxy = apriltags:tcp -h localhost -p 10261
+RGBDProxy = rgbd:tcp -h localhost -p 10097
 
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
 
-InnerModelPath=/home/robocomp/cam.xml
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
 InputInterface = RGBDBus

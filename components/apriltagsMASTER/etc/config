@@ -15,11 +15,12 @@ InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
 InputInterface = RGBD
+Interface = RGBD
 AprilTagsFamily = tagCodes36h11
-AprilTagsSize = 70
-ID:0-10 = 70   #tag size
-ID:11-20 = 70   #tag size
-ID:21-100 = 70   #tag size
+AprilTagsSize = 191
+ID:0-10 = 191  #tag size
+ID:11-20 = 191   #tag size
+ID:21-100 = 191   #tag size
 
 
 # This property is used by the clients to connect to IceStorm.

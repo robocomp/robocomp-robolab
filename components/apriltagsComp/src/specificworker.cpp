@@ -187,6 +187,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
+
+	timer.start(100);
+
 	return true;
 }
 
@@ -194,7 +197,6 @@ void SpecificWorker::compute()
 {
 	static QTime reloj = QTime::currentTime();
 	if (innermodel == NULL) return;
-printf("---------------------\n"); 
 
 	static int frame = 0;
 	static QTime lastTime = QTime::currentTime();
@@ -231,8 +233,8 @@ printf("---------------------\n");
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);	
-			imshow("deo", image_gray);
-			cv::waitKey(10);
+//			imshow("deo", image_gray);
+//			cv::waitKey(10);
 		}
 		catch(const Ice::Exception &e)
 		{

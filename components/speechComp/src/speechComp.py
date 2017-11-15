@@ -94,7 +94,8 @@ class SpeechHandler (threading.Thread):
 				self.accessLock.release()
 				for rep in charsToAvoid:
 					text_to_say = text_to_say.replace(rep, '\\'+rep)
-				shellcommand = "echo " + text_to_say  + " | padsp festival --tts"
+#				shellcommand = "echo " + text_to_say  + " | padsp festival --tts"
+				shellcommand = "echo " + text_to_say  + " | padsp festival --tts --language spanish"
 				print 'Order: ' + text_to_say
 				print 'Shell: "' + shellcommand + '"'
 				os.system(shellcommand)

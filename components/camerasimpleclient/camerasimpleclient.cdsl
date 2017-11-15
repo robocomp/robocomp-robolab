@@ -1,0 +1,11 @@
+import "/robocomp/interfaces/IDSLs/CameraSimple.idsl";
+
+Component camerasimpleclient
+{
+	Communications
+	{
+		requires CameraSimple;
+	};
+	language Python;
+};
+

@@ -1,0 +1,11 @@
+import "CamerasMuecas.idsl";
+
+Component camerasmuecas
+{
+	Communications
+	{
+		implements CamerasMuecas;
+	};
+	language Python;
+};
+

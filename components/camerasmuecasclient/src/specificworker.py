@@ -24,10 +24,10 @@ from PySide import QtGui, QtCore
 from genericworker import *
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
+sys.path.append('/opt/robocomp/lib')
+#import librobocomp_qmat
+#import librobocomp_osgviewer
+#import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -35,14 +35,14 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 70
 		self.timer.start(self.Period)
-		
+		self.innermodel
 		
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
+		try:
+			self.innermodel = InnerModel(params["/home/robocomp/robocomp/files/innermodel/muecas-robolab.xml"])
+		except:
+			traceback.print_exc()
+			print "Error reading config params"
 		return True
 
 	@QtCore.Slot()

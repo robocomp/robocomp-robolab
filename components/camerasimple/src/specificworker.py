@@ -38,41 +38,20 @@ class SpecificWorker(GenericWorker):
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
-		
 		self.capL = cv2.VideoCapture(0)
-		#self.capR = cv2.VideoCapture(1)
 		return True
     
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
 
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
 		retL, frameL = self.capL.read()
-		#retR, frameR = self.capR.read()
-		# Our operations on the frame come here
-		# grayL = cv2.cvtColor(frameL, cv2.COLOR_BGR2GRAY)
-		# grayR = cv2.cvtColor(frameR, cv2.COLOR_BGR2GRAY)
-		
 		rows,cols,depth =  frameL.shape
-		M = cv2.getRotationMatrix2D((cols/2,rows/2),180,1)
-		self.imgL = cv2.warpAffine(frameL, M,(cols,rows))
-		#self.imgR = cv2.warpAffine(frameR, M,(cols,rows))
+		#M = cv2.getRotationMatrix2D((cols/2,rows/2),180,1)
+		#self.imgL = cv2.warpAffine(frameL, M,(cols,rows))
 		
 		# Display the resulting frame
 		#cv2.imshow('frameL',self.imgL)
-		#cv2.imshow('frameR',self.imgR)
-		#cv2.waitKey(1)
 		return True
     
 	#
@@ -83,7 +62,7 @@ class SpecificWorker(GenericWorker):
 		#implementCODE
 		#
 		im = TImage()
-		im.image = self.imgL.data
-		im.width, im.height, im.depth = self.imgL.shape
+		im.image = self.frameL.data
+		im.width, im.height, im.depth = self.frameL.shape
 		return im
 

@@ -232,7 +232,7 @@ void SpecificWorker::compute()
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-			searchTags(image_gray);	
+			searchTags(image_gray);
 //			imshow("deo", image_gray);
 //			cv::waitKey(10);
 		}
@@ -267,10 +267,10 @@ void SpecificWorker::compute()
 		frame = 0;
 	}
 	worker_params_mutex->lock();
-		//save framerate in params
-		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	//save framerate in params
+	worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
 	worker_params_mutex->unlock();
-	
+
 }
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
@@ -314,7 +314,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		cout << m_fx << "  " << m_fy << endl;
 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 		rDebug2(("TAG: Distance=%d x=%d y=%d z=%d rx=%d ry=%d rz=%d")%T.norm2()%T(0)%T(1)%T(2)%rx%ry%rz);
-		
+
 		RoboCompAprilTags::tag t;
 		RoboCompGetAprilTags::marca mar;
 
@@ -326,6 +326,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		t.rx=rx;
 		t.ry=ry;
 		t.rz=rz;
+		t.cameraId = camera_name;
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
@@ -346,15 +347,15 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		}
 		try
 		{
-qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
+			// qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
 			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
 		}
 		catch(const Ice::Exception &ex)
 		{
 			std::cout << ex << std::endl;
-		}		
-		
-		
+		}
+
+
 	}
 }
 
@@ -420,5 +421,3 @@ RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
 	QMutexLocker locker(worker_params_mutex);
 	return worker_params;
 }
-
-

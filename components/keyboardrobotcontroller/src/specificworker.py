@@ -51,44 +51,59 @@ from RoboCompDifferentialRobot import *
 Ice.loadSlice(preStr+"Laser.ice")
 from RoboCompLaser import *
 
-
 class SpecificWorker(GenericWorker):
         adv = 0
         rot = 0
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 100
+		self.Period = 1
 		self.timer.start(self.Period)
 		screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
+		#tt1=input("max :")
+		#tt2=input("min :")
 
 	def setParams(self, params):
 		return True
 
+	tt1=2000
+	tt2=2
 	@QtCore.Slot()
 	def compute(self):
-            try:
+	    try:
                 key = screen.getch()
             
                 if key == curses.KEY_UP:
-                    self.adv = self.adv + 20
+		    if self.adv  > self.tt1 :
+		    	self.adv=self.adv
+	            else :
+                    	self.adv = self.adv + 20;
                     screen.addstr(5, 0, 'up: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_DOWN:
-                    self.adv = self.adv - 20
+		    if self.adv < -1*self.tt1 :
+	            	self.adv=self.adv
+		    else :
+                    	self.adv = self.adv - 20;
                     screen.addstr(5, 0, 'down: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_LEFT:
-                    self.rot = self.rot - 0.1;
+		    if self.rot < -1*self.tt2 :
+	            	self.rot=self.rot
+		    else :
+                    	self.rot = self.rot - 0.1;
                     screen.addstr(5, 0, 'left: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_RIGHT:
-                    self.rot = self.rot + 0.1;
+		    if self.rot > self.tt2 :
+		    	self.rot=self.rot
+		    else :
+                    	self.rot = self.rot + 0.1;
                     screen.addstr(5, 0, 'right: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == ord(' '):
-                    self.rot = 0
-                    self.adv = 0
+                    self.rot = 0;
+                    self.adv = 0;
                     screen.addstr(5, 0, 'stop: '+ str(self.adv)+ ' : ' + str(self.rot))
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                	elif key == ord('q'):

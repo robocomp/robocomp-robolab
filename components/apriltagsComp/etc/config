@@ -19,8 +19,8 @@ CameraName=rgbd
 InputInterface = CameraSimple
 #AprilTagsFamily = tagCodes36h11
 AprilTagsFamily = tagCodes16h5
-AprilTagsSize = 395
-ID:0-10 = 395   #tag size
+AprilTagsSize = 350
+ID:0-10 = 350   #tag size
 ID:11-20 = 170   #tag size
 ID:21-30 = 170   #tag size
 

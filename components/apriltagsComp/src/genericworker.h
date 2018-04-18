@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2017 by YOUR NAME HERE
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -39,6 +39,7 @@
 #include <CommonHead.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
+#include <CameraSimple.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -54,6 +55,7 @@ using namespace RoboCompCommonHead;
 using namespace RoboCompRGBD;
 using namespace RoboCompRGBDBus;
 using namespace RoboCompJointMotor;
+using namespace RoboCompCameraSimple;
 using namespace RoboCompAprilTags;
 
 
@@ -73,10 +75,11 @@ public:
 	QMutex *mutex;
 
 
-	RGBDBusPrx rgbdbus_proxy;
-	RGBDPrx rgbd_proxy;
-	CameraPrx camera_proxy;
 	AprilTagsPrx apriltags_proxy;
+	CameraPrx camera_proxy;
+	RGBDPrx rgbd_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	RGBDBusPrx rgbdbus_proxy;
 
 	virtual listaMarcas checkMarcas() = 0;
 

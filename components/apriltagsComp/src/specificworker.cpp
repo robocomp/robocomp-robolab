@@ -84,6 +84,27 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			catch(std::exception e)
 			{}
 		}
+		else if ( par.value == "CameraSimple")
+		{
+			printf("INTERFACE CameraSimple selected\n");
+			INPUTIFACE = CameraSimple;
+			try
+			{
+				RoboCompCommonBehavior::Parameter par = params.at("CameraResolution");
+				if ( par.value == "320x240" )
+				{
+					m_width = 320;
+					m_height = 240;
+				}
+				if ( par.value == "640x480" )
+				{
+					m_width = 640;
+					m_height = 480;
+				}
+			}
+			catch(std::exception e)
+			{ std::cout << e.what() << std::endl; }
+		}
 		else
 			qFatal("InputInterface");
 	}
@@ -91,7 +112,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		qFatal("Error reading config params");
 	}
-
+	
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsFamily") ;
@@ -188,7 +209,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 
-	timer.start(100);
+	timer.start(10);
 
 	return true;
 }
@@ -201,12 +222,12 @@ void SpecificWorker::compute()
 	static int frame = 0;
 	static QTime lastTime = QTime::currentTime();
 
-	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
+	//printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
 	// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
 	// 	{
 	// 		printf("%d:%f ", it.key(), it.value());
 	// 	}
-	printf("]\n");
+	//printf("]\n");
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -252,6 +273,21 @@ void SpecificWorker::compute()
 			memcpy(image_color.data , &i.second.colorImage[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);
+		}
+	}
+	else if( INPUTIFACE == CameraSimple)
+	{
+		try
+		{
+			TImage image;
+			camerasimple_proxy->getImage(image);
+			image_color.data = (uchar *)(&image.image[0]);
+			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+			searchTags(image_gray);
+		}
+		catch(const Ice::Exception &e)
+		{
+			std::cout << "Error reading form CameraSimple " << e << std::endl;
 		}
 	}
 	else

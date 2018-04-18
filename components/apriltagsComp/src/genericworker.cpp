@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2017 by YOUR NAME HERE
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -24,6 +24,7 @@ GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
 	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
+	camerasimple_proxy = (*(CameraSimplePrx*)mprx["CameraSimpleProxy"]);
 	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
 	camera_proxy = (*(CameraPrx*)mprx["CameraProxy"]);
 	apriltags_proxy = (*(AprilTagsPrx*)mprx["AprilTagsPub"]);

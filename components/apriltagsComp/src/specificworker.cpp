@@ -84,6 +84,27 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			catch(std::exception e)
 			{}
 		}
+		else if ( par.value == "CameraSimple")
+		{
+			printf("INTERFACE CameraSimple selected\n");
+			INPUTIFACE = CameraSimple;
+			try
+			{
+				RoboCompCommonBehavior::Parameter par = params.at("CameraResolution");
+				if ( par.value == "320x240" )
+				{
+					m_width = 320;
+					m_height = 240;
+				}
+				if ( par.value == "640x480" )
+				{
+					m_width = 640;
+					m_height = 480;
+				}
+			}
+			catch(std::exception e)
+			{ std::cout << e.what() << std::endl; }
+		}
 		else
 			qFatal("InputInterface");
 	}
@@ -91,7 +112,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		qFatal("Error reading config params");
 	}
-
+	
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsFamily") ;
@@ -188,7 +209,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
 
-	timer.start(100);
+	timer.start(10);
 
 	return true;
 }
@@ -201,12 +222,12 @@ void SpecificWorker::compute()
 	static int frame = 0;
 	static QTime lastTime = QTime::currentTime();
 
-	printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
+	//printf("FOCAL: %fx%f   sizes:(%f)[ ", float(m_fx), float(m_fy), float(m_tagSize));
 	// 	for (QMap<int, float>::iterator it = tagsSizeMap.begin(); it!=tagsSizeMap.end(); it++)
 	// 	{
 	// 		printf("%d:%f ", it.key(), it.value());
 	// 	}
-	printf("]\n");
+	//printf("]\n");
 
 	RoboCompCamera::imgType img;
 	if( INPUTIFACE == Camera)
@@ -232,7 +253,7 @@ void SpecificWorker::compute()
 			rgbd_proxy->getRGB(colorseq, hState, bState);
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-			searchTags(image_gray);	
+			searchTags(image_gray);
 //			imshow("deo", image_gray);
 //			cv::waitKey(10);
 		}
@@ -254,6 +275,21 @@ void SpecificWorker::compute()
 			searchTags(image_gray);
 		}
 	}
+	else if( INPUTIFACE == CameraSimple)
+	{
+		try
+		{
+			TImage image;
+			camerasimple_proxy->getImage(image);
+			image_color.data = (uchar *)(&image.image[0]);
+			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+			searchTags(image_gray);
+		}
+		catch(const Ice::Exception &e)
+		{
+			std::cout << "Error reading form CameraSimple " << e << std::endl;
+		}
+	}
 	else
 	{
 		qFatal("Input device not defined. Please specify one in the config file");
@@ -267,10 +303,10 @@ void SpecificWorker::compute()
 		frame = 0;
 	}
 	worker_params_mutex->lock();
-		//save framerate in params
-		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	//save framerate in params
+	worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
 	worker_params_mutex->unlock();
-	
+
 }
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
@@ -314,7 +350,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		cout << m_fx << "  " << m_fy << endl;
 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 		rDebug2(("TAG: Distance=%d x=%d y=%d z=%d rx=%d ry=%d rz=%d")%T.norm2()%T(0)%T(1)%T(2)%rx%ry%rz);
-		
+
 		RoboCompAprilTags::tag t;
 		RoboCompGetAprilTags::marca mar;
 
@@ -326,6 +362,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		t.rx=rx;
 		t.ry=ry;
 		t.rz=rz;
+		t.cameraId = camera_name;
 
 		memcpy(&mar, &t, sizeof(RoboCompGetAprilTags::marca));
 		mutex->lock();
@@ -346,15 +383,15 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		}
 		try
 		{
-qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
+			// qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
 			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
 		}
 		catch(const Ice::Exception &ex)
 		{
 			std::cout << ex << std::endl;
-		}		
-		
-		
+		}
+
+
 	}
 }
 
@@ -420,5 +457,3 @@ RoboCompCommonBehavior::ParameterList SpecificWorker::getWorkerParams()
 	QMutexLocker locker(worker_params_mutex);
 	return worker_params;
 }
-
-

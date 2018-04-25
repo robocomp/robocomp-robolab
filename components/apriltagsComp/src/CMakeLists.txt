@@ -33,7 +33,7 @@ SET ( SOURCES
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior GetAprilTags  AprilTags  GenericBase  JointMotor  RGBD  JointMotor  GenericBase  RGBDBus  Camera  CommonHead  JointMotor  GenericBase )
+ROBOCOMP_WRAP_ICE( CommonBehavior GetAprilTags  AprilTags  GenericBase  JointMotor  RGBD  JointMotor  GenericBase  RGBDBus  Camera  CommonHead  JointMotor  GenericBase  CameraSimple )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4

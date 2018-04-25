@@ -3,10 +3,11 @@ import "AprilTags.idsl";
 import "RGBD.idsl";
 import "RGBDBus.idsl";
 import "Camera.idsl";
+import "CameraSimple.idsl";
 
 Component AprilTagsComp{
 	Communications{
-		requires Camera, RGBDBus, RGBD;
+		requires Camera, RGBDBus, RGBD, CameraSimple;
 		publishes AprilTags;
 		implements GetAprilTags;
 	};

@@ -9,18 +9,18 @@ PrimeSenseProxy = primesense:tcp -h localhost -p 10096
 RGBDBusProxy = rgbdbus:tcp -h localhost -p 10096
 RGBDProxy= rgbd:tcp -h localhost -p 10096
 AprilTagsProxy = apriltags:tcp -h localhost -p 10261
-RGBDProxy = rgbd:tcp -h localhost -p 10097
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10097
 
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
 
 InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
-InputInterface = RGBD
-AprilTagsFamily = tagCodes36h11
-#AprilTagsFamily = tagCodes16h5
-AprilTagsSize = 170
-ID:0-10 = 170   #tag size
+InputInterface = CameraSimple
+#AprilTagsFamily = tagCodes36h11
+AprilTagsFamily = tagCodes16h5
+AprilTagsSize = 350
+ID:0-10 = 350   #tag size
 ID:11-20 = 170   #tag size
 ID:21-30 = 170   #tag size
 

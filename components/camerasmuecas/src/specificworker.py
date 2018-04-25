@@ -23,6 +23,12 @@ import cv2
 from PySide import QtGui, QtCore
 from genericworker import *
 
+# If RoboComp was compiled with Python bindings you can use InnerModel in Python
+sys.path.append('/opt/robocomp/lib')
+#import librobocomp_qmat
+#import librobocomp_osgviewer
+#import librobocomp_innermodel
+
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
@@ -32,11 +38,17 @@ class SpecificWorker(GenericWorker):
 		self.frames = 0
 		self.correct = True
 		self.start = time.time()
+		#self.innermodel
 
 	def setParams(self, params):
 		self.capL = cv2.VideoCapture(0)
 		self.capR = cv2.VideoCapture(1)
-		return True
+		#try:
+			#self.innermodel = InnerModel(params["/home/robocomp/robocomp/files/innermodel/muecas-robolab.xml"])
+		#except:
+			#traceback.print_exc()
+			#print "Error reading config params"
+		#return True
 
 	@QtCore.Slot()
 	def compute(self):

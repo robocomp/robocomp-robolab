@@ -1,0 +1,11 @@
+import "CameraSimple.idsl";
+
+Component cameraip
+{
+	Communications
+	{
+		implements CameraSimple;
+	};
+	language Python;
+};
+

@@ -20,7 +20,7 @@
 import sys, os, traceback, time, requests, cv2
 import numpy as np
 
-from PySide import  QtCore
+from PySide import  QtCore, QtGui
 from genericworker import *
 
 class FPS():
@@ -80,7 +80,7 @@ class SpecificWorker(GenericWorker):
 		ret, self.frame = self.cap.read()
 		if ret:
 			img = TImage(self.frame.shape[1], self.frame.shape[0], 3, ())
-			cv2.imshow('CameraIP',self.frame)
+			cv2.imshow('CameraIP', self.frame)
 			self.fps.printa()
 			
 

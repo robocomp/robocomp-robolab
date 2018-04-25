@@ -20,7 +20,7 @@
 import sys, os, traceback, time, requests, cv2
 import numpy as np
 
-from PySide import QtGui, QtCore
+from PySide import  QtCore
 from genericworker import *
 
 class FPS():

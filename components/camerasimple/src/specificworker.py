@@ -45,13 +45,11 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print 'SpecificWorker.compute...'
 
-		retL, frameL = self.capL.read()
-		rows,cols,depth =  frameL.shape
-		#M = cv2.getRotationMatrix2D((cols/2,rows/2),180,1)
-		#self.imgL = cv2.warpAffine(frameL, M,(cols,rows))
+		retL, self.frameL = self.capL.read()
+		rows,cols,depth =  self.frameL.shape
 		
 		# Display the resulting frame
-		#cv2.imshow('frameL',self.imgL)
+		cv2.imshow('frameL',self.frameL)
 		return True
     
 	#

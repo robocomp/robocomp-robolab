@@ -37,8 +37,8 @@ try:
 	for p in SLICE_PATH:
 		icePaths.append(p)
 		additionalPathStr += ' -I' + p + ' '
-	icePaths.append('/opt/robocomp/interfaces')
 except:
+	icePaths.append('/opt/robocomp/interfaces')
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 

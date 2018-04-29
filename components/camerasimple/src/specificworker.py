@@ -49,7 +49,7 @@ class SpecificWorker(GenericWorker):
 		rows,cols,depth =  self.frameL.shape
 		
 		# Display the resulting frame
-		cv2.imshow('frameL',self.frameL)
+		#cv2.imshow('frameL',self.frameL)
 		return True
     
 	#

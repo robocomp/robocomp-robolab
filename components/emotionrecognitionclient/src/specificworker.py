@@ -43,19 +43,19 @@ class SpecificWorker(GenericWorker):
 		frame = np.reshape(arr,(data.width, data.height, data.depth))
 
 		# Get emotion list
-		emotionL=self.emotionrecognition_proxy.getEmotionList()
+		emotionL = self.emotionrecognition_proxy.getEmotionList()
 		print emotionL
 
 		# Showing data on the frame
 		for emotionData in emotionL:
-			x=emotionData.x
-			y=emotionData.y
-			w=emotionData.w
-			h=emotionData.h
-			emotion=emotionData.emotion
-			cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
-			cv2.putText(frame,emotion,(x,y-2),cv2.FONT_HERSHEY_SIMPLEX,0.7,(255,255,255),2,cv2.LINE_AA)
-		cv2.imshow('Emotion',frame)
+			x = emotionData.x
+			y = emotionData.y
+			w = emotionData.w
+			h = emotionData.h
+			emotion = emotionData.emotion
+			cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0),2)
+			cv2.putText(frame, emotion, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
+		cv2.imshow('Emotion', frame)
 
 		return True
 

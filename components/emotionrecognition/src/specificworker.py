@@ -26,12 +26,10 @@ from PySide import QtGui, QtCore
 from genericworker import *
 
 MODEL_FILE = 'pb/emotion_classifier.pb'
-
 IMAGE_SIZE = 48
 NUM_CHANNELS = 1
 EMOTIONS=['Happy','Sad','Neutral']
 
-# May need to change the path of the haarcascade
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 class SpecificWorker(GenericWorker):
@@ -60,46 +58,46 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'emotionrecognition.compute...'
+		print 'SpecificWorker.compute...'
 		try:
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
-			frame = np.reshape(arr,(data.width, data.height, data.depth))
+			frame = np.reshape(arr, (data.width, data.height, data.depth))
 
 			# Convert frame to grayscale for recognition
-			gray=cv2.cvtColor(frame,cv2.COLOR_RGB2GRAY )
+			gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY )
 
 			# Detect faces
 			faces = face_cascade.detectMultiScale(gray)
 
-			emotions_temp=list()
+			emotions_temp = list()
 			for (x,y,w,h) in faces:
 				# Crop out the face and do necessary preprocessing
 				cropped_frame = gray[y:y+h, x:x+w]
-				cropped_frame=cv2.resize(cropped_frame,(IMAGE_SIZE,IMAGE_SIZE)).reshape((1,IMAGE_SIZE,IMAGE_SIZE,NUM_CHANNELS))
-				cropped_frame=(cropped_frame-np.mean(cropped_frame))*(1.0/255.0)
+				cropped_frame = cv2.resize(cropped_frame, (IMAGE_SIZE,IMAGE_SIZE)).reshape((1,IMAGE_SIZE,IMAGE_SIZE,NUM_CHANNELS))
+				cropped_frame = (cropped_frame-np.mean(cropped_frame))/255.0
 
 				# Feed the cropped and preprocessed frame to classifier
-				result=self.sess.run(self.output,{self.x_input:cropped_frame})
+				result = self.sess.run(self.output, {self.x_input:cropped_frame})
 
 				# Get the emotion
-				emotion=EMOTIONS[np.argmax(result)]
+				emotion = EMOTIONS[np.argmax(result)]
 
 				# Store emotion data
-				emotionData=SEmotion()
-				emotionData.x=x
-				emotionData.y=y
-				emotionData.w=w
-				emotionData.h=h
-				emotionData.emotion=emotion
+				emotionData = SEmotion()
+				emotionData.x = x
+				emotionData.y = y
+				emotionData.w = w
+				emotionData.h = h
+				emotionData.emotion = emotion
 				emotions_temp.append(emotionData)
 
-			self.emotionList=emotions_temp
+			self.emotionList = emotions_temp
 
 		except Ice.Exception, e:
 			traceback.print_exc()
 			print e
-			
+
 		cv2.waitKey(1)
 		return True
 

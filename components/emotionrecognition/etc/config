@@ -1,9 +1,11 @@
 # Endpoints for implemented interfaces
-CameraSimple.Endpoints=tcp -p 10005
+EmotionRecognition.Endpoints=tcp -p 10006
 
+# Proxies for required interfaces
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 
 # This property is used by the clients to connect to IceStorm.
-# TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+#TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
 Ice.Warn.Connections=0

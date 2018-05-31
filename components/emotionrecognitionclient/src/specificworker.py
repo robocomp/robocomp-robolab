@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017 by YOUR NAME HERE
+# Copyright (C) 2018 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -23,44 +23,39 @@ import cv2
 from PySide import QtGui, QtCore
 from genericworker import *
 
-
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
-
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 50
+		self.Period = 100
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
-		self.capL = cv2.VideoCapture(0)
 		return True
-    
+
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
 
-		retL, self.frameL = self.capL.read()
-		rows,cols,depth =  self.frameL.shape
-		
-		# Display the resulting frame
-		#cv2.imshow('frameL',self.frameL)
+		# Get image from camera
+		data = self.camerasimple_proxy.getImage()
+		arr = np.fromstring(data.image, np.uint8)
+		frame = np.reshape(arr,(data.width, data.height, data.depth))
+
+		# Get emotion list
+		emotionL = self.emotionrecognition_proxy.getEmotionList()
+		print emotionL
+
+		# Showing data on the frame
+		for emotionData in emotionL:
+			x = emotionData.x
+			y = emotionData.y
+			w = emotionData.w
+			h = emotionData.h
+			emotion = emotionData.emotion
+			cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0),2)
+			cv2.putText(frame, emotion, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
+		cv2.imshow('Emotion', frame)
+
 		return True
-    
-	#
-	# SERVANTS ---------------------  getImage
-	#
-	def getImage(self):
-		#
-		#implementCODE
-		#
-		im = TImage()
-		im.image = self.frameL.data
-		im.width, im.height, im.depth = self.frameL.shape
-		return im
 

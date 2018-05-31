@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017 by YOUR NAME HERE
+# Copyright (C) 2018 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -31,34 +31,16 @@ Ice.loadSlice(preStr+"CommonBehavior.ice")
 import RoboCompCommonBehavior
 
 additionalPathStr = ''
-icePaths = []
+icePaths = [ '/opt/robocomp/interfaces' ]
 try:
 	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
 	for p in SLICE_PATH:
 		icePaths.append(p)
 		additionalPathStr += ' -I' + p + ' '
-except:
 	icePaths.append('/opt/robocomp/interfaces')
+except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
-
-ice_CameraSimple = False
-for p in icePaths:
-	print 'Trying', p, 'to load CameraSimple.ice'
-	if os.path.isfile(p+'/CameraSimple.ice'):
-		print 'Using', p, 'to load CameraSimple.ice'
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraSimple = True
-		break
-if not ice_CameraSimple:
-	print 'Couln\'t load CameraSimple'
-	sys.exit(-1)
-from RoboCompCameraSimple import *
-
-
-from camerasimpleI import *
 
 
 class GenericWorker(QtCore.QObject):
@@ -67,9 +49,6 @@ class GenericWorker(QtCore.QObject):
 
 	def __init__(self, mprx):
 		super(GenericWorker, self).__init__()
-
-
-
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
 		self.Period = 30

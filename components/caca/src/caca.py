@@ -20,7 +20,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# \mainpage RoboComp::cameraip
+# \mainpage RoboComp::caca
 #
 # \section intro_sec Introduction
 #
@@ -48,7 +48,7 @@
 #
 # \subsection execution_ssec Execution
 #
-# Just: "${PATH_TO_BINARY}/cameraip --Ice.Config=${PATH_TO_CONFIG_FILE}"
+# Just: "${PATH_TO_BINARY}/caca --Ice.Config=${PATH_TO_CONFIG_FILE}"
 #
 # \subsection running_ssec Once running
 #
@@ -92,7 +92,7 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 
 
 if __name__ == '__main__':
-	app = QtGui.QApplication(sys.argv)
+	app = QtCore.QCoreApplication(sys.argv)
 	params = copy.deepcopy(sys.argv)
 	if len(params) > 1:
 		if not params[1].startswith('--Ice.Config='):
@@ -108,11 +108,6 @@ if __name__ == '__main__':
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
-
-	adapter = ic.createObjectAdapter('CameraSimple')
-	adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
-	adapter.activate()
-
 
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
 	app.exec_()

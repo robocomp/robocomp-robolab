@@ -20,7 +20,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# \mainpage RoboComp::cameraip
+# \mainpage RoboComp::emotionrecognition
 #
 # \section intro_sec Introduction
 #
@@ -48,7 +48,7 @@
 #
 # \subsection execution_ssec Execution
 #
-# Just: "${PATH_TO_BINARY}/cameraip --Ice.Config=${PATH_TO_CONFIG_FILE}"
+# Just: "${PATH_TO_BINARY}/emotionrecognition --Ice.Config=${PATH_TO_CONFIG_FILE}"
 #
 # \subsection running_ssec Once running
 #
@@ -92,7 +92,7 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 
 
 if __name__ == '__main__':
-	app = QtGui.QApplication(sys.argv)
+	app = QtCore.QCoreApplication(sys.argv)
 	params = copy.deepcopy(sys.argv)
 	if len(params) > 1:
 		if not params[1].startswith('--Ice.Config='):
@@ -105,12 +105,29 @@ if __name__ == '__main__':
 	parameters = {}
 	for i in ic.getProperties():
 		parameters[str(i)] = str(ic.getProperties().getProperty(i))
+
+	# Remote object connection for CameraSimple
+	try:
+		proxyString = ic.getProperties().getProperty('CameraSimpleProxy')
+		try:
+			basePrx = ic.stringToProxy(proxyString)
+			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
+			mprx["CameraSimpleProxy"] = camerasimple_proxy
+		except Ice.Exception:
+			print 'Cannot connect to the remote object (CameraSimple)', proxyString
+			#traceback.print_exc()
+			status = 1
+	except Ice.Exception, e:
+		print e
+		print 'Cannot get CameraSimpleProxy property.'
+		status = 1
+
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
 
-	adapter = ic.createObjectAdapter('CameraSimple')
-	adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
+	adapter = ic.createObjectAdapter('EmotionRecognition')
+	adapter.add(EmotionRecognitionI(worker), ic.stringToIdentity('emotionrecognition'))
 	adapter.activate()
 
 

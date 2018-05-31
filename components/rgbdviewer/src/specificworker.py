@@ -21,6 +21,10 @@ import sys, os, traceback, time
 
 from PySide import QtGui, QtCore
 from genericworker import *
+import cv2
+import numpy as np
+from PyQt4.QtGui import QImage
+from PyQt4.QtCore import QSize
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -32,7 +36,7 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 50
+		self.Period = 500
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
@@ -48,8 +52,14 @@ class SpecificWorker(GenericWorker):
 		print 'SpecificWorker.compute...'
 		#computeCODE
 		try:
-			color, _, _ = self.rgbd_proxy.getRGB()
-			print len(color)
+			color, _, _, _= self.rgbd_proxy.getData()
+			image = np.frombuffer(color, dtype=np.uint8)
+			print image.size
+			image =np.reshape(image, (480,640,3))
+			image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+			cv2.imshow("mmm", image)
+			k = cv2.waitKey(5)
+			#print len(color)
 		except Ice.Exception, e:
 			traceback.print_exc()
 			print e

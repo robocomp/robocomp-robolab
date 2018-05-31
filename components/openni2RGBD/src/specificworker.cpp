@@ -164,16 +164,11 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState_)
 {
+	printf("getting RGB\n");
 	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
 	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
-	mStateMutex->lock();
-	hState = mState;
-	mStateMutex->unlock();
-	bStateMutex->lock();
-	bState_ = bState;
-	bStateMutex->unlock();
 }
 
 void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
@@ -490,6 +485,7 @@ void SpecificWorker::readDepth()
 
 void SpecificWorker::readColor()
 {
+// 	printf("Reading color\n");
 	openniRc = color.readFrame(&colorFrame);
 	if (openniRc != openni::STATUS_OK)
 	{

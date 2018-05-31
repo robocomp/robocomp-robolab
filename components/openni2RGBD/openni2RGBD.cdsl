@@ -1,0 +1,8 @@
+import "RGBD.idsl";
+
+Component openNI2RGBD{
+	Communications{
+			implements RGBD;
+	};
+	language Cpp;
+};

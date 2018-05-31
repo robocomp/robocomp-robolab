@@ -1,0 +1,12 @@
+import "RGBD.idsl";
+
+
+Component rgbdviewer
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Python;
+};
+

@@ -3,8 +3,6 @@ CommonBehavior.Endpoints=tcp -p 11111
 
 # Endpoints for implemented interfaces
 RGBD.Endpoints=tcp -p 10096
-JointMotorProxy = jointmotor:tcp -h localhost -p 20000
-GenericBaseProxy = genericbase:tcp -h localhost -p 15000
 
 
 # This property is used by the clients to connect to IceStorm.

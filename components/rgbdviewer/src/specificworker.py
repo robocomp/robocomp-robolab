@@ -32,7 +32,7 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 50
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
@@ -47,18 +47,13 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print 'SpecificWorker.compute...'
 		#computeCODE
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception, e:
-		#	traceback.print_exc()
-		#	print e
+		try:
+			color, _, _ = self.rgbd_proxy.getRGB()
+			print len(color)
+		except Ice.Exception, e:
+			traceback.print_exc()
+			print e
 
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
 
 		return True
 

@@ -237,20 +237,22 @@ void SpecificWorker::openDevice()
 	else
 	{
 */
-	openniRc = device.open("1d27/0601@2/6");
+	openniRc = device.open(ANY_DEVICE);
 // 	}
-
-	Array<DeviceInfo> deviceInfoList;
-	OpenNI::enumerateDevices(&deviceInfoList);
-	for (int i=0; i<deviceInfoList.getSize(); i++)
-	{
-		printf("Available device: %s\n", deviceInfoList[i].getUri());
-	}
 
 	if (openniRc != openni::STATUS_OK)
 	{
 		OpenNI::shutdown();
 		qFatal("openNi2Comp: Device open failed: \n%s\n", OpenNI::getExtendedError());
+	}
+
+	if(device.isFile())
+	{
+		qDebug("Es un archivo");
+	}
+	else
+	{
+		qDebug("Es un dispositivo fisico");
 	}
 
 

@@ -67,7 +67,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	worker_params["frameRate"] = aux;
 
 
-    timer.start(30);
+	timer.start(30);
 	return true;
 }
 
@@ -93,8 +93,8 @@ void SpecificWorker::compute( )
 		fps++;
 	}
 	worker_params_mutex->lock();
-		//save framerate in params
-		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	//save framerate in params
+	worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
 	worker_params_mutex->unlock();
 
 }
@@ -167,7 +167,7 @@ void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &
 	printf("getting RGB\n");
 	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
-	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
+		memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
 }
 
@@ -237,22 +237,20 @@ void SpecificWorker::openDevice()
 	else
 	{
 */
-	openniRc = device.open(ANY_DEVICE);
+	openniRc = device.open("1d27/0601@2/6");
 // 	}
+
+	Array<DeviceInfo> deviceInfoList;
+	OpenNI::enumerateDevices(&deviceInfoList);
+	for (int i=0; i<deviceInfoList.getSize(); i++)
+	{
+		printf("Available device: %s\n", deviceInfoList[i].getUri());
+	}
 
 	if (openniRc != openni::STATUS_OK)
 	{
 		OpenNI::shutdown();
 		qFatal("openNi2Comp: Device open failed: \n%s\n", OpenNI::getExtendedError());
-	}
-
-	if(device.isFile())
-	{
-		qDebug("Es un archivo");
-	}
-	else
-	{
-		qDebug("Es un dispositivo fisico");
 	}
 
 
@@ -478,9 +476,24 @@ void SpecificWorker::readDepth()
 		printf("Unexpected depth frame format\n");
 		return;
 	}
+	
+	//pixDepth = (openni::DepthPixel *) depthFrame.getData();
+	/**
+	openni::DepthPixel * myPixDepth = (openni::DepthPixel *) depthFrame.getData();
+	
+	depthMutex->lock();
+	memcpy(&depthImage->operator[](0),myPixDepth,IMAGE_HEIGHT*IMAGE_WIDTH);
 
+	depthMutex->unlock();
+	**/
 	pixDepth = (DepthPixel*)depthFrame.getData();
-
+	///¿PUEDE HACERSE CON MEMCPY? DISTINTOS TIPOS... (short, float). Creo que NO
+	//memcpy(&depthBuffer->operator[](0),pixDepth,IMAGE_WIDTH*IMAGE_HEIGHT*sizeof(float));	//ESTO SUSTITUIRÍA AL FOR DE DEBAJO
+	for(int i=0;i<IMAGE_WIDTH*IMAGE_HEIGHT;i++) depthBuffer->operator[](i)=pixDepth[i];
+	depthMutex->lock();
+	depthImage=depthBuffer;
+	//memcpy(&depthImage->operator[](0),&depthBuffer->operator[](0),IMAGE_WIDTH*IMAGE_HEIGHT*sizeof(float)); //ESTO SUSTITUIRÍA AL = DE ARRIBA
+	depthMutex->unlock();
 }
 
 void SpecificWorker::readColor()

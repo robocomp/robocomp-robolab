@@ -1,0 +1,11 @@
+import "IMUPub.idsl";
+
+Component PyImu
+{
+	Communications
+	{
+		publishes IMUPub;
+	};
+	language Python;
+};
+

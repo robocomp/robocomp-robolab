@@ -38,15 +38,14 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	timer.start(30);
-	talkToJoint = QString::fromStdString(params["talkToJoint"].value).contains("true");
-	talkToBase = QString::fromStdString(params["talkToBase"].value).contains("true");
+	
 	depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
 
 	openDevice();
 	initializeStreams();
 	checkInitialization();
+    
 
 	registration=RoboCompRGBD::None;
 	usersMutex = new QMutex();
@@ -66,10 +65,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
-	talkToJoint = false;
-	talkToBase = false;
 
 
+	timer.start(30);
 	return true;
 }
 
@@ -95,32 +93,9 @@ void SpecificWorker::compute( )
 		fps++;
 	}
 	worker_params_mutex->lock();
-		//save framerate in params
-		worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	//save framerate in params
+	worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
 	worker_params_mutex->unlock();
-	if(talkToBase)
-	{
-		bStateMutex->lock();
-		try{
-			genericbase_proxy->getBaseState(bState);
-		}catch(...)
-		{
-			qDebug()<<"Exception: error reading genericbase state";
-		}
-		bStateMutex->unlock();
-	}
-	if(talkToJoint)
-	{
-		mStateMutex->lock();
-		try{
-			jointmotor_proxy->getAllMotorState(mState);
-		}catch(...)
-		{
-			qDebug()<<"Exception: error reading motorStates";
-		}
-		mStateMutex->unlock();
-
-	}
 
 }
 
@@ -189,16 +164,11 @@ void SpecificWorker::getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap
 
 void SpecificWorker::getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState_)
 {
+	printf("getting RGB\n");
 	color.resize(IMAGE_WIDTH*IMAGE_HEIGHT);
 	RGBMutex->lock();
-	memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
+		memcpy(&color[0], &colorImage->operator[](0), IMAGE_WIDTH*IMAGE_HEIGHT*3);
 	RGBMutex->unlock();
-	mStateMutex->lock();
-	hState = mState;
-	mStateMutex->unlock();
-	bStateMutex->lock();
-	bState_ = bState;
-	bStateMutex->unlock();
 }
 
 void SpecificWorker::getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState& bState)
@@ -508,13 +478,29 @@ void SpecificWorker::readDepth()
 		printf("Unexpected depth frame format\n");
 		return;
 	}
+	
+	//pixDepth = (openni::DepthPixel *) depthFrame.getData();
+	/**
+	openni::DepthPixel * myPixDepth = (openni::DepthPixel *) depthFrame.getData();
+	
+	depthMutex->lock();
+	memcpy(&depthImage->operator[](0),myPixDepth,IMAGE_HEIGHT*IMAGE_WIDTH);
 
+	depthMutex->unlock();
+	**/
 	pixDepth = (DepthPixel*)depthFrame.getData();
-
+	///¿PUEDE HACERSE CON MEMCPY? DISTINTOS TIPOS... (short, float). Creo que NO
+	//memcpy(&depthBuffer->operator[](0),pixDepth,IMAGE_WIDTH*IMAGE_HEIGHT*sizeof(float));	//ESTO SUSTITUIRÍA AL FOR DE DEBAJO
+	for(int i=0;i<IMAGE_WIDTH*IMAGE_HEIGHT;i++) depthBuffer->operator[](i)=pixDepth[i];
+	depthMutex->lock();
+	depthImage=depthBuffer;
+	//memcpy(&depthImage->operator[](0),&depthBuffer->operator[](0),IMAGE_WIDTH*IMAGE_HEIGHT*sizeof(float)); //ESTO SUSTITUIRÍA AL = DE ARRIBA
+	depthMutex->unlock();
 }
 
 void SpecificWorker::readColor()
 {
+// 	printf("Reading color\n");
 	openniRc = color.readFrame(&colorFrame);
 	if (openniRc != openni::STATUS_OK)
 	{
@@ -548,7 +534,7 @@ void SpecificWorker::computeCoordinates()
 	// focal: 522 sale abierto
 	static const float flength_x = 574;//device.getDepthFocalLength(640);//545;// IMAGE_WIDTH / (2.f * tan( fovW / 2.0 ) );
 	static const float flength_y = 574;//device.getDepthFocalLength(640);//545;// IMAGE_HEIGHT / (2.f * tan( fovH / 2.0 ) );
-	printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
+// 	printf("%dx%d %f %f\n", IMAGE_WIDTH, IMAGE_HEIGHT, flength_x, flength_y);
 	//#pragma omp for schedule(static, 5)
 	for( int y=0 ; y<IMAGE_HEIGHT ; y++ )
 	{

@@ -1,0 +1,20 @@
+# Endpoints for implemented interfaces
+RGBD.Endpoints=tcp -p 10096
+CameraSimple.Endpoints=tcp -p 10097
+
+Camera = http://10.253.247.43:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=admin&pwd=opticalflow
+#Camera = http://158.49.247.184:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=admin&pwd=opticalflow
+#Camera = webcam
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+

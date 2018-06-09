@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2017 by YOUR NAME HERE
+ *    Copyright (C) 2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -95,6 +95,7 @@
 #include <CommonHead.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
+#include <CameraSimple.h>
 
 
 // User includes here
@@ -142,30 +143,14 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	RGBDPrx rgbd_proxy;
 	RGBDBusPrx rgbdbus_proxy;
-	AprilTagsPrx apriltags_proxy;
 	CameraPrx camera_proxy;
+	AprilTagsPrx apriltags_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	RGBDPrx rgbd_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
-		}
-		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("RGBDProxy initialized Ok!");
-	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
 
 
 	try
@@ -201,7 +186,50 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 	rInfo("CameraProxy initialized Ok!");
 	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
 
-	IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimpleProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimpleProxy\n";
+		}
+		camerasimple_proxy = CameraSimplePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraSimpleProxy initialized Ok!");
+	mprx["CameraSimpleProxy"] = (::IceProxy::Ice::Object*)(&camerasimple_proxy);//Remote server proxy creation example
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
+		}
+		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("RGBDProxy initialized Ok!");
+	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+
+	IceStorm::TopicManagerPrx topicManager;
+	try
+	{
+		topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
 
 	IceStorm::TopicPrx apriltags_topic;
 	while (!apriltags_topic)
@@ -236,12 +264,12 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	if ( !monitor->isRunning() )
 		return status;
-	
+
 	while (!monitor->ready)
 	{
 		usleep(10000);
 	}
-	
+
 	try
 	{
 		// Server adapter creation and publication
@@ -283,8 +311,8 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 #endif
 		// Run QT Application Event Loop
 		a.exec();
-		
-		
+
+
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -341,4 +369,3 @@ int main(int argc, char* argv[])
 
 	return app.main(argc, argv, configFile.c_str());
 }
-

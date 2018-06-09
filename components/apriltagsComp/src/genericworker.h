@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2017 by YOUR NAME HERE
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -39,6 +39,7 @@
 #include <CommonHead.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
+#include <CameraSimple.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -54,12 +55,13 @@ using namespace RoboCompCommonHead;
 using namespace RoboCompRGBD;
 using namespace RoboCompRGBDBus;
 using namespace RoboCompJointMotor;
+using namespace RoboCompCameraSimple;
 using namespace RoboCompAprilTags;
 
 
 
 
-class GenericWorker : 
+class GenericWorker :
 public QObject
 {
 Q_OBJECT
@@ -68,15 +70,16 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
 
-	RGBDPrx rgbd_proxy;
+
 	AprilTagsPrx apriltags_proxy;
-	RGBDBusPrx rgbdbus_proxy;
 	CameraPrx camera_proxy;
+	RGBDPrx rgbd_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	RGBDBusPrx rgbdbus_proxy;
 
 	virtual listaMarcas checkMarcas() = 0;
 

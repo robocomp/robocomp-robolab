@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 1980 by YOUR NAME HERE
+ *    Copyright (C) 2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::openNI2Comp
+/** \mainpage RoboComp::openNI2RGBD
  *
  * \section intro_sec Introduction
  *
- * The openNI2Comp component...
+ * The openNI2RGBD component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd openNI2Comp
+ * cd openNI2RGBD
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/openNI2Comp --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/openNI2RGBD --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -86,8 +86,6 @@
 #include <RGBD.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
-#include <JointMotor.h>
-#include <GenericBase.h>
 
 
 // User includes here
@@ -96,10 +94,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class openNI2Comp : public RoboComp::Application
+class openNI2RGBD : public RoboComp::Application
 {
 public:
-	openNI2Comp (QString prfx) { prefix = prfx.toStdString(); }
+	openNI2RGBD (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -109,14 +107,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::openNI2Comp::initialize()
+void ::openNI2RGBD::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::openNI2Comp::run(int argc, char* argv[])
+int ::openNI2RGBD::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -135,45 +133,9 @@ int ::openNI2Comp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	JointMotorPrx jointmotor_proxy;
-	GenericBasePrx genericbase_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "JointMotorProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JointMotorProxy\n";
-		}
-		jointmotor_proxy = JointMotorPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("JointMotorProxy initialized Ok!");
-	mprx["JointMotorProxy"] = (::IceProxy::Ice::Object*)(&jointmotor_proxy);//Remote server proxy creation example
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
-		}
-		genericbase_proxy = GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("GenericBaseProxy initialized Ok!");
-	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
 
 
 
@@ -186,12 +148,12 @@ int ::openNI2Comp::run(int argc, char* argv[])
 
 	if ( !monitor->isRunning() )
 		return status;
-	
+
 	while (!monitor->ready)
 	{
 		usleep(10000);
 	}
-	
+
 	try
 	{
 		// Server adapter creation and publication
@@ -233,8 +195,8 @@ int ::openNI2Comp::run(int argc, char* argv[])
 #endif
 		// Run QT Application Event Loop
 		a.exec();
-		
-		
+
+
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -287,8 +249,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::openNI2Comp app(prefix);
+	::openNI2RGBD app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }
-

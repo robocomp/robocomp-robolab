@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 1980 by YOUR NAME HERE
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -23,8 +23,6 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-	jointmotor_proxy = (*(JointMotorPrx*)mprx["JointMotorProxy"]);
-	genericbase_proxy = (*(GenericBasePrx*)mprx["GenericBaseProxy"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

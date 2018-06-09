@@ -1,6 +1,5 @@
 CommonBehavior.Endpoints=tcp -p 14358
 
-
 # Endpoints for implemented interfaces
 GetAprilTags.Endpoints=tcp -p 14310
 
@@ -15,11 +14,12 @@ InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
 InputInterface = RGBD
+Interface = RGBD
 AprilTagsFamily = tagCodes36h11
-AprilTagsSize = 70
-ID:0-10 = 70   #tag size
-ID:11-20 = 70   #tag size
-ID:21-100 = 70   #tag size
+AprilTagsSize = 191
+ID:0-10 = 191  #tag size
+ID:11-20 = 191   #tag size
+ID:21-100 = 191   #tag size
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -30,5 +30,3 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
-
-

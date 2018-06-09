@@ -1,0 +1,11 @@
+import "CamerasMuecas.idsl";
+
+Component camerasmuecasclient
+{
+	Communications
+	{
+		requires CamerasMuecas;
+	};
+	language Python;
+};
+

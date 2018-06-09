@@ -40,7 +40,7 @@ ADD_DEFINITIONS( -I/usr/include/eigen3 -I/usr/local/include/eigen3)
 MESSAGE(STATUS, ${LIBS} )
 
 
-ADD_DEFINITIONS( -std=c++11 )
+ADD_DEFINITIONS( -O3 -std=c++11 )
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -msse -msse2 -msse3 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -msse -msse2 -msse3 ")

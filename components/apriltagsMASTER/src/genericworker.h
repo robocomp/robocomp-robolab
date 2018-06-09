@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 2017 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -70,10 +70,10 @@ public:
 	QMutex *mutex;
 	
 
-	RGBDPrx rgbd_proxy;
 	AprilTagsPrx apriltags_proxy;
-	CameraPrx camera_proxy;
 	RGBDBusPrx rgbdbus_proxy;
+	CameraPrx camera_proxy;
+	RGBDPrx rgbd_proxy;
 
 	virtual listaMarcas checkMarcas() = 0;
 

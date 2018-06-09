@@ -64,7 +64,7 @@ private:
 	RoboCompGenericBase::TBaseState bState;
 	RoboCompJointMotor::MotorStateMap hState;
 	RoboCompCommonHead::THeadState cState;
-	enum  {Camera, RGBD, RGBDBus};  	
+	enum  {Camera, RGBD, RGBDBus, CameraSimple};  	
 	QMap<int, float> tagsSizeMap;
 	
 	vector<RoboCompAprilTags::tag> detections2send;

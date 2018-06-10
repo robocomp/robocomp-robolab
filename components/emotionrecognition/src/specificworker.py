@@ -25,12 +25,15 @@ from tensorflow.python.platform import gfile
 from PySide import QtGui, QtCore
 from genericworker import *
 
-MODEL_FILE = 'pb/emotion_classifier.pb'
+MODEL_FILE = 'assets/emotion_classifier_dsift.pb'
 IMAGE_SIZE = 48
 NUM_CHANNELS = 1
-EMOTIONS=['Happy','Sad','Neutral']
+NUM_SIFT = 2048
+EMOTIONS=['Happy','Sad','Neutral','Angry','Scared','Surprised']
 
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('assets/haarcascade_frontalface_default.xml')
+mean_sift=np.load("assets/mean_sift.npy")
+std_sift=np.load("assets/std_sift.npy")
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -38,6 +41,15 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 100
 		self.timer.start(self.Period)
+
+		# SIFT feature extractor
+		self.feature_extractor = cv2.xfeatures2d.SIFT_create()
+
+		# Create a dense grid of keypoints
+		self.keypoints=list()
+		for i in range(5,IMAGE_SIZE,12):
+			for j in range(5,IMAGE_SIZE,12):
+				self.keypoints.append(cv2.KeyPoint(i,j,12))
 
 		# Create a tensorflow session
 		self.sess=tf.Session()
@@ -52,6 +64,8 @@ class SpecificWorker(GenericWorker):
 			# Get input and output tensors from graph
 			self.x_input = self.sess.graph.get_tensor_by_name("input:0")
 			self.output = self.sess.graph.get_tensor_by_name("output:0")
+			self.dsift = self.sess.graph.get_tensor_by_name("sift:0")
+
 
 	def setParams(self, params):
 		return True
@@ -72,13 +86,19 @@ class SpecificWorker(GenericWorker):
 
 			emotions_temp = list()
 			for (x,y,w,h) in faces:
-				# Crop out the face and do necessary preprocessing
+				# Crop out the face and extract D-SIFT features
 				cropped_frame = gray[y:y+h, x:x+w]
-				cropped_frame = cv2.resize(cropped_frame, (IMAGE_SIZE,IMAGE_SIZE)).reshape((1,IMAGE_SIZE,IMAGE_SIZE,NUM_CHANNELS))
-				cropped_frame = (cropped_frame-np.mean(cropped_frame))/255.0
+				cropped_frame = cv2.resize(cropped_frame, (IMAGE_SIZE,IMAGE_SIZE))
+				_, features = self.feature_extractor.compute(cropped_frame,self.keypoints)
+				features = (features-mean_sift)/std_sift
+				features = features.reshape(1,NUM_SIFT)
+
+				# Do necessary preprocessing
+				cropped_frame = cropped_frame.reshape((1,IMAGE_SIZE,IMAGE_SIZE,NUM_CHANNELS))
+				cropped_frame = (cropped_frame-np.mean(cropped_frame))/np.std(cropped_frame)
 
 				# Feed the cropped and preprocessed frame to classifier
-				result = self.sess.run(self.output, {self.x_input:cropped_frame})
+				result = self.sess.run(self.output, {self.x_input:cropped_frame, self.dsift:features})
 
 				# Get the emotion
 				emotion = EMOTIONS[np.argmax(result)]

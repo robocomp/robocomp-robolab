@@ -1,0 +1,3 @@
+[submodule "components/handDetection/libs/HandDetection"]
+	path = components/handDetection/libs/HandDetection
+	url = https://github.com/orensbruli/HandDetection.git

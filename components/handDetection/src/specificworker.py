@@ -21,7 +21,6 @@ import sys, os, traceback, time
 
 from PySide import QtGui, QtCore
 from genericworker import *
-from libs.Hand_Detection.HandDetection import
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -35,7 +34,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
-        self.detector =
+
 
 	def setParams(self, params):
 		#try:

@@ -90,3 +90,5 @@ moc_*
 *.kdev4
 *.cmake
 CXX.*
+
+*.idea/

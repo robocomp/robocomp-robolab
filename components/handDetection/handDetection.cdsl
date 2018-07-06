@@ -1,0 +1,11 @@
+import "HandDetection.idsl";
+
+Component handDetection
+{
+	Communications
+	{
+		implements HandDetection;
+	};
+	language Python;
+};
+

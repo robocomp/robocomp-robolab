@@ -1,0 +1,13 @@
+import "CameraSimple.idsl";
+import "EmotionRecognition.idsl";
+
+Component emotionrecognition2
+{
+	Communications
+	{
+		requires CameraSimple;
+		implements EmotionRecognition;
+	};
+	language Python;
+};
+

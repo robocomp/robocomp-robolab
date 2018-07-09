@@ -1,9 +1,13 @@
 import "HandDetection.idsl";
+import "CameraSimple.idsl";
+import "RGBD.idsl";
 
 Component handDetection
 {
 	Communications
 	{
+	    requires CameraSimple;
+		requires RGBD;
 		implements HandDetection;
 	};
 	language Python;

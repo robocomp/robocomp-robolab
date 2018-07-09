@@ -105,6 +105,40 @@ if __name__ == '__main__':
 	parameters = {}
 	for i in ic.getProperties():
 		parameters[str(i)] = str(ic.getProperties().getProperty(i))
+
+	# Remote object connection for CameraSimple
+	try:
+		proxyString = ic.getProperties().getProperty('CameraSimpleProxy')
+		try:
+			basePrx = ic.stringToProxy(proxyString)
+			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
+			mprx["CameraSimpleProxy"] = camerasimple_proxy
+		except Ice.Exception:
+			print 'Cannot connect to the remote object (CameraSimple)', proxyString
+			#traceback.print_exc()
+			status = 1
+	except Ice.Exception, e:
+		print e
+		print 'Cannot get CameraSimpleProxy property.'
+		status = 1
+
+
+	# Remote object connection for RGBD
+	try:
+		proxyString = ic.getProperties().getProperty('RGBDProxy')
+		try:
+			basePrx = ic.stringToProxy(proxyString)
+			rgbd_proxy = RGBDPrx.checkedCast(basePrx)
+			mprx["RGBDProxy"] = rgbd_proxy
+		except Ice.Exception:
+			print 'Cannot connect to the remote object (RGBD)', proxyString
+			#traceback.print_exc()
+			status = 1
+	except Ice.Exception, e:
+		print e
+		print 'Cannot get RGBDProxy property.'
+		status = 1
+
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)

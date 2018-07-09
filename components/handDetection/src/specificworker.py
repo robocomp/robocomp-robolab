@@ -50,20 +50,8 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print 'SpecificWorker.compute...'
-        #computeCODE
-        #try:
-        #	self.differentialrobot_proxy.setSpeedBase(100, 0)
-        #except Ice.Exception, e:
-        #	traceback.print_exc()
-        #	print e
-
-        # The API of python-innermodel is not exactly the same as the C++ version
-        # self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-        # z = librobocomp_qmat.QVec(3,0)
-        # r = self.innermodel.transform("rgbd", z, "laser")
-        # r.printvector("d")
-        # print r[0], r[1], r[2]
+        image = self.camerasimple_proxy.getImage()
+        print image
 
         return True
 
@@ -73,14 +61,10 @@ class SpecificWorker(GenericWorker):
     #
     def processImage(self, img):
         ret = []
-        new_hand = RoboCompHandDetection.Hand()
 
-
-        frame = np.zeros((img.height,img.width,img.depth), dtype=np.int8)
-        print len(img.image)
         frame = np.fromstring(img.image, np.uint8)
-
         frame = frame.reshape((img.height,img.width,img.depth))
+
         if len(self.hand_detector.hands) < 1:
             self.hand_detector.add_hand2(frame)
         else:
@@ -98,6 +82,15 @@ class SpecificWorker(GenericWorker):
                 new_hand.detected = detected_hand.detected
                 new_hand.tracked = detected_hand.tracked
                 ret.append(new_hand)
-        print ret
+        return ret
+
+    #
+    # addNewHand
+    #
+    def addNewHand(self, img):
+        frame = np.fromstring(img.image, np.uint8)
+        frame = frame.reshape((img.height, img.width, img.depth))
+
+        ret = self.hand_detector.add_hand2(frame)
         return ret
 

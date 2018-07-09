@@ -1,0 +1,12 @@
+import "HandDetection.idsl";
+
+Component tvgames
+{
+	Communications
+	{
+		requires HandDetection;
+
+	};
+	language Python;
+};
+

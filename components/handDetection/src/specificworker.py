@@ -21,7 +21,7 @@ import sys, os, traceback, time
 
 from PySide import QtGui, QtCore
 from genericworker import *
-from libs.HandDetection.HandDetection import HandDetector, Hand
+from libs.HandDetection.HandDetection import HandDetector, Hand, np
 
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -35,7 +35,7 @@ class SpecificWorker(GenericWorker):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
         self.Period = 2000
-        self.hand_detector = HandDetector()
+        self.hand_detector = HandDetector(-1)
         self.timer.start(self.Period)
 
 
@@ -72,13 +72,21 @@ class SpecificWorker(GenericWorker):
     # processImage
     #
     def processImage(self, img):
-        ret = THands()
+        ret = []
+        new_hand = RoboCompHandDetection.Hand()
+
+
+        frame = np.zeros((img.height,img.width,img.depth), dtype=np.int8)
+        print len(img.image)
+        frame = np.fromstring(img.image, np.uint8)
+
+        frame = frame.reshape((img.height,img.width,img.depth))
         if len(self.hand_detector.hands) < 1:
-            self.hand_detector.add_hand2()
+            self.hand_detector.add_hand2(frame)
         else:
-            self.hand_detector.update_detection_and_tracking()
+            self.hand_detector.update_detection_and_tracking(frame)
             for detected_hand in self.hand_detector.hands:
-                new_hand = THand()
+                new_hand = Hand()
                 new_hand.id = detected_hand.id
                 new_hand.score = detected_hand.truth_value
                 new_hand.fingertips = detected_hand.fingertips
@@ -90,5 +98,6 @@ class SpecificWorker(GenericWorker):
                 new_hand.detected = detected_hand.detected
                 new_hand.tracked = detected_hand.tracked
                 ret.append(new_hand)
+        print ret
         return ret
 

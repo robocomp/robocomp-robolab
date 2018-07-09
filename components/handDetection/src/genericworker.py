@@ -47,7 +47,7 @@ for p in icePaths:
 	if os.path.isfile(p+'/HandDetection.ice'):
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
 		wholeStr = preStr+"HandDetection.ice"
-		Ice.loadSlice(wholeStr)
+		import RoboCompHandDetection
 		ice_HandDetection = True
 		break
 if not ice_HandDetection:

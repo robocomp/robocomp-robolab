@@ -21,7 +21,8 @@ import sys, os, traceback, time
 
 from PySide import QtGui, QtCore
 from genericworker import *
-from libs.HandDetection.HandDetection import HandDetector, Hand, np
+from libs.HandDetection.HandDetection import HandDetector
+import numpy as np
 
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -34,9 +35,13 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 2000
+        self.Period = 20
         self.hand_detector = HandDetector(-1)
         self.timer.start(self.Period)
+        self.state = "None"
+        self.new_hand_roi = None
+        self.expected_hands = 0
+        # self.hand_detector.debug = True
 
 
 
@@ -50,54 +55,58 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print 'SpecificWorker.compute...'
-        #computeCODE
-        #try:
-        #	self.differentialrobot_proxy.setSpeedBase(100, 0)
-        #except Ice.Exception, e:
-        #	traceback.print_exc()
-        #	print e
-
-        # The API of python-innermodel is not exactly the same as the C++ version
-        # self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-        # z = librobocomp_qmat.QVec(3,0)
-        # r = self.innermodel.transform("rgbd", z, "laser")
-        # r.printvector("d")
-        # print r[0], r[1], r[2]
-
+        try:
+            image = self.camerasimple_proxy.getImage()
+        except Ice.Exception, e:
+            traceback.print_exc()
+            print e
+        frame = np.fromstring(image.image, dtype=np.uint8)
+        frame = frame.reshape(image.width,image.height,image.depth)
+        if self.state == "add_new_hand":
+            search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
+            self.hand_detector.add_hand2(frame, search_roi)
+            if len(self.hand_detector.hands) >= self.expected_hands:
+                self.state = "tracking"
+                self.new_hand_roi = None
+        elif self.state == "tracking":
+            self.hand_detector.update_detection_and_tracking(frame)
+        print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
         return True
 
+        #
+        # addNewHand
+        #
 
-    #
-    # processImage
-    #
-    def processImage(self, img):
+    def addNewHand(self, expected_hands, new_hand_roi):
+        self.new_hand_roi = new_hand_roi
+        self.expected_hands = expected_hands
+        self.state = "add_new_hand"
+        return self.expected_hands
+
+
+    def getHands(self):
         ret = []
-        new_hand = RoboCompHandDetection.Hand()
-
-
-        frame = np.zeros((img.height,img.width,img.depth), dtype=np.int8)
-        print len(img.image)
-        frame = np.fromstring(img.image, np.uint8)
-
-        frame = frame.reshape((img.height,img.width,img.depth))
-        if len(self.hand_detector.hands) < 1:
-            self.hand_detector.add_hand2(frame)
-        else:
-            self.hand_detector.update_detection_and_tracking(frame)
-            for detected_hand in self.hand_detector.hands:
-                new_hand = Hand()
-                new_hand.id = detected_hand.id
-                new_hand.score = detected_hand.truth_value
-                new_hand.fingertips = detected_hand.fingertips
-                new_hand.intertips = detected_hand.intertips
-                new_hand.positions = detected_hand.position_history
-                new_hand.contour = detected_hand.contour
-                new_hand.centerMass = detected_hand.center_of_mass
-                new_hand.truthValue = detected_hand.truth_value
-                new_hand.detected = detected_hand.detected
-                new_hand.tracked = detected_hand.tracked
-                ret.append(new_hand)
-        print ret
+        for detected_hand in self.hand_detector.hands:
+            new_hand = Hand()
+            new_hand.id = detected_hand.id
+            new_hand.score = detected_hand.truth_value
+            new_hand.fingertips = detected_hand.fingertips
+            new_hand.intertips = detected_hand.intertips
+            new_hand.positions = detected_hand.position_history
+            print detected_hand.contour
+            new_hand.contour = detected_hand.contour
+            new_hand.centerMass = detected_hand.center_of_mass
+            new_hand.truthValue = detected_hand.truth_value
+            new_hand.detected = detected_hand.detected
+            new_hand.tracked = detected_hand.tracked
+            ret.append(new_hand)
         return ret
+
+
+    def getHandsCount(self):
+        return len(self.hand_detector.hands)
+
+
+
+
 

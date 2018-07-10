@@ -1,4 +1,5 @@
 # Proxies for required interfaces
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 HandDetectionProxy = handdetection:tcp -h localhost -p 21222
 
 

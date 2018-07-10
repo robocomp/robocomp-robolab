@@ -54,6 +54,18 @@ if not ice_HandDetection:
 	print 'Couln\'t load HandDetection'
 	sys.exit(-1)
 from RoboCompHandDetection import *
+ice_CameraSimple = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraSimple.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraSimple = True
+		break
+if not ice_CameraSimple:
+	print 'Couln\'t load CameraSimple'
+	sys.exit(-1)
+from RoboCompCameraSimple import *
 
 
 
@@ -66,6 +78,7 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
+		self.camerasimple_proxy = mprx["CameraSimpleProxy"]
 		self.handdetection_proxy = mprx["HandDetectionProxy"]
 
 

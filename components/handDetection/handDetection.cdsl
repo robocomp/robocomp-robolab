@@ -6,8 +6,7 @@ Component handDetection
 {
 	Communications
 	{
-	    requires CameraSimple;
-		requires RGBD;
+		requires CameraSimple, RGBD;
 		implements HandDetection;
 	};
 	language Python;

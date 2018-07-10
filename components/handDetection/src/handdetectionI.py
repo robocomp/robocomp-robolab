@@ -82,7 +82,9 @@ class HandDetectionI(HandDetection):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def processImage(self, img, c):
-		return self.worker.processImage(img)
-	def addNewHand(self, img, c):
-		return self.worker.addNewHand(img)
+	def addNewHand(self, expectedHands, roi, c):
+		return self.worker.addNewHand(expectedHands, roi)
+	def getHandsCount(self, c):
+		return self.worker.getHandsCount()
+	def getHands(self, c):
+		return self.worker.getHands()

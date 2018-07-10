@@ -36,7 +36,10 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 2000
         self.timer.start(self.Period)
-        self.capture = cv2.VideoCapture(0)
+        self.state = "None"
+        self.expected_hands = 0
+        self.hands = []
+
 
     def setParams(self, params):
         #try:
@@ -51,26 +54,34 @@ class SpecificWorker(GenericWorker):
         print 'SpecificWorker.compute...'
 
         start = time.time()
-
-        # frame = self.myqueue.get()
-        ret, frame = self.capture.read()
-        if ret:
-            # ret, frame = self.readImg(self.stream)
-            cv2.imshow('tvGame', frame)
-
-
-
+        if self.state == "None":
             try:
-                img = TImage(frame.shape[1], frame.shape[0], 3, ())
-                img.image = frame.data
-                people = self.handdetection_proxy.processImage(img)
+                current_hand_count = self.handdetection_proxy.getHandsCount()
 
-
+                if current_hand_count < 1:
+                    try:
+                        search_roi = TRoi()
+                        search_roi.y = 480 / 2 - 100
+                        search_roi.x = 640 / 2 - 100
+                        search_roi.w = 200
+                        search_roi.h =200
+                        self.expected_hands = self.handdetection_proxy.addNewHand(1, search_roi)
+                    except Ice.Exception, e:
+                        traceback.print_exc()
+                        print e
+                elif current_hand_count >=  self.expected_hands:
+                    self.state = "tracking"
             except Ice.Exception, e:
                 traceback.print_exc()
                 print e
-        else:
-            print "No video source"
+        elif self.state == "tracking":
+            try:
+                self.hands = self.handdetection_proxy.getHands()
+                print self.hands
+            except Ice.Exception, e:
+                traceback.print_exc()
+                print e
+        print "Compute in state %s with %d hands" % (self.state, len(self.hands))
 
         return True
 

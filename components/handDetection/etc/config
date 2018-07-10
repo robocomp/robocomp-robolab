@@ -1,7 +1,9 @@
 # Endpoints for implemented interfaces
 HandDetection.Endpoints=tcp -p 21222
 
-
+# Proxies for required interfaces
+#RGBDProxy = rgbd:tcp -h localhost -p 0
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

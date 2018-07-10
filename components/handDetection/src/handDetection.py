@@ -106,23 +106,6 @@ if __name__ == '__main__':
 	for i in ic.getProperties():
 		parameters[str(i)] = str(ic.getProperties().getProperty(i))
 
-	# Remote object connection for CameraSimple
-	try:
-		proxyString = ic.getProperties().getProperty('CameraSimpleProxy')
-		try:
-			basePrx = ic.stringToProxy(proxyString)
-			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
-			mprx["CameraSimpleProxy"] = camerasimple_proxy
-		except Ice.Exception:
-			print 'Cannot connect to the remote object (CameraSimple)', proxyString
-			#traceback.print_exc()
-			status = 1
-	except Ice.Exception, e:
-		print e
-		print 'Cannot get CameraSimpleProxy property.'
-		status = 1
-
-
 	# Remote object connection for RGBD
 	try:
 		proxyString = ic.getProperties().getProperty('RGBDProxy')
@@ -137,6 +120,23 @@ if __name__ == '__main__':
 	except Ice.Exception, e:
 		print e
 		print 'Cannot get RGBDProxy property.'
+		status = 1
+
+
+	# Remote object connection for CameraSimple
+	try:
+		proxyString = ic.getProperties().getProperty('CameraSimpleProxy')
+		try:
+			basePrx = ic.stringToProxy(proxyString)
+			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
+			mprx["CameraSimpleProxy"] = camerasimple_proxy
+		except Ice.Exception:
+			print 'Cannot connect to the remote object (CameraSimple)', proxyString
+			#traceback.print_exc()
+			status = 1
+	except Ice.Exception, e:
+		print e
+		print 'Cannot get CameraSimpleProxy property.'
 		status = 1
 
 	if status == 0:

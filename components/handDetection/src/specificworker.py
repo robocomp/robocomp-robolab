@@ -35,12 +35,13 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 2000
+        self.Period = 20
         self.hand_detector = HandDetector(-1)
         self.timer.start(self.Period)
         self.state = "None"
         self.new_hand_roi = None
         self.expected_hands = 0
+        # self.hand_detector.debug = True
 
 
 
@@ -54,12 +55,15 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        image = self.camerasimple_proxy.getImage()
+        try:
+            image = self.camerasimple_proxy.getImage()
+        except Ice.Exception, e:
+            traceback.print_exc()
+            print e
         frame = np.fromstring(image.image, dtype=np.uint8)
-        # TODO: Hardcoded
-        frame = frame.reshape(480,640,3)
+        frame = frame.reshape(image.width,image.height,image.depth)
         if self.state == "add_new_hand":
-            search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.h, self.new_hand_roi.w)
+            search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
             self.hand_detector.add_hand2(frame, search_roi)
             if len(self.hand_detector.hands) >= self.expected_hands:
                 self.state = "tracking"
@@ -89,13 +93,13 @@ class SpecificWorker(GenericWorker):
             new_hand.fingertips = detected_hand.fingertips
             new_hand.intertips = detected_hand.intertips
             new_hand.positions = detected_hand.position_history
-            new_hand.contour = np.vstack(detected_hand.contour).squeeze()
+            print detected_hand.contour
+            new_hand.contour = detected_hand.contour
             new_hand.centerMass = detected_hand.center_of_mass
             new_hand.truthValue = detected_hand.truth_value
             new_hand.detected = detected_hand.detected
             new_hand.tracked = detected_hand.tracked
             ret.append(new_hand)
-        print ret
         return ret
 
 

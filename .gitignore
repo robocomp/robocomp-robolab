@@ -92,3 +92,5 @@ moc_*
 CXX.*
 
 *.idea/
+
+*.new

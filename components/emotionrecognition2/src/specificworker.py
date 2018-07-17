@@ -29,6 +29,7 @@ from imutils import face_utils
 from tensorflow.python.platform import gfile
 from PySide import QtGui, QtCore
 from genericworker import *
+from face_alignment import FaceAligner
 import face_detector
 
 MODEL_FILE = 'assets/emotion_classifier_fl.pb'
@@ -98,17 +99,29 @@ class SpecificWorker(GenericWorker):
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
 			frame = np.reshape(arr, (data.width, data.height, data.depth))
-
-			# Convert frame to grayscale for recognition
-			gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY )
+			gray=cv2.cvtColor(frame,cv2.COLOR_RGB2GRAY )
 
 			# Detect faces
 			faces = face_detector.detect(frame)
 
 			emotions_temp = list()
 			for (x1,y1,x2,y2) in faces:
-				# Crop out the face and extract facial landmark features
-				cropped_frame = gray[y1:y2, x1:x2]
+
+				# Align the face
+				fa = FaceAligner(predictor,desiredFaceWidth=IMAGE_SIZE*3)
+				faceAligned = fa.align(frame, gray, dlib.rectangle(x1,y1,x2,y2))
+
+				# Closely crop out the face
+				faces2 = face_detector.detect(faceAligned)
+				(xn1,yn1,xn2,yn2) = faces2[0]
+				cropped_frame = faceAligned[yn1:yn2, xn1:xn2]
+
+				# Convert to grayscale and apply adaptive histogram equalization
+				cropped_frame = cv2.cvtColor(cropped_frame,cv2.COLOR_RGB2GRAY )
+				clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(2,2))
+				cropped_frame = clahe.apply(cropped_frame) 
+
+				# Resize image and extract facial landmark features
 				cropped_frame = cv2.resize(cropped_frame, (IMAGE_SIZE,IMAGE_SIZE))
 				features = self.getFL(cropped_frame)
 				features = (features-mean_fl)/std_fl

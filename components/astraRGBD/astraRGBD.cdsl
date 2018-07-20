@@ -1,0 +1,10 @@
+import "RGBD.idsl";
+
+Component astraRGBD
+{
+	Communications{
+			implements RGBD;
+	};
+	language Cpp;
+};
+

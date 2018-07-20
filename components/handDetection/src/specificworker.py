@@ -23,6 +23,7 @@ from PySide import QtGui, QtCore
 from genericworker import *
 from libs.HandDetection.HandDetection import HandDetector
 import numpy as np
+import cv2
 
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -37,11 +38,12 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 20
         self.hand_detector = HandDetector(-1)
+        self.hand_detector.set_mask_mode("depth")
         self.timer.start(self.Period)
         self.state = "None"
         self.new_hand_roi = None
         self.expected_hands = 0
-        # self.hand_detector.debug = True
+        self.hand_detector.debug = True
 
 
 
@@ -60,15 +62,21 @@ class SpecificWorker(GenericWorker):
             # frame = np.fromstring(image.image, dtype=np.uint8)
             # frame = frame.reshape(image.width, image.height, image.depth)
 
-            color, _, _, _ = self.rgbd_proxy.getData()
+            color, depth, _, _ = self.rgbd_proxy.getData()
             frame = np.fromstring(color, dtype=np.uint8)
-            frame = frame.reshape(640, 480, 3)
+            frame = frame.reshape(480, 640, 3)
+            depth = np.array(depth,  dtype=np.uint8)
+            depth = depth.reshape(480, 640, 1)
+            print "showing depth"
+            self.hand_detector.set_depth_mask(depth)
+            cv2.imshow("depth specific", depth)
+            cv2.imshow("color", frame)
+
 
         except Ice.Exception, e:
             traceback.print_exc()
             print e
             return False
-
 
         if self.state == "add_new_hand":
             search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)

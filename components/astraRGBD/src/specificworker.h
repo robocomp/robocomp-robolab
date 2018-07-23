@@ -29,22 +29,18 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-#include <astra/astra.hpp>
-#include <cstdio>
-#include <iostream>
+#include <MultiFrameListener.h>
+
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
     int fps;
 
-    QMutex *usersMutex, *RGBMutex, *depthMutex;
-    imgType* colorImage;
-	depthType* depthImage;
 	astra::StreamSet streamSet;
-	astra::StreamReader *depthReader;
-	astra::StreamReader *colorReader;
+    astra::StreamReader *reader;
 	bool depthB,colorB;
+	MultiFrameListener *frameListener;
 
 	void initializeStreams();
 	void readFrame();

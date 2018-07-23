@@ -3,12 +3,14 @@
 SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
+  MultiFrameListener.cpp
 )
 
 # Headers set
 SET ( HEADERS
   specificworker.h
   specificmonitor.h
+  MultiFrameListener.h
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)

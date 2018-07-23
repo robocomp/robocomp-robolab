@@ -11,5 +11,8 @@ SET ( HEADERS
   specificmonitor.h
 )
 
-ADD_DEFINITIONS( -std=c++11 )
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)
+
+ADD_DEFINITIONS( -std=c++11 -L/opt )
+
 

@@ -29,10 +29,26 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <astra/astra.hpp>
+#include <cstdio>
+#include <iostream>
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
+    int fps;
+
+    QMutex *usersMutex, *RGBMutex, *depthMutex;
+    imgType* colorImage;
+	depthType* depthImage;
+	astra::StreamSet streamSet;
+	astra::StreamReader *depthReader;
+	astra::StreamReader *colorReader;
+	bool depthB,colorB;
+
+	void initializeStreams();
+	void readFrame();
+
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();

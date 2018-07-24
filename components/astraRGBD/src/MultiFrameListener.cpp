@@ -10,6 +10,7 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 {
     RGBMutex = new QMutex();
     depthMutex = new QMutex();
+    pointMutex = new QMutex();
     streamBools["depth"]=false;
     streamBools["color"]=false;
     streamBools["ir"]=false;
@@ -37,6 +38,8 @@ void MultiFrameListener::update_depth(astra::Frame& frame)
     const int depthWidth = depthFrame.width();
     const int depthHeight = depthFrame.height();
     qDebug()<<"Depth frame readed";
+    depthBuff.resize(depthWidth*depthHeight);
+    for(int i=0;i<depthWidth*depthHeight;i++) depthBuff.operator[](i)=(float)depthFrame.data()[i];
 
 //    astra::RgbPixel* vizBuffer = visualizer_.get_output();
 //    uint8_t* buffer = &depthView_.buffer_[0];
@@ -64,7 +67,9 @@ void MultiFrameListener::update_color(astra::Frame& frame)
     const int colorWidth = colorFrame.width();
     const int colorHeight = colorFrame.height();
     qDebug()<<"Color frame readed";
-
+    colorBuff.resize(colorWidth*colorHeight*3);
+//    for(int i=0;i<colorWidth*colorHeight;i++) colorBuff.operator[](i)=(RoboCompRGBD::ColorRGB)colorFrame.data()[i];
+    memcpy(&colorBuff[0],colorFrame.data(),colorWidth*colorHeight*3*sizeof(std::uint8_t));
 
 //    const astra::RgbPixel* color = colorFrame.data();
 //    uint8_t* buffer = &colorView_.buffer_[0];
@@ -118,10 +123,16 @@ void MultiFrameListener::update_point(astra::Frame &frame)
         return;
     }
 
-    int irWidth = pointFrame.width();
-    int irHeight = pointFrame.height();
+    int pointWidth = pointFrame.width();
+    int pointHeight = pointFrame.height();
     qDebug()<<"Points frame readed";
-
+    pointBuff.resize(pointWidth*pointHeight);
+    for(int i=0;i<pointWidth*pointHeight;i++)
+    {
+        pointBuff[i].x = pointFrame.data()[i].x;
+        pointBuff[i].y = pointFrame.data()[i].y;
+        pointBuff[i].z = pointFrame.data()[i].z;
+    }
 }
 
 void MultiFrameListener::update_ir_rgb(astra::Frame& frame)

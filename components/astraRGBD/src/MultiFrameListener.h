@@ -11,12 +11,12 @@
 #include <QMutex>
 #include <map>
 #include <genericworker.h>
+#include <DoubleBuffer.h>
 
 
 class MultiFrameListener : public astra::FrameListener
 {
-
-    QMutex *RGBMutex, *depthMutex;
+    QMutex *RGBMutex, *depthMutex, *pointMutex;
     imgType* colorImage;
     depthType* depthImage;
     ::std::map< ::std::string, bool> streamBools;
@@ -27,6 +27,12 @@ class MultiFrameListener : public astra::FrameListener
     astra::InfraredStream *irStream;
     astra::BodyStream *bodyStream;
     astra::HandStream *handStream;
+    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
+    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;
+//    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
+
+
 
 public:
 

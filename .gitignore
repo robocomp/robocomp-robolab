@@ -90,7 +90,7 @@ moc_*
 *.kdev4
 *.cmake
 CXX.*
-
 *.idea/
-
 *.new
+*autogen/
+*automoc.cpp

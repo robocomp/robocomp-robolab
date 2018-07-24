@@ -30,6 +30,7 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <MultiFrameListener.h>
+#include <DoubleBuffer.h>
 
 
 class SpecificWorker : public GenericWorker

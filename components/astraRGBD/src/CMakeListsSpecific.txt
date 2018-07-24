@@ -11,6 +11,7 @@ SET ( HEADERS
   specificworker.h
   specificmonitor.h
   MultiFrameListener.h
+  DoubleBuffer.h
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)

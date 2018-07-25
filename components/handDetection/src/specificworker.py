@@ -23,6 +23,7 @@ from PySide import QtGui, QtCore
 from genericworker import *
 from libs.HandDetection.HandDetection import HandDetector
 import numpy as np
+import cv2
 
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -37,11 +38,12 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 20
         self.hand_detector = HandDetector(-1)
+        self.hand_detector.set_mask_mode("depth")
         self.timer.start(self.Period)
         self.state = "None"
         self.new_hand_roi = None
         self.expected_hands = 0
-        # self.hand_detector.debug = True
+        self.hand_detector.debug = False
 
 
 
@@ -56,12 +58,30 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         try:
-            image = self.camerasimple_proxy.getImage()
+            # image = self.camerasimple_proxy.getImage()
+            # frame = np.fromstring(image.image, dtype=np.uint8)
+            # frame = frame.reshape(image.width, image.height, image.depth)
+
+            color, depth, _, _ = self.rgbd_proxy.getData()
+            frame = np.fromstring(color, dtype=np.uint8)
+            frame = frame.reshape(480, 640, 3)
+            # depth normalization to 0-255 relative to the min and max read
+            depth_min = min(depth)
+            depth_max = max(depth)
+            depth = np.interp(depth, [depth_min, depth_max],[0, 255], right=255, left=0)
+            depth = np.array(depth,  dtype=np.uint8)
+            depth = depth.reshape(480, 640, 1)
+            print "showing depth"
+            self.hand_detector.set_depth_mask(depth)
+            # cv2.imshow("Specificworker: depth readed ", depth)
+            # cv2.imshow("Specificworker: color", frame)
+
+
         except Ice.Exception, e:
             traceback.print_exc()
             print e
-        frame = np.fromstring(image.image, dtype=np.uint8)
-        frame = frame.reshape(image.width,image.height,image.depth)
+            return False
+
         if self.state == "add_new_hand":
             search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
             self.hand_detector.add_hand2(frame, search_roi)
@@ -93,7 +113,7 @@ class SpecificWorker(GenericWorker):
             new_hand.fingertips = detected_hand.fingertips
             new_hand.intertips = detected_hand.intertips
             new_hand.positions = detected_hand.position_history
-            print detected_hand.contour
+            # print detected_hand.contour
             new_hand.contour = detected_hand.contour
             new_hand.centerMass = detected_hand.center_of_mass
             new_hand.truthValue = detected_hand.truth_value

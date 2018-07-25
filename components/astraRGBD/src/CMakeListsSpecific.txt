@@ -15,6 +15,7 @@ SET ( HEADERS
 )
 
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv.cmake)
 
 ADD_DEFINITIONS( -std=c++11 -L/opt )
 

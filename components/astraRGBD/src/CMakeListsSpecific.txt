@@ -1,0 +1,22 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  MultiFrameListener.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  MultiFrameListener.h
+  DoubleBuffer.h
+)
+
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)
+INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv.cmake)
+
+ADD_DEFINITIONS( -std=c++11 -L/opt )
+
+

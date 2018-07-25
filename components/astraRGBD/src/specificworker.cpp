@@ -56,18 +56,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
-	//computeCODE
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
-
     astra_update();
 }
 
@@ -135,82 +123,3 @@ void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor:
 {
     qDebug()<<"getDepthInIR Not implemented yet";
 }
-
-
-//void SpecificWorker::initializeStreams()
-//{
-//    qDebug()<<"\tInitializing streams"<<endl;
-//	if (depthB) {
-//        depthReader = new(astra::StreamReader);
-//        qDebug()<<"\t\tDepth reader created"<<endl;
-//        *depthReader = streamSet.create_reader();
-//
-//        depthReader->stream<astra::DepthStream>().start();
-//        astra::Frame frame = depthReader->get_latest_frame();
-//        const auto depthFrame = frame.get<astra::DepthFrame>();
-//        int width = depthFrame.width();
-//        int height = depthFrame.height();
-//        depthImage = new vector<float>(width*height);
-//        qDebug()<<"\t\tDepth stream initalized";
-//	}
-//
-//	if (colorB){
-//	    qDebug()<<"\t\tColor reader created"<<endl;
-//	    colorReader = new(astra::StreamReader);
-//	    *colorReader = streamSet.create_reader();
-//        colorReader->stream<astra::ColorStream>().start();
-//        astra::Frame frame = colorReader->get_latest_frame();
-//        const auto colorFrame = frame.get<astra::ColorFrame>();
-//	    int width = colorFrame.width();
-//        int height = colorFrame.height();
-//        colorImage = new vector<Ice::Byte>(width*height*3);
-//	}
-//}
-
-//void SpecificWorker::readFrame()
-//{
-//    qDebug()<<"Reading frame";
-//    fps++;
-//	if (depthB)
-//	{
-//
-//        qDebug()<<"Reading depth frame";
-//        astra::Frame frame = depthReader->get_latest_frame();
-//        const auto depthFrame = frame.get<astra::DepthFrame>();
-//        if (depthFrame.is_valid()) {
-//            int width = depthFrame.width();
-//            int height = depthFrame.height();
-////            qDebug() << "Reading depth frame data";
-//            const int16_t *depthPtr = depthFrame.data();
-////            qDebug() << "Moving depth data to depthImage";
-//            depthMutex->lock();
-//            memcpy(&depthImage->operator[](0), depthPtr, width * height);
-//            depthMutex->unlock();
-//            qDebug() << "Depth frame read";
-//        }
-//        else
-//        {
-//            qDebug() << "Invalid depth frame";
-//        }
-//	}
-//
-//	if (colorB)
-//	{
-//	    qDebug()<<"Reading color frame";
-//        astra::Frame frame = colorReader->get_latest_frame();
-//	    const auto colorFrame = frame.get<astra::ColorFrame>();
-//	    if (colorFrame.is_valid())
-//        {
-//            int width = colorFrame.width();
-//            int height = colorFrame.height();
-//            const astra::RgbPixel* colorPtr = colorFrame.data();
-//            RGBMutex->lock();
-//            memcpy(&colorImage->operator[](0),colorPtr,width*height*3);
-//            RGBMutex->unlock();
-//            qDebug() << "Color frame read";
-//        } else{
-//            qDebug() << "Invalid color frame";
-//	    }
-//	}
-//
-//}

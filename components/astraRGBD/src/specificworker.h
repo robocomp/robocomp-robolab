@@ -42,8 +42,8 @@ Q_OBJECT
 	bool depthB,colorB;
 	MultiFrameListener *frameListener;
 
-	void initializeStreams();
-	void readFrame();
+//	void initializeStreams();
+//	void readFrame();
 
 public:
 	SpecificWorker(MapPrx& mprx);

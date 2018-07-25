@@ -45,7 +45,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     reader = new astra::StreamReader(streamSet.create_reader());
     frameListener = new MultiFrameListener(*reader);
 	timer.start(Period);
-    initializeStreams();
+//    initializeStreams();
     frameListener->set_color_stream(true);
     frameListener->set_depth_stream(true);
     frameListener->set_point_stream(true);
@@ -69,7 +69,6 @@ void SpecificWorker::compute()
 // 	}
 
     astra_update();
-
 }
 
 
@@ -88,54 +87,58 @@ void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, Robo
 //	depthMutex->lock();
 //	distanceMatrix=*depthImage;
 //	depthMutex->unlock();
+    qDebug()<<"Trying to get data";
+    frameListener->get_color(rgbMatrix);
+    frameListener->get_depth(distanceMatrix);
 
 }
 
 void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_points(points);
 }
 
 void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_color(color);
 }
 
 TRGBDParams SpecificWorker::getRGBDParams()
 {
 //implementCODE
-
+    qDebug()<<"getRGBDParams Not implemented yet";
 }
 
 void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_depth(depth);
 }
 
 void SpecificWorker::setRegistration(const Registration &value)
 {
 //implementCODE
-
+    qDebug()<<"setRegistration Not implemented yet";
 }
 
 void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_color(color);
+    frameListener->get_depth(depth);
+    frameListener->get_points(points);
 }
 
 void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
-//implementCODE
-
+    qDebug()<<"getDepthInIR Not implemented yet";
 }
 
 
-void SpecificWorker::initializeStreams()
-{
+//void SpecificWorker::initializeStreams()
+//{
 //    qDebug()<<"\tInitializing streams"<<endl;
 //	if (depthB) {
 //        depthReader = new(astra::StreamReader);
@@ -162,10 +165,10 @@ void SpecificWorker::initializeStreams()
 //        int height = colorFrame.height();
 //        colorImage = new vector<Ice::Byte>(width*height*3);
 //	}
-}
+//}
 
-void SpecificWorker::readFrame()
-{
+//void SpecificWorker::readFrame()
+//{
 //    qDebug()<<"Reading frame";
 //    fps++;
 //	if (depthB)
@@ -209,5 +212,5 @@ void SpecificWorker::readFrame()
 //            qDebug() << "Invalid color frame";
 //	    }
 //	}
-
-}
+//
+//}

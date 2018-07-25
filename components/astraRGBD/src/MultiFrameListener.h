@@ -12,6 +12,7 @@
 #include <map>
 #include <genericworker.h>
 #include <DoubleBuffer.h>
+#include <opencv2/opencv.hpp>
 
 
 class MultiFrameListener : public astra::FrameListener
@@ -50,6 +51,18 @@ public:
     void set_color_stream(bool color_bool);
     void set_depth_stream(bool depth_bool);
     void set_point_stream(bool point_bool);
+    void get_depth(DepthSeq& depth);
+    void get_points(PointSeq& points);
+    void get_color(ColorSeq& colors);
+    void get_color(imgType& colors);
+private:
+    astra::DepthStream configure_depth(astra::StreamReader& reader);
+
+    astra::InfraredStream configure_ir(astra::StreamReader& reader, bool useRGB);
+
+    astra::ColorStream configure_color(astra::StreamReader& reader);
+
+    astra::PointStream configure_point(astra::StreamReader& reader);
 };
 
 

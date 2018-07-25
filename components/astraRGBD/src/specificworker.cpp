@@ -23,7 +23,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-
+//    setPeriod(5);
 }
 
 /**
@@ -31,27 +31,25 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-
+       astra::terminate();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		innermodel_path = par.value;
-//		innermodel = new InnerModel(innermodel_path);
-//	}
-//	catch(std::exception e) { qFatal("Error reading config params"); }
+
+    depthB = QString::fromStdString(params["depth"].value).contains("true");
+	colorB = QString::fromStdString(params["color"].value).contains("true");
 
 
-
-
+    astra::initialize();
+    reader = new astra::StreamReader(streamSet.create_reader());
+    frameListener = new MultiFrameListener(*reader);
 	timer.start(Period);
-
-
+//    initializeStreams();
+    frameListener->set_color_stream(true);
+    frameListener->set_depth_stream(true);
+    frameListener->set_point_stream(true);
+    reader->add_listener(*frameListener);
 	return true;
 }
 
@@ -69,6 +67,8 @@ void SpecificWorker::compute()
 // 	{
 // 		std::cout << "Error reading from Camera" << e << std::endl;
 // 	}
+
+    astra_update();
 }
 
 
@@ -81,49 +81,136 @@ Registration SpecificWorker::getRegistration()
 void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
+//	RGBMutex->lock();
+//	rgbMatrix=*colorImage;
+//	RGBMutex->unlock();
+//	depthMutex->lock();
+//	distanceMatrix=*depthImage;
+//	depthMutex->unlock();
+    qDebug()<<"Trying to get data";
+    frameListener->get_color(rgbMatrix);
+    frameListener->get_depth(distanceMatrix);
 
 }
 
 void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_points(points);
 }
 
 void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_color(color);
 }
 
 TRGBDParams SpecificWorker::getRGBDParams()
 {
 //implementCODE
-
+    qDebug()<<"getRGBDParams Not implemented yet";
 }
 
 void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_depth(depth);
 }
 
 void SpecificWorker::setRegistration(const Registration &value)
 {
 //implementCODE
-
+    qDebug()<<"setRegistration Not implemented yet";
 }
 
 void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
-
+    frameListener->get_color(color);
+    frameListener->get_depth(depth);
+    frameListener->get_points(points);
 }
 
 void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
-//implementCODE
-
+    qDebug()<<"getDepthInIR Not implemented yet";
 }
 
 
+//void SpecificWorker::initializeStreams()
+//{
+//    qDebug()<<"\tInitializing streams"<<endl;
+//	if (depthB) {
+//        depthReader = new(astra::StreamReader);
+//        qDebug()<<"\t\tDepth reader created"<<endl;
+//        *depthReader = streamSet.create_reader();
+//
+//        depthReader->stream<astra::DepthStream>().start();
+//        astra::Frame frame = depthReader->get_latest_frame();
+//        const auto depthFrame = frame.get<astra::DepthFrame>();
+//        int width = depthFrame.width();
+//        int height = depthFrame.height();
+//        depthImage = new vector<float>(width*height);
+//        qDebug()<<"\t\tDepth stream initalized";
+//	}
+//
+//	if (colorB){
+//	    qDebug()<<"\t\tColor reader created"<<endl;
+//	    colorReader = new(astra::StreamReader);
+//	    *colorReader = streamSet.create_reader();
+//        colorReader->stream<astra::ColorStream>().start();
+//        astra::Frame frame = colorReader->get_latest_frame();
+//        const auto colorFrame = frame.get<astra::ColorFrame>();
+//	    int width = colorFrame.width();
+//        int height = colorFrame.height();
+//        colorImage = new vector<Ice::Byte>(width*height*3);
+//	}
+//}
+
+//void SpecificWorker::readFrame()
+//{
+//    qDebug()<<"Reading frame";
+//    fps++;
+//	if (depthB)
+//	{
+//
+//        qDebug()<<"Reading depth frame";
+//        astra::Frame frame = depthReader->get_latest_frame();
+//        const auto depthFrame = frame.get<astra::DepthFrame>();
+//        if (depthFrame.is_valid()) {
+//            int width = depthFrame.width();
+//            int height = depthFrame.height();
+////            qDebug() << "Reading depth frame data";
+//            const int16_t *depthPtr = depthFrame.data();
+////            qDebug() << "Moving depth data to depthImage";
+//            depthMutex->lock();
+//            memcpy(&depthImage->operator[](0), depthPtr, width * height);
+//            depthMutex->unlock();
+//            qDebug() << "Depth frame read";
+//        }
+//        else
+//        {
+//            qDebug() << "Invalid depth frame";
+//        }
+//	}
+//
+//	if (colorB)
+//	{
+//	    qDebug()<<"Reading color frame";
+//        astra::Frame frame = colorReader->get_latest_frame();
+//	    const auto colorFrame = frame.get<astra::ColorFrame>();
+//	    if (colorFrame.is_valid())
+//        {
+//            int width = colorFrame.width();
+//            int height = colorFrame.height();
+//            const astra::RgbPixel* colorPtr = colorFrame.data();
+//            RGBMutex->lock();
+//            memcpy(&colorImage->operator[](0),colorPtr,width*height*3);
+//            RGBMutex->unlock();
+//            qDebug() << "Color frame read";
+//        } else{
+//            qDebug() << "Invalid color frame";
+//	    }
+//	}
+//
+//}

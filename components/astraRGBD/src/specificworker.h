@@ -29,10 +29,22 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <MultiFrameListener.h>
+
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
+    int fps;
+
+	astra::StreamSet streamSet;
+    astra::StreamReader *reader;
+	bool depthB,colorB;
+	MultiFrameListener *frameListener;
+
+//	void initializeStreams();
+//	void readFrame();
+
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();

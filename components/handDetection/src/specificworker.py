@@ -43,7 +43,7 @@ class SpecificWorker(GenericWorker):
         self.state = "None"
         self.new_hand_roi = None
         self.expected_hands = 0
-        self.hand_detector.debug = True
+        self.hand_detector.debug = False
 
 
 
@@ -65,12 +65,16 @@ class SpecificWorker(GenericWorker):
             color, depth, _, _ = self.rgbd_proxy.getData()
             frame = np.fromstring(color, dtype=np.uint8)
             frame = frame.reshape(480, 640, 3)
+            # depth normalization to 0-255 relative to the min and max read
+            depth_min = min(depth)
+            depth_max = max(depth)
+            depth = np.interp(depth, [depth_min, depth_max],[0, 255], right=255, left=0)
             depth = np.array(depth,  dtype=np.uint8)
             depth = depth.reshape(480, 640, 1)
             print "showing depth"
             self.hand_detector.set_depth_mask(depth)
-            cv2.imshow("depth specific", depth)
-            cv2.imshow("color", frame)
+            # cv2.imshow("Specificworker: depth readed ", depth)
+            # cv2.imshow("Specificworker: color", frame)
 
 
         except Ice.Exception, e:
@@ -109,7 +113,7 @@ class SpecificWorker(GenericWorker):
             new_hand.fingertips = detected_hand.fingertips
             new_hand.intertips = detected_hand.intertips
             new_hand.positions = detected_hand.position_history
-            print detected_hand.contour
+            # print detected_hand.contour
             new_hand.contour = detected_hand.contour
             new_hand.centerMass = detected_hand.center_of_mass
             new_hand.truthValue = detected_hand.truth_value

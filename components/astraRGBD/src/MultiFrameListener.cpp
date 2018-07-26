@@ -233,6 +233,7 @@ void MultiFrameListener::set_point_stream(bool point_bool)
 
 void MultiFrameListener::get_depth(DepthSeq& depth)
 {
+    if (depthBuff.size==0) return;
     depthBuff.copy(depth);
 //    const cv::Mat mImageDepth( 480, 640, CV_32F,&depth);
 //    cv::imshow( "Depth Image", mImageDepth);
@@ -253,6 +254,7 @@ void MultiFrameListener::get_color(ColorSeq& colors)
 
 void MultiFrameListener::get_color(imgType& colors)
 {
+    if (colorBuff.size==0) return;
     colorBuff.copy((ColorSeq&)colors);
     // Hack to fix a problem with the ColorSeq and imgType types of RGBD interface
     colors.resize(colors.size()/3);

@@ -33,98 +33,99 @@ import cv2
 # import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
-    def __init__(self, proxy_map):
-        super(SpecificWorker, self).__init__(proxy_map)
-        self.timer.timeout.connect(self.compute)
-        self.Period = 20
-        self.hand_detector = HandDetector(-1)
-        self.hand_detector.set_mask_mode("depth")
-        self.timer.start(self.Period)
-        self.state = "None"
-        self.new_hand_roi = None
-        self.expected_hands = 0
-        self.hand_detector.debug = False
+	def __init__(self, proxy_map):
+		super(SpecificWorker, self).__init__(proxy_map)
+		self.timer.timeout.connect(self.compute)
+		self.Period = 20
+		self.hand_detector = HandDetector(-1)
+		self.hand_detector.set_mask_mode("depth")
+		self.timer.start(self.Period)
+		self.state = "None"
+		self.new_hand_roi = None
+		self.expected_hands = 0
+		self.hand_detector.debug = True
+		self.depth_thresold = 0
 
 
 
-    def setParams(self, params):
-        #try:
-        #	self.innermodel = InnerModel(params["InnerModelPath"])
-        #except:
-        #	traceback.print_exc()
-        #	print "Error reading config params"
-        return True
+	def setParams(self, params):
+		#try:
+		#	self.innermodel = InnerModel(params["InnerModelPath"])
+		#except:
+		#	traceback.print_exc()
+		#	print "Error reading config params"
+		return True
 
-    @QtCore.Slot()
-    def compute(self):
-        try:
-            # image = self.camerasimple_proxy.getImage()
-            # frame = np.fromstring(image.image, dtype=np.uint8)
-            # frame = frame.reshape(image.width, image.height, image.depth)
+	@QtCore.Slot()
+	def compute(self):
+		try:
+			# image = self.camerasimple_proxy.getImage()
+			# frame = np.fromstring(image.image, dtype=np.uint8)
+			# frame = frame.reshape(image.width, image.height, image.depth)
 
-            color, depth, _, _ = self.rgbd_proxy.getData()
-            frame = np.fromstring(color, dtype=np.uint8)
-            frame = frame.reshape(480, 640, 3)
-            # depth normalization to 0-255 relative to the min and max read
-            depth_min = min(depth)
-            depth_max = max(depth)
-            depth = np.interp(depth, [depth_min, depth_max],[0, 255], right=255, left=0)
-            depth = np.array(depth,  dtype=np.uint8)
-            depth = depth.reshape(480, 640, 1)
-            print "showing depth"
-            self.hand_detector.set_depth_mask(depth)
-            # cv2.imshow("Specificworker: depth readed ", depth)
-            # cv2.imshow("Specificworker: color", frame)
+			color, depth, _, _ = self.rgbd_proxy.getData()
+			frame = np.fromstring(color, dtype=np.uint8)
+			frame = frame.reshape(480, 640, 3)
+			# depth normalization to 0-255 relative to the min and max read
+			if self.depth_thresold < 1:
+				self.calculate_threshold(depth)
+
+			print "showing depth"
+			self.hand_detector.set_depth_mask(np.array(depth))
+			# cv2.imshow("Specificworker: depth readed ", depth)
+			# cv2.imshow("Specificworker: color", frame)
 
 
-        except Ice.Exception, e:
-            traceback.print_exc()
-            print e
-            return False
+		except Ice.Exception, e:
+			traceback.print_exc()
+			print e
+			return False
 
-        if self.state == "add_new_hand":
-            search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
-            self.hand_detector.add_hand2(frame, search_roi)
-            if len(self.hand_detector.hands) >= self.expected_hands:
-                self.state = "tracking"
-                self.new_hand_roi = None
-        elif self.state == "tracking":
-            self.hand_detector.update_detection_and_tracking(frame)
-        print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
-        return True
+		if self.state == "add_new_hand":
+			search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
+			self.hand_detector.add_hand2(frame, search_roi)
+			if len(self.hand_detector.hands) >= self.expected_hands:
+				self.state = "tracking"
+				self.new_hand_roi = None
+		elif self.state == "tracking":
+			self.hand_detector.update_detection_and_tracking(frame)
+		print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
+		return True
 
-        #
-        # addNewHand
-        #
-
-    def addNewHand(self, expected_hands, new_hand_roi):
-        self.new_hand_roi = new_hand_roi
-        self.expected_hands = expected_hands
-        self.state = "add_new_hand"
-        return self.expected_hands
+	def calculate_threshold(self, depth):
+		depth = np.array(depth)
+		self.depth_thresold = np.min(depth[np.nonzero(depth)])
+		self.hand_detector.set_depth_threshold(self.depth_thresold)
 
 
-    def getHands(self):
-        ret = []
-        for detected_hand in self.hand_detector.hands:
-            new_hand = Hand()
-            new_hand.id = detected_hand.id
-            new_hand.score = detected_hand.truth_value
-            new_hand.fingertips = detected_hand.fingertips
-            new_hand.intertips = detected_hand.intertips
-            new_hand.positions = detected_hand.position_history
-            # print detected_hand.contour
-            new_hand.contour = detected_hand.contour
-            new_hand.centerMass = detected_hand.center_of_mass
-            new_hand.truthValue = detected_hand.truth_value
-            new_hand.detected = detected_hand.detected
-            new_hand.tracked = detected_hand.tracked
-            ret.append(new_hand)
-        return ret
+	def addNewHand(self, expected_hands, new_hand_roi):
+		self.new_hand_roi = new_hand_roi
+		self.expected_hands = expected_hands
+		self.state = "add_new_hand"
+		return self.expected_hands
 
 
-    def getHandsCount(self):
-        return len(self.hand_detector.hands)
+	def getHands(self):
+		ret = []
+		for detected_hand in self.hand_detector.hands:
+			new_hand = Hand()
+			new_hand.id = detected_hand.id
+			new_hand.score = detected_hand.truth_value
+			new_hand.fingertips = detected_hand.fingertips
+			new_hand.intertips = detected_hand.intertips
+			new_hand.positions = detected_hand.position_history
+			# print detected_hand.contour
+			new_hand.contour = detected_hand.contour
+			new_hand.centerMass = detected_hand.center_of_mass
+			new_hand.truthValue = detected_hand.truth_value
+			new_hand.detected = detected_hand.detected
+			new_hand.tracked = detected_hand.tracked
+			ret.append(new_hand)
+		return ret
+
+
+	def getHandsCount(self):
+		return len(self.hand_detector.hands)
 
 
 

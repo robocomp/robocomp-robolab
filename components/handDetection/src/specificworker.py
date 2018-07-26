@@ -22,6 +22,7 @@ import sys, os, traceback, time
 from PySide import QtGui, QtCore
 from genericworker import *
 from libs.HandDetection.HandDetection import HandDetector
+from scipy import stats
 import numpy as np
 import cv2
 
@@ -68,7 +69,7 @@ class SpecificWorker(GenericWorker):
 			frame = frame.reshape(480, 640, 3)
 			# depth normalization to 0-255 relative to the min and max read
 			if self.depth_thresold < 1:
-				self.calculate_threshold(depth)
+				self.calculate_depth_threshold(depth)
 
 			print "showing depth"
 			self.hand_detector.set_depth_mask(np.array(depth))
@@ -92,9 +93,19 @@ class SpecificWorker(GenericWorker):
 		print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
 		return True
 
-	def calculate_threshold(self, depth):
+	def calculate_depth_threshold(self, depth):
 		depth = np.array(depth)
-		self.depth_thresold = np.min(depth[np.nonzero(depth)])
+		criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+		# Create 3 clusters of point (0, intermediate, far)
+		ret, label, center = cv2.kmeans(depth.astype(np.float32), 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+		clusters = [depth[label.ravel() == 0], depth[label.ravel() == 1], depth[label.ravel() == 2]]
+		# The wall or table probably is the bigger one of the clusters
+		index = np.argmax(map(len, clusters))
+		# print np.median(clusters[index])
+		# print np.mean(clusters[index])
+		# Use the most repeated value as the depth to wich the wall or table can be.
+		# TODO: ENV_DEPENDECE: 30 is the amount of space for the frame of the tv or for inclination from the camera plane
+		self.depth_thresold = stats.mode(clusters[index])[0][0]-30
 		self.hand_detector.set_depth_threshold(self.depth_thresold)
 
 

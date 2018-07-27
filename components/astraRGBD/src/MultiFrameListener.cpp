@@ -47,18 +47,13 @@ void MultiFrameListener::update_depth(astra::Frame& frame)
 //
 //    cv::imshow( "Depth Image", mScaledDepth );
     depthBuff.resize(depthWidth*depthHeight);
-    for(int i=0;i<depthWidth*depthHeight;i++) depthBuff.operator[](i)=(float)depthFrame.data()[i];
+//    auto start = std::chrono::steady_clock::now();
+    // More optimized way to copy than the for loop. No memcpy can be used in this case becuase of the casting.
+    std::copy(&depthFrame.data()[0], &depthFrame.data()[0]+(depthWidth*depthHeight* sizeof(short)), begin(*depthBuff.getWriter()));
+//    for(int i=0;i<depthWidth*depthHeight;i++) depthBuff.operator[](i)=(float)depthFrame.data()[i];
+//    auto duration = std::chrono::duration_cast< std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
+//    printf("%d\n",duration);
 
-//    astra::RgbPixel* vizBuffer = visualizer_.get_output();
-//    uint8_t* buffer = &depthView_.buffer_[0];
-//    for (int i = 0; i < depthWidth * depthHeight; i++)
-//    {
-//        const int rgbaOffset = i * 4;
-//        buffer[rgbaOffset] = vizBuffer[i].r;
-//        buffer[rgbaOffset + 1] = vizBuffer[i].g;
-//        buffer[rgbaOffset + 2] = vizBuffer[i].b;
-//        buffer[rgbaOffset + 3] = 255;
-//    }
 
 }
 
@@ -98,7 +93,6 @@ void MultiFrameListener::update_color(astra::Frame& frame)
 //    }
 
 }
-
 
 
 void MultiFrameListener::update_point(astra::Frame &frame)

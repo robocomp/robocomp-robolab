@@ -115,8 +115,8 @@ if __name__ == '__main__':
 	if len(params) > 1:
 		if not params[1].startswith('--Ice.Config='):
 			params[1] = '--Ice.Config=' + params[1]
-	elif len(params) == 0:
-		params.append('--Ice.Config=config')
+	else :# len(params) == 0:
+		params.append('--Ice.Config=/etc/config')
 	ic = Ice.initialize(params)
 	status = 0
 	mprx = {}

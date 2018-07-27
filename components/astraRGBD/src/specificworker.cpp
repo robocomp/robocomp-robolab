@@ -23,7 +23,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-//    setPeriod(5);
+    setPeriod(33);
 }
 
 /**

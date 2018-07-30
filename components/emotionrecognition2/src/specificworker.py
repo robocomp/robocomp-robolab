@@ -32,15 +32,14 @@ from genericworker import *
 from face_alignment import FaceAligner
 import face_detector
 
-MODEL_FILE = 'assets/emotion_classifier_fl.pb'
+MODEL_FILE = 'assets/emotion_classifier.pb'
 IMAGE_SIZE = 128
 NUM_CHANNELS = 1
 NUM_FL = 272
 EMOTIONS=['Happy','Sad','Neutral','Angry','Surprised']
 
-mean_fl=np.load("assets/mean_fl.npy")
-std_fl=np.load("assets/std_fl.npy")
-predictor = dlib.shape_predictor("assets/shape_predictor_68_face_landmarks.dat")
+face_cascade = cv2.CascadeClassifier('assets/haarcascade_frontalface_default.xml')
+predictor = dlib.shape_predictor('assets/shape_predictor_68_face_landmarks.dat')
 
 features = np.empty([1, NUM_FL], dtype=np.float64)
 class SpecificWorker(GenericWorker):
@@ -63,31 +62,6 @@ class SpecificWorker(GenericWorker):
 			# Get input and output tensors from graph
 			self.x_input = self.sess.graph.get_tensor_by_name("input:0")
 			self.output = self.sess.graph.get_tensor_by_name("output:0")
-			self.fl = self.sess.graph.get_tensor_by_name("fl:0")
-
-
-	def getFL(self, image):
-		rect=dlib.rectangle( 0, 0, IMAGE_SIZE, IMAGE_SIZE )
-		landmarks = predictor(image, rect)
-		landmarks = face_utils.shape_to_np(landmarks)
-
-		# For testing purpose
-		image_copy = np.copy(image)
-		for (x, y) in landmarks:
-			cv2.circle(image_copy, (x, y), 1, (0, 0, 255), -1)
-			cv2.imshow("Facial Landmarks", image_copy)
-
-		center = np.mean(landmarks, axis=0)
-		dist = LA.norm(landmarks - center, axis=1)
-		angles = (np.arctan2(landmarks[:,0], landmarks[:,1])*360)/(2*math.pi)
-
-		for i in range(68):
-			features[0,i*4] = landmarks[i,0]
-			features[0,i*4+1] = landmarks[i,1]
-			features[0,i*4+2] = dist[i]
-			features[0,i*4+3] = angles[i]
-
-		return features
 
 	def setParams(self, params):
 		return True
@@ -108,30 +82,30 @@ class SpecificWorker(GenericWorker):
 			for (x1,y1,x2,y2) in faces:
 
 				# Align the face
-				fa = FaceAligner(predictor,desiredFaceWidth=IMAGE_SIZE*3)
+				fa = FaceAligner(predictor,desiredFaceWidth=IMAGE_SIZE*2)
 				faceAligned = fa.align(frame, gray, dlib.rectangle(x1,y1,x2,y2))
 
+				# Convert to grayscale
+				faceAligned = cv2.cvtColor(faceAligned,cv2.COLOR_RGB2GRAY)
+
 				# Closely crop out the face
-				faces2 = face_detector.detect(faceAligned)
-				(xn1,yn1,xn2,yn2) = faces2[0]
-				cropped_frame = faceAligned[yn1:yn2, xn1:xn2]
+				faces2 = face_cascade.detectMultiScale(faceAligned)
+				(x,y,w,h) = faces2[0]
+				cropped_frame = faceAligned[y:y+h, x:x+w]
 
-				# Convert to grayscale and apply adaptive histogram equalization
-				cropped_frame = cv2.cvtColor(cropped_frame,cv2.COLOR_RGB2GRAY )
+				# Apply adaptive histogram equalization
 				clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(2,2))
-				cropped_frame = clahe.apply(cropped_frame) 
+				cropped_frame = clahe.apply(cropped_frame)
 
-				# Resize image and extract facial landmark features
+				# Resize the image
 				cropped_frame = cv2.resize(cropped_frame, (IMAGE_SIZE,IMAGE_SIZE))
-				features = self.getFL(cropped_frame)
-				features = (features-mean_fl)/std_fl
 
 				# Do necessary preprocessing
 				cropped_frame = cropped_frame.reshape((1,IMAGE_SIZE,IMAGE_SIZE,NUM_CHANNELS))
 				cropped_frame = (cropped_frame-np.mean(cropped_frame))/np.std(cropped_frame)
 
 				# Feed the cropped and preprocessed frame to classifier
-				result = self.sess.run(self.output, {self.x_input:cropped_frame, self.fl:features})
+				result = self.sess.run(self.output, {self.x_input:cropped_frame})
 
 				# Get the emotion
 				emotion = EMOTIONS[np.argmax(result)]

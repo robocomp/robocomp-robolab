@@ -13,6 +13,7 @@
 #include <genericworker.h>
 #include <DoubleBuffer.h>
 #include <opencv2/opencv.hpp>
+#include <mutex>
 
 
 class MultiFrameListener : public astra::FrameListener
@@ -28,9 +29,13 @@ class MultiFrameListener : public astra::FrameListener
     astra::InfraredStream *irStream;
     astra::BodyStream *bodyStream;
     astra::HandStream *handStream;
-    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
-    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
-    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;
+    DoubleBuffer<astra::PointFrame, RoboCompRGBD::PointSeq> pointBuff;
+    DoubleBuffer<astra::DepthFrame, RoboCompRGBD::DepthSeq> depthBuff;
+    DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq> colorBuff;
+    DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType> colorBuff2;
+//    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
+//    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
+//    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
 
 
@@ -55,7 +60,9 @@ public:
     void get_points(PointSeq& points);
     void get_color(ColorSeq& colors);
     void get_color(imgType& colors);
+
 private:
+    mutable std::mutex my_mutex;
     astra::DepthStream configure_depth(astra::StreamReader& reader);
 
     astra::InfraredStream configure_ir(astra::StreamReader& reader, bool useRGB);

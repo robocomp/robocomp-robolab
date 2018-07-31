@@ -4,45 +4,79 @@
 
 #ifndef PROJECT_DOUBLEBUFFER_H
 #define PROJECT_DOUBLEBUFFER_H
+#include <mutex>
 
-template <class T> class DoubleBuffer
+template <class I, class O> class DoubleBuffer
 {
-    QMutex bufferMutex;
-    T bufferA, *writer, *reader, bufferB;
+    std::mutex bufferMutex;
+    O bufferA, bufferB;
+    O &readBuffer = bufferA;
+    O &writeBuffer = bufferB;
+    //, *readBuffer, bufferB;
+
 public:
-    int size=0;
-    DoubleBuffer(){};
-    void resize(int size_)
+    std::size_t size=0;
+    DoubleBuffer()
     {
-        if (size_!=size) {
+        init(640*480);
+    };
+
+    void init(std::size_t v_size)
+    {
+        bufferA.resize(v_size);
+        bufferB.resize(v_size);
+    }
+
+    void resize(std::size_t size_)
+    {
+        if (size_!= size)
+        {
             bufferA.resize(size_);
-            writer = &bufferA;
+            writeBuffer = bufferA;
             bufferB.resize(size_);
-            reader = &bufferB;
+            readBuffer = bufferB;
             size = size_;
         }
     }
     void swap()
     {
-        bufferMutex.lock();
-        writer->swap(*reader);
-        bufferMutex.unlock();
+        std::lock_guard<std::mutex> lock(bufferMutex);
+        writeBuffer.swap(readBuffer);
     }
 
-    inline typename T::value_type& operator[](int i){ return (*writer)[i]; };
+    inline typename O::value_type& operator[](int i) { return (writeBuffer)[i]; };
 
-    void copy(T &points)
+    O get()
     {
-        points.resize(size);
-        bufferMutex.lock();
-        points = *reader;
-        bufferMutex.unlock();
+        std::lock_guard<std::mutex> lock(bufferMutex);
+        return readBuffer;
     }
-    T* getWriter()
+
+    O& getNextPtr()
     {
-        return writer;
+        return writeBuffer;
+    }
+
+    void put_memcpy(const I &d, std::size_t data_size) {
+        if (d.is_valid())
+        {
+
+//            this->resize(d.width() * d.height()*data_size);
+            memcpy(&writeBuffer[0], d.data(), d.width()*d.height()*data_size);
+//            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
+            swap();
+        }
+    }
+
+    void put_stdcopy(const I &d, std::size_t data_size) {
+        if (d.is_valid())
+        {
+            this->resize(d.width() * d.height()*data_size);
+            std::copy(d.data(), &d.data()[0]+(500), begin(*writeBuffer));
+        }
     }
 };
 
 #endif //PROJECT_DOUBLEBUFFER_H
+
 

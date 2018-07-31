@@ -6,11 +6,9 @@
 
 
 
+
 MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 {
-    RGBMutex = new QMutex();
-    depthMutex = new QMutex();
-    pointMutex = new QMutex();
     streamBools["depth"]=false;
     streamBools["color"]=false;
     streamBools["ir"]=false;
@@ -23,7 +21,8 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     depthStream = new astra::DepthStream(configure_depth(*reader));
     pointStream = new astra::PointStream(configure_point(*reader));
 
-    colorBuff2.init(640*480*3);
+    colorBuff2.init(640*480*3, byteConverter);
+    depthBuff.init(640*480, depthConverter);
 }
 
 
@@ -176,26 +175,25 @@ void MultiFrameListener::update_ir_rgb(astra::Frame& frame)
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
     std::lock_guard<std::mutex> lock(my_mutex);
-//    if (streamBools["depth"]) {
-//
-////        update_depth(frame);
-//        const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
-//        depthBuff.put_stdcopy(depthFrame, sizeof(short));
-//        depthBuff.swap();
-//    }
-    if (streamBools["color"]) {
+    if (streamBools["depth"])
+    {
+        const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
+        depthBuff.put(depthFrame, sizeof(short));
+    }
+    if (streamBools["color"])
+    {
         astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
 //        colorBuff.put_memcpy(colorFrame, sizeof(astra::RgbPixel));
-        colorBuff2.put_memcpy(colorFrame, sizeof(astra::RgbPixel));
+        colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
 //        colorBuff.swap();
     }
-    if (streamBools["ir"]) {
-        update_ir_rgb(frame);
-    }
-    if (streamBools["point"]) {
-        update_point(frame);
-        pointBuff.swap();
-    }
+//    if (streamBools["ir"]) {
+//        update_ir_rgb(frame);
+//    }
+//    if (streamBools["point"]) {
+//        update_point(frame);
+//        pointBuff.swap();
+//    }
 //    std::lock_guard<std::mutex> lock(my_mutex);
 //    if (streamBools["depth"]) {
 ////        const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
@@ -260,7 +258,7 @@ void MultiFrameListener::set_point_stream(bool point_bool)
 
 void MultiFrameListener::get_depth(DepthSeq& depth)
 {
-    depth = depthBuff.get();
+    depthBuff.get(depth);
 //    const cv::Mat mImageDepth( 480, 640, CV_32F,&depth);
 //    cv::imshow( "Depth Image", mImageDepth);
 ////    cv::Mat mScaledDepth;
@@ -271,17 +269,17 @@ void MultiFrameListener::get_depth(DepthSeq& depth)
 
 void MultiFrameListener::get_points(PointSeq& points)
 {
-    points = pointBuff.get();
+    pointBuff.get(points);
 }
 void MultiFrameListener::get_color(ColorSeq& colors)
 {
-    colors = colorBuff.get();
+    colorBuff.get(colors);
 }
 
 void MultiFrameListener::get_color(imgType& colors)
 {
 //    if (colorBuff2.size==0) return;
-    colors = colorBuff2.get();
+    colorBuff2.get(colors);
     // Hack to fix a problem with the ColorSeq and imgType types of RGBD interface
 //    colors.resize(colors.size()/3);
 }

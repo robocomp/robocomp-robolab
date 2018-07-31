@@ -55,6 +55,9 @@ class SpecificWorker(GenericWorker):
 		#except:
 		#	traceback.print_exc()
 		#	print "Error reading config params"
+		if "debug" in params:
+			if "true" in params["debug"].lower():
+				self.hand_detector.debug=True
 		return True
 
 	@QtCore.Slot()

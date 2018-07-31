@@ -6,25 +6,38 @@
 #define PROJECT_DOUBLEBUFFER_H
 #include <mutex>
 
-template <class I, class O> class DoubleBuffer
+template <class I, class O> class Converter
+{
+    public:
+        virtual bool ItoO(const I & iTypeData, O &oTypeData)=0;
+        virtual bool OtoI(const O & oTypeData, I &iTypeData)=0;
+};
+
+template <class I, class O, class C> class DoubleBuffer
 {
     std::mutex bufferMutex;
     O bufferA, bufferB;
     O &readBuffer = bufferA;
     O &writeBuffer = bufferB;
+    C *converter;
     //, *readBuffer, bufferB;
 
 public:
     std::size_t size=0;
     DoubleBuffer()
     {
-        init(640*480);
+        resize(640*480);
     };
 
-    void init(std::size_t v_size)
+    void init(std::size_t v_size, C &converter)
     {
-        bufferA.resize(v_size);
-        bufferB.resize(v_size);
+        resize(v_size);
+        this->converter = &converter;
+    }
+
+    void init(C& converter)
+    {
+        converter = &converter;
     }
 
     void resize(std::size_t size_)
@@ -32,9 +45,7 @@ public:
         if (size_!= size)
         {
             bufferA.resize(size_);
-            writeBuffer = bufferA;
             bufferB.resize(size_);
-            readBuffer = bufferB;
             size = size_;
         }
     }
@@ -46,10 +57,10 @@ public:
 
     inline typename O::value_type& operator[](int i) { return (writeBuffer)[i]; };
 
-    O get()
+    void get(O &oData)
     {
         std::lock_guard<std::mutex> lock(bufferMutex);
-        return readBuffer;
+        oData = readBuffer;
     }
 
     O& getNextPtr()
@@ -57,13 +68,9 @@ public:
         return writeBuffer;
     }
 
-    void put_memcpy(const I &d, std::size_t data_size) {
-        if (d.is_valid())
+    void put(const I &d, std::size_t data_size) {
+        if( converter->ItoO(d,writeBuffer))
         {
-
-//            this->resize(d.width() * d.height()*data_size);
-            memcpy(&writeBuffer[0], d.data(), d.width()*d.height()*data_size);
-//            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
             swap();
         }
     }

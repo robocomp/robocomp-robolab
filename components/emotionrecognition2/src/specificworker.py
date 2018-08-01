@@ -90,6 +90,8 @@ class SpecificWorker(GenericWorker):
 
 				# Closely crop out the face
 				faces2 = face_cascade.detectMultiScale(faceAligned)
+				if len(faces2) == 0 :
+					continue
 				(x,y,w,h) = faces2[0]
 				cropped_frame = faceAligned[y:y+h, x:x+w]
 

@@ -1,5 +1,4 @@
-
-
+from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from six.moves import cPickle as pickle
@@ -15,7 +14,7 @@ NUM_CLASSES = 5         # Number of emotion types
 IMAGE_HEIGHT = 128      # Height of each input image
 IMAGE_WIDTH = 128       # Width of each input image
 NUM_CHANNELS = 1        # Number of channels (1 for grayscale images, 3 for RGB images)
-BATCH_SIZE = 2         # mini batch size
+BATCH_SIZE = 64         # mini batch size
 
 # Convolutional kernel sizes.
 PATCH_SIZE1 = 7
@@ -41,7 +40,7 @@ NUM_HIDDEN3 = 16
 
 BETA = 0.009          # regularization
 
-NUM_STEPS = 101       # number of training steps
+NUM_STEPS = 10001       # number of training steps
 
 # Loading datasets from pickle files.
 with open(PICKLE_FILE, 'rb') as f:

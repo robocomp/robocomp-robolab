@@ -1,5 +1,4 @@
-
-# Imports
+from __future__ import print_function
 import os
 import numpy as np
 import random
@@ -26,9 +25,9 @@ IMAGE_HEIGHT = 128  # Images will be resized having this height
 IMAGE_WIDTH = 128   # Images will be resized having this width
 NUM_CHANNELS = 1    # Number of channels (1 for grayscale images, 3 for RGB images)
 
-VALID_SIZE = 5   # Total number of images in validation set ( number of classes * validation images per class)
-TEST_SIZE = 5    # Total number of images in test set ( number of classes * test images per class)
-TRAIN_SIZE = 10  # Total number of images in training set ( number of classes * training images per class)
+VALID_SIZE = 4000   # Total number of images in validation set ( number of classes * validation images per class)
+TEST_SIZE = 4000    # Total number of images in test set ( number of classes * test images per class)
+TRAIN_SIZE = 18750  # Total number of images in training set ( number of classes * training images per class)
 
 np.random.seed(100)
 

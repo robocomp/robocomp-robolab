@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 by YOUR NAME HERE
+# Copyright (C) 2018 by Esteban Martinena
 #
 #    This file is part of RoboComp
 #
@@ -46,6 +48,8 @@ class SpecificWorker(GenericWorker):
 		self.expected_hands = 0
 		self.hand_detector.debug = True
 		self.depth_thresold = 0
+		self.flip = False
+		# It helps to increase the space between the depth wall and some inclination or frames
 
 
 
@@ -58,6 +62,9 @@ class SpecificWorker(GenericWorker):
 		if "debug" in params:
 			if "true" in params["debug"].lower():
 				self.hand_detector.debug=True
+		if "flip" in params:
+			if "true" in params["flip"].lower():
+				self.flip = True
 		return True
 
 	@QtCore.Slot()
@@ -70,6 +77,12 @@ class SpecificWorker(GenericWorker):
 			color, depth, _, _ = self.rgbd_proxy.getData()
 			frame = np.fromstring(color, dtype=np.uint8)
 			frame = frame.reshape(480, 640, 3)
+			if self.flip:
+				frame = cv2.flip(frame,0)
+				depth = np.array(depth, dtype=np.uint8)
+				depth = depth.reshape(480, 640, 1)
+				depth = cv2.flip(depth,0)
+				depth = depth.reshape(640*480)
 			# depth normalization to 0-255 relative to the min and max read
 			if self.depth_thresold < 1:
 				self.calculate_depth_threshold(depth)

@@ -24,6 +24,7 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     setPeriod(33);
+//    timer.stop();
 }
 
 /**
@@ -44,7 +45,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     astra::initialize();
     reader = new astra::StreamReader(streamSet.create_reader());
     frameListener = new MultiFrameListener(*reader);
-	timer.start(Period);
+//	timer.start(Period);
 //    initializeStreams();
     frameListener->set_color_stream(true);
     frameListener->set_depth_stream(true);
@@ -75,9 +76,11 @@ void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, Robo
 //	depthMutex->lock();
 //	distanceMatrix=*depthImage;
 //	depthMutex->unlock();
-    qDebug()<<"Trying to get data";
+//    qDebug()<<"Trying to get data";
+
     frameListener->get_color(rgbMatrix);
     frameListener->get_depth(distanceMatrix);
+//    qDebug()<<"getDepth"<<distanceMatrix.size();
 
 }
 

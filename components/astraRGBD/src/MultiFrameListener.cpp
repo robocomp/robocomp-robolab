@@ -23,6 +23,7 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 
     colorBuff2.init(640*480*3, byteConverter);
     depthBuff.init(640*480, depthConverter);
+    end = chrono::steady_clock::now();
 }
 
 
@@ -174,18 +175,26 @@ void MultiFrameListener::update_ir_rgb(astra::Frame& frame)
 
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
-    std::lock_guard<std::mutex> lock(my_mutex);
+    auto start = chrono::steady_clock::now();
+    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+    end =  chrono::steady_clock::now();
+
+
     if (streamBools["depth"])
     {
         const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
-        depthBuff.put(depthFrame, sizeof(short));
+        if (depthFrame.is_valid())
+        {
+            depthBuff.put(depthFrame, sizeof(short));
+        }
     }
     if (streamBools["color"])
     {
         astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
-//        colorBuff.put_memcpy(colorFrame, sizeof(astra::RgbPixel));
-        colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
-//        colorBuff.swap();
+        if(colorFrame.is_valid())
+        {
+            colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
+        }
     }
 //    if (streamBools["ir"]) {
 //        update_ir_rgb(frame);
@@ -258,27 +267,26 @@ void MultiFrameListener::set_point_stream(bool point_bool)
 
 void MultiFrameListener::get_depth(DepthSeq& depth)
 {
+//    cout<<"MultiFrameListener::get_depth"<<endl;
     depthBuff.get(depth);
-//    const cv::Mat mImageDepth( 480, 640, CV_32F,&depth);
-//    cv::imshow( "Depth Image", mImageDepth);
-////    cv::Mat mScaledDepth;
-////    mImageDepth.convertTo( mScaledDepth, CV_8U, 255.0 / 6000 );
-////
-////    cv::imshow( "Depth Image", mScaledDepth );
+
 }
 
 void MultiFrameListener::get_points(PointSeq& points)
 {
+//    cout<<"MultiFrameListener::get_points"<<endl;
     pointBuff.get(points);
 }
 void MultiFrameListener::get_color(ColorSeq& colors)
 {
+//    cout<<"MultiFrameListener::get_color"<<endl;
     colorBuff.get(colors);
 }
 
 void MultiFrameListener::get_color(imgType& colors)
 {
 //    if (colorBuff2.size==0) return;
+//    cout<<"MultiFrameListener::get_color2"<<endl;
     colorBuff2.get(colors);
     // Hack to fix a problem with the ColorSeq and imgType types of RGBD interface
 //    colors.resize(colors.size()/3);

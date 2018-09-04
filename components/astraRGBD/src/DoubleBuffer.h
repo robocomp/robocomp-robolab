@@ -49,11 +49,6 @@ public:
             size = size_;
         }
     }
-    void swap()
-    {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        writeBuffer.swap(readBuffer);
-    }
 
     inline typename O::value_type& operator[](int i) { return (writeBuffer)[i]; };
 
@@ -68,10 +63,12 @@ public:
         return writeBuffer;
     }
 
-    void put(const I &d, std::size_t data_size) {
+    void put(const I &d, std::size_t data_size)
+    {
         if( converter->ItoO(d,writeBuffer))
         {
-            swap();
+            std::lock_guard<std::mutex> lock(bufferMutex);
+            writeBuffer.swap(readBuffer);
         }
     }
 

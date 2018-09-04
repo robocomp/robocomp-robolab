@@ -14,6 +14,7 @@
 #include <DoubleBuffer.h>
 #include <opencv2/opencv.hpp>
 #include <mutex>
+#include <chrono>
 
 //TODO: This implementantions should go it's own file
 class ByteSeqConverter : public Converter<astra::ColorFrame, RoboCompRGBD::imgType>
@@ -66,10 +67,7 @@ public:
     {
         if (iTypeData.is_valid())
         {
-
-            //            this->resize(d.width() * d.height()*data_size);
-            std::copy(&iTypeData.data()[0], &iTypeData.data()[0]+(iTypeData.width()*iTypeData.height()), std::end(oTypeData));
-            //            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
+            std::copy(&iTypeData.data()[0], &iTypeData.data()[0]+(iTypeData.width()*iTypeData.height()), std::begin(oTypeData));
             return true;
         }
         return false;
@@ -121,6 +119,7 @@ class MultiFrameListener : public astra::FrameListener
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType, ByteSeqConverter> colorBuff2;
     ByteSeqConverter byteConverter;
     FloatSeqConverter depthConverter;
+    std::chrono::steady_clock::time_point end;
 //    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 //    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;

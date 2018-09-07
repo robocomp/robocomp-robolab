@@ -29,10 +29,11 @@ class MultiFrameListener : public astra::FrameListener
     astra::HandStream *handStream;
     DoubleBuffer<astra::PointFrame, RoboCompRGBD::PointSeq, ByteSeqConverter> pointBuff;
     DoubleBuffer<astra::DepthFrame, RoboCompRGBD::DepthSeq, FloatSeqConverter> depthBuff;
-    DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq, ByteSeqConverter> colorBuff;
+    DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq, ColorSeqConverter> colorBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType, ByteSeqConverter> colorBuff2;
     ByteSeqConverter byteConverter;
     FloatSeqConverter depthConverter;
+    ColorSeqConverter colorConverter;
     std::chrono::steady_clock::time_point end;
 //    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;

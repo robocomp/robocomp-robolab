@@ -46,9 +46,10 @@ class SpecificWorker(GenericWorker):
 		self.state = "None"
 		self.new_hand_roi = None
 		self.expected_hands = 0
-		self.hand_detector.debug = True
+		self.hand_detector.debug = False
 		self.depth_thresold = 0
 		self.flip = False
+		self.debug = False
 		# It helps to increase the space between the depth wall and some inclination or frames
 
 
@@ -62,6 +63,7 @@ class SpecificWorker(GenericWorker):
 		if "debug" in params:
 			if "true" in params["debug"].lower():
 				self.hand_detector.debug=True
+				self.debug = True
 		if "flip" in params:
 			if "true" in params["flip"].lower():
 				self.flip = True
@@ -77,20 +79,27 @@ class SpecificWorker(GenericWorker):
 			color, depth, _, _ = self.rgbd_proxy.getData()
 			frame = np.fromstring(color, dtype=np.uint8)
 			frame = frame.reshape(480, 640, 3)
-			if self.flip:
-				frame = cv2.flip(frame,0)
-				depth = np.array(depth, dtype=np.uint8)
-				depth = depth.reshape(480, 640, 1)
-				depth = cv2.flip(depth,0)
-				depth = depth.reshape(640*480)
-			# depth normalization to 0-255 relative to the min and max read
+
+			depth = np.array(depth, dtype=np.float32)
 			if self.depth_thresold < 1:
 				self.calculate_depth_threshold(depth)
 
+
+			# depth = np.array(depth, dtype=np.uint8)
+			# depth = depth.reshape(480, 640, 1)
+			if self.flip:
+				frame = cv2.flip(frame,0)
+				depth = np.fromstring(depth, dtype=np.float32)
+				depth = depth.reshape(480, 640, 1)
+				depth = cv2.flip(depth,0)
+				depth = depth.reshape(480*640)
+
 			print "showing depth"
 			self.hand_detector.set_depth_mask(np.array(depth))
-			# cv2.imshow("Specificworker: depth readed ", depth)
-			# cv2.imshow("Specificworker: color", frame)
+			# if self.debug:
+			# 	depth_to_show = depth.reshape(480, 640, 1)
+			# 	cv2.imshow("DEBUG: HandDetection: Specificworker: depth readed ", depth_to_show)
+			# 	cv2.imshow("DEBUG: HandDetection: Specificworker: color", frame)
 
 
 		except Ice.Exception, e:
@@ -109,6 +118,13 @@ class SpecificWorker(GenericWorker):
 		print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
 		return True
 
+	def depth_normalization(self, depth):
+		depth_min = np.min(depth)
+		depth_max = np.max(depth)
+		if depth_max != depth_min and depth_max > 0:
+			depth = np.interp(depth, [depth_min, depth_max], [0.0, 255.0], right=255, left=0)
+		return depth
+
 	def calculate_depth_threshold(self, depth):
 		depth = np.array(depth)
 		criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
@@ -120,8 +136,8 @@ class SpecificWorker(GenericWorker):
 		# print np.median(clusters[index])
 		# print np.mean(clusters[index])
 		# Use the most repeated value as the depth to wich the wall or table can be.
-		# TODO: ENV_DEPENDECE: 30 is the amount of space for the frame of the tv or for inclination from the camera plane
-		self.depth_thresold = stats.mode(clusters[index])[0][0]-30
+		# TODO: ENV_DEPENDECE: 70 is the amount of space for the frame of the tv or for inclination from the camera plane
+		self.depth_thresold = stats.mode(clusters[index])[0][0]-70
 		self.hand_detector.set_depth_threshold(self.depth_thresold)
 
 

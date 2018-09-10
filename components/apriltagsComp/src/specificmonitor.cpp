@@ -111,6 +111,10 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["ID:21-100"] = aux;
 
 	aux.editable = true;
+	configGetString("", "FlipImage", aux.value,"False");
+	params["FlipImage"] = aux;
+
+	aux.editable = true;
 	configGetString("", "CameraName", aux.value, "rgbd");
 	params["CameraName"] = aux;
 	

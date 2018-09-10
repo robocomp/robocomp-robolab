@@ -66,6 +66,7 @@ private:
 	RoboCompCommonHead::THeadState cState;
 	enum  {Camera, RGBD, RGBDBus, CameraSimple};  	
 	QMap<int, float> tagsSizeMap;
+	bool flip;
 	
 	vector<RoboCompAprilTags::tag> detections2send;
 	vector<RoboCompGetAprilTags::marca> listaDeMarcas;

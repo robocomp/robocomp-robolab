@@ -33,6 +33,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetecto
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
+	flip = false;
 }
 
 /**
@@ -130,6 +131,16 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
+
+    try
+    {
+        RoboCompCommonBehavior::Parameter par = params.at("FlipImage") ;
+        if (par.value == "True" || par.value == "true" || par.value == "1")
+            this->flip = true;
+    }
+    catch(std::exception e) {
+        qDebug("Error reading config param FlipImage. It's false.");
+    }
 
 	try
 	{
@@ -311,7 +322,11 @@ void SpecificWorker::compute()
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
 {
-	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
+    cv::Mat dst = image_gray;          // dst must be a different Mat
+    if(this->flip) {
+        cv::flip(image_gray, dst, 0);
+    }
+    vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(dst);
 
 	cout << detections.size() << " tags detected:" << endl;
 	print_detection(detections);

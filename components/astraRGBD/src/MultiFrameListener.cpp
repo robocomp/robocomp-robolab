@@ -22,6 +22,7 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     pointStream = new astra::PointStream(configure_point(*reader));
 
     colorBuff2.init(640*480*3, byteConverter);
+    colorBuff.init(640*480, colorConverter);
     depthBuff.init(640*480, depthConverter);
     end = chrono::steady_clock::now();
 }
@@ -193,6 +194,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
         if(colorFrame.is_valid())
         {
+            // Huge odd job because of the 2 image formats od the RGBD interface ColorSeq and ImgType
+            colorBuff.put(colorFrame, sizeof(astra::RgbPixel));
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
     }

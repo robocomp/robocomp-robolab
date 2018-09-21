@@ -27,6 +27,29 @@ public:
         return false;
     }
 };
+
+
+class ColorSeqConverter : public Converter<astra::ColorFrame, RoboCompRGBD::ColorSeq>
+{
+public:
+    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::ColorSeq &oTypeData)
+    {
+        if (iTypeData.is_valid())
+        {
+
+            //            this->resize(d.width() * d.height()*data_size);
+            memcpy(&oTypeData[0], iTypeData.data(), iTypeData.width()*iTypeData.height()*3);
+            //            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
+            return true;
+        }
+        return false;
+    }
+
+    bool OtoI(const RoboCompRGBD::ColorSeq &oTypeData, astra::ColorFrame &iTypeData)
+    {
+        return false;
+    }
+};
 //class ByteSeqConverter : public Converter<astra::ColorFrame, RoboCompRGBD::imgType>
 //{
 //public:

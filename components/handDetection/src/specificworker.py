@@ -118,8 +118,13 @@ class SpecificWorker(GenericWorker):
 				self.new_hand_roi = None
 		elif self.state == "tracking":
 			self.hand_detector.update_detection_and_tracking(frame)
-		print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
+		self.calculate_fps()
+		print "Compute in state %s with %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands),self.hand_detector.mask_mode, self.fps)
 		return True
+
+	def calculate_fps(self):
+		self.fps=1.0 / (time.time() - self.last_time)
+
 
 	def depth_normalization(self, depth):
 		depth_min = np.min(depth)

@@ -50,6 +50,8 @@ class SpecificWorker(GenericWorker):
 		self.depth_thresold = 0
 		self.flip = False
 		self.debug = False
+		self.fps = 0
+		self.last_time = None
 		# It helps to increase the space between the depth wall and some inclination or frames
 
 
@@ -79,6 +81,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
+		self.last_time = time.time()
 		try:
 			# image = self.camerasimple_proxy.getImage()
 			# frame = np.fromstring(image.image, dtype=np.uint8)
@@ -105,7 +108,8 @@ class SpecificWorker(GenericWorker):
 			print "showing depth"
 			self.hand_detector.set_depth_mask(np.array(depth))
 			if self.debug:
-				depth_to_show = depth.reshape(480, 640, 1)
+				depth_to_show = self.depth_normalization(depth).reshape(480, 640, 1).astype(np.uint8)
+				frame_to_show = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 				cv2.imshow("DEBUG: HandDetection: Specificworker: depth readed ", depth_to_show)
 				cv2.imshow("DEBUG: HandDetection: Specificworker: color", frame)
 
@@ -123,8 +127,13 @@ class SpecificWorker(GenericWorker):
 				self.new_hand_roi = None
 		elif self.state == "tracking":
 			self.hand_detector.update_detection_and_tracking(frame)
-		print "Compute in state %s with %d hands" % (self.state, len(self.hand_detector.hands))
+		self.calculate_fps()
+		print "Compute in state %s with %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands),self.hand_detector.mask_mode, self.fps)
 		return True
+
+	def calculate_fps(self):
+		self.fps=1.0 / (time.time() - self.last_time)
+
 
 	def depth_normalization(self, depth):
 		depth_min = np.min(depth)

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,25 +16,42 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "joystickI.h"
-
-JoyStickI::JoyStickI(GenericWorker *_worker)
+#include "genericworker.h"
+/**
+* \brief Default constructor
+*/
+GenericWorker::GenericWorker(MapPrx& mprx) :
+QObject()
 {
-	worker = _worker;
+	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
+
+	mutex = new QMutex(QMutex::Recursive);
+
+	Period = BASIC_PERIOD;
+	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+ 	timer.start(Period);
 }
 
-
-JoyStickI::~JoyStickI()
+/**
+* \brief Default destructor
+*/
+GenericWorker::~GenericWorker()
 {
+
 }
-
-void JoyStickI::writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&)
+void GenericWorker::killYourSelf()
 {
-	worker->writeJoyStickBufferedData(gbd);
+	rDebug("Killing myself");
+	emit kill();
 }
-
-void JoyStickI::readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&)
+/**
+* \brief Change compute period
+* @param per Period in ms
+*/
+void GenericWorker::setPeriod(int p)
 {
-	worker->readJoyStickBufferedData(gbd);
+	rDebug("Period changed"+QString::number(p));
+	Period = p;
+	timer.start(Period);
 }
 

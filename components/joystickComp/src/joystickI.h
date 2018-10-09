@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,37 +16,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef JOYSTICKI_H
-#define JOYSTICKI_H
+#ifndef JOYSTICK_H
+#define JOYSTICK_H
 
-#include <string>
-#include <iostream>
-
-#include <QtCore/QObject>
-#include <QList>
-#include <QListIterator>
-
-#include <IceUtil/UUID.h>
-
+// Ice includes
+#include <Ice/Ice.h>
 #include <JoyStick.h>
+
+#include <config.h>
+#include "genericworker.h"
 
 using namespace RoboCompJoyStick;
 
-class JoyStickI : public QObject , public virtual RoboCompJoyStick::JoyStick
+class JoyStickI : public virtual RoboCompJoyStick::JoyStick
 {
-    Q_OBJECT
-    public:
-        JoyStickI(  QObject *parent = 0 );
-        ~JoyStickI();
-    	
-        void readJoyStickBufferedData( RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current& = Ice::Current() ) ;
-        void writeJoyStickBufferedData( const RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current& = Ice::Current() );
-      // Component public functions
+public:
+JoyStickI(GenericWorker *_worker);
+	~JoyStickI();
 
-    private:
-        RoboCompJoyStick::JoyStickBufferedData joystickBufferedData; 
-    public slots:
-        // Component public slots
+	void writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&);
+	void readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&);
+
+private:
+
+	GenericWorker *worker;
+
 };
 
 #endif

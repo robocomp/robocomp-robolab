@@ -30,6 +30,7 @@
 #include <RGBD.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
+#include <HumanTracker.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -38,6 +39,7 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 using namespace std;
 
+using namespace RoboCompHumanTracker;
 using namespace RoboCompRGBD;
 using namespace RoboCompJointMotor;
 using namespace RoboCompGenericBase;
@@ -69,6 +71,11 @@ public:
 	virtual void setRegistration(const Registration &value) = 0;
 	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void getUsersList(PersonList &users) = 0;
+	virtual void getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
+	virtual void getJointsPosition(const int id, jointListType &jointList) = 0;
+	virtual void getUserState(const int id, TrackingState &state) = 0;
+	virtual void getUser(const int id, TPerson &user) = 0;
 
 protected:
 	QTimer timer;

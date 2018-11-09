@@ -1,9 +1,10 @@
 import "RGBD.idsl";
+import "HumanTracker.idsl";
 
 Component astraRGBD
 {
 	Communications{
-			implements RGBD;
+			implements RGBD,HumanTracker;
 	};
 	language Cpp;
 };

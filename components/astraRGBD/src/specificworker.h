@@ -40,7 +40,7 @@ Q_OBJECT
 
 	astra::StreamSet streamSet;
     astra::StreamReader *reader;
-	bool depthB,colorB;
+	bool depthB,colorB, bodyB;
 	MultiFrameListener *frameListener;
 
 //	void initializeStreams();
@@ -49,6 +49,7 @@ Q_OBJECT
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
+	void terminate();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
 	Registration getRegistration();

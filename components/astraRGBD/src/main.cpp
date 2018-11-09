@@ -82,10 +82,12 @@
 #include "commonbehaviorI.h"
 
 #include <rgbdI.h>
+#include <humantrackerI.h>
 
 #include <RGBD.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
+#include <HumanTracker.h>
 
 
 // User includes here
@@ -179,6 +181,18 @@ int ::astraRGBD::run(int argc, char* argv[])
 		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
 		adapterRGBD->activate();
 		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
+
+
+		// Server adapter creation and publication
+		if (not GenericMonitor::configGetString(communicator(), prefix, "HumanTracker.Endpoints", tmp, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy HumanTracker";
+		}
+		Ice::ObjectAdapterPtr adapterHumanTracker = communicator()->createObjectAdapterWithEndpoints("HumanTracker", tmp);
+		HumanTrackerI *humantracker = new HumanTrackerI(worker);
+		adapterHumanTracker->add(humantracker, communicator()->stringToIdentity("humantracker"));
+		adapterHumanTracker->activate();
+		cout << "[" << PROGRAM_NAME << "]: HumanTracker adapter created in port " << tmp << endl;
 
 
 

@@ -13,7 +13,7 @@
 #include <genericworker.h>
 #include <doublebuffer/DoubleBuffer.h>
 #include <DoubleBufferConverters.h>
-#include <opencv2/opencv.hpp>
+//#include <opencv2/opencv.hpp>
 #include <mutex>
 #include <chrono>
 
@@ -24,16 +24,23 @@ class MultiFrameListener : public astra::FrameListener
     astra::PointStream *pointStream;
     astra::DepthStream *depthStream;
     astra::ColorStream *colorStream;
-    astra::InfraredStream *irStream;
     astra::BodyStream *bodyStream;
+
+    astra::InfraredStream *irStream;
     astra::HandStream *handStream;
+
     DoubleBuffer<astra::PointFrame, RoboCompRGBD::PointSeq, ByteSeqConverter> pointBuff;
     DoubleBuffer<astra::DepthFrame, RoboCompRGBD::DepthSeq, FloatSeqConverter> depthBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq, ColorSeqConverter> colorBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType, ByteSeqConverter> colorBuff2;
+//    DoubleBuffer<astra::BodyFrame, RoboCompHumanTracker::PersonList, BodiesPeopleConverter> bodyBuff;
+
+
     ByteSeqConverter byteConverter;
     FloatSeqConverter depthConverter;
     ColorSeqConverter colorConverter;
+//    BodiesPeopleConverter bodiesConverter;
+    RoboCompHumanTracker::PersonList bodylist;
     std::chrono::steady_clock::time_point end;
 //    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
@@ -58,10 +65,16 @@ public:
     void set_color_stream(bool color_bool);
     void set_depth_stream(bool depth_bool);
     void set_point_stream(bool point_bool);
+    void set_body_stream(bool body_bool);
+
     void get_depth(DepthSeq& depth);
     void get_points(PointSeq& points);
     void get_color(ColorSeq& colors);
     void get_color(imgType& colors);
+    void get_people(PersonList& people);
+
+
+
 
 private:
     mutable std::mutex my_mutex;
@@ -72,6 +85,8 @@ private:
     astra::ColorStream configure_color(astra::StreamReader& reader);
 
     astra::PointStream configure_point(astra::StreamReader& reader);
+
+    astra::BodyStream configure_body(astra::StreamReader& reader);
 };
 
 

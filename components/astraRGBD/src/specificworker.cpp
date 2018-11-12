@@ -44,8 +44,8 @@ SpecificWorker::~SpecificWorker()
 
 void SpecificWorker::terminate()
 {
-    qDebug()<<"Terminating astra";
-//    astra::terminate();
+    std::cout<<"Terminating astra"<<std::endl;
+    astra::terminate();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)

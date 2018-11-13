@@ -215,12 +215,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         bodylist.clear();
 
         const auto& bodies = bodyFrame.bodies();
-        qDebug()<<"SIZE OF BODIES "<<bodies.size();
         if (bodies.empty())
-        {
-            qDebug()<<"SIZE DE LO QUE SALE "<<bodylist.size() ;
             return;
-        }
 
         for (auto& body : bodies)
         {
@@ -244,7 +240,6 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                     qDebug()<<"TRACKING";
                     person.state = RoboCompHumanTracker::TrackingState::Tracking;
                     break;
-
                 default:
                     qDebug()<<"CAGOENTO";
             }
@@ -255,9 +250,12 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
             if (!joints.empty())
             {
-                qDebug()<<"JOINTS DE LA PERSONA " <<body.id();
+//                qDebug()<<"JOINTS DE LA PERSONA " <<body.id();
                 for (const auto& j : joints)
                 {
+
+
+
                     if (j.status() == astra::JointStatus::Tracked)
                     {
                         auto &jnt = j.world_position();
@@ -266,10 +264,19 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         JointP.push_back(jnt.y);
                         JointP.push_back(jnt.z);
 
-                        qDebug()<< JointP[0] <<" "<< JointP[1]<<" "<< JointP[2];
+//                        qDebug()<< JointP[0] <<" "<< JointP[1]<<" "<< JointP[2];
 
                         astra::JointType type = j.type();
                         std::string typejoint;
+                        if (type == astra::JointType::Head)
+                        {
+//                            qDebug()<<"---------------------MATRIZ ROTACION CABEZA--------------------";
+//                            auto o = j.orientation();
+//                            qDebug()<< o.m00() << " " << o.m01() <<" " << o.m02();
+//                            qDebug()<< o.m10() << " " << o.m11() <<" " << o.m12();
+//                            qDebug()<< o.m20() << " " << o.m21() <<" " << o.m22();
+
+                        }
 
                         switch (type)
                         {

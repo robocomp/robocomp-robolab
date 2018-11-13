@@ -149,9 +149,7 @@ void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor:
 }
 
 void  SpecificWorker::getUsersList(PersonList &users){
-    qDebug()<<"getUserList";
     frameListener->get_people(users);
-
 
 };
 

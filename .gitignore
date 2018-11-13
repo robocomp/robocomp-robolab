@@ -96,3 +96,5 @@ CXX.*
 *automoc.cpp
 
 *.cbp
+
+components/astraRGBD/src/cmake-build-debug/

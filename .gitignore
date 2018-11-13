@@ -94,3 +94,5 @@ CXX.*
 *.new
 *autogen/
 *automoc.cpp
+
+*.cbp

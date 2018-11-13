@@ -29,7 +29,7 @@ SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _co
 */
 SpecificMonitor::~SpecificMonitor()
 {
-
+    qDebug()<<"Destroying SpecificMonitor";
 }
 
 void SpecificMonitor::run()
@@ -91,6 +91,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["depth"] = aux;
 	configGetString("", "color", aux.value,"true");
 	params["color"] = aux;
+	configGetString("", "body", aux.value,"true");
+	params["body"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

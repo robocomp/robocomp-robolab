@@ -27,6 +27,8 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     setPeriod(33);
 //    timer.stop();
+//    QObject::connect(this, SIGNAL(kill()), this, SLOT(this->terminate()));
+
 }
 
 
@@ -36,16 +38,22 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-       astra::terminate();
+    qDebug()<<"Destroying SpecificWorker";
+    this->terminate();
 }
 
-
+void SpecificWorker::terminate()
+{
+    std::cout<<"Terminating astra"<<std::endl;
+    astra::terminate();
+}
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 
     depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
+	bodyB = QString::fromStdString(params["body"].value).contains("true");
 
 
     astra::initialize();
@@ -53,10 +61,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     frameListener = new MultiFrameListener(*reader);
 //	timer.start(Period);
 //    initializeStreams();
-    frameListener->set_color_stream(false);
-    frameListener->set_depth_stream(true);
-    frameListener->set_point_stream(true);
-    frameListener->set_body_stream(true);
+    frameListener->set_color_stream(colorB);
+    qDebug()<<"Color stream will be opened? "<<colorB;
+    frameListener->set_depth_stream(depthB);
+    qDebug()<<"Depth stream will be opened? "<<depthB;
+    frameListener->set_point_stream(false);
+    qDebug()<<"Points  stream will be opened? "<<false;
+    frameListener->set_body_stream(bodyB);
+    qDebug()<<"Body stream will be opened? "<<bodyB;
 
     reader->add_listener(*frameListener);
 	return true;
@@ -163,6 +175,7 @@ void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor:
 }
 
 void  SpecificWorker::getUsersList(PersonList &users){
+    qDebug()<<"getUserList";
     frameListener->get_people(users);
 
 

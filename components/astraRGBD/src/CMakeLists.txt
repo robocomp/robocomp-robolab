@@ -27,13 +27,14 @@ SET ( SOURCES
   genericworker.cpp
   specificworker.cpp
   rgbdI.cpp
+  humantrackerI.cpp
 )
 
 
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior RGBD  JointMotor  GenericBase )
+ROBOCOMP_WRAP_ICE( CommonBehavior RGBD  JointMotor  GenericBase  HumanTracker )
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 # Qt4
@@ -45,6 +46,7 @@ SET( QT_USE_QTXML TRUE )
 SET( QT_USE_QTSTATE TRUE )
 SET( QT_USE_QTSTATEMACHINE TRUE )
 SET( CMAKE_AUTOMOC TRUE )
+SET( CMAKE_AUTOUIC TRUE )
 INCLUDE( ${QT_USE_FILE} )
 
 # Specify construction and link process

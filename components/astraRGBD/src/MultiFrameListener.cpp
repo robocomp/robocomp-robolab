@@ -205,6 +205,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
     if (streamBools["body"])
     {
+
         astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
         if (!bodyFrame.is_valid() || bodyFrame.info().width() == 0 || bodyFrame.info().height() == 0)
         {
@@ -218,8 +219,10 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         if (bodies.empty())
             return;
 
+        antonio = true;
         for (auto& body : bodies)
         {
+
             TPerson person;
             auto status = body.status();
 
@@ -352,6 +355,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             bodylist[body.id()] = person;
         }
         qDebug()<<"bodylist on return "<<bodylist.size() ;
+        antonio = false;
         return;
     }
 
@@ -469,6 +473,18 @@ void MultiFrameListener::get_people(PersonList& people)
 //    qDebug()<<"get_People_1 "<<people.size();
 //    bodyBuff.get(people);
 //    qDebug()<<"get_People_2 "<<people.size();
+
+    if (antonio)
+    {
+        qDebug()<<"--------------------------------------------------------";
+        qDebug()<<"--------------------------------------------------------";
+        qDebug()<<"--------------- SOY EL GATO CON BOTAS ------------------";
+        qDebug()<<"--------------------------------------------------------";
+        qDebug()<<"--------------------------------------------------------";
+    }
+
+
+
      people = bodylist;
 }
 

@@ -51,6 +51,7 @@ class MultiFrameListener : public astra::FrameListener
 
 public:
 
+    bool antonio = false; //bandera
 
     MultiFrameListener(astra::StreamReader& reader_);
 

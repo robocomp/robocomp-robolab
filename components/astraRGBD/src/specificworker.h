@@ -40,7 +40,7 @@ Q_OBJECT
 
 	astra::StreamSet streamSet;
     astra::StreamReader *reader;
-	bool depthB,colorB;
+	bool depthB,colorB, bodyB;
 	MultiFrameListener *frameListener;
 
 //	void initializeStreams();
@@ -49,6 +49,7 @@ Q_OBJECT
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
+	void terminate();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
 	Registration getRegistration();
@@ -60,6 +61,12 @@ public:
 	void setRegistration(const Registration &value);
 	void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+//humanTracker Interface
+	void  getJointsPosition(int id, jointListType &jointList){return;};
+	void  getRTMatrixList(int id, RTMatrixList &RTMatList){return;};
+	void  getUserState(int id, TrackingState &state){return;};
+	void  getUser(int id, TPerson &user){return;};
+	void  getUsersList(PersonList &users);
 
 public slots:
 	void compute();

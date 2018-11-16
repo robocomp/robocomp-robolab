@@ -15,4 +15,4 @@ Ice.ACM.Server=10
 
 depth=true
 color=false
-body=false
+body=true

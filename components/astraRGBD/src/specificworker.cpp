@@ -17,6 +17,8 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <csignal>
+
 
 /**
 * \brief Default constructor
@@ -25,14 +27,25 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
     setPeriod(33);
 //    timer.stop();
+//    QObject::connect(this, SIGNAL(kill()), this, SLOT(this->terminate()));
+
 }
+
+
 
 /**
 * \brief Default destructor
 */
 SpecificWorker::~SpecificWorker()
 {
-       astra::terminate();
+    qDebug()<<"Destroying SpecificWorker";
+    this->terminate();
+}
+
+void SpecificWorker::terminate()
+{
+    std::cout<<"Terminating astra"<<std::endl;
+    astra::terminate();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -40,6 +53,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
     depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
+	bodyB = QString::fromStdString(params["body"].value).contains("true");
 
 
     astra::initialize();
@@ -47,9 +61,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     frameListener = new MultiFrameListener(*reader);
 //	timer.start(Period);
 //    initializeStreams();
-    frameListener->set_color_stream(true);
-    frameListener->set_depth_stream(true);
-    frameListener->set_point_stream(true);
+    frameListener->set_color_stream(colorB);
+    qDebug()<<"Color stream will be opened? "<<colorB;
+    frameListener->set_depth_stream(depthB);
+    qDebug()<<"Depth stream will be opened? "<<depthB;
+    frameListener->set_point_stream(false);
+    qDebug()<<"Points  stream will be opened? "<<false;
+    frameListener->set_body_stream(bodyB);
+    qDebug()<<"Body stream will be opened? "<<bodyB;
+
     reader->add_listener(*frameListener);
 	return true;
 }
@@ -58,6 +78,33 @@ void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
     astra_update();
+
+    PersonList users;
+    qDebug()<<"SIZE OF USERS "<<users.size();
+
+//    users.clear();
+
+    getUsersList(users);
+
+    qDebug()<<"SIZE OF USERS "<<users.size();
+
+
+    for(auto what : users)
+    {
+        qDebug()<<"ID " <<what.first << "STATUS"<<what.second.state;
+        jointListType jointsperson;
+
+        jointsperson = what.second.joints;
+
+//        for (auto j : jointsperson)
+//        {
+//        }
+    }
+
+
+    users.clear();
+    qDebug()<<"-----------------------------------------------------------------";
+
 }
 
 
@@ -126,3 +173,13 @@ void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor:
 {
     qDebug()<<"getDepthInIR Not implemented yet";
 }
+
+void  SpecificWorker::getUsersList(PersonList &users){
+    qDebug()<<"getUserList";
+    frameListener->get_people(users);
+
+
+};
+
+
+

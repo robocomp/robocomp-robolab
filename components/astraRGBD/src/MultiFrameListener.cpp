@@ -13,17 +13,20 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     streamBools["color"]=false;
     streamBools["ir"]=false;
     streamBools["points"]=false;
-    streamBools["body"]=false;
     streamBools["hand"]=false;
+    streamBools["body"]=false;
     reader = &reader_;
 
     colorStream = new astra::ColorStream(configure_color(*reader));
     depthStream = new astra::DepthStream(configure_depth(*reader));
     pointStream = new astra::PointStream(configure_point(*reader));
+    bodyStream  = new astra::BodyStream(configure_body(*reader));
+
 
     colorBuff2.init(640*480*3, byteConverter);
     colorBuff.init(640*480, colorConverter);
     depthBuff.init(640*480, depthConverter);
+//    bodyBuff.init(bodiesConverter);
     end = chrono::steady_clock::now();
 }
 
@@ -177,7 +180,7 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
     auto start = chrono::steady_clock::now();
-    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+//    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
     end =  chrono::steady_clock::now();
 
 
@@ -199,6 +202,152 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
     }
+
+    if (streamBools["body"])
+    {
+        astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
+        if (!bodyFrame.is_valid() || bodyFrame.info().width() == 0 || bodyFrame.info().height() == 0)
+        {
+            return;
+        }
+        // NOT USING DOUBLE BUFFER BECAUSE A BUG ON RETAINING UNEXISTNG PEOPLE
+//        bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
+        bodylist.clear();
+
+        const auto& bodies = bodyFrame.bodies();
+        qDebug()<<"SIZE OF BODIES "<<bodies.size();
+        if (bodies.empty())
+        {
+            qDebug()<<"SIZE DE LO QUE SALE "<<bodylist.size() ;
+            return;
+        }
+
+        for (auto& body : bodies)
+        {
+            TPerson person;
+            auto status = body.status();
+
+            switch (status){
+                case  astra::BodyStatus::NotTracking:
+                    qDebug()<<"NOT TRACKING";
+                    person.state =  RoboCompHumanTracker::TrackingState::NotTracking;
+                    break;
+                case astra::BodyStatus::TrackingLost:
+                    qDebug()<<"TRACKING LOST";
+                    person.state =  RoboCompHumanTracker::TrackingState::TrackingLost;
+                    break;
+                case astra::BodyStatus::TrackingStarted:
+                    qDebug()<<"TRACKING STARTED";
+                    person.state =  RoboCompHumanTracker::TrackingState::TrackingStarted;
+                    break;
+                case astra::BodyStatus::Tracking:
+                    qDebug()<<"TRACKING";
+                    person.state = RoboCompHumanTracker::TrackingState::Tracking;
+                    break;
+
+                default:
+                    qDebug()<<"CAGOENTO";
+            }
+
+
+            jointListType joints_list;
+            const auto& joints = body.joints();
+
+            if (!joints.empty())
+            {
+                qDebug()<<"JOINTS DE LA PERSONA " <<body.id();
+                for (const auto& j : joints)
+                {
+                    if (j.status() == astra::JointStatus::Tracked)
+                    {
+                        auto &jnt = j.world_position();
+                        joint JointP;
+                        JointP.push_back(jnt.x);
+                        JointP.push_back(jnt.y);
+                        JointP.push_back(jnt.z);
+
+                        qDebug()<< JointP[0] <<" "<< JointP[1]<<" "<< JointP[2];
+
+                        astra::JointType type = j.type();
+                        std::string typejoint;
+
+                        switch (type)
+                        {
+                            case astra::JointType::Head:
+                                typejoint = "Head";
+                                break;
+                            case astra::JointType::Neck:
+                                typejoint = "Neck";
+                                break;
+                            case astra::JointType::ShoulderSpine:
+                                typejoint = "ShoulderSpine";
+                                break;
+                            case astra::JointType::LeftShoulder:
+                                typejoint = "LeftShoulder";
+                                break;
+                            case astra::JointType::LeftElbow:
+                                typejoint = "LeftElbow";
+                                break;
+                            case astra::JointType::LeftWrist:
+                                typejoint = "LeftWrist";
+                                break;
+                            case astra::JointType::LeftHand:
+                                typejoint = "LeftHand";
+                                break;
+                            case astra::JointType::RightShoulder:
+                                typejoint = "RightShoulder";
+                                break;
+                            case astra::JointType::RightElbow:
+                                typejoint = "RightElbow";
+                                break;
+                            case astra::JointType::RightWrist:
+                                typejoint = "RightWrist";
+                                break;
+                            case astra::JointType::RightHand:
+                                typejoint = "RightHand";
+                                break;
+                            case astra::JointType::MidSpine:
+                                typejoint = "MidSpine";
+                                break;
+                            case astra::JointType::BaseSpine:
+                                typejoint = "BaseSpine";
+                                break;
+                            case astra::JointType::LeftHip:
+                                typejoint = "LeftHip";
+                                break;
+                            case astra::JointType::LeftKnee:
+                                typejoint = "LeftKnee";
+                                break;
+                            case astra::JointType::LeftFoot:
+                                typejoint = "LeftFoot";
+                                break;
+                            case astra::JointType::RightHip:
+                                typejoint = "RightHip";
+                                break;
+                            case astra::JointType::RightKnee:
+                                typejoint = "RightKnee";
+                                break;
+                            case astra::JointType::RightFoot:
+                                typejoint = "RightFoot";
+                                break;
+                            default:
+                                typejoint = " ";
+                        }
+
+                        joints_list[typejoint] = JointP;
+
+                    }
+                }
+
+            }
+
+            person.joints = joints_list;
+            bodylist[body.id()] = person;
+        }
+        qDebug()<<"bodylist on return "<<bodylist.size() ;
+        return;
+    }
+
 //    if (streamBools["ir"]) {
 //        update_ir_rgb(frame);
 //    }
@@ -268,6 +417,18 @@ void MultiFrameListener::set_point_stream(bool point_bool)
     streamBools["point"] = point_bool;
 }
 
+void MultiFrameListener::set_body_stream(bool body_bool)
+{
+    if (body_bool){
+        bodyStream->start();
+    }
+    else{
+        bodyStream->stop();
+    }
+    streamBools["body"] = body_bool;
+}
+
+
 void MultiFrameListener::get_depth(DepthSeq& depth)
 {
 //    cout<<"MultiFrameListener::get_depth"<<endl;
@@ -294,6 +455,16 @@ void MultiFrameListener::get_color(imgType& colors)
     // Hack to fix a problem with the ColorSeq and imgType types of RGBD interface
 //    colors.resize(colors.size()/3);
 }
+
+
+void MultiFrameListener::get_people(PersonList& people)
+{
+//    qDebug()<<"get_People_1 "<<people.size();
+//    bodyBuff.get(people);
+//    qDebug()<<"get_People_2 "<<people.size();
+     people = bodylist;
+}
+
 
 
 
@@ -393,4 +564,12 @@ astra::PointStream MultiFrameListener::configure_point(astra::StreamReader& read
 //           newMode.width(), newMode.height(), newMode.fps());
 
     return pointStream;
+}
+
+
+astra::BodyStream MultiFrameListener::configure_body(astra::StreamReader& reader)
+{
+    auto bodyStream = reader.stream<astra::BodyStream>();
+
+    return bodyStream;
 }

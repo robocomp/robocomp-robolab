@@ -29,7 +29,7 @@ SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _co
 */
 SpecificMonitor::~SpecificMonitor()
 {
-    qDebug()<<"Destroying SpecificMonitor";
+
 }
 
 void SpecificMonitor::run()
@@ -85,14 +85,20 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-    RoboCompCommonBehavior::Parameter aux;
-	aux.editable = false;
-	configGetString("", "depth", aux.value,"true");
-	params["depth"] = aux;
-	configGetString("", "color", aux.value,"true");
-	params["color"] = aux;
-	configGetString("", "body", aux.value,"true");
-	params["body"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	configGetString("Joy", "Device", aux.value, "/dev/input/js0" );
+	params["Device"] = aux;
+	configGetString("Joy", "XMotionAxis", aux.value, "0" );
+	params["XMotionAxis"] = aux;
+	configGetString("Joy", "YMotionAxis", aux.value, "1" );
+	params["YMotionAxis"] = aux;
+	configGetString("Joy", "SampleRate", aux.value, "5" );
+	params["SampleRate"] = aux;
+	configGetString("Joy", "MaxAdvance", aux.value, "120" );
+	params["MaxAdvance"] = aux;
+	configGetString("Joy", "MaxSteering", aux.value, "1.0" );
+	params["MaxSteering"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

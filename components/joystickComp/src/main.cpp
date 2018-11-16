@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::astraRGBD
+/** \mainpage RoboComp::joystick
  *
  * \section intro_sec Introduction
  *
- * The astraRGBD component...
+ * The joystick component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd astraRGBD
+ * cd joystick
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/astraRGBD --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/joystick --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,13 +81,11 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <rgbdI.h>
-#include <humantrackerI.h>
+#include <joystickI.h>
 
-#include <RGBD.h>
-#include <JointMotor.h>
+#include <DifferentialRobot.h>
 #include <GenericBase.h>
-#include <HumanTracker.h>
+#include <JoyStick.h>
 
 
 // User includes here
@@ -96,10 +94,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class astraRGBD : public RoboComp::Application
+class joystick : public RoboComp::Application
 {
 public:
-	astraRGBD (QString prfx) { prefix = prfx.toStdString(); }
+	joystick (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -109,14 +107,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::astraRGBD::initialize()
+void ::joystick::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::astraRGBD::run(int argc, char* argv[])
+int ::joystick::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -135,9 +133,27 @@ int ::astraRGBD::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	DifferentialRobotPrx differentialrobot_proxy;
 
 	string proxy, tmp;
 	initialize();
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
+		}
+		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("DifferentialRobotProxy initialized Ok!");
+	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
 
 
 
@@ -165,34 +181,22 @@ int ::astraRGBD::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
 
 
 
 
 		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "JoyStick.Endpoints", tmp, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoyStick";
 		}
-		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
-		RGBDI *rgbd = new RGBDI(worker);
-		adapterRGBD->add(rgbd, Ice::stringToIdentity("rgbd"));
-		adapterRGBD->activate();
-		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
-
-
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "HumanTracker.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy HumanTracker";
-		}
-		Ice::ObjectAdapterPtr adapterHumanTracker = communicator()->createObjectAdapterWithEndpoints("HumanTracker", tmp);
-		HumanTrackerI *humantracker = new HumanTrackerI(worker);
-		adapterHumanTracker->add(humantracker, communicator()->stringToIdentity("humantracker"));
-		adapterHumanTracker->activate();
-		cout << "[" << PROGRAM_NAME << "]: HumanTracker adapter created in port " << tmp << endl;
+		Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
+		JoyStickI *joystick = new JoyStickI(worker);
+		adapterJoyStick->add(joystick, communicator()->stringToIdentity("joystick"));
+		adapterJoyStick->activate();
+		cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
 
 
 
@@ -219,17 +223,13 @@ int ::astraRGBD::run(int argc, char* argv[])
 
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
-    }
 
 #ifdef USE_QTGUI
 		a.quit();
 #endif
+		monitor->exit(0);
+}
 
-	status = EXIT_SUCCESS;
-	monitor->terminate();
-	monitor->wait();
-	delete worker;
-	delete monitor;
 	return status;
 }
 
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::astraRGBD app(prefix);
+	::joystick app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

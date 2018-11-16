@@ -1,36 +1,54 @@
-cmake_minimum_required(VERSION 2.6)
-PROJECT( joystickComp )
+cmake_minimum_required(VERSION 2.8.11)
+PROJECT( joystick )
+
+
+IF ( "$ENV{ROBOCOMP}" STREQUAL "")
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
+  SET (ENV{ROBOCOMP} "/opt/robocomp/")
+ENDIF ( "$ENV{ROBOCOMP}" STREQUAL "")
+
+IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+  MESSAGE(FATAL_ERROR "Couldn't find RoboComp in $ENV{ROBOCOMP}! Exiting...")
+ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
+INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set
 SET ( SOURCES
-  joystickComp.cpp
-  joystickI.cpp
-  joystickhandler.cpp
-  $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.cpp
+  ${SOURCES}
   $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
+  $ENV{ROBOCOMP}/classes/sigwatch/sigwatch.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
+  main.cpp
+  genericmonitor.cpp
+  specificmonitor.cpp
+  commonbehaviorI.cpp
+  genericworker.cpp
+  specificworker.cpp
+  joystickI.cpp
 )
 
 # Headers set
 SET ( HEADERS
   joystickI.h
-  joystickhandler.h
   $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
 )
-
-# RoboComp
-INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
-ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( JoyStick GenericBase DifferentialRobot )
 
 # Qt4
 ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
 FIND_PACKAGE( Qt4 REQUIRED )
 INCLUDE( ${QT_USE_FILE} )
-QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
+SET( CMAKE_AUTOMOC ON )
+
+
+#ROBOCOMP
+ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
+ROBOCOMP_WRAP_ICE( CommonBehavior DifferentialRobot  GenericBase  JoyStick )
+SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 
 # Specify construction and link process
-SET (EXECUTABLE_OUTPUT_PATH ../bin)
-ADD_EXECUTABLE( joystickComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( joystickComp ${QT_LIBRARIES} ${LIBS})
-INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/joystickComp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
+ADD_EXECUTABLE( joystick ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
+TARGET_LINK_LIBRARIES( joystick ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS} ${QT_LIBRARIES})
+INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/joystick DESTINATION ${RC_COMPONENT_INSTALL_PATH}/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

@@ -12,6 +12,7 @@ IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/qt.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set
@@ -29,17 +30,7 @@ SET ( SOURCES
   joystickI.cpp
 )
 
-# Headers set
-SET ( HEADERS
-  joystickI.h
-  $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
-)
 
-# Qt4
-ADD_DEFINITIONS( -Wall -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
-FIND_PACKAGE( Qt4 REQUIRED )
-INCLUDE( ${QT_USE_FILE} )
-SET( CMAKE_AUTOMOC ON )
 
 
 #ROBOCOMP

@@ -3,7 +3,7 @@
 
 // Comment out this line if your application has a QtGui
 
-#define PROGRAM_NAME    "JoyStickHandler"
+#define PROGRAM_NAME    "joystick"
 #define SERVER_FULL_NAME   "RoboComp joystick:: joystick"
 
 #endif

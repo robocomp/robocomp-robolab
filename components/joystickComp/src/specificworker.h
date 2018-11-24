@@ -50,7 +50,6 @@ public:
 		float actualY;
 	};
 	
-	
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
@@ -74,7 +73,7 @@ private:
 	QJoyStick *joystick;
 	qjh_cfg_t config;
 
-	bool sendSpeed;
+	bool sendSpeed = false;
 
 };
 

@@ -153,9 +153,8 @@ int ::joystick::run(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
+
 	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
-
-
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -180,11 +179,9 @@ int ::joystick::run(int argc, char* argv[])
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 		}
 		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
+		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
-
-
 
 
 		// Server adapter creation and publication
@@ -194,11 +191,9 @@ int ::joystick::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
 		JoyStickI *joystick = new JoyStickI(worker);
-		adapterJoyStick->add(joystick, communicator()->stringToIdentity("joystick"));
+		adapterJoyStick->add(joystick, Ice::stringToIdentity("joystick"));
 		adapterJoyStick->activate();
 		cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
-
-
 
 
 
@@ -227,9 +222,13 @@ int ::joystick::run(int argc, char* argv[])
 #ifdef USE_QTGUI
 		a.quit();
 #endif
-		monitor->exit(0);
-}
 
+}
+	status = EXIT_SUCCESS;
+	monitor->terminate();
+	monitor->wait();
+	delete worker;
+	delete monitor;
 	return status;
 }
 

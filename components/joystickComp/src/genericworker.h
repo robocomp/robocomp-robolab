@@ -33,13 +33,12 @@
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
 using namespace std;
-
 using namespace RoboCompJoyStick;
 using namespace RoboCompGenericBase;
 using namespace RoboCompDifferentialRobot;
+
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
 

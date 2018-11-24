@@ -22,9 +22,7 @@
 * \brief Default constructor
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
-{
-	
-}
+{}
 
 void SpecificWorker::initialize()
 {
@@ -34,8 +32,7 @@ void SpecificWorker::initialize()
 
 	joystick = new QJoyStick( QString::fromStdString(params["Device"].value));
 	jtimer = new QTimer();
-	sendSpeed = false;
-
+	
 	// Connect signals
 	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT(receivedJoyStickEvent(int, int, int) ) );
 	connect( jtimer, SIGNAL( timeout() ), this, SLOT( sendJoyStickEvent() ) );
@@ -46,6 +43,8 @@ void SpecificWorker::initialize()
 	" Max steering speed: " << params["MaxSteering"].value << std::endl;
 	
 	open();
+	jtimer->start(100);
+	timer.stop();
 	
 }
 
@@ -66,50 +65,20 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		innermodel_path = par.value;
-//		innermodel = new InnerModel(innermodel_path);
-//	}
-//	catch(std::exception e) { qFatal("Error reading config params"); }
-	//timer.start(Period);
 	this->params = params;
 	config.XMotionAxis = std::stoi(params["XMotionAxis"].value);
 	config.YMotionAxis = std::stoi(params["YMotionAxis"].value);
 	config.SampleRate = std::stoi(params["SampleRate"].value);
 	config.maxAdv = std::stoi(params["MaxAdvance"].value);
 	config.maxRot = std::stof(params["MaxSteering"].value);
+	
+	initialize();
 	return true;
 }
 
 void SpecificWorker::compute()
 {
-	QMutexLocker locker(mutex);
-	static bool first = true;
-	if (first) {
-		std::cout << "Initialize" << std::endl;
-		initialize();
-		first = false;
-	}
-
-	
-	
-	//computeCODE
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
 }
-
 
 bool SpecificWorker::open()
 {
@@ -146,6 +115,7 @@ void SpecificWorker::receivedJoyStickEvent(int value, int type, int number)
 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
 		}
 		sendSpeed = true;
+		differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
 	}
 }
 
@@ -156,6 +126,7 @@ void SpecificWorker::sendJoyStickEvent()
 		if(sendSpeed)
 		{
 			differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
+			std::cout << "---------------------sent event to Differential Robot" << std::endl;
 			if(fabs(base_joy_axis.actualX) < 0.1 and fabs(base_joy_axis.actualY) < 0.1 )
 				sendSpeed = false;
 		}
@@ -168,7 +139,10 @@ void SpecificWorker::sendJoyStickEvent()
 }
 
 
-// ICE
+/////////////////////////////////////////
+// ICE pull methods
+/////////////////////////////////////////
+
 void SpecificWorker::writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);

@@ -16,7 +16,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
 InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
-FlipImage = False 
+FlipImage = False
 InputInterface = RGBD
 AprilTagsFamily = tagCodes36h11
 #AprilTagsFamily = tagCodes16h5

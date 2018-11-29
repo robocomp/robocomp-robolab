@@ -1,0 +1,51 @@
+<innerModel>
+	<transform id="world">
+		
+		<!-- FLOOR -->
+		<transform id="floor">
+			<axes id="ejes"/>
+			<plane id="floor_plane" ny="1" size="10000,10000,10" texture="#eebb77" />
+		
+		
+			<transform id="room_3">
+				<transform id="rgbd" >
+					<plane id="rgbd_mesh" nx="1" size="80,80,80"  texture="#00ff00" />
+<!-- 					<transform id="marca_camara" tx="0" ty="10" tz="1000" rx="0" ry="0.0" rz="0.0"> -->
+					<transform id="marca_camara" tx="-142.231" ty="282.651" tz="2223.09" rx="-0.01655760" ry="0.0287486" rz="-0.0213925">
+
+<!-- 					<transform id="marca_camara" tx="-883.737" ty="-1212.87" tz="2896.97" rx="0.984856" ry="-0.248953" rz="0.378809"> -->
+						<plane id="marca_mesh" nx="1" size="80,80,80"  texture="#00ff00" />
+					</transform>
+				</transform>
+				<transform id="april" tx="5800" tz="50" ty="1060" ry="3.1415926535" >
+<!-- 				<transform id="april" tx="3070" tz="1810" > -->
+					<plane id="marca" size="370,30,370"  texture="/home/robocomp/robocomp/files/innermodel/tar16h5-0.png" />
+					
+<!--					<transform id="rgbd" tx="-899.737" ty="-1212.87" tz="2896.97" rx="-2.16697" ry="-2.8981" rz="0.371809">
+						<plane id="rgbd_mesh" nx="1" size="80,80,80"  texture="#00ff00" />
+					</transform>-->
+				</transform>
+				
+				
+				
+				<transform id="pared1" tz="5000" ty="950" >
+					<plane id="muro1" size="10000,1900,50"  texture="#FF8800" />
+				</transform>
+
+				<transform id="pared2" tz="-5000" ty="950" >
+					<plane id="muro2" size="10000,1900,50"  texture="#FF8800" />
+				</transform>
+
+				<transform id="pared3" tx="-5000" ty="950">
+					<plane id="muro3" nx="2500" size="10000,1900,50"  texture="#FF8800" />
+				</transform>
+				
+				<transform id="pared4" tx="5000" ty="950">
+					<plane id="muro4" nx="2500" size="10000,1900,50"  texture="#FF8800" />
+				</transform>
+
+
+			</transform>
+		</transform>
+	</transform>
+</innerModel>

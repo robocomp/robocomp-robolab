@@ -60,7 +60,7 @@ QT4_WRAP_UI( UI_HEADERS guiDlg.ui )
 # Specify construction and link process
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 ADD_EXECUTABLE( laserrgbdComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( laserrgbdComp ${QT_LIBRARIES} ${LIBS} ${PCL_LIBRARIES}   ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} ${PCL_LIBRARIES} -lpcl_search ${PCL_USER_LIBRARIES} glut robocomp_innermodel OpenThreads osgGA osgDB osgUtil osgText)
+TARGET_LINK_LIBRARIES( laserrgbdComp ${QT_LIBRARIES} ${LIBS} ${PCL_LIBRARIES}   ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} ${PCL_LIBRARIES} -lpcl_search ${PCL_USER_LIBRARIES} glut robocomp_innermodel OpenThreads osgGA osgDB osgUtil osgText ${Ice_LIBRARIES})
 # TARGET_LINK_LIBRARIES( rcis         ${QT_LIBRARIES} ${LIBS} glut robocomp_innermodel OpenThreads osgGA osgDB osgUtil osgText librapid.a -L${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/laserrgbdComp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

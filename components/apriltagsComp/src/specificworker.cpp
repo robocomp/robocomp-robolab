@@ -33,6 +33,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetecto
 	aux.type = "float";
 	aux.value = "0";
 	worker_params["frameRate"] = aux;
+	flip = false;
 }
 
 /**
@@ -131,6 +132,16 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
 
+        try
+        {
+            RoboCompCommonBehavior::Parameter par = params.at("FlipImage") ;
+            if (par.value == "True" || par.value == "true" || par.value == "1")
+                this->flip = true;
+        }
+        catch(std::exception e) {
+            qDebug("Error reading config param FlipImage. It's false.");
+        }
+
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
@@ -208,14 +219,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
 
-
-	timer.start(10);
-
 	return true;
 }
 
 void SpecificWorker::compute()
 {
+    
 	static QTime reloj = QTime::currentTime();
 	if (innermodel == NULL) return;
 
@@ -302,18 +311,23 @@ void SpecificWorker::compute()
 		cout << "*********************************************************" <<  1000.*frame/lastTime.elapsed()  << " fps" << endl;
 		frame = 0;
 	}
-	worker_params_mutex->lock();
+	//worker_params_mutex->lock();
 	//save framerate in params
-	worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
-	worker_params_mutex->unlock();
+	//worker_params["frameRate"].value = std::to_string(reloj.restart()/1000.f);
+	//worker_params_mutex->unlock();
 
 }
 
 void SpecificWorker::searchTags(const cv::Mat &image_gray)
 {
-	vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
+    cv::Mat dst = image_gray;          // dst must be a different Mat
+    if(this->flip) 
+    {
+        cv::flip(image_gray, dst, 0);
+    }
+    vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(dst);
 
-	cout << detections.size() << " tags detected:" << endl;
+        //std::cout << detections.size() << " tags detected:" << std::endl;
 	print_detection(detections);
 
 }

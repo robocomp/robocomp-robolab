@@ -53,10 +53,38 @@ if not ice_HandDetection:
 	print 'Couldn\'t load HandDetection'
 	sys.exit(-1)
 from RoboCompHandDetection import *
+ice_CameraSimple = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraSimple.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraSimple = True
+		break
+if not ice_CameraSimple:
+	print 'Couldn\'t load CameraSimple'
+	sys.exit(-1)
+from RoboCompCameraSimple import *
+ice_RGBD = False
+for p in icePaths:
+	if os.path.isfile(p+'/RGBD.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"RGBD.ice"
+		Ice.loadSlice(wholeStr)
+		ice_RGBD = True
+		break
+if not ice_RGBD:
+	print 'Couldn\'t load RGBD'
+	sys.exit(-1)
+from RoboCompRGBD import *
 
 class HandDetectionI(HandDetection):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def processImage(self, img, c):
-		return self.worker.processImage(img)
+	def addNewHand(self, expectedHands, roi, c):
+		return self.worker.addNewHand(expectedHands, roi)
+	def getHandsCount(self, c):
+		return self.worker.getHandsCount()
+	def getHands(self, c):
+		return self.worker.getHands()

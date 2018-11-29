@@ -1,0 +1,32 @@
+#
+# This property is used to configure the endpoints of the subscriber adapter.
+#
+GetAprilTags.Endpoints=tcp -p 14310
+CommonBehavior.Endpoints=tcp -p 14358
+
+CameraProxy = camera:tcp -h localhost -p 10001
+PrimeSenseProxy = primesense:tcp -h localhost -p 10096
+RGBDBusProxy = rgbdbus:tcp -h localhost -p 10096
+RGBDProxy= rgbd:tcp -h localhost -p 10096
+AprilTagsProxy = apriltags:tcp -h localhost -p 10261
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
+
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
+
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
+CameraName=camerasimple
+
+FlipImage = False
+InputInterface = CameraSimple
+AprilTagsFamily = tagCodes36h11
+#AprilTagsFamily = tagCodes16h5
+AprilTagsSize = 350
+ID:0-10 = 350   #tag size
+ID:11-20 = 170   #tag size
+ID:21-30 = 170   #tag size
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10

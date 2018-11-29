@@ -40,18 +40,22 @@ class SpecificWorker(GenericWorker):
 	def setParams(self, params):
 		self.capL = cv2.VideoCapture(0)
 		return True
-    
+
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
 
 		retL, self.frameL = self.capL.read()
-		rows,cols,depth =  self.frameL.shape
+		if retL:
+			rows,cols,depth =  self.frameL.shape
+		else:
+			print "No frame could be read"
+
 		
 		# Display the resulting frame
 		#cv2.imshow('frameL',self.frameL)
 		return True
-    
+
 	#
 	# SERVANTS ---------------------  getImage
 	#

@@ -22,10 +22,8 @@ SET ( SOURCES
   $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
   main.cpp
   genericmonitor.cpp
-  specificmonitor.cpp
   commonbehaviorI.cpp
   genericworker.cpp
-  specificworker.cpp
   getapriltagsI.cpp
 )
 
@@ -45,6 +43,7 @@ SET( QT_USE_QTXML TRUE )
 SET( QT_USE_QTSTATE TRUE )
 SET( QT_USE_QTSTATEMACHINE TRUE )
 SET( CMAKE_AUTOMOC TRUE )
+SET( CMAKE_AUTOUIC TRUE )
 INCLUDE( ${QT_USE_FILE} )
 
 # Specify construction and link process

@@ -16,9 +16,10 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h localhost
 InnerModelPath=/home/robocomp/robocomp/files/innermodel/simpleworld.xml
 CameraName=rgbd
 
-InputInterface = CameraSimple
-#AprilTagsFamily = tagCodes36h11
-AprilTagsFamily = tagCodes16h5
+FlipImage = False
+InputInterface = RGBD
+AprilTagsFamily = tagCodes36h11
+#AprilTagsFamily = tagCodes16h5
 AprilTagsSize = 350
 ID:0-10 = 350   #tag size
 ID:11-20 = 170   #tag size

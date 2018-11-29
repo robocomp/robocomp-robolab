@@ -19,7 +19,7 @@
 #ifndef CONST_H
 #define CONST_H
 
-#define PROGRAM_NAME        "JoyStickHandler"
+//#define PROGRAM_NAME        "JoyStickHandler"
 #define PROGRAM_FILE_NAME   "joystickhandler"
 
 //OJO tiene que ser simétrico de momento

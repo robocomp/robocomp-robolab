@@ -57,6 +57,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 
     astra::initialize();
+
+// Para abrir varias camaras con streamSet("")
+//    astra::StreamSet streamSet1("device/sensor0");
+//    astra::StreamSet streamSet2("device/sensor1");
+//    streamSet = streamSet2;
+
+
     reader = new astra::StreamReader(streamSet.create_reader());
     frameListener = new MultiFrameListener(*reader);
 //	timer.start(Period);
@@ -152,6 +159,23 @@ void  SpecificWorker::getUsersList(PersonList &users){
     frameListener->get_people(users);
 
 };
+
+bool SpecificWorker::getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint)
+{
+    depthjoint = frameListener->getJointDepth(idperson, idjoint);
+
+    if (depthjoint.size()>0)
+        return true;
+
+    else
+    {
+        depthjoint = {};
+        return false;
+    };
+
+
+}
+
 
 
 

@@ -34,11 +34,12 @@ public:
 HumanTrackerI(GenericWorker *_worker);
 	~HumanTrackerI();
 
-	void getUsersList( PersonList  &users, const Ice::Current&);
-	void getRTMatrixList(const int  id,  RTMatrixList  &RTMatList, const Ice::Current&);
 	void getJointsPosition(const int  id,  jointListType  &jointList, const Ice::Current&);
-	void getUserState(const int  id,  TrackingState  &state, const Ice::Current&);
+	void getRTMatrixList(const int  id,  RTMatrixList  &RTMatList, const Ice::Current&);
 	void getUser(const int  id,  TPerson  &user, const Ice::Current&);
+	bool getJointDepthPosition(const int  idperson, const string  &idjoint,  joint  &depthjoint, const Ice::Current&);
+	void getUsersList( PersonList  &users, const Ice::Current&);
+	void getUserState(const int  id,  TrackingState  &state, const Ice::Current&);
 
 private:
 

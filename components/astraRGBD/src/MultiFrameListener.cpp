@@ -4,7 +4,7 @@
 
 #include "MultiFrameListener.h"
 
-
+#include <ctime>
 
 
 MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
@@ -179,9 +179,9 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
-    auto start = chrono::steady_clock::now();
+//    auto start = chrono::steady_clock::now();
 //    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
-    end =  chrono::steady_clock::now();
+//    end =  chrono::steady_clock::now();
 
 
     if (streamBools["depth"])
@@ -205,7 +205,6 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
     if (streamBools["body"])
     {
-
         astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
         if (!bodyFrame.is_valid() || bodyFrame.info().width() == 0 || bodyFrame.info().height() == 0)
         {
@@ -214,6 +213,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         // NOT USING DOUBLE BUFFER BECAUSE A BUG ON RETAINING UNEXISTNG PEOPLE
 //        bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
         bodylist.clear();
+        PersonDepth.clear();
+
 
         const auto& bodies = bodyFrame.bodies();
         if (bodies.empty())
@@ -222,25 +223,22 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         antonio = true;
         for (auto& body : bodies)
         {
+//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
 
             TPerson person;
             auto status = body.status();
 
             switch (status){
                 case  astra::BodyStatus::NotTracking:
-                    qDebug()<<"NOT TRACKING";
                     person.state =  RoboCompHumanTracker::TrackingState::NotTracking;
                     break;
                 case astra::BodyStatus::TrackingLost:
-                    qDebug()<<"TRACKING LOST";
                     person.state =  RoboCompHumanTracker::TrackingState::TrackingLost;
                     break;
                 case astra::BodyStatus::TrackingStarted:
-                    qDebug()<<"TRACKING STARTED";
                     person.state =  RoboCompHumanTracker::TrackingState::TrackingStarted;
                     break;
                 case astra::BodyStatus::Tracking:
-                    qDebug()<<"TRACKING";
                     person.state = RoboCompHumanTracker::TrackingState::Tracking;
                     break;
                 default:
@@ -249,42 +247,38 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
 
             jointListType joints_list;
+            jointListType joints_depth;
+
             const auto& joints = body.joints();
 
             if (!joints.empty())
             {
-//                qDebug()<<"JOINTS DE LA PERSONA " <<body.id();
+
                 for (const auto& j : joints)
                 {
-
-
-
-                    if (j.status() == astra::JointStatus::Tracked)
+                    if (j.status() == astra::JointStatus::Tracked or j.status() == astra::JointStatus::LowConfidence)
                     {
                         auto &jnt = j.world_position();
+                        auto &jntdepth = j.depth_position();
+
+                        joint pointindepth;
+                        pointindepth.push_back(jntdepth.x);
+                        pointindepth.push_back(jntdepth.y);
+
+
                         joint JointP;
                         JointP.push_back(jnt.x);
                         JointP.push_back(jnt.y);
                         JointP.push_back(jnt.z);
 
-//                        qDebug()<< JointP[0] <<" "<< JointP[1]<<" "<< JointP[2];
-
                         astra::JointType type = j.type();
                         std::string typejoint;
-                        if (type == astra::JointType::Head)
-                        {
-//                            qDebug()<<"---------------------MATRIZ ROTACION CABEZA--------------------";
-//                            auto o = j.orientation();
-//                            qDebug()<< o.m00() << " " << o.m01() <<" " << o.m02();
-//                            qDebug()<< o.m10() << " " << o.m11() <<" " << o.m12();
-//                            qDebug()<< o.m20() << " " << o.m21() <<" " << o.m22();
-
-                        }
 
                         switch (type)
                         {
                             case astra::JointType::Head:
                                 typejoint = "Head";
+
                                 break;
                             case astra::JointType::Neck:
                                 typejoint = "Neck";
@@ -343,18 +337,21 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                             default:
                                 typejoint = " ";
                         }
-
                         joints_list[typejoint] = JointP;
+                        joints_depth[typejoint]=pointindepth;
 
                     }
                 }
-
             }
+            else  qDebug()<<"Joints is empty";
 
             person.joints = joints_list;
             bodylist[body.id()] = person;
+
+            PersonDepth[body.id()] = joints_depth;
+
         }
-        qDebug()<<"bodylist on return "<<bodylist.size() ;
+//        qDebug()<<"bodylist on return "<<bodylist.size() ;
         antonio = false;
         return;
     }
@@ -474,7 +471,7 @@ void MultiFrameListener::get_people(PersonList& people)
 //    bodyBuff.get(people);
 //    qDebug()<<"get_People_2 "<<people.size();
 
-    if (antonio)
+    if (antonio) //la bandera dice si se esta leyendo a la vez que escribiendo
     {
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
@@ -483,12 +480,18 @@ void MultiFrameListener::get_people(PersonList& people)
         qDebug()<<"--------------------------------------------------------";
     }
 
+    else
+        people = bodylist;
 
-
-     people = bodylist;
 }
 
+joint MultiFrameListener::getJointDepth(int idperson, string idjoint)
+{
+    jointListType p = PersonDepth[idperson];
+    auto pos = p[idjoint];
+    return pos;
 
+}
 
 
 astra::DepthStream MultiFrameListener::configure_depth(astra::StreamReader& reader)
@@ -596,3 +599,4 @@ astra::BodyStream MultiFrameListener::configure_body(astra::StreamReader& reader
 
     return bodyStream;
 }
+

@@ -67,6 +67,8 @@ public:
 	void  getUserState(int id, TrackingState &state){return;};
 	void  getUser(int id, TPerson &user){return;};
 	void  getUsersList(PersonList &users);
+		bool getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint);
+
 
 public slots:
 	void compute();

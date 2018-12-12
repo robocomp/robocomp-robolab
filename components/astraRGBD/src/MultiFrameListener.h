@@ -48,6 +48,8 @@ class MultiFrameListener : public astra::FrameListener
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
 
 
+    typedef map <int,jointListType> MapDepth;
+    MapDepth PersonDepth;
 
 public:
 
@@ -73,8 +75,7 @@ public:
     void get_color(ColorSeq& colors);
     void get_color(imgType& colors);
     void get_people(PersonList& people);
-
-
+    joint getJointDepth(int idperson, string idjoint);
 
 
 private:

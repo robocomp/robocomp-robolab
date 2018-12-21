@@ -25,7 +25,8 @@ GenericMonitor::GenericMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _comm
 	worker = _worker;
 	this->communicator = _communicator;
 	period = 100;
-	state = RoboCompCommonBehavior::Starting;
+	state = RoboCompCommonBehavior::State::Starting;
+	QObject::connect(this, SIGNAL(initializeWorker(int)), worker, SLOT(initialize(int)));
 }
 /**
 * \brief Default destructor

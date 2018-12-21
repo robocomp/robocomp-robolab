@@ -183,7 +183,6 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 //    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
 //    end =  chrono::steady_clock::now();
 
-
     if (streamBools["depth"])
     {
         const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
@@ -351,7 +350,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             PersonDepth[body.id()] = joints_depth;
 
         }
-//        qDebug()<<"bodylist on return "<<bodylist.size() ;
+        qDebug()<<" PERSONAS = "<<bodylist.size() ;
         antonio = false;
         return;
     }

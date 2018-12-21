@@ -20,7 +20,6 @@
 #define GENERICWORKER_H
 
 #include "config.h"
-#include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
 
@@ -35,14 +34,13 @@
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
 using namespace std;
-
 using namespace RoboCompHumanTracker;
 using namespace RoboCompRGBD;
 using namespace RoboCompJointMotor;
 using namespace RoboCompGenericBase;
+
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
 
@@ -62,21 +60,21 @@ public:
 
 
 
-	virtual Registration getRegistration() = 0;
-	virtual void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual TRGBDParams getRGBDParams() = 0;
-	virtual void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void setRegistration(const Registration &value) = 0;
-	virtual void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void getJointsPosition(const int id, jointListType &jointList) = 0;
-	virtual void getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
-	virtual void getUser(const int id, TPerson &user) = 0;
-	virtual bool getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint) = 0;
-	virtual void getUsersList(PersonList &users) = 0;
-	virtual void getUserState(const int id, TrackingState &state) = 0;
+	virtual Registration RGBD_getRegistration() = 0;
+	virtual void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual TRGBDParams RGBD_getRGBDParams() = 0;
+	virtual void RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void RGBD_setRegistration(const Registration &value) = 0;
+	virtual void RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual void HumanTracker_getJointsPosition(const int id, jointListType &jointList) = 0;
+	virtual void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
+	virtual void HumanTracker_getUser(const int id, TPerson &user) = 0;
+	virtual bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint) = 0;
+	virtual void HumanTracker_getUsersList(PersonList &users) = 0;
+	virtual void HumanTracker_getUserState(const int id, TrackingState &state) = 0;
 
 protected:
 	QTimer timer;
@@ -87,6 +85,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
+	virtual void initialize(int period) = 0;
 signals:
 	void kill();
 };

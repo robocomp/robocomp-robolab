@@ -61,7 +61,8 @@ void SpecificMonitor::initialize()
 		rError("Error reading config parameters. Exiting");
 		killYourSelf();
 	}
-	state = RoboCompCommonBehavior::Running;
+	state = RoboCompCommonBehavior::State::Running;
+	emit initializeWorker(period);
 }
 
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)

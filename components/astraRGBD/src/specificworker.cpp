@@ -25,13 +25,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-    setPeriod(33);
-//    timer.stop();
-//    QObject::connect(this, SIGNAL(kill()), this, SLOT(this->terminate()));
-
 }
-
-
 
 /**
 * \brief Default destructor
@@ -81,6 +75,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	return true;
 }
 
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	this->Period = period;
+	timer.start(Period);
+}
+
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
@@ -89,13 +90,13 @@ void SpecificWorker::compute()
 }
 
 
-Registration SpecificWorker::getRegistration()
+Registration SpecificWorker::RGBD_getRegistration()
 {
 //implementCODE
 
 }
 
-void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
 //	RGBMutex->lock();
@@ -112,37 +113,37 @@ void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, Robo
 
 }
 
-void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
     frameListener->get_points(points);
 }
 
-void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
     frameListener->get_color(color);
 }
 
-TRGBDParams SpecificWorker::getRGBDParams()
+TRGBDParams SpecificWorker::RGBD_getRGBDParams()
 {
 //implementCODE
     qDebug()<<"getRGBDParams Not implemented yet";
 }
 
-void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
     frameListener->get_depth(depth);
 }
 
-void SpecificWorker::setRegistration(const Registration &value)
+void SpecificWorker::RGBD_setRegistration(const Registration &value)
 {
 //implementCODE
     qDebug()<<"setRegistration Not implemented yet";
 }
 
-void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
     frameListener->get_color(color);
@@ -150,17 +151,17 @@ void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points
     frameListener->get_points(points);
 }
 
-void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
     qDebug()<<"getDepthInIR Not implemented yet";
 }
 
-void  SpecificWorker::getUsersList(PersonList &users){
+void  SpecificWorker::HumanTracker_getUsersList(PersonList &users){
     frameListener->get_people(users);
 
 };
 
-bool SpecificWorker::getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint)
+bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint)
 {
     depthjoint = frameListener->getJointDepth(idperson, idjoint);
 

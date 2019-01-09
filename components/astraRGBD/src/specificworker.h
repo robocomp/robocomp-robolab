@@ -62,11 +62,13 @@ public:
 	void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 //humanTracker Interface
-	void  getJointsPosition(int id, jointListType &jointList){return;};
-	void  getRTMatrixList(int id, RTMatrixList &RTMatList){return;};
-	void  getUserState(int id, TrackingState &state){return;};
-	void  getUser(int id, TPerson &user){return;};
-	void  getUsersList(PersonList &users);
+	void getJointsPosition(int id, jointListType &jointList){return;};
+	void getRTMatrixList(int id, RTMatrixList &RTMatList){return;};
+	void getUser(int id, TPerson &user){return;};
+	bool getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint){return false;};	
+	void getUsersList(PersonList &users);
+	void getUserState(int id, TrackingState &state){return;};
+	
 
 public slots:
 	void compute();

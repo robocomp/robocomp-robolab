@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -28,9 +28,9 @@ HumanTrackerI::~HumanTrackerI()
 {
 }
 
-void HumanTrackerI::getUsersList( PersonList  &users, const Ice::Current&)
+void HumanTrackerI::getJointsPosition(const int  id,  jointListType  &jointList, const Ice::Current&)
 {
-	worker->getUsersList(users);
+	worker->getJointsPosition(id, jointList);
 }
 
 void HumanTrackerI::getRTMatrixList(const int  id,  RTMatrixList  &RTMatList, const Ice::Current&)
@@ -38,18 +38,23 @@ void HumanTrackerI::getRTMatrixList(const int  id,  RTMatrixList  &RTMatList, co
 	worker->getRTMatrixList(id, RTMatList);
 }
 
-void HumanTrackerI::getJointsPosition(const int  id,  jointListType  &jointList, const Ice::Current&)
+void HumanTrackerI::getUser(const int  id,  TPerson  &user, const Ice::Current&)
 {
-	worker->getJointsPosition(id, jointList);
+	worker->getUser(id, user);
+}
+
+bool HumanTrackerI::getJointDepthPosition(const int  idperson, const string  &idjoint,  joint  &depthjoint, const Ice::Current&)
+{
+	return worker->getJointDepthPosition(idperson, idjoint, depthjoint);
+}
+
+void HumanTrackerI::getUsersList( PersonList  &users, const Ice::Current&)
+{
+	worker->getUsersList(users);
 }
 
 void HumanTrackerI::getUserState(const int  id,  TrackingState  &state, const Ice::Current&)
 {
 	worker->getUserState(id, state);
-}
-
-void HumanTrackerI::getUser(const int  id,  TPerson  &user, const Ice::Current&)
-{
-	worker->getUser(id, user);
 }
 

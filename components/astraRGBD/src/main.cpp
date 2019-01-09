@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -165,7 +165,7 @@ int ::astraRGBD::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
 
 
@@ -178,7 +178,7 @@ int ::astraRGBD::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
 		RGBDI *rgbd = new RGBDI(worker);
-		adapterRGBD->add(rgbd, Ice::stringToIdentity("rgbd"));
+		adapterRGBD->add(rgbd, communicator()->stringToIdentity("rgbd"));
 		adapterRGBD->activate();
 		cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
 
@@ -219,11 +219,12 @@ int ::astraRGBD::run(int argc, char* argv[])
 
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
-    }
 
-#ifdef USE_QTGUI
+	}
+	#ifdef USE_QTGUI
 		a.quit();
-#endif
+	#endif
+
 
 	status = EXIT_SUCCESS;
 	monitor->terminate();

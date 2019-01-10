@@ -40,7 +40,7 @@ Q_OBJECT
 
 	astra::StreamSet streamSet;
     astra::StreamReader *reader;
-	bool depthB,colorB, bodyB, pointB;
+	bool depthB,colorB, bodyB;
 	MultiFrameListener *frameListener;
 
 //	void initializeStreams();

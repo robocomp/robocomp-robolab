@@ -14,5 +14,6 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 depth=true
-color=false
+color=true
 body=false
+point=true

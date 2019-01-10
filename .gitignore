@@ -96,3 +96,5 @@ CXX.*
 *automoc.cpp
 
 *.cbp
+
+components/astraRGBD/build/

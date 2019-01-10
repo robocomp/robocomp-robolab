@@ -40,7 +40,7 @@ Q_OBJECT
 
 	astra::StreamSet streamSet;
     astra::StreamReader *reader;
-	bool depthB,colorB;
+	bool depthB,colorB, bodyB;
 	MultiFrameListener *frameListener;
 
 //	void initializeStreams();
@@ -49,20 +49,28 @@ Q_OBJECT
 public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
+	void terminate();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	Registration getRegistration();
-	void getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	TRGBDParams getRGBDParams();
-	void getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void setRegistration(const Registration &value);
-	void getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	Registration RGBD_getRegistration();
+	void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	TRGBDParams RGBD_getRGBDParams();
+	void RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void RGBD_setRegistration(const Registration &value);
+	void RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
+	void HumanTracker_getJointsPosition(const int id, jointListType &jointList){};
+	void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList){};
+	void HumanTracker_getUser(const int id, TPerson &user){};
+	bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint);
+	void HumanTracker_getUsersList(PersonList &users);
+	void HumanTracker_getUserState(const int id, TrackingState &state){};
 
 public slots:
 	void compute();
+	void initialize(int period);
 
 private:
 	InnerModel *innerModel;

@@ -94,3 +94,17 @@ CXX.*
 *.new
 *autogen/
 *automoc.cpp
+
+*.cbp
+
+components/astraRGBD/src/cmake-build-debug/
+
+components/astraRGBD/src/GenericBase\.cpp
+
+components/astraRGBD/src/GenericBase\.h
+
+components/astraRGBD/src/HumanTracker\.cpp
+
+components/astraRGBD/src/HumanTracker\.h
+
+components/astraRGBD/build/

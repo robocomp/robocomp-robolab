@@ -66,6 +66,14 @@ class SpecificWorker(GenericWorker):
 			if "true" in params["debug"].lower():
 				self.hand_detector.debug=True
 				self.debug = True
+				search_roi_class = TRoi()
+				search_roi_class.y = 480 / 2 - 100
+				search_roi_class.x = 640 / 2 - 100
+				search_roi_class.w = 200
+				search_roi_class.h = 200
+				search_roi = (
+					search_roi_class.x, search_roi_class.y, search_roi_class.h, search_roi_class.w)
+				self.addNewHand(1, search_roi_class)
 		if "flip" in params:
 			if "true" in params["flip"].lower():
 				self.flip = True

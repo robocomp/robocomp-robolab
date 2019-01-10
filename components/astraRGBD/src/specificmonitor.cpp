@@ -94,6 +94,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["color"] = aux;
 	configGetString("", "body", aux.value,"true");
 	params["body"] = aux;
+	configGetString("", "point", aux.value,"true");
+	params["point"] = aux;
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

@@ -48,7 +48,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
 	bodyB = QString::fromStdString(params["body"].value).contains("true");
-
+	pointB  = QString::fromStdString(params["point"].value).contains("true");
 
     astra::initialize();
 
@@ -66,8 +66,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     qDebug()<<"Color stream will be opened? "<<colorB;
     frameListener->set_depth_stream(depthB);
     qDebug()<<"Depth stream will be opened? "<<depthB;
-    frameListener->set_point_stream(false);
-    qDebug()<<"Points  stream will be opened? "<<false;
+    frameListener->set_point_stream(pointB);
+    qDebug()<<"Points  stream will be opened? "<<pointB;
     frameListener->set_body_stream(bodyB);
     qDebug()<<"Body stream will be opened? "<<bodyB;
 

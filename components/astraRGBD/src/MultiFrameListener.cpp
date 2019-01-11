@@ -54,6 +54,16 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
     }
+	if (streamBools["point"])
+	{
+		astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
+		if(colorFrame.is_valid())
+		{
+			// Huge odd job because of the 2 image formats od the RGBD interface ColorSeq and ImgType
+			colorBuff.put(colorFrame, sizeof(astra::RgbPixel));
+			colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
+		}
+	}
 
     if (streamBools["body"])
     {
@@ -207,6 +217,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         antonio = false;
         return;
     }
+
 }
 
 void MultiFrameListener::set_color_stream(bool color_bool)

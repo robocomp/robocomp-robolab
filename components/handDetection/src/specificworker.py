@@ -64,8 +64,8 @@ class SpecificWorker(GenericWorker):
 		#	print "Error reading config params"
 		if "debug" in params:
 			if "true" in params["debug"].lower():
-				self.hand_detector.debug=True
-				self.debug = True
+				# self.hand_detector.debug=True
+				# self.debug = True
 				search_roi_class = TRoi()
 				search_roi_class.y = 480 / 2 - 100
 				search_roi_class.x = 640 / 2 - 100
@@ -88,6 +88,10 @@ class SpecificWorker(GenericWorker):
 			# frame = frame.reshape(image.width, image.height, image.depth)
 
 			color, depth, _, _ = self.rgbd_proxy.getData()
+			# points = self.rgbd_proxy.getXYZ()
+			# for point in points[0]:
+			# 	if point.x != 0 or point.y != 0 or point.z != 0 or point.w != 0:
+			# 		print point
 			frame = np.fromstring(color, dtype=np.uint8)
 			frame = frame.reshape(480, 640, 3)
 

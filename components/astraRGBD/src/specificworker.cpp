@@ -117,12 +117,20 @@ void SpecificWorker::RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStat
 {
 //implementCODE
     frameListener->get_points(points);
+    if(!pointB)
+    {
+        std::cout<<"WARNING: point stream is deactivated by config file.";
+    }
 }
 
 void SpecificWorker::RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
     frameListener->get_color(color);
+    if(!colorB)
+    {
+        std::cout<<"WARNING: color stream is deactivated by config file.";
+    }
 }
 
 TRGBDParams SpecificWorker::RGBD_getRGBDParams()
@@ -135,6 +143,10 @@ void SpecificWorker::RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorSta
 {
 //implementCODE
     frameListener->get_depth(depth);
+    if(!depthB)
+    {
+        std::cout<<"WARNING: depth stream is deactivated by config file.";
+    }
 }
 
 void SpecificWorker::RGBD_setRegistration(const Registration &value)
@@ -149,6 +161,18 @@ void SpecificWorker::RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &p
     frameListener->get_color(color);
     frameListener->get_depth(depth);
     frameListener->get_points(points);
+    if(!depthB)
+    {
+        std::cout<<"WARNING: depth stream is deactivated by config file.";
+    }
+    if(!colorB)
+    {
+        std::cout<<"WARNING: color stream is deactivated by config file.";
+    }
+    if(!pointB)
+    {
+        std::cout<<"WARNING: point stream is deactivated by config file.";
+    }
 }
 
 void SpecificWorker::RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)

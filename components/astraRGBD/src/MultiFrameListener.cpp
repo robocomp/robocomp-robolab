@@ -28,8 +28,28 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     depthBuff.init(640*480, depthConverter);
 //    bodyBuff.init(bodiesConverter);
     end = chrono::steady_clock::now();
+    joint2String = {
+        std::make_pair(astra::JointType::Head,"Head"),
+        std::make_pair(astra::JointType::Neck,"Neck"),
+        std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
+        std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
+        std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
+        std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
+        std::make_pair(astra::JointType::LeftHand,"LeftHand"),
+        std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
+        std::make_pair(astra::JointType::RightElbow,"RightElbow"),
+        std::make_pair(astra::JointType::RightWrist,"RightWrist"),
+        std::make_pair(astra::JointType::RightHand,"RightHand"),
+        std::make_pair(astra::JointType::MidSpine,"MidSpine"),
+        std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
+        std::make_pair(astra::JointType::LeftHip,"LeftHip"),
+        std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
+        std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
+        std::make_pair(astra::JointType::RightHip,"RightHip"),
+        std::make_pair(astra::JointType::RightKnee,"RightKnee"),
+        std::make_pair(astra::JointType::RightFoot,"RightFoot")
+    };
 }
-
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
 //    auto start = chrono::steady_clock::now();
@@ -82,7 +102,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         if (bodies.empty())
             return;
 
-        antonio = true;
+        is_writting = true;
         for (auto& body : bodies)
         {
 //            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
@@ -104,7 +124,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                     person.state = RoboCompHumanTracker::TrackingState::Tracking;
                     break;
                 default:
-                    qDebug()<<"CAGOENTO";
+                    qDebug()<<"Invalid body state";
             }
 
 
@@ -136,69 +156,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         astra::JointType type = j.type();
                         std::string typejoint;
 
-                        switch (type)
-                        {
-                            case astra::JointType::Head:
-                                typejoint = "Head";
-
-                                break;
-                            case astra::JointType::Neck:
-                                typejoint = "Neck";
-                                break;
-                            case astra::JointType::ShoulderSpine:
-                                typejoint = "ShoulderSpine";
-                                break;
-                            case astra::JointType::LeftShoulder:
-                                typejoint = "LeftShoulder";
-                                break;
-                            case astra::JointType::LeftElbow:
-                                typejoint = "LeftElbow";
-                                break;
-                            case astra::JointType::LeftWrist:
-                                typejoint = "LeftWrist";
-                                break;
-                            case astra::JointType::LeftHand:
-                                typejoint = "LeftHand";
-                                break;
-                            case astra::JointType::RightShoulder:
-                                typejoint = "RightShoulder";
-                                break;
-                            case astra::JointType::RightElbow:
-                                typejoint = "RightElbow";
-                                break;
-                            case astra::JointType::RightWrist:
-                                typejoint = "RightWrist";
-                                break;
-                            case astra::JointType::RightHand:
-                                typejoint = "RightHand";
-                                break;
-                            case astra::JointType::MidSpine:
-                                typejoint = "MidSpine";
-                                break;
-                            case astra::JointType::BaseSpine:
-                                typejoint = "BaseSpine";
-                                break;
-                            case astra::JointType::LeftHip:
-                                typejoint = "LeftHip";
-                                break;
-                            case astra::JointType::LeftKnee:
-                                typejoint = "LeftKnee";
-                                break;
-                            case astra::JointType::LeftFoot:
-                                typejoint = "LeftFoot";
-                                break;
-                            case astra::JointType::RightHip:
-                                typejoint = "RightHip";
-                                break;
-                            case astra::JointType::RightKnee:
-                                typejoint = "RightKnee";
-                                break;
-                            case astra::JointType::RightFoot:
-                                typejoint = "RightFoot";
-                                break;
-                            default:
-                                typejoint = " ";
-                        }
+                        typejoint = joint2String.at(type);
                         joints_list[typejoint] = JointP;
                         joints_depth[typejoint]=pointindepth;
 
@@ -214,7 +172,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
         }
         qDebug()<<" PERSONAS = "<<bodylist.size() ;
-        antonio = false;
+        is_writting = false;
         return;
     }
 
@@ -300,11 +258,11 @@ void MultiFrameListener::get_people(PersonList& people)
 //    bodyBuff.get(people);
 //    qDebug()<<"get_People_2 "<<people.size();
 
-    if (antonio) //la bandera dice si se esta leyendo a la vez que escribiendo
+    if (is_writting) //la bandera dice si se esta leyendo a la vez que escribiendo
     {
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"--------------- SOY EL GATO CON BOTAS ------------------";
+        qDebug()<<"- Possible sync problem while reading people structure -";
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
     }

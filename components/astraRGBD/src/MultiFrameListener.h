@@ -17,6 +17,7 @@
 #include <mutex>
 #include <chrono>
 
+
 class MultiFrameListener : public astra::FrameListener
 {
     ::std::map< ::std::string, bool> streamBools;
@@ -48,12 +49,11 @@ class MultiFrameListener : public astra::FrameListener
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
 
 
-    typedef map <int,jointListType> MapDepth;
-    MapDepth PersonDepth;
+	std::map<int,jointListType> PersonDepth;
 
 public:
 
-    bool antonio = false; //bandera
+    bool is_writting = false; //bandera
 
     MultiFrameListener(astra::StreamReader& reader_);
 
@@ -79,6 +79,8 @@ public:
 
 
 private:
+	std::map<astra::JointType, ::std::string> joint2String ;
+
     mutable std::mutex my_mutex;
     astra::DepthStream configure_depth(astra::StreamReader& reader);
 

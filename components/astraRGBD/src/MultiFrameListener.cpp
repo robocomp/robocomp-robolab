@@ -28,8 +28,28 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     depthBuff.init(640*480, depthConverter);
 //    bodyBuff.init(bodiesConverter);
     end = chrono::steady_clock::now();
+    joint2String = {
+        (Head:,"Head"),
+        (Neck:,"Neck"),
+        (ShoulderSpine:,"ShoulderSpine"),
+        (LeftShoulder:,"LeftShoulder"),
+        (LeftElbow:,"LeftElbow"),
+        (LeftWrist:,"LeftWrist"),
+        (LeftHand:,"LeftHand"),
+        (RightShoulder:,"RightShoulder"),
+        (RightElbow:,"RightElbow"),
+        (RightWrist:,"RightWrist"),
+        (RightHand:,"RightHand"),
+        (MidSpine:,"MidSpine"),
+        (BaseSpine:,"BaseSpine"),
+        (LeftHip:,"LeftHip"),
+        (LeftKnee:,"LeftKnee"),
+        (LeftFoot:,"LeftFoot"),
+        (RightHip:,"RightHip"),
+        (RightKnee:,"RightKnee"),
+        (RightFoot:,"RightFoot")
+    };
 }
-
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
 //    auto start = chrono::steady_clock::now();
@@ -104,7 +124,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                     person.state = RoboCompHumanTracker::TrackingState::Tracking;
                     break;
                 default:
-                    qDebug()<<"CAGOENTO";
+                    qDebug()<<"Invalid body state";
             }
 
 
@@ -136,69 +156,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         astra::JointType type = j.type();
                         std::string typejoint;
 
-                        switch (type)
-                        {
-                            case astra::JointType::Head:
-                                typejoint = "Head";
-
-                                break;
-                            case astra::JointType::Neck:
-                                typejoint = "Neck";
-                                break;
-                            case astra::JointType::ShoulderSpine:
-                                typejoint = "ShoulderSpine";
-                                break;
-                            case astra::JointType::LeftShoulder:
-                                typejoint = "LeftShoulder";
-                                break;
-                            case astra::JointType::LeftElbow:
-                                typejoint = "LeftElbow";
-                                break;
-                            case astra::JointType::LeftWrist:
-                                typejoint = "LeftWrist";
-                                break;
-                            case astra::JointType::LeftHand:
-                                typejoint = "LeftHand";
-                                break;
-                            case astra::JointType::RightShoulder:
-                                typejoint = "RightShoulder";
-                                break;
-                            case astra::JointType::RightElbow:
-                                typejoint = "RightElbow";
-                                break;
-                            case astra::JointType::RightWrist:
-                                typejoint = "RightWrist";
-                                break;
-                            case astra::JointType::RightHand:
-                                typejoint = "RightHand";
-                                break;
-                            case astra::JointType::MidSpine:
-                                typejoint = "MidSpine";
-                                break;
-                            case astra::JointType::BaseSpine:
-                                typejoint = "BaseSpine";
-                                break;
-                            case astra::JointType::LeftHip:
-                                typejoint = "LeftHip";
-                                break;
-                            case astra::JointType::LeftKnee:
-                                typejoint = "LeftKnee";
-                                break;
-                            case astra::JointType::LeftFoot:
-                                typejoint = "LeftFoot";
-                                break;
-                            case astra::JointType::RightHip:
-                                typejoint = "RightHip";
-                                break;
-                            case astra::JointType::RightKnee:
-                                typejoint = "RightKnee";
-                                break;
-                            case astra::JointType::RightFoot:
-                                typejoint = "RightFoot";
-                                break;
-                            default:
-                                typejoint = " ";
-                        }
+                        typejoint = joint2String.at(type);
                         joints_list[typejoint] = JointP;
                         joints_depth[typejoint]=pointindepth;
 
@@ -300,11 +258,11 @@ void MultiFrameListener::get_people(PersonList& people)
 //    bodyBuff.get(people);
 //    qDebug()<<"get_People_2 "<<people.size();
 
-    if (antonio) //la bandera dice si se esta leyendo a la vez que escribiendo
+    if (is_writting) //la bandera dice si se esta leyendo a la vez que escribiendo
     {
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"--------------- SOY EL GATO CON BOTAS ------------------";
+        qDebug()<<"- Possible sync problem while reading people structure -";
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
     }

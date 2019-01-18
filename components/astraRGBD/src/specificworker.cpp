@@ -72,13 +72,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     qDebug()<<"Body stream will be opened? "<<bodyB;
 
     reader->add_listener(*frameListener);
+
 	return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
+	//currently there's no default way to change the period without getting this overwrited by initialize
+	this->Period = 1/30;
 	timer.start(Period);
 }
 
@@ -87,6 +89,18 @@ void SpecificWorker::compute()
 	QMutexLocker locker(mutex);
     astra_update();
 
+}
+
+float SpecificWorker::compute_fps(bool print)
+{
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point current_time = std::chrono::system_clock::now();
+    fsec delta_time = current_time - last_time;
+    if(print)
+	{
+    	std::cout<<fsec(1)/delta_time<<endl;
+	}
+	last_time=current_time;
 }
 
 
@@ -115,12 +129,22 @@ void SpecificWorker::RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix,
 
 void SpecificWorker::RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
-//implementCODE
-    frameListener->get_points(points);
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
+
+	std::cout<<"Received RGBD_getXYZ from ice"<<endl;
+//	PointSeq pruebaMierda;
+//	pruebaMierda.resize((640*480)/10);
+//	points = pruebaMierda;
+	frameListener->get_points(points);
+
     if(!pointB)
     {
         std::cout<<"WARNING: point stream is deactivated by config file.";
     }
+	std::cout<<"RGBD_getXYZ: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
+	compute_fps(true);
+
 }
 
 void SpecificWorker::RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
@@ -152,7 +176,14 @@ void SpecificWorker::RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorSta
 void SpecificWorker::RGBD_setRegistration(const Registration &value)
 {
 //implementCODE
-    qDebug()<<"setRegistration Not implemented yet";
+
+}
+
+void SpecificWorker::RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+{
+//implementCODE
+	frameListener->get_points_stream(pointStream);
+
 }
 
 void SpecificWorker::RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
@@ -180,10 +211,23 @@ void SpecificWorker::RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointM
     qDebug()<<"getDepthInIR Not implemented yet";
 }
 
-void  SpecificWorker::HumanTracker_getUsersList(PersonList &users){
-    frameListener->get_people(users);
+void SpecificWorker::HumanTracker_getJointsPosition(const int id, jointListType &jointList)
+{
+//implementCODE
+	qDebug()<<"HumanTracker_getJointsPosition Not implemented yet";
+}
 
-};
+void SpecificWorker::HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList)
+{
+//implementCODE
+	qDebug()<<"HumanTracker_getRTMatrixList Not implemented yet";
+}
+
+void SpecificWorker::HumanTracker_getUser(const int id, TPerson &user)
+{
+//implementCODE
+	qDebug()<<"HumanTracker_getUser Not implemented yet";
+}
 
 bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint)
 {
@@ -201,6 +245,14 @@ bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, cons
 
 }
 
+void  SpecificWorker::HumanTracker_getUsersList(PersonList &users)
+{
+    frameListener->get_people(users);
+}
 
 
-
+void SpecificWorker::HumanTracker_getUserState(const int id, TrackingState &state)
+{
+//implementCODE
+	qDebug()<<"HumanTracker_getUserState Not implemented yet";
+}

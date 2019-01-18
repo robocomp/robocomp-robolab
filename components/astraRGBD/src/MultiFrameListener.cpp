@@ -26,6 +26,8 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     colorBuff2.init(640*480*3, byteConverter);
     colorBuff.init(640*480, colorConverter);
     depthBuff.init(640*480, depthConverter);
+    pointStreamBuff.init(640*480*3*4, pointStreamConverter);
+    pointBuff.init(640*480, pointConverter);
 //    bodyBuff.init(bodiesConverter);
     end = chrono::steady_clock::now();
     joint2String = {
@@ -76,12 +78,11 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
     }
 	if (streamBools["point"])
 	{
-		astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
-		if(colorFrame.is_valid())
+		astra::PointFrame pointFrame = frame.get<astra::PointFrame>();
+		if(pointFrame.is_valid())
 		{
-			// Huge odd job because of the 2 image formats od the RGBD interface ColorSeq and ImgType
-			colorBuff.put(colorFrame, sizeof(astra::RgbPixel));
-			colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
+//			pointBuff.put(pointFrame, sizeof(float)*4);
+            pointStreamBuff.put(pointFrame, sizeof(float)*4);
 		}
 	}
 
@@ -234,8 +235,21 @@ void MultiFrameListener::get_depth(DepthSeq& depth)
 void MultiFrameListener::get_points(PointSeq& points)
 {
 //    cout<<"MultiFrameListener::get_points"<<endl;
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
     pointBuff.get(points);
+	std::cout<<"Multiframe: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
 }
+
+void MultiFrameListener::get_points_stream(imgType& pointsStream)
+{
+//    cout<<"MultiFrameListener::get_points"<<endl;
+    typedef std::chrono::duration<float> fsec;
+    std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
+    pointStreamBuff.get(pointsStream);
+    std::cout<<"Multiframe: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
+}
+
 void MultiFrameListener::get_color(ColorSeq& colors)
 {
 //    cout<<"MultiFrameListener::get_color"<<endl;

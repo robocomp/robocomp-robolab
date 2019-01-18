@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -61,6 +61,11 @@ void RGBDI::getDepth( DepthSeq  &depth,  RoboCompJointMotor::MotorStateMap  &hSt
 void RGBDI::setRegistration( Registration  value, const Ice::Current&)
 {
 	worker->RGBD_setRegistration(value);
+}
+
+void RGBDI::getXYZByteStream( imgType  &pointStream,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+{
+	worker->RGBD_getXYZByteStream(pointStream, hState, bState);
 }
 
 void RGBDI::getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)

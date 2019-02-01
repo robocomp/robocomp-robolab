@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -43,8 +43,6 @@ using namespace RoboCompGenericBase;
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
-
-
 class GenericWorker :
 public QObject
 {
@@ -67,6 +65,7 @@ public:
 	virtual TRGBDParams RGBD_getRGBDParams() = 0;
 	virtual void RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_setRegistration(const Registration &value) = 0;
+	virtual void RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void HumanTracker_getJointsPosition(const int id, jointListType &jointList) = 0;

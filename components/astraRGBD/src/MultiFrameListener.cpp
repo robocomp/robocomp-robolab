@@ -26,157 +26,32 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     colorBuff2.init(640*480*3, byteConverter);
     colorBuff.init(640*480, colorConverter);
     depthBuff.init(640*480, depthConverter);
+    pointStreamBuff.init(640*480*3*4, pointStreamConverter);
+    pointBuff.init(640*480, pointConverter);
 //    bodyBuff.init(bodiesConverter);
     end = chrono::steady_clock::now();
+    joint2String = {
+        std::make_pair(astra::JointType::Head,"Head"),
+        std::make_pair(astra::JointType::Neck,"Neck"),
+        std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
+        std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
+        std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
+        std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
+        std::make_pair(astra::JointType::LeftHand,"LeftHand"),
+        std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
+        std::make_pair(astra::JointType::RightElbow,"RightElbow"),
+        std::make_pair(astra::JointType::RightWrist,"RightWrist"),
+        std::make_pair(astra::JointType::RightHand,"RightHand"),
+        std::make_pair(astra::JointType::MidSpine,"MidSpine"),
+        std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
+        std::make_pair(astra::JointType::LeftHip,"LeftHip"),
+        std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
+        std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
+        std::make_pair(astra::JointType::RightHip,"RightHip"),
+        std::make_pair(astra::JointType::RightKnee,"RightKnee"),
+        std::make_pair(astra::JointType::RightFoot,"RightFoot")
+    };
 }
-
-
-//void MultiFrameListener::update_depth(astra::Frame& frame)
-//{
-//    const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
-//
-//    if (!depthFrame.is_valid())
-//    {
-//
-//        return;
-//    }
-//
-//    const int depthWidth = depthFrame.width();
-//    const int depthHeight = depthFrame.height();
-////    qDebug()<<"Depth frame readed";
-//
-//
-////    const cv::Mat mImageDepth( depthHeight, depthWidth, CV_16UC1, (void*)depthFrame.data());
-////
-////    cv::Mat mScaledDepth;
-////    mImageDepth.convertTo( mScaledDepth, CV_8U, 255.0 / 6000 );
-////
-////    cv::imshow( "Depth Image", mScaledDepth );
-//    depthBuff.resize(depthWidth*depthHeight);
-////    auto start = std::chrono::steady_clock::now();
-//    // More optimized way to copy than the for loop. No memcpy can be used in this case becuase of the casting.
-////    std::copy(&depthFrame.data()[0], &depthFrame.data()[0]+(depthWidth*depthHeight* sizeof(short)), begin(*depthBuff.getNextPtr()));
-////    for(int i=0;i<depthWidth*depthHeight;i++) depthBuff.operator[](i)=(float)depthFrame.data()[i];
-////    auto duration = std::chrono::duration_cast< std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
-////    printf("%d\n",duration);
-//
-//
-//}
-
-
-//void MultiFrameListener::update_color(astra::Frame& frame)
-//{
-//    const astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
-//
-//    if (!colorFrame.is_valid())
-//    {
-//
-//        return;
-//    }
-//
-//    const int colorWidth = colorFrame.width();
-//    const int colorHeight = colorFrame.height();
-////    qDebug()<<"Color frame readed";
-////    qDebug()<<colorWidth<<" "<<colorHeight;
-//    colorBuff.resize(colorWidth*colorHeight*3);
-////    const cv::Mat mImageRGB(colorHeight, colorWidth, CV_8UC3, (void*)colorFrame.data());
-////    cv::Mat cImageBGR;
-////    cv::cvtColor( mImageRGB, cImageBGR, CV_RGB2BGR );
-////    cv::imshow( "Color Image", cImageBGR );
-////    for(int i=0;i<colorWidth*colorHeight;i++) colorBuff.operator[](i)=(RoboCompRGBD::ColorRGB)colorFrame.data()[i];
-//    memcpy(&colorBuff[0],colorFrame.data(),colorWidth*colorHeight* sizeof(astra::RgbPixel));
-//
-////    const astra::RgbPixel* color = colorFrame.data();
-////    uint8_t* buffer = &colorView_.buffer_[0];
-////
-////    for(int i = 0; i < colorWidth * colorHeight; i++)
-////    {
-////        const int rgbaOffset = i * 4;
-////        buffer[rgbaOffset] = color[i].r;
-////        buffer[rgbaOffset + 1] = color[i].g;
-////        buffer[rgbaOffset + 2] = color[i].b;
-////        buffer[rgbaOffset + 3] = 255;
-////    }
-//
-//}
-
-
-//void MultiFrameListener::update_point(astra::Frame &frame)
-//{
-//    const astra::PointFrame pointFrame = frame.get<astra::PointFrame>();
-//
-//    if (!pointFrame.is_valid())
-//    {
-//        return;
-//    }
-//
-//    int pointWidth = pointFrame.width();
-//    int pointHeight = pointFrame.height();
-////    qDebug()<<"Points frame readed";
-//    pointBuff.resize(pointWidth*pointHeight);
-//    for(int i=0;i<pointWidth*pointHeight;i++)
-//    {
-//        pointBuff[i].x = pointFrame.data()[i].x;
-//        pointBuff[i].y = pointFrame.data()[i].y;
-//        pointBuff[i].z = pointFrame.data()[i].z;
-//    }
-//}
-
-//void MultiFrameListener::update_ir_16(astra::Frame& frame)
-//{
-//    const astra::InfraredFrame16 irFrame = frame.get<astra::InfraredFrame16>();
-//
-//    if (!irFrame.is_valid())
-//    {
-//        return;
-//    }
-//
-//    const int irWidth = irFrame.width();
-//    const int irHeight = irFrame.height();
-////    qDebug()<<"IR16 frame readed";
-//
-////    const uint16_t* ir_values = irFrame.data();
-////    uint8_t* buffer = &colorView_.buffer_[0];
-////    for (int i = 0; i < irWidth * irHeight; i++)
-////    {
-////        const int rgbaOffset = i * 4;
-////        const uint16_t value = ir_values[i];
-////        const uint8_t red = static_cast<uint8_t>(value >> 2);
-////        const uint8_t blue = 0x66 - red / 2;
-////        buffer[rgbaOffset] = red;
-////        buffer[rgbaOffset + 1] = 0;
-////        buffer[rgbaOffset + 2] = blue;
-////        buffer[rgbaOffset + 3] = 255;
-////    }
-//
-//}
-
-//void MultiFrameListener::update_ir_rgb(astra::Frame& frame)
-//{
-//    const astra::InfraredFrameRgb irFrame = frame.get<astra::InfraredFrameRgb>();
-//
-//    if (!irFrame.is_valid())
-//    {
-//        return;
-//    }
-//
-//    int irWidth = irFrame.width();
-//    int irHeight = irFrame.height();
-////    qDebug()<<"Ir frame readed";
-//
-////    const astra::RgbPixel* irRGB = irFrame.data();
-////    uint8_t* buffer = &colorView_.buffer_[0];
-////    for (int i = 0; i < irWidth * irHeight; i++)
-////    {
-////        const int rgbaOffset = i * 4;
-////        buffer[rgbaOffset] = irRGB[i].r;
-////        buffer[rgbaOffset + 1] = irRGB[i].g;
-////        buffer[rgbaOffset + 2] = irRGB[i].b;
-////        buffer[rgbaOffset + 3] = 255;
-////    }
-//
-//}
-
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
 //    auto start = chrono::steady_clock::now();
@@ -201,6 +76,15 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
     }
+	if (streamBools["point"])
+	{
+		astra::PointFrame pointFrame = frame.get<astra::PointFrame>();
+		if(pointFrame.is_valid())
+		{
+//			pointBuff.put(pointFrame, sizeof(float)*4);
+            pointStreamBuff.put(pointFrame, sizeof(float)*4);
+		}
+	}
 
     if (streamBools["body"])
     {
@@ -219,7 +103,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         if (bodies.empty())
             return;
 
-        antonio = true;
+        is_writting = true;
         for (auto& body : bodies)
         {
 //            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
@@ -241,7 +125,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                     person.state = RoboCompHumanTracker::TrackingState::Tracking;
                     break;
                 default:
-                    qDebug()<<"CAGOENTO";
+                    qDebug()<<"Invalid body state";
             }
 
 
@@ -273,69 +157,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         astra::JointType type = j.type();
                         std::string typejoint;
 
-                        switch (type)
-                        {
-                            case astra::JointType::Head:
-                                typejoint = "Head";
-
-                                break;
-                            case astra::JointType::Neck:
-                                typejoint = "Neck";
-                                break;
-                            case astra::JointType::ShoulderSpine:
-                                typejoint = "ShoulderSpine";
-                                break;
-                            case astra::JointType::LeftShoulder:
-                                typejoint = "LeftShoulder";
-                                break;
-                            case astra::JointType::LeftElbow:
-                                typejoint = "LeftElbow";
-                                break;
-                            case astra::JointType::LeftWrist:
-                                typejoint = "LeftWrist";
-                                break;
-                            case astra::JointType::LeftHand:
-                                typejoint = "LeftHand";
-                                break;
-                            case astra::JointType::RightShoulder:
-                                typejoint = "RightShoulder";
-                                break;
-                            case astra::JointType::RightElbow:
-                                typejoint = "RightElbow";
-                                break;
-                            case astra::JointType::RightWrist:
-                                typejoint = "RightWrist";
-                                break;
-                            case astra::JointType::RightHand:
-                                typejoint = "RightHand";
-                                break;
-                            case astra::JointType::MidSpine:
-                                typejoint = "MidSpine";
-                                break;
-                            case astra::JointType::BaseSpine:
-                                typejoint = "BaseSpine";
-                                break;
-                            case astra::JointType::LeftHip:
-                                typejoint = "LeftHip";
-                                break;
-                            case astra::JointType::LeftKnee:
-                                typejoint = "LeftKnee";
-                                break;
-                            case astra::JointType::LeftFoot:
-                                typejoint = "LeftFoot";
-                                break;
-                            case astra::JointType::RightHip:
-                                typejoint = "RightHip";
-                                break;
-                            case astra::JointType::RightKnee:
-                                typejoint = "RightKnee";
-                                break;
-                            case astra::JointType::RightFoot:
-                                typejoint = "RightFoot";
-                                break;
-                            default:
-                                typejoint = " ";
-                        }
+                        typejoint = joint2String.at(type);
                         joints_list[typejoint] = JointP;
                         joints_depth[typejoint]=pointindepth;
 
@@ -351,43 +173,10 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 
         }
         qDebug()<<" PERSONAS = "<<bodylist.size() ;
-        antonio = false;
+        is_writting = false;
         return;
     }
 
-//    if (streamBools["ir"]) {
-//        update_ir_rgb(frame);
-//    }
-//    if (streamBools["point"]) {
-//        update_point(frame);
-//        pointBuff.swap();
-//    }
-//    std::lock_guard<std::mutex> lock(my_mutex);
-//    if (streamBools["depth"]) {
-////        const astra::DepthFrame depthFrame = frame.get<astra::DepthFrame>();
-////        depthBuff.put_stdcopy(depthFrame, sizeof(short));
-////        depthBuff.swap();
-//        if (update_depth(frame)) {
-//            colorBuff.swap()
-//        }
-//    }
-//    if (streamBools["color"]) {
-////        astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
-////        colorBuff.put_memcpy(colorFrame, sizeof(astra::RgbPixel));
-////        colorBuff.swap();
-//        if (update_depth(frame))
-//            depthBuff.swap();
-//    }
-//    if (streamBools["ir"]) {
-//        update_ir_rgb(frame);
-//    }
-//    if (streamBools["point"]) {
-//        if (update_point(frame))
-//        {
-//            pointBuff.swap();
-//        }
-//
-//    }
 }
 
 void MultiFrameListener::set_color_stream(bool color_bool)
@@ -446,8 +235,21 @@ void MultiFrameListener::get_depth(DepthSeq& depth)
 void MultiFrameListener::get_points(PointSeq& points)
 {
 //    cout<<"MultiFrameListener::get_points"<<endl;
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
     pointBuff.get(points);
+	std::cout<<"Multiframe: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
 }
+
+void MultiFrameListener::get_points_stream(imgType& pointsStream)
+{
+//    cout<<"MultiFrameListener::get_points"<<endl;
+    typedef std::chrono::duration<float> fsec;
+    std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
+    pointStreamBuff.get(pointsStream);
+    std::cout<<"Multiframe: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
+}
+
 void MultiFrameListener::get_color(ColorSeq& colors)
 {
 //    cout<<"MultiFrameListener::get_color"<<endl;
@@ -470,11 +272,11 @@ void MultiFrameListener::get_people(PersonList& people)
 //    bodyBuff.get(people);
 //    qDebug()<<"get_People_2 "<<people.size();
 
-    if (antonio) //la bandera dice si se esta leyendo a la vez que escribiendo
+    if (is_writting) //la bandera dice si se esta leyendo a la vez que escribiendo
     {
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"--------------- SOY EL GATO CON BOTAS ------------------";
+        qDebug()<<"- Possible sync problem while reading people structure -";
         qDebug()<<"--------------------------------------------------------";
         qDebug()<<"--------------------------------------------------------";
     }

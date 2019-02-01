@@ -1,8 +1,9 @@
 CommonBehavior.Endpoints=tcp -p 11111
-HumanTracker.Endpoints= tcp -p 11666
+
 
 # Endpoints for implemented interfaces
 RGBD.Endpoints=tcp -p 10096
+HumanTracker.Endpoints=tcp -p 11666
 
 
 
@@ -14,5 +15,6 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 depth=true
-color=false
+color=true
 body=false
+point=true

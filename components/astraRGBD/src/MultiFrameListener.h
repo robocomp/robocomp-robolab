@@ -16,6 +16,8 @@
 //#include <opencv2/opencv.hpp>
 #include <mutex>
 #include <chrono>
+#include "RGBD.h"
+
 
 class MultiFrameListener : public astra::FrameListener
 {
@@ -29,7 +31,8 @@ class MultiFrameListener : public astra::FrameListener
     astra::InfraredStream *irStream;
     astra::HandStream *handStream;
 
-    DoubleBuffer<astra::PointFrame, RoboCompRGBD::PointSeq, ByteSeqConverter> pointBuff;
+    DoubleBuffer<astra::PointFrame, RoboCompRGBD::imgType, PointStreamConverter> pointStreamBuff;
+	DoubleBuffer<astra::PointFrame, RoboCompRGBD::PointSeq, PointSeqConverter> pointBuff;
     DoubleBuffer<astra::DepthFrame, RoboCompRGBD::DepthSeq, FloatSeqConverter> depthBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq, ColorSeqConverter> colorBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType, ByteSeqConverter> colorBuff2;
@@ -39,6 +42,9 @@ class MultiFrameListener : public astra::FrameListener
     ByteSeqConverter byteConverter;
     FloatSeqConverter depthConverter;
     ColorSeqConverter colorConverter;
+    PointStreamConverter pointStreamConverter;
+	PointSeqConverter pointConverter;
+
 //    BodiesPeopleConverter bodiesConverter;
     RoboCompHumanTracker::PersonList bodylist;
     std::chrono::steady_clock::time_point end;
@@ -48,12 +54,11 @@ class MultiFrameListener : public astra::FrameListener
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
 
 
-    typedef map <int,jointListType> MapDepth;
-    MapDepth PersonDepth;
+	std::map<int,jointListType> PersonDepth;
 
 public:
 
-    bool antonio = false; //bandera
+    bool is_writting = false; //bandera
 
     MultiFrameListener(astra::StreamReader& reader_);
 
@@ -72,6 +77,7 @@ public:
 
     void get_depth(DepthSeq& depth);
     void get_points(PointSeq& points);
+    void get_points_stream(imgType& pointStream);
     void get_color(ColorSeq& colors);
     void get_color(imgType& colors);
     void get_people(PersonList& people);
@@ -79,6 +85,8 @@ public:
 
 
 private:
+	std::map<astra::JointType, ::std::string> joint2String ;
+
     mutable std::mutex my_mutex;
     astra::DepthStream configure_depth(astra::StreamReader& reader);
 

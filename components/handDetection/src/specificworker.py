@@ -64,8 +64,8 @@ class SpecificWorker(GenericWorker):
 		#	print "Error reading config params"
 		if "debug" in params:
 			if "true" in params["debug"].lower():
-				self.hand_detector.debug=True
-				self.debug = True
+				# self.hand_detector.debug=True
+				# self.debug = True
 				search_roi_class = TRoi()
 				search_roi_class.y = 480 / 2 - 100
 				search_roi_class.x = 640 / 2 - 100

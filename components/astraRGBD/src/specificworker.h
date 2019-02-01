@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -31,16 +31,17 @@
 #include <innermodel/innermodel.h>
 #include <MultiFrameListener.h>
 #include <DoubleBufferConverters.h>
+#include <chrono>
 
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
-    int fps;
+	std::chrono::system_clock::time_point last_time;
 
 	astra::StreamSet streamSet;
     astra::StreamReader *reader;
-	bool depthB,colorB, bodyB;
+	bool depthB,colorB, bodyB, pointB;
 	MultiFrameListener *frameListener;
 
 //	void initializeStreams();
@@ -59,14 +60,15 @@ public:
 	TRGBDParams RGBD_getRGBDParams();
 	void RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void RGBD_setRegistration(const Registration &value);
+	void RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
-	void HumanTracker_getJointsPosition(const int id, jointListType &jointList){};
-	void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList){};
-	void HumanTracker_getUser(const int id, TPerson &user){};
+	void HumanTracker_getJointsPosition(const int id, jointListType &jointList);
+	void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList);
+	void HumanTracker_getUser(const int id, TPerson &user);
 	bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint);
 	void HumanTracker_getUsersList(PersonList &users);
-	void HumanTracker_getUserState(const int id, TrackingState &state){};
+	void HumanTracker_getUserState(const int id, TrackingState &state);
 
 public slots:
 	void compute();
@@ -74,6 +76,7 @@ public slots:
 
 private:
 	InnerModel *innerModel;
+	float compute_fps(bool print);
 
 };
 

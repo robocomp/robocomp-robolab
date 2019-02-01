@@ -39,7 +39,7 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 20
+		self.Period = 30
 		self.hand_detector = HandDetector(-1)
 		self.hand_detector.set_mask_mode("depth")
 		self.timer.start(self.Period)
@@ -51,7 +51,7 @@ class SpecificWorker(GenericWorker):
 		self.flip = False
 		self.debug = False
 		self.fps = 0
-		self.last_time = None
+		self.last_time = 0
 		# It helps to increase the space between the depth wall and some inclination or frames
 
 
@@ -81,13 +81,10 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		self.last_time = time.time()
 		try:
-			# image = self.camerasimple_proxy.getImage()
-			# frame = np.fromstring(image.image, dtype=np.uint8)
-			# frame = frame.reshape(image.width, image.height, image.depth)
 
 			color, depth, _, _ = self.rgbd_proxy.getData()
+
 			frame = np.fromstring(color, dtype=np.uint8)
 			frame = frame.reshape(480, 640, 3)
 
@@ -126,12 +123,50 @@ class SpecificWorker(GenericWorker):
 				self.new_hand_roi = None
 		elif self.state == "tracking":
 			self.hand_detector.update_detection_and_tracking(frame)
-		self.calculate_fps()
-		print "Compute in state %s with %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands),self.hand_detector.mask_mode, self.fps)
+			for detected_hand in self.hand_detector.hands:
+				try:
+					points, _, _ = self.rgbd_proxy.getXYZByteStream()
+					np_points = np.fromstring(points, dtype=np.float32)
+					points_frame = np_points.reshape(480, 640, 3)
+					if self.flip:
+						points_frame = cv2.flip(points_frame, 0)
+					# print len(np_points)ç
+					cm = detected_hand.center_of_mass
+					# print ("%s %s"%(str(detected_hand.center_of_mass), str(points_frame.shape)))
+					point_x = points_frame[cm[1], cm[0], 0]
+					point_y = points_frame[cm[1], cm[0], 1]
+					point_z = points_frame[cm[1], cm[0], 2]
+					# IT'S A 640x480 matrix
+					# point_x = points_frame[360, 240, 0]
+					# point_y = points_frame[360, 240, 1]
+					# point_z = points_frame[360, 240, 2]
+					detected_hand.center_of_mass_xyz = [int(point_x), int(point_y), int(point_z)]
+					if self.debug:
+						print("%d %d %d" % (int(detected_hand.center_of_mass_xyz[0]), int(detected_hand.center_of_mass_xyz[1]), int(detected_hand.center_of_mass_xyz[2])))
+						# print("%d %d " % (cm[0], cm[1]))
+						xyz_to_show = self.depth_normalization(points_frame[:,:,2]).astype(np.uint8)
+						# print xyz_to_show.shape
+						# gray_xyz = cv2.cvtColor(xyz_to_show, cv2.COLOR_BGR2GRAY)
+						cv2.circle(xyz_to_show, (cm[0],cm[1]), 20, (0, 0, 255), -1)
+						font = cv2.FONT_HERSHEY_SIMPLEX
+						cv2.putText(xyz_to_show, str(cm), cm, font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+						cv2.imshow("XYZ", xyz_to_show)
+						# print("%d" % (len(detected_hand.center_of_mass)))
+						# print("%f %f %f" % (int(point_x), int(point_y), int(point_z)))
+
+				except Exception as e:
+					print("Problem getting points (XYZ) from rgbd")
+					print e
+		self.calculate_fps(False)
+		# print "%s with %d of %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands), self.expected_hands, self.hand_detector.mask_mode, self.fps)
 		return True
 
-	def calculate_fps(self):
-		self.fps=1.0 / (time.time() - self.last_time)
+	def calculate_fps(self, to_print=False):
+		current_time = time.time()
+		self.fps=1.0 / (current_time - self.last_time)
+		self.last_time = current_time
+		if to_print:
+			print("%d fps"%(self.fps))
 
 
 	def depth_normalization(self, depth):
@@ -175,10 +210,17 @@ class SpecificWorker(GenericWorker):
 			new_hand.positions = detected_hand.position_history
 			# print detected_hand.contour
 			new_hand.contour = detected_hand.contour
-			new_hand.centerMass = detected_hand.center_of_mass
+			try:
+				new_hand.centerMass = detected_hand.center_of_mass_xyz
+				print("%d %d %d" % (int(new_hand.centerMass[0]), int(new_hand.centerMass[1]), int(new_hand.centerMass[2])))
+			except:
+				new_hand.centerMass = [0,0,0]
+				print "no xyz center of mass"
+			# print("%d %d"%(len(new_hand.centerMass),len(detected_hand.center_of_mass)))
 			new_hand.truthValue = detected_hand.truth_value
 			new_hand.detected = detected_hand.detected
 			new_hand.tracked = detected_hand.tracked
+
 			ret.append(new_hand)
 		return ret
 

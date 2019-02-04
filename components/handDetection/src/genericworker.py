@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 by YOUR NAME HERE
+# Copyright (C) 2019 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -115,8 +115,8 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
-		self.rgbd_proxy = mprx["RGBDProxy"]
 		self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+		self.rgbd_proxy = mprx["RGBDProxy"]
 
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

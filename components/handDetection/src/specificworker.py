@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 by Esteban Martinena
+# Copyright (C) 2019 by Robocomp
 #
 #    This file is part of RoboComp
 #
@@ -64,8 +64,8 @@ class SpecificWorker(GenericWorker):
 		#	print "Error reading config params"
 		if "debug" in params:
 			if "true" in params["debug"].lower():
-				# self.hand_detector.debug=True
-				# self.debug = True
+				self.hand_detector.debug=True
+				self.debug = True
 				search_roi_class = TRoi()
 				search_roi_class.y = 480 / 2 - 100
 				search_roi_class.x = 640 / 2 - 100
@@ -210,12 +210,14 @@ class SpecificWorker(GenericWorker):
 			new_hand.positions = detected_hand.position_history
 			# print detected_hand.contour
 			new_hand.contour = detected_hand.contour
+			new_hand.centerMass2D = detected_hand.center_of_mass
 			try:
-				new_hand.centerMass = detected_hand.center_of_mass_xyz
-				print("%d %d %d" % (int(new_hand.centerMass[0]), int(new_hand.centerMass[1]), int(new_hand.centerMass[2])))
-			except:
+				new_hand.centerMass3D = detected_hand.center_of_mass_xyz
+				print("%d %d %d" % (int(new_hand.centerMass3D[0]), int(new_hand.centerMass3D[1]), int(new_hand.centerMass3D[2])))
+			except Exception as e:
 				new_hand.centerMass = [0,0,0]
 				print "no xyz center of mass"
+				print e
 			# print("%d %d"%(len(new_hand.centerMass),len(detected_hand.center_of_mass)))
 			new_hand.truthValue = detected_hand.truth_value
 			new_hand.detected = detected_hand.detected

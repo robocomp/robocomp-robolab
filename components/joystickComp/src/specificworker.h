@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2018 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,24 +16,23 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef JOYSTICKHANDLER_H
-#define JOYSTICKHANDLER_H
 
-#include <math.h>
-#include <QtCore>
-#include <QIODevice>
-#include <QTimer>
+/**
+       \brief
+       @author authorname
+*/
 
-#include <Ice/Ice.h>
 
-#include <DifferentialRobot.h>
+
+#ifndef SPECIFICWORKER_H
+#define SPECIFICWORKER_H
 
 #include <qjoystick/qjoystick.h>
+#include <genericworker.h>
+#include <innermodel/innermodel.h>
 #include <const.h>
 
-using namespace std;
-
-class JoyStickHandler : public QObject
+class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
@@ -45,31 +44,37 @@ public:
 		float maxRot;
 		int32_t SampleRate;
 	};
-
-private:
 	struct qjh_joy_axis
 	{
 		float actualX;
 		float actualY;
 	};
+	
+	SpecificWorker(MapPrx& mprx);
+	~SpecificWorker();
+	bool setParams(RoboCompCommonBehavior::ParameterList params);
+	bool open();
+	void initialize();
+	void writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
+	void readJoyStickBufferedData(JoyStickBufferedData &gbd);
 
+public slots:
+	void compute();
+	void sendJoyStickEvent();
+	void receivedJoyStickEvent( int value, int type, int number );
+
+private:
+	RoboCompJoyStick::JoyStickBufferedData joystickBufferedData;
+	RoboCompCommonBehavior::ParameterList params;
+	InnerModel *innerModel;
+	
 	QTimer *jtimer; // Resend joy data to client
 	qjh_joy_axis base_joy_axis;
-	RoboCompDifferentialRobot::DifferentialRobotPrx _base_proxy;
-
 	QJoyStick *joystick;
 	qjh_cfg_t config;
 
-	bool sendSpeed;
-public:
-	JoyStickHandler( qjh_cfg_t cfg, RoboCompDifferentialRobot::DifferentialRobotPrx base_proxy, QString joystick_device );
-	~JoyStickHandler();
+	bool sendSpeed = false;
 
-	bool open();
-
-private slots:
-	void receivedJoyStickEvent( int value, int type, int number );
-	void sendJoyStickEvent();
 };
 
 #endif

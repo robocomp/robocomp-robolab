@@ -89,6 +89,32 @@ void SpecificWorker::compute()
 	QMutexLocker locker(mutex);
     astra_update();
 
+    PersonList users;
+    qDebug()<<"SIZE OF USERS "<<users.size();
+
+//    users.clear();
+
+    getUsersList(users);
+
+    qDebug()<<"SIZE OF USERS "<<users.size();
+
+
+    for(auto what : users)
+    {
+        qDebug()<<"ID " <<what.first << "STATUS"<<what.second.state;
+        jointListType jointsperson;
+
+        jointsperson = what.second.joints;
+
+//        for (auto j : jointsperson)
+//        {
+//        }
+    }
+
+
+    users.clear();
+    qDebug()<<"-----------------------------------------------------------------";
+
 }
 
 float SpecificWorker::compute_fps(bool print)

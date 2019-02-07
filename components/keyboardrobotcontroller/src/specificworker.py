@@ -78,33 +78,33 @@ class SpecificWorker(GenericWorker):
 		    	self.adv=self.adv
 	            else :
                     	self.adv = self.adv + 20;
-                    screen.addstr(5, 0, 'up: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'up: '+ '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_DOWN:
 		    if self.adv < -1*self.tt1 :
 	            	self.adv=self.adv
 		    else :
                     	self.adv = self.adv - 20;
-                    screen.addstr(5, 0, 'down: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'down: '+ '%.2f' % self.adv+ ' : ' + '%.2f' % self.rot)
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_LEFT:
 		    if self.rot < -1*self.tt2 :
 	            	self.rot=self.rot
 		    else :
                     	self.rot = self.rot - 0.1;
-                    screen.addstr(5, 0, 'left: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'left: '+ '%.2f' % self.adv+ ' : ' + '%.2f' % self.rot)
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == curses.KEY_RIGHT:
 		    if self.rot > self.tt2 :
 		    	self.rot=self.rot
 		    else :
                     	self.rot = self.rot + 0.1;
-                    screen.addstr(5, 0, 'right: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'right: '+ '%.2f' % self.adv+ ' : ' + '%.2f' % self.rot)
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                 elif key == ord(' '):
                     self.rot = 0;
                     self.adv = 0;
-                    screen.addstr(5, 0, 'stop: '+ str(self.adv)+ ' : ' + str(self.rot))
+                    screen.addstr(5, 0, 'stop: '+ '%.2f' % self.adv+ ' : ' + '%.2f' % self.rot)
                     self.differentialrobot_proxy.setSpeedBase(self.adv, self.rot)
                	elif key == ord('q'):
 		    curses.endwin()

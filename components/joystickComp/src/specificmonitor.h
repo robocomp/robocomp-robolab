@@ -1,5 +1,6 @@
+
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,25 +17,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "joystickI.h"
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-JoyStickI::JoyStickI(GenericWorker *_worker)
+#include "genericmonitor.h"
+
+/**
+       \brief
+       @author authorname
+*/
+class SpecificMonitor : public GenericMonitor
 {
-	worker = _worker;
-}
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+	
+	bool ready;
+};
 
-
-JoyStickI::~JoyStickI()
-{
-}
-
-void JoyStickI::writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&)
-{
-	worker->writeJoyStickBufferedData(gbd);
-}
-
-void JoyStickI::readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&)
-{
-	worker->readJoyStickBufferedData(gbd);
-}
-
+#endif // GENERICMONITOR_H

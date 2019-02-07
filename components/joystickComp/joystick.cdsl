@@ -1,0 +1,13 @@
+import "DifferentialRobot.idsl";
+import "JoyStick.idsl";
+
+Component joystick
+{
+	Communications
+	{
+		implements JoyStick;
+		requires DifferentialRobot;
+	};
+	language Cpp;
+};
+

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -30,46 +30,51 @@ RGBDI::~RGBDI()
 
 Registration RGBDI::getRegistration(const Ice::Current&)
 {
-	return worker->getRegistration();
+	return worker->RGBD_getRegistration();
 }
 
 void RGBDI::getData( imgType  &rgbMatrix,  depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getData(rgbMatrix, distanceMatrix, hState, bState);
+	worker->RGBD_getData(rgbMatrix, distanceMatrix, hState, bState);
 }
 
 void RGBDI::getXYZ( PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getXYZ(points, hState, bState);
+	worker->RGBD_getXYZ(points, hState, bState);
 }
 
 void RGBDI::getRGB( ColorSeq  &color,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getRGB(color, hState, bState);
+	worker->RGBD_getRGB(color, hState, bState);
 }
 
 TRGBDParams RGBDI::getRGBDParams(const Ice::Current&)
 {
-	return worker->getRGBDParams();
+	return worker->RGBD_getRGBDParams();
 }
 
 void RGBDI::getDepth( DepthSeq  &depth,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getDepth(depth, hState, bState);
+	worker->RGBD_getDepth(depth, hState, bState);
 }
 
 void RGBDI::setRegistration( Registration  value, const Ice::Current&)
 {
-	worker->setRegistration(value);
+	worker->RGBD_setRegistration(value);
+}
+
+void RGBDI::getXYZByteStream( imgType  &pointStream,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+{
+	worker->RGBD_getXYZByteStream(pointStream, hState, bState);
 }
 
 void RGBDI::getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getImage(color, depth, points, hState, bState);
+	worker->RGBD_getImage(color, depth, points, hState, bState);
 }
 
 void RGBDI::getDepthInIR( depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
 {
-	worker->getDepthInIR(distanceMatrix, hState, bState);
+	worker->RGBD_getDepthInIR(distanceMatrix, hState, bState);
 }
 

@@ -56,6 +56,7 @@ class SpecificWorker(GenericWorker):
 		self.lower_hsv = None
 		self.upper_hsv = None
 		self.state = "initial"
+		self._colors_tracked = []
 
 
 		# It helps to increase the space between the depth wall and some inclination or frames
@@ -115,7 +116,7 @@ class SpecificWorker(GenericWorker):
 				depth = depth.reshape(480*640)
 
 			frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-			white_balanced = white_balance(frame)
+			white_balanced = frame.copy() #white_balance(frame)
 			if "initial" in self.state:
 				print "Seetting reference colors"
 				# label_image = self.label_image(frame)
@@ -129,7 +130,8 @@ class SpecificWorker(GenericWorker):
 				image_mask_image = np.zeros((h , w), np.uint8)
 				if len(self.refPt)>0:
 					cv2.floodFill(filled, mask1, self.refPt[0], (0,0,255), (10, 10, 10), (10, 10, 10), floodflags)
-					hsv_frame = cv2.cvtColor(white_balanced, cv2.COLOR_RGB2HSV)
+					hsv_frame = cv2.cvtColor(white_balanced, cv2.COLOR_BGR2HSV)
+					cv2.imshow("HSV", hsv_frame)
 
 					# get the pixels of hsv_frame that are 255 in the generated mask
 					masked_pixels = hsv_frame[np.where(mask1 == 255)]

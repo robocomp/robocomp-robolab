@@ -45,6 +45,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.start(self.Period)
 
 		self.debug = False
+		self.flip = False
 		self.fps = 0
 		self.greenLower = (29, 86, 6)
 		self.greenUpper = (64, 255, 255)
@@ -56,6 +57,7 @@ class SpecificWorker(GenericWorker):
 		self.upper_hsv = None
 		self.state = "initial"
 
+
 		# It helps to increase the space between the depth wall and some inclination or frames
 
 	def click_event(self, event, x, y, flags, param):
@@ -65,6 +67,7 @@ class SpecificWorker(GenericWorker):
 		# performed
 		if event == cv2.EVENT_LBUTTONDOWN:
 			self.refPt = [(x, y)]
+			print("Reference point %s"%(self.refPt))
 			self.cropping = True
 
 		# check to see if the left mouse button was released
@@ -72,16 +75,12 @@ class SpecificWorker(GenericWorker):
 			# record the ending (x, y) coordinates and indicate that
 			# the self.cropping operation is finished
 			self.refPt.append((x, y))
+			print("Reference point %s" % (self.refPt))
 			self.cropping = False
 
 
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
 		if "debug" in params:
 			if "true" in params["debug"].lower():
 				self.debug = True
@@ -120,7 +119,7 @@ class SpecificWorker(GenericWorker):
 			if "initial" in self.state:
 				print "Seetting reference colors"
 				# label_image = self.label_image(frame)
-				floodflags = 4
+				floodflags = 8
 				floodflags |= cv2.FLOODFILL_MASK_ONLY
 				floodflags |= (255 << 8)
 				filled = white_balanced.copy()
@@ -131,16 +130,25 @@ class SpecificWorker(GenericWorker):
 				if len(self.refPt)>0:
 					cv2.floodFill(filled, mask1, self.refPt[0], (0,0,255), (10, 10, 10), (10, 10, 10), floodflags)
 					hsv_frame = cv2.cvtColor(white_balanced, cv2.COLOR_RGB2HSV)
-					img_mask = hsv_frame[np.where(mask1 == 255)]
+
+					# get the pixels of hsv_frame that are 255 in the generated mask
+					masked_pixels = hsv_frame[np.where(mask1 == 255)]
+
 					# img_avg = np.mean(img_mask, axis=0)
-					min_hsv = np.min(img_mask, axis=0)
+
+					# get the min hue and saturation hsv value
+					min_hsv = np.min(masked_pixels, axis=0)
+					print min_hsv
 					min_hsv[2] = 0
-					max_hsv = np.max(img_mask, axis=0)
+
+					# get the max hue and saturation hsv value
+					max_hsv = np.max(masked_pixels, axis=0)
 					max_hsv[2] = 255
 					self.lower_hsv = min_hsv
 					self.upper_hsv = max_hsv
 				if len(self.refPt) > 1:
 					cv2.floodFill(filled, mask2, self.refPt[1], (0, 0, 255), (10, 10, 10), (10, 10, 10), floodflags)
+					# cv2.imshow("mask2", mask2)
 					self.state = "tracking"
 			if "tracking" in self.state:
 				print "Tracking"
@@ -222,17 +230,20 @@ class SpecificWorker(GenericWorker):
 		new_frame = frame.copy()
 		mask =  np.zeros((480, 640), np.uint8)
 		if self.lower_hsv is None or self.upper_hsv is None:
+			print("No lower or upper hsv. return without color mask")
 			return new_frame, mask
 		new_frame = frame.copy()
 		blurred = cv2.GaussianBlur(new_frame, (11, 11), 0)
+		cv2.imshow("blurred", blurred)
 		hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
 		# construct a mask for the color "green", then perform
 		# a series of dilations and erosions to remove any small
 		# blobs left in the mask
-		mask = cv2.inRange(hsv, self.greenLower, self.greenUpper)
+		mask = cv2.inRange(hsv, self.lower_hsv, self.upper_hsv)
 		mask = cv2.erode(mask, None, iterations=2)
 		mask = cv2.dilate(mask, None, iterations=2)
+		cv2.imshow("get_color_mask", mask)
 		# find contours in the mask and initialize the current
 		# (x, y) center of the ball
 		cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,

@@ -54,6 +54,7 @@ you can find an example of a configuration file. We can find there the following
     body=true
     point=true
 
+At the bottom you can find the flags to read from the different streams that Astra camera supply.
 
 ##### Otros ficheros relacionados
 You can find the needed cmake module for astra on this path

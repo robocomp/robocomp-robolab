@@ -70,7 +70,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     qDebug()<<"Points  stream will be opened? "<<pointB;
     frameListener->set_body_stream(bodyB);
     qDebug()<<"Body stream will be opened? "<<bodyB;
-
     reader->add_listener(*frameListener);
 
 	return true;
@@ -89,32 +88,6 @@ void SpecificWorker::compute()
 	QMutexLocker locker(mutex);
     astra_update();
 
-    PersonList users;
-    qDebug()<<"SIZE OF USERS "<<users.size();
-
-//    users.clear();
-
-    getUsersList(users);
-
-    qDebug()<<"SIZE OF USERS "<<users.size();
-
-
-    for(auto what : users)
-    {
-        qDebug()<<"ID " <<what.first << "STATUS"<<what.second.state;
-        jointListType jointsperson;
-
-        jointsperson = what.second.joints;
-
-//        for (auto j : jointsperson)
-//        {
-//        }
-    }
-
-
-    users.clear();
-    qDebug()<<"-----------------------------------------------------------------";
-
 }
 
 float SpecificWorker::compute_fps(bool print)
@@ -132,24 +105,25 @@ float SpecificWorker::compute_fps(bool print)
 
 Registration SpecificWorker::RGBD_getRegistration()
 {
-//implementCODE
-
+	qDebug()<<"getRGBDParams Not implemented yet";
 }
 
 void SpecificWorker::RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
-//implementCODE
-//	RGBMutex->lock();
-//	rgbMatrix=*colorImage;
-//	RGBMutex->unlock();
-//	depthMutex->lock();
-//	distanceMatrix=*depthImage;
-//	depthMutex->unlock();
-//    qDebug()<<"Trying to get data";
-
+	if(!this->colorB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
+	if(!this->depthB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
     frameListener->get_color(rgbMatrix);
     frameListener->get_depth(distanceMatrix);
-//    qDebug()<<"getDepth"<<distanceMatrix.size();
 
 }
 
@@ -158,16 +132,14 @@ void SpecificWorker::RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStat
 	typedef std::chrono::duration<float> fsec;
 	std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
 
-	std::cout<<"Received RGBD_getXYZ from ice"<<endl;
-//	PointSeq pruebaMierda;
-//	pruebaMierda.resize((640*480)/10);
-//	points = pruebaMierda;
+	if(!this->pointB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
 	frameListener->get_points(points);
 
-    if(!pointB)
-    {
-        std::cout<<"WARNING: point stream is deactivated by config file.";
-    }
 	std::cout<<"RGBD_getXYZ: fps "<<fsec(1)/( std::chrono::system_clock::now() - initial_time)<<endl;
 	compute_fps(true);
 
@@ -175,39 +147,47 @@ void SpecificWorker::RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStat
 
 void SpecificWorker::RGBD_getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
-//implementCODE
+	if(!this->colorB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
     frameListener->get_color(color);
-    if(!colorB)
-    {
-        std::cout<<"WARNING: color stream is deactivated by config file.";
-    }
 }
 
 TRGBDParams SpecificWorker::RGBD_getRGBDParams()
 {
-//implementCODE
     qDebug()<<"getRGBDParams Not implemented yet";
 }
 
 void SpecificWorker::RGBD_getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
+	if(!this->depthB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
     frameListener->get_depth(depth);
-    if(!depthB)
-    {
-        std::cout<<"WARNING: depth stream is deactivated by config file.";
-    }
 }
 
 void SpecificWorker::RGBD_setRegistration(const Registration &value)
 {
 //implementCODE
-
+	qDebug()<<"RGBD_setRegistration Not implemented yet";
 }
 
 void SpecificWorker::RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
+	if(!this->pointB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
 	frameListener->get_points_stream(pointStream);
 
 }
@@ -215,21 +195,29 @@ void SpecificWorker::RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMo
 void SpecificWorker::RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
 {
 //implementCODE
+	if(!this->colorB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
+	if(!this->depthB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
+	if(!this->pointB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
+
     frameListener->get_color(color);
     frameListener->get_depth(depth);
     frameListener->get_points(points);
-    if(!depthB)
-    {
-        std::cout<<"WARNING: depth stream is deactivated by config file.";
-    }
-    if(!colorB)
-    {
-        std::cout<<"WARNING: color stream is deactivated by config file.";
-    }
-    if(!pointB)
-    {
-        std::cout<<"WARNING: point stream is deactivated by config file.";
-    }
+
 }
 
 void SpecificWorker::RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
@@ -257,6 +245,13 @@ void SpecificWorker::HumanTracker_getUser(const int id, TPerson &user)
 
 bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint)
 {
+
+	if(!this->bodyB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"body\" flag in etc/config or the config file you are using."<<endl;
+		return false;
+	}
     depthjoint = frameListener->getJointDepth(idperson, idjoint);
 
     if (depthjoint.size()>0)
@@ -267,12 +262,16 @@ bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, cons
         depthjoint = {};
         return false;
     };
-
-
 }
 
 void  SpecificWorker::HumanTracker_getUsersList(PersonList &users)
 {
+	if(!this->bodyB)
+	{
+		std::cout<<"WARNING: A request for a not initiated STREAM have been received."<<endl;
+		std::cout<<"WARNING: Probably you want to check the \"body\" flag in etc/config or the config file you are using."<<endl;
+		return;
+	}
     frameListener->get_people(users);
 }
 

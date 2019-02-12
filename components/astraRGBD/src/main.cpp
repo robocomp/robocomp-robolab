@@ -242,6 +242,7 @@ int ::astraRGBD::run(int argc, char* argv[])
 		a.quit();
 	#endif
 
+
 	status = EXIT_SUCCESS;
 	monitor->terminate();
 	monitor->wait();

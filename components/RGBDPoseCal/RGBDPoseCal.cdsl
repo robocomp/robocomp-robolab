@@ -1,0 +1,10 @@
+
+Component RGBDPoseCal
+{
+	Communications
+	{
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+

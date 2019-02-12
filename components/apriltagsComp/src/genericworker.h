@@ -75,11 +75,11 @@ public:
 	QMutex *mutex;
 
 
-	AprilTagsPrx apriltags_proxy;
-	CameraPrx camera_proxy;
 	RGBDPrx rgbd_proxy;
 	CameraSimplePrx camerasimple_proxy;
 	RGBDBusPrx rgbdbus_proxy;
+	AprilTagsPrx apriltags_proxy;
+	CameraPrx camera_proxy;
 
 	virtual listaMarcas checkMarcas() = 0;
 

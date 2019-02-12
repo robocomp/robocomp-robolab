@@ -45,5 +45,5 @@ SET( CMAKE_AUTOMOC TRUE )
 # Specify construction and link process
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 ADD_EXECUTABLE( differentialrobotComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( differentialrobotComp ${QT_LIBRARIES} ${LIBS})
+TARGET_LINK_LIBRARIES( differentialrobotComp ${QT_LIBRARIES} ${LIBS} ${Ice_LIBRARIES})
 INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/differentialrobotComp DESTINATION /opt/robocomp/bin/ )

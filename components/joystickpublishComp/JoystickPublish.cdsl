@@ -1,4 +1,4 @@
-import "/robocomp/interfaces/IDSLs/JoystickAdapter.idsl";
+import "JoystickAdapter.idsl";
 
 Component JoystickPublishComp{
 	Communications{

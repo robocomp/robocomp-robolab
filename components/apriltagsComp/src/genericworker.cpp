@@ -23,17 +23,17 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
-	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
 	camerasimple_proxy = (*(CameraSimplePrx*)mprx["CameraSimpleProxy"]);
-	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
+	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
 	camera_proxy = (*(CameraPrx*)mprx["CameraProxy"]);
+	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
 	apriltags_proxy = (*(AprilTagsPrx*)mprx["AprilTagsPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
-// 	timer.start(Period);
+ 	timer.start(Period);
 }
 
 /**

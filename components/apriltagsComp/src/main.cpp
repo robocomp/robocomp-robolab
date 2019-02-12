@@ -144,10 +144,10 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	RGBDBusPrx rgbdbus_proxy;
-	CameraPrx camera_proxy;
-	AprilTagsPrx apriltags_proxy;
-	CameraSimplePrx camerasimple_proxy;
 	RGBDPrx rgbd_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	AprilTagsPrx apriltags_proxy;
+	CameraPrx camera_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -172,19 +172,19 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraProxy", proxy, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraProxy\n";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
 		}
-		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("CameraProxy initialized Ok!");
-	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
+	rInfo("RGBDProxy initialized Ok!");
+	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
 
 
 	try
@@ -206,19 +206,19 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraProxy", proxy, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraProxy\n";
 		}
-		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		camera_proxy = CameraPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
 		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("RGBDProxy initialized Ok!");
-	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+	rInfo("CameraProxy initialized Ok!");
+	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
 
 	IceStorm::TopicManagerPrx topicManager;
 	try
@@ -322,12 +322,17 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
 
-#ifdef USE_QTGUI
+	}
+	#ifdef USE_QTGUI
 		a.quit();
-#endif
-		monitor->exit(0);
-}
+	#endif
 
+
+	status = EXIT_SUCCESS;
+	monitor->terminate();
+	monitor->wait();
+	delete worker;
+	delete monitor;
 	return status;
 }
 

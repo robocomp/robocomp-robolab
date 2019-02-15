@@ -1,5 +1,6 @@
+
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,31 +17,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef GENERICBASE_H
-#define GENERICBASE_H
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-// Ice includes
-#include <Ice/Ice.h>
-#include <GenericBase.h>
+#include "genericmonitor.h"
 
-#include <config.h>
-#include "genericworker.h"
-
-using namespace RoboCompGenericBase;
-
-class GenericBaseI : public virtual RoboCompGenericBase::GenericBase
+/**
+       \brief
+       @author authorname
+*/
+class SpecificMonitor : public GenericMonitor
 {
-public:
-	GenericBaseI(GenericWorker *_worker);
-	~GenericBaseI();
-
-	void getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
-	void getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&);
-
-private:
-
-	GenericWorker *worker;
-
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+	
+	bool ready;
 };
 
-#endif
+#endif // GENERICMONITOR_H

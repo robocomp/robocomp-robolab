@@ -16,27 +16,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef MONITOR_H
-#define MONITOR_H
+#ifndef GENERICMONITOR_H
+#define GENERICMONITOR_H
 
 #include <Ice/Ice.h>
 #include <QtCore>
-#include "worker.h"
+#include "genericworker.h"
 #include "config.h"
-#include <DifferentialRobot.h>
+#include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
-class Monitor : public QThread
+/**
+       \brief
+       @author authorname
+*/
+class GenericMonitor : public QThread
 {
-  Q_OBJECT
-  
-  public:
-	Monitor(Worker *_worker, Ice::CommunicatorPtr _communicator);
-	~Monitor();
-	
-	void readConfig(RoboCompCommonBehavior::ParameterList &params );
-	void run();
-	void initialize();
+Q_OBJECT
+
+public:
+	GenericMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	virtual ~GenericMonitor();
+
+
     //CommonBehavior
 	int getPeriod();
 	void setPeriod(int period);
@@ -45,20 +47,30 @@ class Monitor : public QThread
 	RoboCompCommonBehavior::ParameterList getParameterList();
 	void setParameterList(RoboCompCommonBehavior::ParameterList l);
 	RoboCompCommonBehavior::State getState();
-  private:
+
+	void readPConfParams(RoboCompCommonBehavior::ParameterList &params);
+	virtual void readConfig(RoboCompCommonBehavior::ParameterList &params ) = 0;
+	virtual void run() = 0;
+	virtual void initialize() = 0;
+
+protected:
 	int period;
-	Worker *worker;
+	GenericWorker *worker;
 	Ice::CommunicatorPtr communicator;
 	QTime initialTime;
-	RoboCompDifferentialRobot::TMechParams worker_params;
 	RoboCompCommonBehavior::ParameterList config_params;
 	RoboCompCommonBehavior::State state;
-	
-	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
-	bool checkParams(RoboCompCommonBehavior::ParameterList l);
-	bool configGetString( const std::string name, std::string &value,  const std::string default_value, QStringList *list = NULL);
-  signals:
+
+	virtual bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params) = 0;
+	virtual bool checkParams(RoboCompCommonBehavior::ParameterList l) = 0;
+
+	bool configGetString(const std::string prefix, const std::string name, std::string &value, const std::string default_value, QStringList *list = NULL);
+public:
+	static bool configGetString(Ice::CommunicatorPtr communicator, const std::string prefix, const std::string name, std::string &value, const std::string default_value, QStringList *list=NULL);
+
+signals:
 	void kill();
+	void initializeWorker(int);
 };
 
-#endif // MONITOR_H
+#endif // GENERICMONITOR_H

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,55 +18,23 @@
  */
 #include "genericbaseI.h"
 
-GenericBaseI::GenericBaseI(Worker *_worker, QObject *parent) : QObject(parent)
+GenericBaseI::GenericBaseI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
 
 GenericBaseI::~GenericBaseI()
 {
-	// Free component resources here
 }
 
-// Component functions, implementation
-void GenericBaseI::getBaseState(RoboCompGenericBase::TBaseState& state, const Ice::Current&)
+void GenericBaseI::getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&)
 {
-	mutex->lock();
-	if(worker->active)
-	{
-		mutex->unlock();
-		state = worker->getBaseState();
-	}
-	else
-	{
-		mutex->unlock();
-		throwException("Exception: DifferentialRobotComp::Worker::getBaseState:: worker is sttoped by setting");
-	}
+	worker->GenericBase_getBaseState(state);
 }
 
-void GenericBaseI::getBasePose(Ice::Int& x, Ice::Int& z, Ice::Float& alpha, const Ice::Current&)
+void GenericBaseI::getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&)
 {
-	mutex->lock();
-	if(worker->active)
-	{
-		mutex->unlock();
-		RoboCompGenericBase::TBaseState bState = worker->getBaseState();
-		x=bState.x;
-		z=bState.z;
-		alpha=bState.alpha;
-	}
-	else
-	{
-		mutex->unlock();
-		throwException("Exception: DifferentialRobotComp::Worker::getBaseStatePose:: worker is sttoped by setting");
-	}
+	worker->GenericBase_getBasePose(x, z, alpha);
 }
-void GenericBaseI::throwException(std::string msg)
-{
-	RoboCompGenericBase::HardwareFailedException ex;
-	ex.what = msg;
-	throw ex;
-}
+

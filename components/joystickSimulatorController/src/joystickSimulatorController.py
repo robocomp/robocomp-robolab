@@ -77,9 +77,11 @@ class MyGui(QtGui.QMainWindow):
                 status = 1
         except:
             status = 1
-        if status == 0:
+        if status == 1:
             print 'Cannot connect to the remote object (DifferentialRobot)'
-            app.exec_()
+	    self.hide()
+	    ic.destroy()
+	    sys.exit(0)
     def addJoystickImage(self):
 		self.Circle = QtGui.QLabel(self)
 		self.JoyStick = QtGui.QLabel(self)
@@ -112,7 +114,7 @@ class MyGui(QtGui.QMainWindow):
 		self.RotationValue.show()
     def setPosition(self,x,y):
 		self.JoyStick.move(x,y)
-		self.Speed=(y-225)*22
+		self.Speed=(225-y)*22
 		self.Rotation=(x-225)*0.02
 		self.SpeedValue.setText(str(self.Speed))
 		self.RotationValue.setText(str(self.Rotation))

@@ -137,15 +137,30 @@ class MouseDetector(QtCore.QObject):
 	    	mousePress = False
 		mygui.comeBack()
 	    if event.type() == QtCore.QEvent.Type.MouseMove and mousePress == True:
-		if self.distance(x+event.x()-25,y+event.y()-25) < 100:
+		if self.distance(x+event.x()-25,y+event.y()-25,225,225) < 100:
 			x=x+event.x()-25
 			y=y+event.y()-25
 			mygui.setPosition(x,y)
+		else:
+		    x,y=self.intersectionOfTheCircle(x+event.x()-25,y+event.y()-255)
+		    mygui.setPosition(x,y)
 	return super(MouseDetector, self).eventFilter(obj, event)
-    def distance(self,x,y):
-	result = (225-x)*(225-x)+(225-y)*(225-y)
+    def distance(self,x1,y1,x2,y2):
+	result = (x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)
 	result = math.sqrt(result)
 	return result
+    def intersectionOfTheCircle(self,x,y):
+	a=(225-y)/(225-x)
+	b=y-a*x
+	x1=(1/(a*a+1))*(0-math.sqrt((-40625)*a*a-450*a*b+101250*a-b*b+450*b-40625)-a*b+225*a+225)
+	x2=(1/(a*a+1))*(math.sqrt((-40625)*a*a-450*a*b+101250*a-b*b+450*b-40625)-a*b+225*a+225)
+	y1=a*x1+b
+	y2=a*x2+b
+	if self.distance(x1,y1,x,y)<self.distance(x2,y2,x,y):
+	    return x1,y1
+	else:
+	    return x2,y2
+		
 mousePress = False
 x=225
 y=225

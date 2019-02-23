@@ -142,25 +142,28 @@ class MouseDetector(QtCore.QObject):
 			y=y+event.y()-25
 			mygui.setPosition(x,y)
 		else:
-		    x,y=self.intersectionOfTheCircle(x+event.x()-25,y+event.y()-255)
+		    sin,cos=self.trigAlpha(x+event.x()-25,y+event.y()-25) 
+		    x,y=self.findPoint(cos,sin)
 		    mygui.setPosition(x,y)
 	return super(MouseDetector, self).eventFilter(obj, event)
     def distance(self,x1,y1,x2,y2):
 	result = (x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)
 	result = math.sqrt(result)
 	return result
-    def intersectionOfTheCircle(self,x,y):
-	a=(225-y)/(225-x)
-	b=y-a*x
-	x1=(1/(a*a+1))*(0-math.sqrt((-40625)*a*a-450*a*b+101250*a-b*b+450*b-40625)-a*b+225*a+225)
-	x2=(1/(a*a+1))*(math.sqrt((-40625)*a*a-450*a*b+101250*a-b*b+450*b-40625)-a*b+225*a+225)
-	y1=a*x1+b
-	y2=a*x2+b
-	if self.distance(x1,y1,x,y)<self.distance(x2,y2,x,y):
-	    return x1,y1
-	else:
-	    return x2,y2
-		
+    def trigAlpha(self,x,y):
+	vecA_X=100.0
+	vecA_Y=0
+	vecB_X=x-225.0
+	vecB_Y=y-225.0
+	vecA_length=math.sqrt(vecA_X*vecA_X+vecA_Y*vecA_Y)
+	vecB_length=math.sqrt(vecB_X*vecB_X+vecB_Y*vecB_Y)
+	cosAlpha=(vecA_X*vecB_X+vecA_Y*vecB_Y)/(vecA_length*vecB_length)
+	sinAlpha=(vecA_X*vecB_Y-vecA_Y*vecB_X)/(vecA_length*vecB_length)
+	return sinAlpha,cosAlpha
+    def findPoint(self,cos,sin):
+	pointX=225+100*cos
+	pointY=225+100*sin
+	return pointX,pointY
 mousePress = False
 x=225
 y=225

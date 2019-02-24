@@ -1,0 +1,12 @@
+import "DifferentialRobot.idsl";
+
+Component joystickSimulatorController
+{
+	Communications
+	{
+		requires DifferentialRobot;
+	};
+	language python;
+	gui Qt(QMainWindow);
+};
+

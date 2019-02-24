@@ -20,41 +20,6 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# \mainpage RoboComp::joystickSimulatorController
-#
-# \section intro_sec Introduction
-#
-# Some information about the component...
-#
-# \section interface_sec Interface
-#
-# Descroption of the interface provided...
-#
-# \section install_sec Installation
-#
-# \subsection install1_ssec Software depencences
-# Software dependences....
-#
-# \subsection install2_ssec Compile and install
-# How to compile/install the component...
-#
-# \section guide_sec User guide
-#
-# \subsection config_ssec Configuration file
-#
-# <p>
-# The configuration file...
-# </p>
-#
-# \subsection execution_ssec Execution
-#
-# Just: "${PATH_TO_BINARY}/joystickSimulatorController --Ice.Config=${PATH_TO_CONFIG_FILE}"
-#
-# \subsection running_ssec Once running
-#
-#
-#
-
 import sys,Ice,math,copy
 
 # Ctrl+c handling

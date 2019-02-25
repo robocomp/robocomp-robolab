@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2017 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,7 +20,6 @@
 #define GENERICWORKER_H
 
 #include "config.h"
-#include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
 
@@ -32,16 +31,13 @@
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
 using namespace std;
-
 using namespace RoboCompJoystickAdapter;
 
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
-
-class GenericWorker : 
+class GenericWorker :
 public QObject
 {
 Q_OBJECT
@@ -50,10 +46,10 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
+
 
 	JoystickAdapterPrx joystickadapter_proxy;
 
@@ -67,6 +63,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
+	virtual void initialize(int period) = 0;
 signals:
 	void kill();
 };

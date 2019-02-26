@@ -465,7 +465,7 @@ bool RobexHandler::sendCommand(QString cmd, char *buf, int totalread){
 		cmd += 'X';
 		command = cmd.toLatin1().data();
 	
-		for (int o = 0; o < cmd.size(); ++o) stringEnviado[o] = (uchar)(cmd[o].toAscii());// 	stringEnviado = cmd;
+		for (int o = 0; o < cmd.size(); ++o) stringEnviado[o] = (uchar)(cmd[o].toLatin1());// 	stringEnviado = cmd;
 	
 		// Send command
 		MotionDevice.write(command,cmd.size());

@@ -1,7 +1,8 @@
 #
 # This property is used to configure the endpoints of the subscriber adapter.
 #
-RobexComp.Endpoints=tcp -p 10004
+DifferentialRobot.Endpoints=tcp -p 10004
+GenericBase.Endpoints= tcp -p 10001
 CommonBehavior.Endpoints=tcp -p 11004
 JoystickAdapter.Endpoints=tcp -p 10104
 
@@ -23,8 +24,8 @@ JoystickAdapter.Endpoints=tcp -p 10104
 #DRobot.Handler = Robex
 
 DRobot.Logger = local
-DRobot.maxVelAdv = 300
-DRobot.maxVelRot = 0.8
+DRobot.maxVelAdv = 200
+DRobot.maxVelRot = 0.3
 
 #Pulguita usa Maxon
 #Speedy usa Faulhaber

@@ -129,7 +129,7 @@ void SpecificWorker::DifferentialRobot_stopBase()
 void SpecificWorker::DifferentialRobot_setSpeedBase(const float adv, const float rot)
 {
 	float adv2 = adv;
-	float rot2 = rot2;
+	float rot2 = rot;
 	if(fabs(adv) > params.maxVelAdv )
 		adv2 = params.maxVelAdv * adv/fabs(adv);
 	if(fabs(rot) > params.maxVelRot)

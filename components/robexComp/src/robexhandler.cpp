@@ -167,7 +167,7 @@ bool RobexHandler::setSpeedBase ( float _adv , float _rot ){
 		rot = _rot;
 		commandToSend = true;
 	speed_mutex->unlock();
-	QTime t = QTime::currentTime();
+/*	QTime t = QTime::currentTime();
 	while (true)
 	{
 		if (t.elapsed() > 100)
@@ -180,7 +180,7 @@ bool RobexHandler::setSpeedBase ( float _adv , float _rot ){
 		}
 		speed_mutex->unlock();
 		usleep(20);
-	}
+	}*/
 	return false;
 }
 

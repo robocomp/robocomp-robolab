@@ -1,2 +1,2 @@
 #!/bin/bash
-./joystickComp --Ice.Config=../etc/config.debug & 
+./joystick --Ice.Config=../etc/config.debug & 

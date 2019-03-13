@@ -1,2 +1,2 @@
 #!/bin/bash
-killall -9 joystickComp
+killall -9 joystick

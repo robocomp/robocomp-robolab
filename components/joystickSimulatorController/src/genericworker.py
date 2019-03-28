@@ -106,4 +106,4 @@ class GenericWorker(QtGui.QMainWindow):
 	def setPeriod(self, p):
 		print "Period changed", p
 		Period = p
-timer.start(Period)
+		timer.start(Period)

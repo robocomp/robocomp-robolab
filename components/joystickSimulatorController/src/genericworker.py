@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+# Copyright (C) 2019 by Bartlomiej Kocot
 #
 #    This file is part of RoboComp
 #
@@ -17,68 +17,82 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
-from PySide import *
+from PySide import QtGui, QtCore
+
+ROBOCOMP = ''
+try:
+	ROBOCOMP = os.environ['ROBOCOMP']
+except KeyError:
+	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
+	ROBOCOMP = '/opt/robocomp'
+
+preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
+Ice.loadSlice(preStr+"CommonBehavior.ice")
+import RoboCompCommonBehavior
+
+additionalPathStr = ''
+icePaths = [ '/opt/robocomp/interfaces' ]
+try:
+	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
+	for p in SLICE_PATH:
+		icePaths.append(p)
+		additionalPathStr += ' -I' + p + ' '
+	icePaths.append('/opt/robocomp/interfaces')
+except:
+	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
+	pass
+
+ice_DifferentialRobot = False
+for p in icePaths:
+	if os.path.isfile(p+'/DifferentialRobot.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"DifferentialRobot.ice"
+		Ice.loadSlice(wholeStr)
+		ice_DifferentialRobot = True
+		break
+if not ice_DifferentialRobot:
+	print 'Couln\'t load DifferentialRobot'
+	sys.exit(-1)
+from RoboCompDifferentialRobot import *
+ice_GenericBase = False
+for p in icePaths:
+	if os.path.isfile(p+'/GenericBase.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"GenericBase.ice"
+		Ice.loadSlice(wholeStr)
+		ice_GenericBase = True
+		break
+if not ice_GenericBase:
+	print 'Couln\'t load GenericBase'
+	sys.exit(-1)
+from RoboCompGenericBase import *
+
+
+
+try:
+	from ui_mainUI import *
+except:
+	print "Can't import UI file. Did you run 'make'?"
+	sys.exit(-1)
+
 
 class GenericWorker(QtGui.QMainWindow):
 	kill = QtCore.Signal()
 
 
 	def __init__(self, mprx):
-		QtGui.QMainWindow.__init__(self)
-		self.setGeometry(50, 50, 500, 500)
-		self.setWindowTitle("Joystick Simulator Controller")
-		self.setStyleSheet("QMainWindow {background: 'white';}");
-		self.show()
+		super(GenericWorker, self).__init__()
+
+
 		self.differentialrobot_proxy = mprx["DifferentialRobotProxy"]
-		self.Speed=0.0
-		self.Rotation=0.0
-		self.addJoystickImage()
-    	def addJoystickImage(self):
-		self.Circle = QtGui.QLabel(self)
-		self.JoyStick = QtGui.QLabel(self)
-		self.SpeedText = QtGui.QLabel(self)
-		self.SpeedValue = QtGui.QLabel(self)
-		self.RotationText = QtGui.QLabel(self)
-		self.RotationValue = QtGui.QLabel(self)
-		circlePixmap = QtGui.QPixmap('src/img/circle.png')
-		joystickPixmap = QtGui.QPixmap('src/img/joystick.png')
-		self.Circle.setPixmap(circlePixmap)
-		self.Circle.resize(200,200)
-		self.Circle.move(150, 150)
-		self.Circle.show()
-		self.JoyStick.setObjectName("JoyStick")
-		self.JoyStick.setPixmap(joystickPixmap)
-		self.JoyStick.resize(50,50)
-		self.JoyStick.move(225,225)
-		self.JoyStick.show()
-		self.SpeedText.setText("Speed: ")
-		self.SpeedText.move(400,20)
-		self.SpeedText.show()
-		self.RotationText.setText("Rotation: ")
-		self.RotationText.move(400,40)
-		self.RotationText.show()
-		self.SpeedValue.setText("0")
-		self.SpeedValue.move(450,20)
-		self.SpeedValue.show()
-		self.RotationValue.setText("0")
-		self.RotationValue.move(465,40)
-		self.RotationValue.show()
+		self.ui = Ui_guiDlg()
+		self.ui.setupUi(self)
+		self.show()
 
-    	def setPosition(self,x,y):
-		self.JoyStick.move(x,y)
-		self.Speed=(225-y)*22
-		self.Rotation=(x-225)*0.02
-		self.SpeedValue.setText(str(self.Speed))
-		self.RotationValue.setText(str(self.Rotation))
-		self.differentialrobot_proxy.setSpeedBase(self.Speed, self.Rotation)
 
-    	def comeBack(self):
-		self.JoyStick.move(225,225)
-		self.Speed = 0
-		self.Rotation = 0
-		self.SpeedValue.setText(str(self.Speed))
-		self.RotationValue.setText(str(self.Rotation))
-		self.differentialrobot_proxy.setSpeedBase(self.Speed, self.Rotation)
+		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
+		self.Period = 30
+		self.timer = QtCore.QTimer(self)
 
 
 	@QtCore.Slot()
@@ -92,4 +106,4 @@ class GenericWorker(QtGui.QMainWindow):
 	def setPeriod(self, p):
 		print "Period changed", p
 		Period = p
-		timer.start(Period)
+timer.start(Period)

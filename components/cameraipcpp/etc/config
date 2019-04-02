@@ -3,7 +3,7 @@ CommonBehavior.Endpoints=tcp -p 10011
 
 # Endpoints for implemented interfaces
 CameraSimple.Endpoints=tcp -p 12299
-
+GetAprilTagsProxy = getapriltags:tcp -h localhost -p 12223
 
 
 InnerModelPath = innermodel.xml

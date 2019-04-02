@@ -215,7 +215,7 @@ class SpecificWorker(GenericWorker):
 				new_hand.centerMass3D = detected_hand.center_of_mass_xyz
 				print("%d %d %d" % (int(new_hand.centerMass3D[0]), int(new_hand.centerMass3D[1]), int(new_hand.centerMass3D[2])))
 			except Exception as e:
-				new_hand.centerMass = [0,0,0]
+				new_hand.centerMass3D = [0,0,0]
 				print "no xyz center of mass"
 				print e
 			# print("%d %d"%(len(new_hand.centerMass),len(detected_hand.center_of_mass)))

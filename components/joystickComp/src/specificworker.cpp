@@ -24,7 +24,7 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {}
 
-void SpecificWorker::initialize()
+void SpecificWorker::initialize(int period)
 {
 	// Set the base joystick axis initial data
 	base_joy_axis.actualX = 0.;
@@ -72,7 +72,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	config.maxAdv = std::stoi(params["MaxAdvance"].value);
 	config.maxRot = std::stof(params["MaxSteering"].value);
 	
-	initialize();
+	initialize(100);
 	return true;
 }
 
@@ -143,13 +143,13 @@ void SpecificWorker::sendJoyStickEvent()
 // ICE pull methods
 /////////////////////////////////////////
 
-void SpecificWorker::writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	joystickBufferedData = gbd;
 }
 
-void SpecificWorker::readJoyStickBufferedData(JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	gbd = joystickBufferedData;

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,42 +16,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef CAMERASIMPLE_H
+#define CAMERASIMPLE_H
+
+// Ice includes
+#include <Ice/Ice.h>
+#include <CameraSimple.h>
+
+#include <config.h>
 #include "genericworker.h"
-/**
-* \brief Default constructor
-*/
-GenericWorker::GenericWorker(MapPrx& mprx) :
-QObject()
+
+using namespace RoboCompCameraSimple;
+
+class CameraSimpleI : public virtual RoboCompCameraSimple::CameraSimple
 {
-	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
+public:
+CameraSimpleI(GenericWorker *_worker);
+	~CameraSimpleI();
 
-	mutex = new QMutex(QMutex::Recursive);
+	void getImage( TImage  &im, const Ice::Current&);
 
-	Period = BASIC_PERIOD;
-	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+private:
 
-}
+	GenericWorker *worker;
 
-/**
-* \brief Default destructor
-*/
-GenericWorker::~GenericWorker()
-{
+};
 
-}
-void GenericWorker::killYourSelf()
-{
-	rDebug("Killing myself");
-	emit kill();
-}
-/**
-* \brief Change compute period
-* @param per Period in ms
-*/
-void GenericWorker::setPeriod(int p)
-{
-	rDebug("Period changed"+QString::number(p));
-	Period = p;
-	timer.start(Period);
-}
-
+#endif

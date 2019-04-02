@@ -1,10 +1,11 @@
+import "GetAprilTags.idsl";
 
 Component caca
 {
-	Communications
-	{
-	};
-	language Python;
-
+    Communications
+    {
+        requires GetAprilTags;
+    };
+	language Cpp11;
 };
-
+i

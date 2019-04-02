@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::joystick
+/** \mainpage RoboComp::cameraipccp
  *
  * \section intro_sec Introduction
  *
- * The joystick component...
+ * The cameraipccp component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd joystick
+ * cd cameraipccp
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/joystick --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/cameraipccp --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,11 +81,10 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <joystickI.h>
+#include <camerasimpleI.h>
 
-#include <DifferentialRobot.h>
-#include <GenericBase.h>
-#include <JoyStick.h>
+#include <CameraSimple.h>
+#include <GetAprilTags.h>
 
 
 // User includes here
@@ -94,27 +93,27 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class joystick : public RoboComp::Application
+class cameraipccp : public RoboComp::Application
 {
 public:
-	joystick (QString prfx) { prefix = prfx.toStdString(); }
+	cameraipccp (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
-	MapPrx mprx;
+	TuplePrx tprx;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void ::joystick::initialize()
+void ::cameraipccp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::joystick::run(int argc, char* argv[])
+int ::cameraipccp::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -133,30 +132,29 @@ int ::joystick::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	DifferentialRobotPrx differentialrobot_proxy;
-
+	//RoboCompGetAprilTags::GetAprilTagsPrx getapriltags_proxy;
 	string proxy, tmp;
 	initialize();
 
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTagsProxy", proxy, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTagsProxy\n";
 		}
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+		getapriltags_proxy = Ice::uncheckedCast<GetAprilTagsPrx>( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy DifferentialRobot: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy GetAprilTags: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
+	rInfo("GetAprilTagsProxy initialized Ok!");
 
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
 
-	SpecificWorker *worker = new SpecificWorker(mprx);
+	tprx = std::make_tuple(getapriltags_proxy);
+	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
@@ -179,7 +177,7 @@ int ::joystick::run(int argc, char* argv[])
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 			}
 			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			auto commonbehaviorI = std::make_shared<CommonBehaviorI>(monitor);
 			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 			adapterCommonBehavior->activate();
 		}
@@ -197,18 +195,18 @@ int ::joystick::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "JoyStick.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimple.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoyStick";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimple";
 			}
-			Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
-			JoyStickI *joystick = new JoyStickI(worker);
-			adapterJoyStick->add(joystick, Ice::stringToIdentity("joystick"));
-			adapterJoyStick->activate();
-			cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr adapterCameraSimple = communicator()->createObjectAdapterWithEndpoints("CameraSimple", tmp);
+			auto camerasimple = std::make_shared<CameraSimpleI>(worker);
+			adapterCameraSimple->add(camerasimple, Ice::stringToIdentity("camerasimple"));
+			adapterCameraSimple->activate();
+			cout << "[" << PROGRAM_NAME << "]: CameraSimple adapter created in port " << tmp << endl;
 			}
 			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for JoyStick\n";
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for CameraSimple\n";
 			}
 
 
@@ -282,7 +280,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::joystick app(prefix);
+	::cameraipccp app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

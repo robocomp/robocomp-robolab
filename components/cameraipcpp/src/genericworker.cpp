@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,10 +20,10 @@
 /**
 * \brief Default constructor
 */
-GenericWorker::GenericWorker(MapPrx& mprx) :
+GenericWorker::GenericWorker(TuplePrx tprx) :
 QObject()
 {
-	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
+	getapriltags_proxy = std::get<GetAprilTagsPrxPtr>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

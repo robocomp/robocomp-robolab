@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,21 +26,17 @@
 
 #include <CommonBehavior.h>
 
-#include <DifferentialRobot.h>
-#include <GenericBase.h>
-#include <JoyStick.h>
+#include <CameraSimple.h>
+#include <GetAprilTags.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompJoyStick;
-using namespace RoboCompGenericBase;
-using namespace RoboCompDifferentialRobot;
+using namespace RoboCompCameraSimple;
+using namespace RoboCompGetAprilTags;
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
-
+using TuplePrx = std::tuple<RoboCompGetAprilTags::GetAprilTagsPrxPtr>;
 
 
 class GenericWorker :
@@ -48,7 +44,7 @@ public QObject
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx);
+	GenericWorker(TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
@@ -57,10 +53,9 @@ public:
 	QMutex *mutex;
 
 
-	DifferentialRobotPrx differentialrobot_proxy;
+	GetAprilTagsPrxPtr getapriltags_proxy;
 
-	virtual void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd) = 0;
-	virtual void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd) = 0;
+	virtual void CameraSimple_getImage(TImage &im) = 0;
 
 protected:
 	QTimer timer;

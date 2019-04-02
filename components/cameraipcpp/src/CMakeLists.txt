@@ -13,6 +13,7 @@ ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/qt.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set

@@ -132,7 +132,7 @@ int ::cameraipccp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	//RoboCompGetAprilTags::GetAprilTagsPrx getapriltags_proxy;
+	GetAprilTagsPrxPtr getapriltags_proxy;
 	string proxy, tmp;
 	initialize();
 

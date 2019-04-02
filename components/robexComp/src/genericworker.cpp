@@ -16,31 +16,41 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef GENERICBASE_H
-#define GENERICBASE_H
-
-// Ice includes
-#include <Ice/Ice.h>
-#include <GenericBase.h>
-
-#include <config.h>
 #include "genericworker.h"
-
-using namespace RoboCompGenericBase;
-
-class GenericBaseI : public virtual RoboCompGenericBase::GenericBase
+/**
+* \brief Default constructor
+*/
+GenericWorker::GenericWorker(MapPrx& mprx) :
+QObject()
 {
-public:
-	GenericBaseI(GenericWorker *_worker);
-	~GenericBaseI();
 
-	void getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
-	void getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&);
+	mutex = new QMutex(QMutex::Recursive);
 
-private:
+	Period = BASIC_PERIOD;
+	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
 
-	GenericWorker *worker;
+}
 
-};
+/**
+* \brief Default destructor
+*/
+GenericWorker::~GenericWorker()
+{
 
-#endif
+}
+void GenericWorker::killYourSelf()
+{
+	rDebug("Killing myself");
+	emit kill();
+}
+/**
+* \brief Change compute period
+* @param per Period in ms
+*/
+void GenericWorker::setPeriod(int p)
+{
+	rDebug("Period changed"+QString::number(p));
+	Period = p;
+	timer.start(Period);
+}
+

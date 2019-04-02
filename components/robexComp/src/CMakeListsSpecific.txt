@@ -1,0 +1,20 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  robexhandler.cpp
+  gazebohandler.cpp
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  handler.h
+)
+
+set(CMAKE_CXX_STANDARD 17)
+
+SET (LIBS ${LIBS}  )

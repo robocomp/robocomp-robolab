@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -17,25 +17,19 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "joystickadapterI.h"
-/**
-* \brief Default constructor
-*/
-JoystickAdapterI::JoystickAdapterI(Worker *_worker, QObject *parent) : QObject(parent)
+
+JoystickAdapterI::JoystickAdapterI(GenericWorker *_worker)
 {
 	worker = _worker;
-	//mutex = worker->mutex;       // Shared worker mutex
-	// Component initialization...
 }
 
-/**
-* \brief Default destructor
-*/
+
 JoystickAdapterI::~JoystickAdapterI()
 {
-	// Free component resources here
 }
 
-void JoystickAdapterI::sendData(const RoboCompJoystickAdapter::TData& data, const Ice::Current&)
+void JoystickAdapterI::sendData(const TData  &data, const Ice::Current&)
 {
-		worker->processJoystickEvent(data);
+	worker->JoystickAdapter_sendData(data);
 }
+

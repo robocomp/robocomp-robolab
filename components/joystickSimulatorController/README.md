@@ -24,7 +24,7 @@ you can find an example of a configuration file. We can find there the following
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
-    cd
+    cd robocomp-robolab/components/joystickSimulatorController
 
 ``` <joystickSimulatorController 's path> ```
 

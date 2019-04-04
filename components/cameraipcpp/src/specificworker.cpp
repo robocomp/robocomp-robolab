@@ -45,6 +45,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //		innerModel = new InnerModel(innermodel_path);
 //	}
 //	catch(std::exception e) { qFatal("Error reading config params"); }
+<<<<<<< HEAD
+=======
+
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 	return true;
 }
 
@@ -52,6 +56,7 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+<<<<<<< HEAD
 	MemoryStruct chunk{(char *)malloc(1), 0, 0, 0};
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl_handle = curl_easy_init();
@@ -61,12 +66,16 @@ void SpecificWorker::initialize(int period)
 	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
 	//this->Period = period;
+=======
+	this->Period = period;
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 	timer.setSingleShot(true);
 	timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
+<<<<<<< HEAD
 	//computeCODE
 
 	res = curl_easy_perform(curl_handle);
@@ -138,6 +147,28 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, MemoryStruct *mem
 void SpecificWorker::CameraSimple_getImage(TImage &im)
 {
   //implementCODE
+=======
+	qDebug() << "compute";
+	cam.init();
+	//computeCODE
+//	QMutexLocker locker(mutex); 
+// 	try
+// 	{
+// 		camera_proxy->getYImage(0,img, cState, bState);
+// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
+// 		searchTags(image_gray);
+// 	}
+// 	catch(const Ice::Exception &e)
+// 	{
+// 		std::cout << "Error reading from Camera" << e << std::endl;
+// 	}
+}
+
+
+void SpecificWorker::CameraSimple_getImage(TImage &im)
+{
+//implementCODE
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 }
 

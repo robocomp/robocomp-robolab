@@ -27,14 +27,24 @@
 #include <CommonBehavior.h>
 
 #include <CameraSimple.h>
+<<<<<<< HEAD
+=======
+#include <GetAprilTags.h>
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
 using namespace RoboCompCameraSimple;
+<<<<<<< HEAD
 
 using TuplePrx = std::tuple<>;
+=======
+using namespace RoboCompGetAprilTags;
+
+using TuplePrx = std::tuple<RoboCompGetAprilTags::GetAprilTagsPrxPtr>;
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 
 class GenericWorker :
@@ -51,6 +61,10 @@ public:
 	QMutex *mutex;
 
 
+<<<<<<< HEAD
+=======
+	GetAprilTagsPrxPtr getapriltags_proxy;
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 	virtual void CameraSimple_getImage(TImage &im) = 0;
 

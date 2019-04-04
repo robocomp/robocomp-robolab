@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::joystick
+/** \mainpage RoboComp::robex
  *
  * \section intro_sec Introduction
  *
- * The joystick component...
+ * The robex component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd joystick
+ * cd robex
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/joystick --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/robex --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,11 +81,14 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <joystickI.h>
+#include <differentialrobotI.h>
+#include <genericbaseI.h>
+#include <joystickadapterI.h>
 
 #include <DifferentialRobot.h>
 #include <GenericBase.h>
-#include <JoyStick.h>
+#include <GenericBase.h>
+#include <JoystickAdapter.h>
 
 
 // User includes here
@@ -94,10 +97,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class joystick : public RoboComp::Application
+class robex : public RoboComp::Application
 {
 public:
-	joystick (QString prfx) { prefix = prfx.toStdString(); }
+	robex (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
@@ -107,14 +110,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::joystick::initialize()
+void ::robex::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::joystick::run(int argc, char* argv[])
+int ::robex::run(int argc, char* argv[])
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -133,28 +136,10 @@ int ::joystick::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	DifferentialRobotPrx differentialrobot_proxy;
 
 	string proxy, tmp;
 	initialize();
 
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
-		}
-		differentialrobot_proxy = DifferentialRobotPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy DifferentialRobot: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("DifferentialRobotProxy initialized Ok!");
-
-	mprx["DifferentialRobotProxy"] = (::IceProxy::Ice::Object*)(&differentialrobot_proxy);//Remote server proxy creation example
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -189,26 +174,60 @@ int ::joystick::run(int argc, char* argv[])
 
 			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
 			cout << ex;
-
 		}
-
 
 
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "JoyStick.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobot.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoyStick";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobot";
 			}
-			Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
-			JoyStickI *joystick = new JoyStickI(worker);
-			adapterJoyStick->add(joystick, Ice::stringToIdentity("joystick"));
-			adapterJoyStick->activate();
-			cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr adapterDifferentialRobot = communicator()->createObjectAdapterWithEndpoints("DifferentialRobot", tmp);
+			DifferentialRobotI *differentialrobot = new DifferentialRobotI(worker);
+			adapterDifferentialRobot->add(differentialrobot, Ice::stringToIdentity("differentialrobot"));
+			adapterDifferentialRobot->activate();
+			cout << "[" << PROGRAM_NAME << "]: DifferentialRobot adapter created in port " << tmp << endl;
 			}
 			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for JoyStick\n";
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for DifferentialRobot\n";
+			}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBase.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBase";
+			}
+			Ice::ObjectAdapterPtr adapterGenericBase = communicator()->createObjectAdapterWithEndpoints("GenericBase", tmp);
+			GenericBaseI *genericbase = new GenericBaseI(worker);
+			adapterGenericBase->add(genericbase, Ice::stringToIdentity("genericbase"));
+			adapterGenericBase->activate();
+			cout << "[" << PROGRAM_NAME << "]: GenericBase adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for GenericBase\n";
+			}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "JoystickAdapter.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoystickAdapter";
+			}
+			Ice::ObjectAdapterPtr adapterJoystickAdapter = communicator()->createObjectAdapterWithEndpoints("JoystickAdapter", tmp);
+			JoystickAdapterI *joystickadapter = new JoystickAdapterI(worker);
+			adapterJoystickAdapter->add(joystickadapter, Ice::stringToIdentity("joystickadapter"));
+			adapterJoystickAdapter->activate();
+			cout << "[" << PROGRAM_NAME << "]: JoystickAdapter adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for JoystickAdapter\n";
 			}
 
 
@@ -282,7 +301,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::joystick app(prefix);
+	::robex app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

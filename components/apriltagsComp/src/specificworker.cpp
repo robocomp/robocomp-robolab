@@ -327,7 +327,7 @@ void SpecificWorker::searchTags(const cv::Mat &image_gray)
     }
     vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(dst);
 
-        //std::cout << detections.size() << " tags detected:" << std::endl;
+    std::cout << detections.size() << " tags detected:" << std::endl;
 	print_detection(detections);
 
 }
@@ -340,27 +340,24 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		::AprilTags::TagDetection detection = detections[i];  //PROBAR CON REFERENCIA PARA EVITAR LA COPIA
 
- 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ")";
+ 		cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ") ";
 
 		Eigen::Vector3d translation;
 		Eigen::Matrix3d rotation;
 
 		///SIN PROBAR PERO DEBERIA IR. SI NO ENCUNETRA EL ID METE m_tagSize
 		const float ss = tagsSizeMap.value(detection.id, m_tagSize);
-
 		detection.getRelativeTranslationRotation(ss, m_fx, m_fy, m_px, m_py, translation, rotation);
 		QVec T(3);
 		T(0) = -translation(1);//*0.65;
 		T(1) =  translation(2);//*0.65;
 		T(2) =  translation(0);//*0.65;
-
 		Eigen::Matrix3d F;
 		F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
 		Eigen::Matrix3d fixed_rot = F*rotation;
 
 		double rx, ry, rz;
 		rotationFromMatrix(fixed_rot, rx, ry, rz);
-
 		cout << m_fx << "  " << m_fy << endl;
 		cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 		rDebug2(("TAG: Distance=%d x=%d y=%d z=%d rx=%d ry=%d rz=%d")%T.norm2()%T(0)%T(1)%T(2)%rx%ry%rz);

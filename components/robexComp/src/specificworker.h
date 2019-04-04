@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -27,54 +27,45 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
-#include <qjoystick/qjoystick.h>
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-#include <const.h>
+#include "handler.h"
+#include "robexhandler.h"
+#include "gazebohandler.h"
+
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	struct qjh_cfg_t
-	{
-		int32_t XMotionAxis;
-		int32_t YMotionAxis;
-		int32_t maxAdv;
-		float maxRot;
-		int32_t SampleRate;
-	};
-	struct qjh_joy_axis
-	{
-		float actualX;
-		float actualY;
-	};
-	
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	bool open();
-	void initialize(int period);
-	void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
-	void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd);
 
+	void DifferentialRobot_correctOdometer(const int x, const int z, const float alpha);
+	void DifferentialRobot_getBasePose(int &x, int &z, float &alpha);
+	void DifferentialRobot_resetOdometer();
+	void DifferentialRobot_setOdometer(const RoboCompGenericBase::TBaseState &state);
+	void DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state);
+	void DifferentialRobot_setOdometerPose(const int x, const int z, const float alpha);
+	void DifferentialRobot_stopBase();
+	void DifferentialRobot_setSpeedBase(const float adv, const float rot);
+	void GenericBase_getBaseState(RoboCompGenericBase::TBaseState &state);
+	void GenericBase_getBasePose(int &x, int &z, float &alpha);
+	void JoystickAdapter_sendData(const TData &data);
+
+	//utils
+	float normalize(float X, float A, float B, float C, float D);
+	
 public slots:
 	void compute();
-	void sendJoyStickEvent();
-	void receivedJoyStickEvent( int value, int type, int number );
+	void initialize(int period);
 
 private:
-	RoboCompJoyStick::JoyStickBufferedData joystickBufferedData;
-	RoboCompCommonBehavior::ParameterList params;
+	Handler *handler;	
 	InnerModel *innerModel;
-	
-	QTimer *jtimer; // Resend joy data to client
-	qjh_joy_axis base_joy_axis;
-	QJoyStick *joystick;
-	qjh_cfg_t config;
-
-	bool sendSpeed = false;
-
+	RoboCompDifferentialRobot::TMechParams params;
+	RoboCompGenericBase::TBaseState bState;
 };
 
 #endif

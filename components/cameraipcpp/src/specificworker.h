@@ -28,6 +28,7 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
+<<<<<<< HEAD
 #include <opencv2/opencv.hpp>
 #include <curl/curl.h>
 
@@ -40,6 +41,10 @@ struct MemoryStruct
     size_t size;
     size_t begin, end;
 };
+=======
+#include <innermodel/innermodel.h>
+#include <ipcamreader.h>
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 class SpecificWorker : public GenericWorker
 {
@@ -56,9 +61,13 @@ public slots:
 	void initialize(int period);
 
 private:
+<<<<<<< HEAD
 	CURL *curl_handle;
     CURLcode res;
 	
+=======
+	IPCamReader cam;
+>>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 };
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -28,19 +28,18 @@
 
 #include <DifferentialRobot.h>
 #include <GenericBase.h>
-#include <JoyStick.h>
+#include <GenericBase.h>
+#include <JoystickAdapter.h>
 
 #define CHECK_PERIOD 5000
-#define BASIC_PERIOD 100
+#define BASIC_PERIOD 33
 
 using namespace std;
-using namespace RoboCompJoyStick;
+using namespace RoboCompJoystickAdapter;
 using namespace RoboCompGenericBase;
 using namespace RoboCompDifferentialRobot;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
-
 
 
 class GenericWorker :
@@ -57,10 +56,18 @@ public:
 	QMutex *mutex;
 
 
-	DifferentialRobotPrx differentialrobot_proxy;
 
-	virtual void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd) = 0;
-	virtual void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd) = 0;
+	virtual void DifferentialRobot_correctOdometer(const int x, const int z, const float alpha) = 0;
+	virtual void DifferentialRobot_getBasePose(int &x, int &z, float &alpha) = 0;
+	virtual void DifferentialRobot_resetOdometer() = 0;
+	virtual void DifferentialRobot_setOdometer(const RoboCompGenericBase::TBaseState &state) = 0;
+	virtual void DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state) = 0;
+	virtual void DifferentialRobot_setOdometerPose(const int x, const int z, const float alpha) = 0;
+	virtual void DifferentialRobot_stopBase() = 0;
+	virtual void DifferentialRobot_setSpeedBase(const float adv, const float rot) = 0;
+	virtual void GenericBase_getBaseState(RoboCompGenericBase::TBaseState &state) = 0;
+	virtual void GenericBase_getBasePose(int &x, int &z, float &alpha) = 0;
+	virtual void JoystickAdapter_sendData(const TData &data) = 0;
 
 protected:
 	QTimer timer;

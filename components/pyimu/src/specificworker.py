@@ -19,40 +19,38 @@
 
 import sys, os, traceback, time
 
-from PySide import QtGui, QtCore
 from genericworker import *
 
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 500
+		self.imu = DataImu()
+		self.Period = 100
 		self.timer.start(self.Period)
+		print "Start with period: ", self.Period
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
+		try:
+			self.puerto = open("/dev/ttyACM3", "r")
+		except FileNotFoundError:
+			print "Error opoening serial port, check device is connected"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
+#		print 'SpecificWorker.compute...'
 		try:
-			imu = DataImu()
-
-			# aqui leeis del puerto serie y pasais los datos a imu
-
-			self.imupub_proxy.publish(imu)
-			print "sent data package"
+			line = self.puerto.readline()
+			values = line.strip().split(' ')
+#			print values
+			self.imu.rot.Yaw = float(values[0])
+			self.imu.rot.Roll = float(values[1])
+			self.imu.rot.Pitch = float(values[2])
+			print self.imu.rot.Yaw, self.imu.rot.Roll, self.imu.rot.Pitch
+			self.imupub_proxy.publish(self.imu)
+#			print "sent data package"
 		except Ice.Exception, e:
 			traceback.print_exc()
 			print e

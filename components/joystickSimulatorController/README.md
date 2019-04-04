@@ -3,7 +3,7 @@
 #
 ``` joystickSimulatorController
 ```
-Intro to component here
+The component was created to simulate a joystick to robot control. Component created in Python with using Qt.
 
 
 ## Configuration parameters

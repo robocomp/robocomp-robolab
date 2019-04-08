@@ -18,11 +18,7 @@
 DOXYFILE_ENCODING      = UTF-8
 
 # ROBOCOMP
-<<<<<<< HEAD
-PROJECT_NAME           =cameraipcpp 
-=======
-PROJECT_NAME           =cameraipccp 
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
+PROJECT_NAME           =camplacer 
 PROJECT_NUMBER         =
 
 

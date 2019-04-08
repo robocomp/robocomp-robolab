@@ -16,49 +16,50 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "specificworker.h"
-
+#include "genericworker.h"
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
+GenericWorker::GenericWorker(TuplePrx tprx) :
+#ifdef USE_QTGUI
+Ui_guiDlg()
+#else
+QObject()
+#endif
+
 {
+
+	mutex = new QMutex(QMutex::Recursive);
+
+	#ifdef USE_QTGUI
+		setupUi(this);
+		show();
+	#endif
+	Period = BASIC_PERIOD;
+	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
 
 }
 
 /**
 * \brief Default destructor
 */
-SpecificWorker::~SpecificWorker()
+GenericWorker::~GenericWorker()
 {
-	std::cout << "Destroying SpecificWorker" << std::endl;
-}
 
-bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
-{
-	return true;
 }
-
-void SpecificWorker::initialize(int period)
+void GenericWorker::killYourSelf()
 {
-	std::cout << "Initialize worker" << std::endl;
-	//this->Period = period;
-	this->Period = period;
-	timer.setSingleShot(true);
+	rDebug("Killing myself");
+	emit kill();
+}
+/**
+* \brief Change compute period
+* @param per Period in ms
+*/
+void GenericWorker::setPeriod(int p)
+{
+	rDebug("Period changed"+QString::number(p));
+	Period = p;
 	timer.start(Period);
 }
-
-void SpecificWorker::compute()
-{
-	qDebug() << "compute";
-	cam.init();
-}
-
-
-void SpecificWorker::CameraSimple_getImage(TImage &im)
-{
-//implementCODE
-
-}
-
 

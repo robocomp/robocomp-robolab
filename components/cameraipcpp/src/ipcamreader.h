@@ -18,6 +18,10 @@ class IPCamReader
         {
             t1 = std::thread([this]{ run(); });
         }
+        void getImage()
+        {
+            
+        }
 	    void run()
         {
             MemoryStruct chunk{(char *)malloc(1), 0, 0, 0};
@@ -60,10 +64,8 @@ class IPCamReader
                 printf("not enough memory (realloc returned NULL)\n");
                 return 0;
             }
-
             memcpy(mem->memory + current, contents, realsize);
-            //mem->memory[mem->size] = 0;
-
+        
             if (mem->size < 1024)
                 return realsize;
 
@@ -83,7 +85,7 @@ class IPCamReader
                 std::vector<uchar> buf;
                 buf.assign(mem->memory + mem->begin, mem->memory + mem->end);
                 cv::Mat img = cv::imdecode(buf, CV_LOAD_IMAGE_COLOR);
-                printf("hola \n");
+                //printf("hola \n");
                 //cv::imshow("Camara sala de reuniones", img);
                 //cvWaitKey(1);
 

@@ -100,6 +100,9 @@ def main():
     model, _ = nets.factory(args)
     model = model.to(args.device)
     processors = decoder.factory(args, model)
+    
+
+    print(args)
 
     last_loop = time.time()
     capture = cv2.VideoCapture(args.source)

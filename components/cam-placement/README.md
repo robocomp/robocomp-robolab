@@ -1,22 +1,14 @@
 ```
 ```
 #
-<<<<<<< HEAD
-``` cameraipcpp
-=======
-``` cameraipccp
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
+``` camplacer
 ```
 Intro to component here
 
 
 ## Configuration parameters
 As any other component,
-<<<<<<< HEAD
-``` *cameraipcpp* ```
-=======
-``` *cameraipccp* ```
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
+``` *camplacer* ```
 needs a configuration file to start. In
 
     etc/config
@@ -31,11 +23,7 @@ To avoid changing the *config* file in the repository, we can copy it to the com
 
     cd
 
-<<<<<<< HEAD
-``` <cameraipcpp 's path> ```
-=======
-``` <cameraipccp 's path> ```
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
+``` <camplacer 's path> ```
 
     cp etc/config config
 
@@ -43,10 +31,6 @@ After editing the new config file we can run the component:
 
     bin/
 
-<<<<<<< HEAD
-```cameraipcpp ```
-=======
-```cameraipccp ```
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
+```camplacer ```
 
     --Ice.Config=config

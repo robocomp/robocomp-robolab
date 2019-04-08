@@ -12,4 +12,6 @@ SET ( HEADERS
 )
 
 set(CMAKE_CXX_STANDARD 17)
-set( SPECIFIC_LIBS -lcurl)
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
+ADD_DEFINITIONS( -O3 -mavx2)
+SET (LIBS ${LIBS}  )

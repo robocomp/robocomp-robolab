@@ -54,7 +54,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
+	std::cout << "Destroying SpecificWorker" << std::endl;
 	delete delfos;
+
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)

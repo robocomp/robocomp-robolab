@@ -1,0 +1,13 @@
+import "DifferentialRobot.idsl";
+import "JoystickAdapter.idsl";
+import "GenericBase.idsl";
+
+Component robex
+{
+    Communications
+    {
+        implements DifferentialRobot, JoystickAdapter, GenericBase;
+    };
+	language Cpp;
+};
+

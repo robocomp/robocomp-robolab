@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,38 +16,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef JOYSTICKADAPTERI_H
-#define JOYSTICKADAPTERI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef JOYSTICKADAPTER_H
+#define JOYSTICKADAPTER_H
 
 // Ice includes
 #include <Ice/Ice.h>
 #include <JoystickAdapter.h>
 
 #include <config.h>
-
-#include "worker.h"
+#include "genericworker.h"
 
 using namespace RoboCompJoystickAdapter;
-/**
-	\class JoystickAdapterI
-*/
-class JoystickAdapterI : public QObject , public virtual RoboCompJoystickAdapter::JoystickAdapter
+
+class JoystickAdapterI : public virtual RoboCompJoystickAdapter::JoystickAdapter
 {
-Q_OBJECT
 public:
-	JoystickAdapterI( Worker *_worker, QObject *parent = 0 );
+JoystickAdapterI(GenericWorker *_worker);
 	~JoystickAdapterI();
 
-	void sendData(const RoboCompJoystickAdapter::TData&, const Ice::Current & = Ice::Current());
-// 	QMutex *mutex;
+	void sendData(const TData  &data, const Ice::Current&);
+
 private:
 
-	Worker *worker;	///*<monitor Pointer to access monitor methods. It's used to set or read component configuration.
-public slots:
-
+	GenericWorker *worker;
 
 };
 

@@ -59,8 +59,8 @@ public:
 
 	DifferentialRobotPrx differentialrobot_proxy;
 
-	virtual void writeJoyStickBufferedData(const JoyStickBufferedData &gbd) = 0;
-	virtual void readJoyStickBufferedData(JoyStickBufferedData &gbd) = 0;
+	virtual void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd) = 0;
+	virtual void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd) = 0;
 
 protected:
 	QTimer timer;
@@ -71,6 +71,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
+	virtual void initialize(int period) = 0;
 signals:
 	void kill();
 };

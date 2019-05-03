@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,48 +16,36 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef DIFFERENTIALROBOTI_H
-#define DIFFERENTIALROBOTI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef DIFFERENTIALROBOT_H
+#define DIFFERENTIALROBOT_H
 
 // Ice includes
 #include <Ice/Ice.h>
 #include <DifferentialRobot.h>
-#include <GenericBase.h>
 
 #include <config.h>
-#include "worker.h"
+#include "genericworker.h"
 
 using namespace RoboCompDifferentialRobot;
-/**
-	\class DifferentialRobotI <p>Servant for DifferentialRobotComp. This class implements the methods of the public interface of DifferentialRobotComp.
-	It derives from DifferentialRobot that is the Ice proxy that will be include by other remote components using this</p>
-*/
-class DifferentialRobotI : public QObject , public virtual RoboCompDifferentialRobot::DifferentialRobot
+
+class DifferentialRobotI : public virtual RoboCompDifferentialRobot::DifferentialRobot
 {
-Q_OBJECT
 public:
-	DifferentialRobotI( Worker *_worker, QObject *parent = 0 );
+DifferentialRobotI(GenericWorker *_worker);
 	~DifferentialRobotI();
-	
-	void getBaseState(RoboCompGenericBase::TBaseState &state, const Ice::Current & = Ice::Current());
-	void getBasePose(int &x, int &z, float &alpha, const Ice::Current & = Ice::Current());
-	void setSpeedBase(float adv, float rot, const Ice::Current & = Ice::Current());
-	void stopBase( const Ice::Current & = Ice::Current());
-	void resetOdometer( const Ice::Current & = Ice::Current());
-	void setOdometer(const RoboCompGenericBase::TBaseState &state, const Ice::Current & = Ice::Current());
-	void setOdometerPose(int x, int z, float alpha, const Ice::Current & = Ice::Current());
-	void correctOdometer(int x, int z, float alpha, const Ice::Current & = Ice::Current());
-	void getMechParams(RoboCompDifferentialRobot::TMechParams &mechParams, const Ice::Current & = Ice::Current());
+
+	void correctOdometer(const int  x, const int  z, const float  alpha, const Ice::Current&);
+	void getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&);
+	void resetOdometer(const Ice::Current&);
+	void setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
+	void getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
+	void setOdometerPose(const int  x, const int  z, const float  alpha, const Ice::Current&);
+	void stopBase(const Ice::Current&);
+	void setSpeedBase(const float  adv, const float  rot, const Ice::Current&);
 
 private:
-	void throwException(std::string msg);
-	Worker *worker;	///*<worker Pointer to access worker methods. 
-	QMutex *mutex;  ///*<mutex Object ensures mutual exclusion on access to variables
-public slots:
 
+	GenericWorker *worker;
 
 };
 

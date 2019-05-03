@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,34 +16,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef GENERICBASEI_H
-#define GENERICBASEI_H
-
-// QT includes
-#include <QtCore/QObject>
+#ifndef GENERICBASE_H
+#define GENERICBASE_H
 
 // Ice includes
 #include <Ice/Ice.h>
 #include <GenericBase.h>
 
 #include <config.h>
-#include "worker.h"
+#include "genericworker.h"
 
 using namespace RoboCompGenericBase;
 
-class GenericBaseI : public QObject , public virtual RoboCompGenericBase::GenericBase
+class GenericBaseI : public virtual RoboCompGenericBase::GenericBase
 {
-Q_OBJECT
 public:
-	GenericBaseI( Worker *_worker, QObject *parent = 0 );
+	GenericBaseI(GenericWorker *_worker);
 	~GenericBaseI();
-	void getBaseState(RoboCompGenericBase::TBaseState& state, const Ice::Current& = Ice::Current());
-	void getBasePose(Ice::Int& x, Ice::Int& z, Ice::Float& alpha, const Ice::Current& = Ice::Current());
 
-	QMutex *mutex;
+	void getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
+	void getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&);
+
 private:
-	void throwException(std::string msg);
-	Worker *worker;
+
+	GenericWorker *worker;
+
 };
 
 #endif

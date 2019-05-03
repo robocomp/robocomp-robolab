@@ -167,7 +167,7 @@ bool RobexHandler::setSpeedBase ( float _adv , float _rot ){
 		rot = _rot;
 		commandToSend = true;
 	speed_mutex->unlock();
-	QTime t = QTime::currentTime();
+/*	QTime t = QTime::currentTime();
 	while (true)
 	{
 		if (t.elapsed() > 100)
@@ -180,7 +180,7 @@ bool RobexHandler::setSpeedBase ( float _adv , float _rot ){
 		}
 		speed_mutex->unlock();
 		usleep(20);
-	}
+	}*/
 	return false;
 }
 
@@ -465,7 +465,7 @@ bool RobexHandler::sendCommand(QString cmd, char *buf, int totalread){
 		cmd += 'X';
 		command = cmd.toLatin1().data();
 	
-		for (int o = 0; o < cmd.size(); ++o) stringEnviado[o] = (uchar)(cmd[o].toAscii());// 	stringEnviado = cmd;
+		for (int o = 0; o < cmd.size(); ++o) stringEnviado[o] = (uchar)(cmd[o].toLatin1());// 	stringEnviado = cmd;
 	
 		// Send command
 		MotionDevice.write(command,cmd.size());

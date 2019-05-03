@@ -1,4 +1,4 @@
-import "/robocomp/interfaces/IDSLs/OmniRobot.idsl";
+import "OmniRobot.idsl";
 
 Component delfos
 {

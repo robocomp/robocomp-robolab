@@ -66,7 +66,7 @@ class SpecificWorker(GenericWorker):
 			for rep in charsToAvoid:
 				text_to_say = text_to_say.replace(rep, '\\' + rep)
 			#				shellcommand = "echo " + text_to_say  + " | padsp festival --tts"
-			shellcommand = "echo \"%s\" | padsp festival --tts --language spanish"%text_to_say
+			shellcommand = "echo \"%s\" | iconv -f utf-8 -t iso-8859-1 | padsp festival --tts --language spanish"%text_to_say
 			print('Order: ' + text_to_say)
 			print('Shell: "' + shellcommand + '"')
 			os.system(shellcommand)

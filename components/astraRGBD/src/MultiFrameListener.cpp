@@ -54,9 +54,8 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
 }
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
-//    auto start = chrono::steady_clock::now();
-//    cout << "lapse "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
-//    end =  chrono::steady_clock::now();
+    auto start = chrono::steady_clock::now();
+	cout << "SAME FRAME READY " << endl;
 
     if (streamBools["depth"])
     {
@@ -75,6 +74,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             colorBuff.put(colorFrame, sizeof(astra::RgbPixel));
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
+        cout << "lapse COLORS "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+        end =  chrono::steady_clock::now();
     }
 	if (streamBools["point"])
 	{
@@ -84,6 +85,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 //			pointBuff.put(pointFrame, sizeof(float)*4);
             pointStreamBuff.put(pointFrame, sizeof(float)*4);
 		}
+        cout << "lapse POINTS "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+        end =  chrono::steady_clock::now();
 	}
 
     if (streamBools["body"])

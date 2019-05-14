@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -57,11 +57,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    astra::StreamSet streamSet2("device/sensor1");
 //    streamSet = streamSet2;
 
-
-    reader = new astra::StreamReader(streamSet.create_reader());
-    frameListener = new MultiFrameListener(*reader);
-//	timer.start(Period);
-//    initializeStreams();
+	frameListener = new MultiFrameListener(this->humantrackerjointsandrgb_pubproxy);
     frameListener->set_color_stream(colorB);
     qDebug()<<"Color stream will be opened? "<<colorB;
     frameListener->set_depth_stream(depthB);
@@ -70,7 +66,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     qDebug()<<"Points  stream will be opened? "<<pointB;
     frameListener->set_body_stream(bodyB);
     qDebug()<<"Body stream will be opened? "<<bodyB;
-    reader->add_listener(*frameListener);
+
 
 	return true;
 }
@@ -100,6 +96,7 @@ float SpecificWorker::compute_fps(bool print)
     	std::cout<<fsec(1)/delta_time<<endl;
 	}
 	last_time=current_time;
+    return fsec(1)/delta_time;
 }
 
 
@@ -274,7 +271,6 @@ void  SpecificWorker::HumanTracker_getUsersList(PersonList &users)
 	}
     frameListener->get_people(users);
 }
-
 
 void SpecificWorker::HumanTracker_getUserState(const int id, TrackingState &state)
 {

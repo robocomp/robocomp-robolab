@@ -21,7 +21,7 @@
 
 class MultiFrameListener : public astra::FrameListener
 {
-    ::std::map< ::std::string, bool> streamBools;
+	astra::StreamSet streamSet;
     astra::StreamReader *reader;
     astra::PointStream *pointStream;
     astra::DepthStream *depthStream;
@@ -45,9 +45,9 @@ class MultiFrameListener : public astra::FrameListener
     PointStreamConverter pointStreamConverter;
 	PointSeqConverter pointConverter;
 
-//    BodiesPeopleConverter bodiesConverter;
     RoboCompHumanTracker::PersonList bodylist;
     std::chrono::steady_clock::time_point end;
+	HumanTrackerJointsAndRGBPrx &pubproxy;
 //    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 //    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;
@@ -60,7 +60,7 @@ public:
 
     bool is_writting = false; //bandera
 
-    MultiFrameListener(astra::StreamReader& reader_);
+    MultiFrameListener(HumanTrackerJointsAndRGBPrx &pubproxy);
 
     void update_depth(astra::Frame& frame);
 

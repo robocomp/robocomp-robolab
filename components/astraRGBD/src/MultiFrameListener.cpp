@@ -7,7 +7,7 @@
 #include <ctime>
 
 
-MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
+MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) : pubproxy (_pubproxy)
 {
     streamBools["depth"]=false;
     streamBools["color"]=false;
@@ -15,7 +15,8 @@ MultiFrameListener::MultiFrameListener(astra::StreamReader& reader_)
     streamBools["points"]=false;
     streamBools["hand"]=false;
     streamBools["body"]=false;
-    reader = &reader_;
+    reader = new astra::StreamReader(streamSet.create_reader());
+    reader->add_listener(*this);
 
     colorStream = new astra::ColorStream(configure_color(*reader));
     depthStream = new astra::DepthStream(configure_depth(*reader));

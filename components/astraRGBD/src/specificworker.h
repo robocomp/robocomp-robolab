@@ -53,6 +53,12 @@ public:
 	void terminate();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	void HumanTracker_getJointsPosition(const int id, jointListType &jointList);
+	void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList);
+	void HumanTracker_getUser(const int id, TPerson &user);
+	bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint);
+	void HumanTracker_getUsersList(PersonList &users);
+	void HumanTracker_getUserState(const int id, TrackingState &state);
 	Registration RGBD_getRegistration();
 	void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
@@ -75,7 +81,7 @@ public slots:
 	void initialize(int period);
 
 private:
-	InnerModel *innerModel;
+	std::shared_ptr<InnerModel> innerModel;
 	float compute_fps(bool print);
 
 };

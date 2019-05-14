@@ -23,6 +23,7 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
+	humantrackerjointsandrgb_pubproxy = (*(HumanTrackerJointsAndRGBPrx*)mprx["HumanTrackerJointsAndRGBPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

@@ -24,12 +24,20 @@ MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) :
     bodyStream  = new astra::BodyStream(configure_body(*reader));
 
 
-    colorBuff2.init(640*480*3, byteConverter);
-    colorBuff.init(640*480, colorConverter);
-    depthBuff.init(640*480, depthConverter);
-    pointStreamBuff.init(640*480*3*4, pointStreamConverter);
-    pointBuff.init(640*480, pointConverter);
-//    bodyBuff.init(bodiesConverter);
+    byteConverter = new ByteSeqConverter(640*480*3);
+    depthConverter = new FloatSeqConverter(640*480);
+    colorConverter = new ColorSeqConverter(640*480);
+    pointStreamConverter = new PointStreamConverter(640*480*3*4);
+    pointConverter = new PointSeqConverter(640*480);
+    bodiesConverter = new BodiesPeopleConverter();
+
+    colorBuff2.init(*byteConverter);
+    colorBuff.init(*colorConverter);
+    depthBuff.init(*depthConverter);
+    pointStreamBuff.init(*pointStreamConverter);
+    pointBuff.init(*pointConverter);
+//    bodyBuff.init(*bodiesConverter);
+
     end = chrono::steady_clock::now();
     joint2String = {
         std::make_pair(astra::JointType::Head,"Head"),
@@ -80,6 +88,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
     }
 	if (streamBools["point"])
 	{
+
 		astra::PointFrame pointFrame = frame.get<astra::PointFrame>();
 		if(pointFrame.is_valid())
 		{

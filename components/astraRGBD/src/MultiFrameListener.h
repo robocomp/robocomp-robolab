@@ -22,7 +22,10 @@
 class MultiFrameListener : public astra::FrameListener
 {
 	astra::StreamSet streamSet;
-    astra::StreamReader *reader;
+	astra::StreamReader *reader;
+
+
+    ::std::map< ::std::string, bool> streamBools;
     astra::PointStream *pointStream;
     astra::DepthStream *depthStream;
     astra::ColorStream *colorStream;
@@ -39,11 +42,12 @@ class MultiFrameListener : public astra::FrameListener
 //    DoubleBuffer<astra::BodyFrame, RoboCompHumanTracker::PersonList, BodiesPeopleConverter> bodyBuff;
 
 
-    ByteSeqConverter byteConverter;
-    FloatSeqConverter depthConverter;
-    ColorSeqConverter colorConverter;
-    PointStreamConverter pointStreamConverter;
-	PointSeqConverter pointConverter;
+    ByteSeqConverter *byteConverter;
+    FloatSeqConverter *depthConverter;
+    ColorSeqConverter *colorConverter;
+    PointStreamConverter *pointStreamConverter;
+	PointSeqConverter *pointConverter;
+    BodiesPeopleConverter *bodiesConverter;
 
     RoboCompHumanTracker::PersonList bodylist;
     std::chrono::steady_clock::time_point end;

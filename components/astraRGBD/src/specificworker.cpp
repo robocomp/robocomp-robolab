@@ -58,14 +58,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    streamSet = streamSet2;
 
 	frameListener = new MultiFrameListener(this->humantrackerjointsandrgb_pubproxy);
-    frameListener->set_color_stream(colorB);
-    qDebug()<<"Color stream will be opened? "<<colorB;
-    frameListener->set_depth_stream(depthB);
-    qDebug()<<"Depth stream will be opened? "<<depthB;
-    frameListener->set_point_stream(pointB);
-    qDebug()<<"Points  stream will be opened? "<<pointB;
-    frameListener->set_body_stream(bodyB);
-    qDebug()<<"Body stream will be opened? "<<bodyB;
+	frameListener->set_color_stream(colorB);
+	qDebug()<<"Color stream will be opened? "<<colorB;
+	frameListener->set_depth_stream(depthB);
+	qDebug()<<"Depth stream will be opened? "<<depthB;
+	frameListener->set_point_stream(pointB);
+	qDebug()<<"Points  stream will be opened? "<<pointB;
+	frameListener->set_body_stream(bodyB);
+	qDebug()<<"Body stream will be opened? "<<bodyB;
+
+//	timer.start(Period);
+//    initializeStreams();
 
 
 	return true;

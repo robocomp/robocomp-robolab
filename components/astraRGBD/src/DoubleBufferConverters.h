@@ -18,7 +18,12 @@ public:
 	{
 		size=_size;
 	}
-    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::imgType &oTypeData, bool clear=false)
+	bool clear(RoboCompRGBD::imgType &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::imgType &oTypeData)
     {
 		if(oTypeData.size()<this->size)
 		{
@@ -35,7 +40,7 @@ public:
         return false;
     }
 
-    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::ColorFrame &iTypeData, bool clear=false)
+    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::ColorFrame &iTypeData)
     {
         return false;
     }
@@ -50,7 +55,12 @@ public:
 	{
 		size=_size;
 	}
-    bool ItoO(const astra::PointFrame &iTypeData, RoboCompRGBD::PointSeq &oTypeData, bool clear=false)
+	bool clear(RoboCompRGBD::PointSeq &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+    bool ItoO(const astra::PointFrame &iTypeData, RoboCompRGBD::PointSeq &oTypeData)
     {
 		if(oTypeData.size()<this->size)
 		{
@@ -80,7 +90,7 @@ public:
         return false;
     }
 
-    bool OtoI(const RoboCompRGBD::PointSeq &oTypeData, astra::PointFrame &iTypeData, bool clear=false)
+    bool OtoI(const RoboCompRGBD::PointSeq &oTypeData, astra::PointFrame &iTypeData)
     {
         return false;
     }
@@ -96,7 +106,12 @@ public:
 	{
 		size=_size;
 	}
-    bool ItoO(const astra::PointFrame &iTypeData, RoboCompRGBD::imgType &oTypeData, bool clear=false)
+	bool clear(RoboCompRGBD::imgType &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+    bool ItoO(const astra::PointFrame &iTypeData, RoboCompRGBD::imgType &oTypeData)
     {
 		if(oTypeData.size()<this->size)
 		{
@@ -128,7 +143,7 @@ public:
         return false;
     }
 
-    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::PointFrame &iTypeData, bool clear=false)
+    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::PointFrame &iTypeData)
     {
         return false;
     }
@@ -143,7 +158,12 @@ public:
 	{
 		size=_size;
 	}
-    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::ColorSeq &oTypeData, bool clear=false)
+	bool clear(RoboCompRGBD::ColorSeq &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::ColorSeq &oTypeData)
     {
 		if(oTypeData.size()<this->size)
 		{
@@ -160,7 +180,7 @@ public:
         return false;
     }
 
-    bool OtoI(const RoboCompRGBD::ColorSeq &oTypeData, astra::ColorFrame &iTypeData, bool clear=false)
+    bool OtoI(const RoboCompRGBD::ColorSeq &oTypeData, astra::ColorFrame &iTypeData)
     {
         return false;
     }
@@ -174,7 +194,12 @@ public:
 //	{
 //		size=_size;
 //	}
-//    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::imgType &oTypeData, bool clear=false)
+//bool clear(, RoboCompRGBD::imgType &)
+//{
+//	oTypeData.clear();
+//return true;
+//}
+//    bool ItoO(const astra::ColorFrame &iTypeData, RoboCompRGBD::imgType &oTypeData)
 //    {
 //		  if(oTypeData.size()<this->size)
 // {
@@ -190,7 +215,7 @@ public:
 //        return false;
 //    }
 //
-//    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::ColorFrame &iTypeData, bool clear=false)
+//    bool OtoI(const RoboCompRGBD::imgType &oTypeData, astra::ColorFrame &iTypeData)
 //    {
 //        return false;
 //    }
@@ -205,7 +230,12 @@ public:
 	{
 		size=_size;
 	}
-    bool ItoO(const astra::DepthFrame &iTypeData, RoboCompRGBD::DepthSeq &oTypeData, bool clear=false)
+	bool clear(RoboCompRGBD::DepthSeq &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+    bool ItoO(const astra::DepthFrame &iTypeData, RoboCompRGBD::DepthSeq &oTypeData)
     {
 		if(oTypeData.size()<this->size)
 		{
@@ -219,7 +249,7 @@ public:
         return false;
     }
 
-    bool OtoI(const RoboCompRGBD::DepthSeq &oTypeData, astra::DepthFrame &iTypeData, bool clear=false)
+    bool OtoI(const RoboCompRGBD::DepthSeq &oTypeData, astra::DepthFrame &iTypeData)
     {
         return false;
     }
@@ -253,87 +283,89 @@ class BodiesPeopleConverter : public Converter<astra::BodyFrame, RoboCompHumanTr
 
 public:
 
-	bool ItoO(const astra::BodyFrame &iTypeData, RoboCompHumanTracker::PersonList &oTypeData, bool clear=false)
+	bool clear(RoboCompHumanTracker::PersonList &oTypeData)
 	{
-		if(!clear)
+		oTypeData.clear();
+		return true;
+	}
+	bool ItoO(const astra::BodyFrame &iTypeData, RoboCompHumanTracker::PersonList &oTypeData)
+	{
+		if (iTypeData.is_valid())
 		{
-			if (iTypeData.is_valid())
-			{
-				const auto &bodies = iTypeData.bodies();
-				if (bodies.empty())
-					return false;
+			const auto &bodies = iTypeData.bodies();
+			if (bodies.empty())
+				return false;
 
-				for (auto &body : bodies) {
-					//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
+			for (auto &body : bodies) {
+				//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
 
-					RoboCompHumanTracker::TPerson person;
-					auto status = body.status();
+				RoboCompHumanTracker::TPerson person;
+				auto status = body.status();
 
-					switch (status) {
-						case astra::BodyStatus::NotTracking:
-							person.state = RoboCompHumanTracker::TrackingState::NotTracking;
-							break;
-						case astra::BodyStatus::TrackingLost:
-							person.state = RoboCompHumanTracker::TrackingState::TrackingLost;
-							break;
-						case astra::BodyStatus::TrackingStarted:
-							person.state = RoboCompHumanTracker::TrackingState::TrackingStarted;
-							break;
-						case astra::BodyStatus::Tracking:
-							person.state = RoboCompHumanTracker::TrackingState::Tracking;
-							break;
-						default:
-							qDebug() << "Invalid body state";
-					}
-
-
-					RoboCompHumanTracker::jointListType joints_list;
-					RoboCompHumanTracker::jointListType joints_depth;
-
-					const auto &joints = body.joints();
-
-					if (!joints.empty()) {
-
-						for (const auto &j : joints) {
-							if (j.status() == astra::JointStatus::Tracked or
-								j.status() == astra::JointStatus::LowConfidence) {
-								auto &jnt = j.world_position();
-								auto &jntdepth = j.depth_position();
-
-								joint pointindepth;
-								pointindepth.push_back(jntdepth.x);
-								pointindepth.push_back(jntdepth.y);
-
-
-								joint JointP;
-								JointP.push_back(jnt.x);
-								JointP.push_back(jnt.y);
-								JointP.push_back(jnt.z);
-
-								astra::JointType type = j.type();
-								std::string typejoint;
-
-								typejoint = joint2String.at(type);
-								joints_list[typejoint] = JointP;
-								joints_depth[typejoint] = pointindepth;
-
-							}
-						}
-					} else
-						qDebug() << "Joints is empty";
-
-					person.joints = joints_list;
-					oTypeData[body.id()] = person;
-
+				switch (status) {
+					case astra::BodyStatus::NotTracking:
+						person.state = RoboCompHumanTracker::TrackingState::NotTracking;
+						break;
+					case astra::BodyStatus::TrackingLost:
+						person.state = RoboCompHumanTracker::TrackingState::TrackingLost;
+						break;
+					case astra::BodyStatus::TrackingStarted:
+						person.state = RoboCompHumanTracker::TrackingState::TrackingStarted;
+						break;
+					case astra::BodyStatus::Tracking:
+						person.state = RoboCompHumanTracker::TrackingState::Tracking;
+						break;
+					default:
+						qDebug() << "Invalid body state";
 				}
-				qDebug() << " PERSONAS = " << oTypeData.size();
-				return true;
+
+
+				RoboCompHumanTracker::jointListType joints_list;
+				RoboCompHumanTracker::jointListType joints_depth;
+
+				const auto &joints = body.joints();
+
+				if (!joints.empty()) {
+
+					for (const auto &j : joints) {
+						if (j.status() == astra::JointStatus::Tracked or
+							j.status() == astra::JointStatus::LowConfidence) {
+							auto &jnt = j.world_position();
+							auto &jntdepth = j.depth_position();
+
+							joint pointindepth;
+							pointindepth.push_back(jntdepth.x);
+							pointindepth.push_back(jntdepth.y);
+
+
+							joint JointP;
+							JointP.push_back(jnt.x);
+							JointP.push_back(jnt.y);
+							JointP.push_back(jnt.z);
+
+							astra::JointType type = j.type();
+							std::string typejoint;
+
+							typejoint = joint2String.at(type);
+							joints_list[typejoint] = JointP;
+							joints_depth[typejoint] = pointindepth;
+
+						}
+					}
+				} else
+					qDebug() << "Joints is empty";
+
+				person.joints = joints_list;
+				oTypeData[body.id()] = person;
+
 			}
+			qDebug() << " PERSONAS = " << oTypeData.size();
+			return true;
 		}
 		return false;
 	}
 
-	bool OtoI(const RoboCompHumanTracker::PersonList &oTypeData, astra::BodyFrame &iTypeData, bool clear=false)
+	bool OtoI(const RoboCompHumanTracker::PersonList &oTypeData, astra::BodyFrame &iTypeData)
 	{
 		return false;
 	}

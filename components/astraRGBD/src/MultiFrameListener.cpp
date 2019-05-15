@@ -36,7 +36,7 @@ MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) :
     depthBuff.init(*depthConverter);
     pointStreamBuff.init(*pointStreamConverter);
     pointBuff.init(*pointConverter);
-//    bodyBuff.init(*bodiesConverter);
+    bodyBuff.init(*bodiesConverter);
 
     end = chrono::steady_clock::now();
     joint2String = {
@@ -95,20 +95,23 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 //			pointBuff.put(pointFrame, sizeof(float)*4);
             pointStreamBuff.put(pointFrame, sizeof(float)*4);
 		}
-        cout << "lapse POINTS "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
         end =  chrono::steady_clock::now();
 	}
 
     if (streamBools["body"])
     {
         astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
-        if (!bodyFrame.is_valid() || bodyFrame.info().width() == 0 || bodyFrame.info().height() == 0)
+        if (!bodyFrame.is_valid() || bodyFrame.bodies().size()==0)
         {
+
+            bodyBuff.clear();
             return;
         }
+		cout << "lapse BODYs "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+
         // NOT USING DOUBLE BUFFER BECAUSE A BUG ON RETAINING UNEXISTNG PEOPLE
-//        bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
-        bodylist.clear();
+        bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
+//        bodylist.clear();
         PersonDepth.clear();
 
 
@@ -281,21 +284,21 @@ void MultiFrameListener::get_color(imgType& colors)
 
 void MultiFrameListener::get_people(PersonList& people)
 {
-//    qDebug()<<"get_People_1 "<<people.size();
-//    bodyBuff.get(people);
-//    qDebug()<<"get_People_2 "<<people.size();
+    qDebug()<<"get_People_1 "<<people.size();
+    bodyBuff.get(people);
+    qDebug()<<"get_People_2 "<<people.size();
 
-    if (is_writting) //la bandera dice si se esta leyendo a la vez que escribiendo
-    {
-        qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"- Possible sync problem while reading people structure -";
-        qDebug()<<"--------------------------------------------------------";
-        qDebug()<<"--------------------------------------------------------";
-    }
-
-    else
-        people = bodylist;
+//    if (is_writting) //la bandera dice si se esta leyendo a la vez que escribiendo
+//    {
+//        qDebug()<<"--------------------------------------------------------";
+//        qDebug()<<"--------------------------------------------------------";
+//        qDebug()<<"- Possible sync problem while reading people structure -";
+//        qDebug()<<"--------------------------------------------------------";
+//        qDebug()<<"--------------------------------------------------------";
+//    }
+//
+//    else
+//        people = bodylist;
 
 }
 

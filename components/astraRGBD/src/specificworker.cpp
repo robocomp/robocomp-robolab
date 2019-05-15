@@ -246,25 +246,25 @@ SpecificWorker::RGBD_getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor:
 	qDebug() << "getDepthInIR Not implemented yet";
 }
 
-void SpecificWorker::HumanTracker_getJointsPosition(const int id, jointListType& jointList)
+void SpecificWorker::HumanTracker_getJointsPosition(const int id, RoboCompHumanTracker::jointListType& jointList)
 {
 //implementCODE
 	qDebug() << "HumanTracker_getJointsPosition Not implemented yet";
 }
 
-void SpecificWorker::HumanTracker_getRTMatrixList(const int id, RTMatrixList& RTMatList)
+void SpecificWorker::HumanTracker_getRTMatrixList(const int id, RoboCompHumanTracker::RTMatrixList& RTMatList)
 {
 //implementCODE
 	qDebug() << "HumanTracker_getRTMatrixList Not implemented yet";
 }
 
-void SpecificWorker::HumanTracker_getUser(const int id, TPerson& user)
+void SpecificWorker::HumanTracker_getUser(const int id, RoboCompHumanTracker::TPerson& user)
 {
 //implementCODE
 	qDebug() << "HumanTracker_getUser Not implemented yet";
 }
 
-bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string& idjoint, joint& depthjoint)
+bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string& idjoint, RoboCompHumanTracker::joint& depthjoint)
 {
 
 	if (!this->bodyB) {
@@ -285,7 +285,7 @@ bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, cons
 	};
 }
 
-void SpecificWorker::HumanTracker_getUsersList(PersonList& users)
+void SpecificWorker::HumanTracker_getUsersList(RoboCompHumanTracker::PersonList& users)
 {
 	if (!this->bodyB) {
 		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
@@ -297,7 +297,7 @@ void SpecificWorker::HumanTracker_getUsersList(PersonList& users)
 	frameListener->get_people(users);
 }
 
-void SpecificWorker::HumanTracker_getUserState(const int id, TrackingState& state)
+void SpecificWorker::HumanTracker_getUserState(const int id, RoboCompHumanTracker::TrackingState& state)
 {
 //implementCODE
 	qDebug() << "HumanTracker_getUserState Not implemented yet";

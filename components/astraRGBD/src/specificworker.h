@@ -52,12 +52,12 @@ public:
 	void terminate();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	void HumanTracker_getJointsPosition(const int id, jointListType &jointList);
-	void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList);
-	void HumanTracker_getUser(const int id, TPerson &user);
-	bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint);
-	void HumanTracker_getUsersList(PersonList &users);
-	void HumanTracker_getUserState(const int id, TrackingState &state);
+	void HumanTracker_getJointsPosition(const int id, RoboCompHumanTracker::jointListType &jointList);
+	void HumanTracker_getRTMatrixList(const int id, RoboCompHumanTracker::RTMatrixList &RTMatList);
+	void HumanTracker_getUser(const int id, RoboCompHumanTracker::TPerson &user);
+	bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, RoboCompHumanTracker::joint &depthjoint);
+	void HumanTracker_getUsersList(RoboCompHumanTracker::PersonList &users);
+	void HumanTracker_getUserState(const int id, RoboCompHumanTracker::TrackingState &state);
 	Registration RGBD_getRegistration();
 	void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);
 	void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState);

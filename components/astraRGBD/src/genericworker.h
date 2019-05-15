@@ -38,9 +38,8 @@
 using namespace std;
 using namespace RoboCompJointMotor;
 using namespace RoboCompGenericBase;
-using namespace RoboCompHumanTracker;
 using namespace RoboCompRGBD;
-using namespace RoboCompHumanTrackerJointsAndRGB;
+
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
@@ -59,14 +58,14 @@ public:
 	QMutex *mutex;
 
 
-	HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
+	RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
 
-	virtual void HumanTracker_getJointsPosition(const int id, jointListType &jointList) = 0;
-	virtual void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
-	virtual void HumanTracker_getUser(const int id, TPerson &user) = 0;
-	virtual bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint) = 0;
-	virtual void HumanTracker_getUsersList(PersonList &users) = 0;
-	virtual void HumanTracker_getUserState(const int id, TrackingState &state) = 0;
+	virtual void HumanTracker_getJointsPosition(const int id, RoboCompHumanTracker::jointListType &jointList) = 0;
+	virtual void HumanTracker_getRTMatrixList(const int id, RoboCompHumanTracker::RTMatrixList &RTMatList) = 0;
+	virtual void HumanTracker_getUser(const int id, RoboCompHumanTracker::TPerson &user) = 0;
+	virtual bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, RoboCompHumanTracker::joint &depthjoint) = 0;
+	virtual void HumanTracker_getUsersList(RoboCompHumanTracker::PersonList &users) = 0;
+	virtual void HumanTracker_getUserState(const int id, RoboCompHumanTracker::TrackingState &state) = 0;
 	virtual Registration RGBD_getRegistration() = 0;
 	virtual void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;

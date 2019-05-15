@@ -7,7 +7,7 @@
 #include <ctime>
 
 
-MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) : pubproxy (_pubproxy)
+MultiFrameListener::MultiFrameListener(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &_pubproxy) : pubproxy (_pubproxy)
 {
     streamBools["depth"]=false;
     streamBools["color"]=false;
@@ -30,6 +30,8 @@ MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) :
     pointStreamConverter = new PointStreamConverter(640*480*3*4);
     pointConverter = new PointSeqConverter(640*480);
     bodiesConverter = new BodiesPeopleConverter();
+    bodyRgbConverter = new BodyRGBConverter();
+
 
     colorBuff2.init(*byteConverter);
     colorBuff.init(*colorConverter);
@@ -37,34 +39,37 @@ MultiFrameListener::MultiFrameListener(HumanTrackerJointsAndRGBPrx &_pubproxy) :
     pointStreamBuff.init(*pointStreamConverter);
     pointBuff.init(*pointConverter);
     bodyBuff.init(*bodiesConverter);
+    bodyRGBMix.init(*bodyRgbConverter);
 
     end = chrono::steady_clock::now();
-    joint2String = {
-        std::make_pair(astra::JointType::Head,"Head"),
-        std::make_pair(astra::JointType::Neck,"Neck"),
-        std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
-        std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
-        std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
-        std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
-        std::make_pair(astra::JointType::LeftHand,"LeftHand"),
-        std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
-        std::make_pair(astra::JointType::RightElbow,"RightElbow"),
-        std::make_pair(astra::JointType::RightWrist,"RightWrist"),
-        std::make_pair(astra::JointType::RightHand,"RightHand"),
-        std::make_pair(astra::JointType::MidSpine,"MidSpine"),
-        std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
-        std::make_pair(astra::JointType::LeftHip,"LeftHip"),
-        std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
-        std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
-        std::make_pair(astra::JointType::RightHip,"RightHip"),
-        std::make_pair(astra::JointType::RightKnee,"RightKnee"),
-        std::make_pair(astra::JointType::RightFoot,"RightFoot")
+    std::map<astra::JointType, ::std::string> JOINT2STRING = {
+            std::make_pair(astra::JointType::Head,"Head"),
+            std::make_pair(astra::JointType::Neck,"Neck"),
+            std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
+            std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
+            std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
+            std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
+            std::make_pair(astra::JointType::LeftHand,"LeftHand"),
+            std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
+            std::make_pair(astra::JointType::RightElbow,"RightElbow"),
+            std::make_pair(astra::JointType::RightWrist,"RightWrist"),
+            std::make_pair(astra::JointType::RightHand,"RightHand"),
+            std::make_pair(astra::JointType::MidSpine,"MidSpine"),
+            std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
+            std::make_pair(astra::JointType::LeftHip,"LeftHip"),
+            std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
+            std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
+            std::make_pair(astra::JointType::RightHip,"RightHip"),
+            std::make_pair(astra::JointType::RightKnee,"RightKnee"),
+            std::make_pair(astra::JointType::RightFoot,"RightFoot")
     };
 }
 void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Frame& frame)
 {
     auto start = chrono::steady_clock::now();
-	cout << "SAME FRAME READY " << endl;
+//	cout << "SAME FRAME READY " << endl;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    auto nanosec = t0.time_since_epoch();
 
     if (streamBools["depth"])
     {
@@ -83,7 +88,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             colorBuff.put(colorFrame, sizeof(astra::RgbPixel));
             colorBuff2.put(colorFrame, sizeof(astra::RgbPixel));
         }
-        cout << "lapse COLORS "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+//        cout << "lapse COLORS "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
         end =  chrono::steady_clock::now();
     }
 	if (streamBools["point"])
@@ -98,6 +103,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         end =  chrono::steady_clock::now();
 	}
 
+
     if (streamBools["body"])
     {
         astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
@@ -107,7 +113,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             bodyBuff.clear();
             return;
         }
-		cout << "lapse BODYs "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
+//		cout << "lapse BODYs "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
 
         // NOT USING DOUBLE BUFFER BECAUSE A BUG ON RETAINING UNEXISTNG PEOPLE
         bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
@@ -124,7 +130,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         {
 //            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
 
-            TPerson person;
+			RoboCompHumanTracker::TPerson person;
             auto status = body.status();
 
             switch (status){
@@ -145,8 +151,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
             }
 
 
-            jointListType joints_list;
-            jointListType joints_depth;
+            RoboCompHumanTrackerJointsAndRGB::jointListType joints_list;
+            RoboCompHumanTrackerJointsAndRGB::jointListType joints_depth;
 
             const auto& joints = body.joints();
 
@@ -160,12 +166,12 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         auto &jnt = j.world_position();
                         auto &jntdepth = j.depth_position();
 
-                        joint pointindepth;
+                        RoboCompHumanTrackerJointsAndRGB::joint pointindepth;
                         pointindepth.push_back(jntdepth.x);
                         pointindepth.push_back(jntdepth.y);
 
 
-                        joint JointP;
+                        RoboCompHumanTrackerJointsAndRGB::joint JointP;
                         JointP.push_back(jnt.x);
                         JointP.push_back(jnt.y);
                         JointP.push_back(jnt.z);
@@ -173,7 +179,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
                         astra::JointType type = j.type();
                         std::string typejoint;
 
-                        typejoint = joint2String.at(type);
+                        typejoint = JOINT2STRING.at(type);
                         joints_list[typejoint] = JointP;
                         joints_depth[typejoint]=pointindepth;
 
@@ -191,6 +197,26 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         qDebug()<<" PERSONAS = "<<bodylist.size() ;
         is_writting = false;
         return;
+    }
+
+    //Special case for syncronized color and joints
+    //TODO: better coding and clean-up
+    if (streamBools["color"] and streamBools["body"]) {
+        astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
+        astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
+
+        if (!bodyFrame.is_valid() || bodyFrame.bodies().size()==0)
+        {
+
+            bodyBuff.clear();
+            return;
+        }
+        if(colorFrame.is_valid())
+        {
+            cout << "lapse putting mixed frames at "<<nanosec.count() << " ns" << endl;
+            const auto thetuple = std::make_tuple(colorFrame, bodyFrame, nanosec.count());
+            bodyRGBMix.put(thetuple, 0);
+        }
     }
 
 }
@@ -282,7 +308,7 @@ void MultiFrameListener::get_color(imgType& colors)
 }
 
 
-void MultiFrameListener::get_people(PersonList& people)
+void MultiFrameListener::get_people(RoboCompHumanTracker::PersonList& people)
 {
     qDebug()<<"get_People_1 "<<people.size();
     bodyBuff.get(people);
@@ -302,9 +328,9 @@ void MultiFrameListener::get_people(PersonList& people)
 
 }
 
-joint MultiFrameListener::getJointDepth(int idperson, string idjoint)
+RoboCompHumanTracker::joint MultiFrameListener::getJointDepth(int idperson, string idjoint)
 {
-    jointListType p = PersonDepth[idperson];
+    RoboCompHumanTracker::jointListType p = PersonDepth[idperson];
     auto pos = p[idjoint];
     return pos;
 

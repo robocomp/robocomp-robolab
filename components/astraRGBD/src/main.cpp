@@ -133,7 +133,7 @@ int ::astraRGBD::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
+	RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
 
 	string proxy, tmp;
 	initialize();
@@ -171,7 +171,7 @@ int ::astraRGBD::run(int argc, char* argv[])
 	}
 
 	Ice::ObjectPrx humantrackerjointsandrgb_pub = humantrackerjointsandrgb_topic->getPublisher()->ice_oneway();
-	humantrackerjointsandrgb_pubproxy = HumanTrackerJointsAndRGBPrx::uncheckedCast(humantrackerjointsandrgb_pub);
+	humantrackerjointsandrgb_pubproxy = RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx::uncheckedCast(humantrackerjointsandrgb_pub);
 	mprx["HumanTrackerJointsAndRGBPub"] = (::IceProxy::Ice::Object*)(&humantrackerjointsandrgb_pubproxy);
 
 	SpecificWorker *worker = new SpecificWorker(mprx);

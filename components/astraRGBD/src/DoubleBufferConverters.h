@@ -256,89 +256,72 @@ public:
 };
 
 
-
 class BodiesPeopleConverter : public Converter<astra::BodyFrame, RoboCompHumanTracker::PersonList>
 {
-	std::map<astra::JointType, ::std::string> joint2String = {
-			std::make_pair(astra::JointType::Head,"Head"),
-			std::make_pair(astra::JointType::Neck,"Neck"),
-			std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
-			std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
-			std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
-			std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
-			std::make_pair(astra::JointType::LeftHand,"LeftHand"),
-			std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
-			std::make_pair(astra::JointType::RightElbow,"RightElbow"),
-			std::make_pair(astra::JointType::RightWrist,"RightWrist"),
-			std::make_pair(astra::JointType::RightHand,"RightHand"),
-			std::make_pair(astra::JointType::MidSpine,"MidSpine"),
-			std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
-			std::make_pair(astra::JointType::LeftHip,"LeftHip"),
-			std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
-			std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
-			std::make_pair(astra::JointType::RightHip,"RightHip"),
-			std::make_pair(astra::JointType::RightKnee,"RightKnee"),
-			std::make_pair(astra::JointType::RightFoot,"RightFoot")
-	};
-
-public:
-
-	bool clear(RoboCompHumanTracker::PersonList &oTypeData)
+	static bool astraBodies2RobocompPersonList(const astra::BodyFrame &iTypeData, RoboCompHumanTracker::PersonList &oTypeData)
 	{
-		oTypeData.clear();
-		return true;
-	}
-	bool ItoO(const astra::BodyFrame &iTypeData, RoboCompHumanTracker::PersonList &oTypeData)
-	{
-		if (iTypeData.is_valid())
-		{
-			const auto &bodies = iTypeData.bodies();
+		std::map<astra::JointType, ::std::string> JOINT2STRING_ = {
+				std::make_pair(astra::JointType::Head,"Head"),
+				std::make_pair(astra::JointType::Neck,"Neck"),
+				std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
+				std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
+				std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
+				std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
+				std::make_pair(astra::JointType::LeftHand,"LeftHand"),
+				std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
+				std::make_pair(astra::JointType::RightElbow,"RightElbow"),
+				std::make_pair(astra::JointType::RightWrist,"RightWrist"),
+				std::make_pair(astra::JointType::RightHand,"RightHand"),
+				std::make_pair(astra::JointType::MidSpine,"MidSpine"),
+				std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
+				std::make_pair(astra::JointType::LeftHip,"LeftHip"),
+				std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
+				std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
+				std::make_pair(astra::JointType::RightHip,"RightHip"),
+				std::make_pair(astra::JointType::RightKnee,"RightKnee"),
+				std::make_pair(astra::JointType::RightFoot,"RightFoot")
+		};
+		if (iTypeData.is_valid()) {
+			const auto& bodies = iTypeData.bodies();
 			if (bodies.empty())
 				return false;
 
-			for (auto &body : bodies) {
-				//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
+			for (auto& body : bodies) {
+//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
 
 				RoboCompHumanTracker::TPerson person;
 				auto status = body.status();
 
 				switch (status) {
-					case astra::BodyStatus::NotTracking:
-						person.state = RoboCompHumanTracker::TrackingState::NotTracking;
-						break;
-					case astra::BodyStatus::TrackingLost:
-						person.state = RoboCompHumanTracker::TrackingState::TrackingLost;
-						break;
-					case astra::BodyStatus::TrackingStarted:
-						person.state = RoboCompHumanTracker::TrackingState::TrackingStarted;
-						break;
-					case astra::BodyStatus::Tracking:
-						person.state = RoboCompHumanTracker::TrackingState::Tracking;
-						break;
-					default:
-						qDebug() << "Invalid body state";
+				case astra::BodyStatus::NotTracking:person.state = RoboCompHumanTracker::TrackingState::NotTracking;
+					break;
+				case astra::BodyStatus::TrackingLost:person.state = RoboCompHumanTracker::TrackingState::TrackingLost;
+					break;
+				case astra::BodyStatus::TrackingStarted:person.state = RoboCompHumanTracker::TrackingState::TrackingStarted;
+					break;
+				case astra::BodyStatus::Tracking:person.state = RoboCompHumanTracker::TrackingState::Tracking;
+					break;
+				default:qDebug() << "Invalid body state";
 				}
-
 
 				RoboCompHumanTracker::jointListType joints_list;
 				RoboCompHumanTracker::jointListType joints_depth;
 
-				const auto &joints = body.joints();
+				const auto& joints = body.joints();
 
 				if (!joints.empty()) {
 
-					for (const auto &j : joints) {
-						if (j.status() == astra::JointStatus::Tracked or
-							j.status() == astra::JointStatus::LowConfidence) {
-							auto &jnt = j.world_position();
-							auto &jntdepth = j.depth_position();
+					for (const auto& j : joints) {
+						if (j.status()==astra::JointStatus::Tracked or
+								j.status()==astra::JointStatus::LowConfidence) {
+							auto& jnt = j.world_position();
+							auto& jntdepth = j.depth_position();
 
-							joint pointindepth;
+							RoboCompHumanTracker::joint pointindepth;
 							pointindepth.push_back(jntdepth.x);
 							pointindepth.push_back(jntdepth.y);
 
-
-							joint JointP;
+							RoboCompHumanTracker::joint JointP;
 							JointP.push_back(jnt.x);
 							JointP.push_back(jnt.y);
 							JointP.push_back(jnt.z);
@@ -346,13 +329,14 @@ public:
 							astra::JointType type = j.type();
 							std::string typejoint;
 
-							typejoint = joint2String.at(type);
+							typejoint = JOINT2STRING_.at(type);
 							joints_list[typejoint] = JointP;
 							joints_depth[typejoint] = pointindepth;
 
 						}
 					}
-				} else
+				}
+				else
 					qDebug() << "Joints is empty";
 
 				person.joints = joints_list;
@@ -364,8 +348,161 @@ public:
 		}
 		return false;
 	}
+public:
+
+	bool clear(RoboCompHumanTracker::PersonList &oTypeData)
+	{
+		oTypeData.clear();
+		return true;
+	}
+	bool ItoO(const astra::BodyFrame &iTypeData, RoboCompHumanTracker::PersonList &oTypeData)
+	{
+
+		return astraBodies2RobocompPersonList(iTypeData, oTypeData);
+	}
 
 	bool OtoI(const RoboCompHumanTracker::PersonList &oTypeData, astra::BodyFrame &iTypeData)
+	{
+		return false;
+	}
+};
+
+class BodyRGBConverter : public Converter<std::tuple<astra::ColorFrame,astra::BodyFrame, long int>, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB>
+{
+
+	static bool astraBodies2RobocompPersonList(const astra::BodyFrame &iTypeData, RoboCompHumanTrackerJointsAndRGB::PersonList &oTypeData)
+	{
+		std::map<astra::JointType, ::std::string> JOINT2STRING_ = {
+				std::make_pair(astra::JointType::Head,"Head"),
+				std::make_pair(astra::JointType::Neck,"Neck"),
+				std::make_pair(astra::JointType::ShoulderSpine,"ShoulderSpine"),
+				std::make_pair(astra::JointType::LeftShoulder,"LeftShoulder"),
+				std::make_pair(astra::JointType::LeftElbow,"LeftElbow"),
+				std::make_pair(astra::JointType::LeftWrist,"LeftWrist"),
+				std::make_pair(astra::JointType::LeftHand,"LeftHand"),
+				std::make_pair(astra::JointType::RightShoulder,"RightShoulder"),
+				std::make_pair(astra::JointType::RightElbow,"RightElbow"),
+				std::make_pair(astra::JointType::RightWrist,"RightWrist"),
+				std::make_pair(astra::JointType::RightHand,"RightHand"),
+				std::make_pair(astra::JointType::MidSpine,"MidSpine"),
+				std::make_pair(astra::JointType::BaseSpine,"BaseSpine"),
+				std::make_pair(astra::JointType::LeftHip,"LeftHip"),
+				std::make_pair(astra::JointType::LeftKnee,"LeftKnee"),
+				std::make_pair(astra::JointType::LeftFoot,"LeftFoot"),
+				std::make_pair(astra::JointType::RightHip,"RightHip"),
+				std::make_pair(astra::JointType::RightKnee,"RightKnee"),
+				std::make_pair(astra::JointType::RightFoot,"RightFoot")
+		};
+		if (iTypeData.is_valid()) {
+			const auto& bodies = iTypeData.bodies();
+			if (bodies.empty())
+				return false;
+
+			for (auto& body : bodies) {
+//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
+
+				RoboCompHumanTrackerJointsAndRGB::TPerson person;
+				auto status = body.status();
+
+				switch (status) {
+				case astra::BodyStatus::NotTracking:person.state = RoboCompHumanTrackerJointsAndRGB::TrackingState::NotTracking;
+					break;
+				case astra::BodyStatus::TrackingLost:person.state = RoboCompHumanTrackerJointsAndRGB::TrackingState::TrackingLost;
+					break;
+				case astra::BodyStatus::TrackingStarted:person.state = RoboCompHumanTrackerJointsAndRGB::TrackingState::TrackingStarted;
+					break;
+				case astra::BodyStatus::Tracking:person.state = RoboCompHumanTrackerJointsAndRGB::TrackingState::Tracking;
+					break;
+				default:qDebug() << "Invalid body state";
+				}
+
+				RoboCompHumanTrackerJointsAndRGB::jointListType joints_list;
+				RoboCompHumanTrackerJointsAndRGB::jointListType joints_depth;
+
+				const auto& joints = body.joints();
+
+				if (!joints.empty()) {
+
+					for (const auto& j : joints) {
+						if (j.status()==astra::JointStatus::Tracked or
+								j.status()==astra::JointStatus::LowConfidence) {
+							auto& jnt = j.world_position();
+							auto& jntdepth = j.depth_position();
+
+							RoboCompHumanTrackerJointsAndRGB::joint pointindepth;
+							pointindepth.push_back(jntdepth.x);
+							pointindepth.push_back(jntdepth.y);
+
+							RoboCompHumanTrackerJointsAndRGB::joint JointP;
+							JointP.push_back(jnt.x);
+							JointP.push_back(jnt.y);
+							JointP.push_back(jnt.z);
+
+							astra::JointType type = j.type();
+							std::string typejoint;
+
+							typejoint = JOINT2STRING_.at(type);
+							joints_list[typejoint] = JointP;
+							joints_depth[typejoint] = pointindepth;
+
+						}
+					}
+				}
+				else
+					qDebug() << "Joints is empty";
+
+				person.joints = joints_list;
+				oTypeData[body.id()] = person;
+
+			}
+			qDebug() << " PERSONAS = " << oTypeData.size();
+			return true;
+		}
+		return false;
+	}
+public:
+
+	bool clear(RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData)
+	{
+		oTypeData.persons.clear();
+		oTypeData.rgbImage.image.clear();
+		oTypeData.rgbImage.height =0;
+		oTypeData.rgbImage.width =0;
+		oTypeData.rgbImage.depth =0;
+		oTypeData.timeStamp = 0;
+		return true;
+	}
+	bool ItoO(const std::tuple<astra::ColorFrame, astra::BodyFrame, long int> &iTypeData, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData)
+	{
+		const auto& colorFrame = std::get<0>(iTypeData);
+		const auto& bodyFrame = std::get<1>(iTypeData);
+		const auto& timestamp = std::get<2>(iTypeData);
+		oTypeData.timeStamp = (double)timestamp;
+		if(!bodyFrame.is_valid())
+		{
+			return false;
+		}
+		astraBodies2RobocompPersonList(bodyFrame, oTypeData.persons);
+		uint astraColorFrameSize = colorFrame.width()*colorFrame.height()*3;
+		if (colorFrame.is_valid())
+		{
+			if(oTypeData.rgbImage.image.size()!= astraColorFrameSize)
+			{
+				oTypeData.rgbImage.height = colorFrame.height();
+				oTypeData.rgbImage.width = colorFrame.width();
+				oTypeData.rgbImage.depth = 3;
+				oTypeData.rgbImage.image.resize(astraColorFrameSize);
+			}
+
+			//            this->resize(d.width() * d.height()*data_size);
+			memcpy(&oTypeData.rgbImage.image[0], colorFrame.data(), astraColorFrameSize);
+			//            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
+			return true;
+		}
+		return false;
+
+	}
+	bool OtoI(const RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData, std::tuple<astra::ColorFrame,astra::BodyFrame, long int> &iTypeData)
 	{
 		return false;
 	}

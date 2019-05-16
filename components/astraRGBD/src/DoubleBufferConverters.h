@@ -343,7 +343,6 @@ class BodiesPeopleConverter : public Converter<astra::BodyFrame, RoboCompHumanTr
 				oTypeData[body.id()] = person;
 
 			}
-			qDebug() << " PERSONAS = " << oTypeData.size();
 			return true;
 		}
 		return false;
@@ -367,7 +366,7 @@ public:
 	}
 };
 
-class BodyRGBConverter : public Converter<std::tuple<astra::ColorFrame,astra::BodyFrame, long int>, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB>
+class BodyRGBConverter : public Converter<std::tuple<astra::ColorFrame&,astra::BodyFrame&, long int>, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB>
 {
 
 	static bool astraBodies2RobocompPersonList(const astra::BodyFrame &iTypeData, RoboCompHumanTrackerJointsAndRGB::PersonList &oTypeData)
@@ -455,7 +454,6 @@ class BodyRGBConverter : public Converter<std::tuple<astra::ColorFrame,astra::Bo
 				oTypeData[body.id()] = person;
 
 			}
-			qDebug() << " PERSONAS = " << oTypeData.size();
 			return true;
 		}
 		return false;
@@ -472,16 +470,14 @@ public:
 		oTypeData.timeStamp = 0;
 		return true;
 	}
-	bool ItoO(const std::tuple<astra::ColorFrame, astra::BodyFrame, long int> &iTypeData, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData)
+	bool ItoO(const std::tuple<astra::ColorFrame&, astra::BodyFrame&, long int> &iTypeData, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData)
 	{
 		const auto& colorFrame = std::get<0>(iTypeData);
 		const auto& bodyFrame = std::get<1>(iTypeData);
-		const auto& timestamp = std::get<2>(iTypeData);
-		oTypeData.timeStamp = (double)timestamp;
-		if(!bodyFrame.is_valid())
-		{
-			return false;
-		}
+		const auto& timestamp = (long int)std::get<2>(iTypeData);
+		oTypeData.timeStamp = timestamp;
+
+		oTypeData.persons.clear();
 		astraBodies2RobocompPersonList(bodyFrame, oTypeData.persons);
 		uint astraColorFrameSize = colorFrame.width()*colorFrame.height()*3;
 		if (colorFrame.is_valid())
@@ -497,12 +493,17 @@ public:
 			//            this->resize(d.width() * d.height()*data_size);
 			memcpy(&oTypeData.rgbImage.image[0], colorFrame.data(), astraColorFrameSize);
 			//            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
-			return true;
 		}
-		return false;
+		else{
+			oTypeData.rgbImage.image.clear();
+			oTypeData.rgbImage.height =0;
+			oTypeData.rgbImage.width =0;
+			oTypeData.rgbImage.depth =0;
+		}
+		return true;
 
 	}
-	bool OtoI(const RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData, std::tuple<astra::ColorFrame,astra::BodyFrame, long int> &iTypeData)
+	bool OtoI(const RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB &oTypeData, std::tuple<astra::ColorFrame&,astra::BodyFrame&, long int> &iTypeData)
 	{
 		return false;
 	}

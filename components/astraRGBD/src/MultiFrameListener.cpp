@@ -69,7 +69,8 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
     auto start = chrono::steady_clock::now();
 //	cout << "SAME FRAME READY " << endl;
     auto t0 = std::chrono::high_resolution_clock::now();
-    auto nanosec = t0.time_since_epoch();
+    unsigned long milliseconds_since_epoch = t0.time_since_epoch() / std::chrono::milliseconds(1);
+//    qDebug()<<typeid(milliseconds_since_epoch).name()<<endl;
 
     if (streamBools["depth"])
     {
@@ -111,112 +112,107 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         {
 
             bodyBuff.clear();
-            return;
         }
 //		cout << "lapse BODYs "<<chrono::duration <double, milli> (end-start).count() << " ms" << endl;
 
         // NOT USING DOUBLE BUFFER BECAUSE A BUG ON RETAINING UNEXISTNG PEOPLE
         bodyBuff.put(bodyFrame, sizeof(astra::BodyFrame));
 //        bodylist.clear();
-        PersonDepth.clear();
-
-
-        const auto& bodies = bodyFrame.bodies();
-        if (bodies.empty())
-            return;
-
-        is_writting = true;
-        for (auto& body : bodies)
-        {
-//            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
-
-			RoboCompHumanTracker::TPerson person;
-            auto status = body.status();
-
-            switch (status){
-                case  astra::BodyStatus::NotTracking:
-                    person.state =  RoboCompHumanTracker::TrackingState::NotTracking;
-                    break;
-                case astra::BodyStatus::TrackingLost:
-                    person.state =  RoboCompHumanTracker::TrackingState::TrackingLost;
-                    break;
-                case astra::BodyStatus::TrackingStarted:
-                    person.state =  RoboCompHumanTracker::TrackingState::TrackingStarted;
-                    break;
-                case astra::BodyStatus::Tracking:
-                    person.state = RoboCompHumanTracker::TrackingState::Tracking;
-                    break;
-                default:
-                    qDebug()<<"Invalid body state";
-            }
-
-
-            RoboCompHumanTrackerJointsAndRGB::jointListType joints_list;
-            RoboCompHumanTrackerJointsAndRGB::jointListType joints_depth;
-
-            const auto& joints = body.joints();
-
-            if (!joints.empty())
-            {
-
-                for (const auto& j : joints)
-                {
-                    if (j.status() == astra::JointStatus::Tracked or j.status() == astra::JointStatus::LowConfidence)
-                    {
-                        auto &jnt = j.world_position();
-                        auto &jntdepth = j.depth_position();
-
-                        RoboCompHumanTrackerJointsAndRGB::joint pointindepth;
-                        pointindepth.push_back(jntdepth.x);
-                        pointindepth.push_back(jntdepth.y);
-
-
-                        RoboCompHumanTrackerJointsAndRGB::joint JointP;
-                        JointP.push_back(jnt.x);
-                        JointP.push_back(jnt.y);
-                        JointP.push_back(jnt.z);
-
-                        astra::JointType type = j.type();
-                        std::string typejoint;
-
-                        typejoint = JOINT2STRING.at(type);
-                        joints_list[typejoint] = JointP;
-                        joints_depth[typejoint]=pointindepth;
-
-                    }
-                }
-            }
-            else  qDebug()<<"Joints is empty";
-
-            person.joints = joints_list;
-            bodylist[body.id()] = person;
-
-            PersonDepth[body.id()] = joints_depth;
-
-        }
-        qDebug()<<" PERSONAS = "<<bodylist.size() ;
-        is_writting = false;
-        return;
+//        PersonDepth.clear();
+//
+//
+//        const auto& bodies = bodyFrame.bodies();
+//        if (bodies.empty())
+//            return;
+//
+//        is_writting = true;
+//        for (auto& body : bodies)
+//        {
+////            qDebug()<<"------------------ Found person " << body.id()<<"--------------------";
+//
+//			RoboCompHumanTracker::TPerson person;
+//            auto status = body.status();
+//
+//            switch (status){
+//                case  astra::BodyStatus::NotTracking:
+//                    person.state =  RoboCompHumanTracker::TrackingState::NotTracking;
+//                    break;
+//                case astra::BodyStatus::TrackingLost:
+//                    person.state =  RoboCompHumanTracker::TrackingState::TrackingLost;
+//                    break;
+//                case astra::BodyStatus::TrackingStarted:
+//                    person.state =  RoboCompHumanTracker::TrackingState::TrackingStarted;
+//                    break;
+//                case astra::BodyStatus::Tracking:
+//                    person.state = RoboCompHumanTracker::TrackingState::Tracking;
+//                    break;
+//                default:
+//                    qDebug()<<"Invalid body state";
+//            }
+//
+//
+//            RoboCompHumanTrackerJointsAndRGB::jointListType joints_list;
+//            RoboCompHumanTrackerJointsAndRGB::jointListType joints_depth;
+//
+//            const auto& joints = body.joints();
+//
+//            if (!joints.empty())
+//            {
+//
+//                for (const auto& j : joints)
+//                {
+//                    if (j.status() == astra::JointStatus::Tracked or j.status() == astra::JointStatus::LowConfidence)
+//                    {
+//                        auto &jnt = j.world_position();
+//                        auto &jntdepth = j.depth_position();
+//
+//                        RoboCompHumanTrackerJointsAndRGB::joint pointindepth;
+//                        pointindepth.push_back(jntdepth.x);
+//                        pointindepth.push_back(jntdepth.y);
+//
+//
+//                        RoboCompHumanTrackerJointsAndRGB::joint JointP;
+//                        JointP.push_back(jnt.x);
+//                        JointP.push_back(jnt.y);
+//                        JointP.push_back(jnt.z);
+//
+//                        astra::JointType type = j.type();
+//                        std::string typejoint;
+//
+//                        typejoint = JOINT2STRING.at(type);
+//                        joints_list[typejoint] = JointP;
+//                        joints_depth[typejoint]=pointindepth;
+//
+//                    }
+//                }
+//            }
+//            else  qDebug()<<"Joints is empty";
+//
+//            person.joints = joints_list;
+//            bodylist[body.id()] = person;
+//
+//            PersonDepth[body.id()] = joints_depth;
+//
+//        }
+//        qDebug()<<" PERSONAS = "<<bodylist.size() ;
+//        is_writting = false;
+//        return;
     }
 
     //Special case for syncronized color and joints
     //TODO: better coding and clean-up
     if (streamBools["color"] and streamBools["body"]) {
+//        cout << "BODY AND COLOR"<< endl;
         astra::BodyFrame bodyFrame = frame.get<astra::BodyFrame>();
         astra::ColorFrame colorFrame = frame.get<astra::ColorFrame>();
+        //Both frame vaalidation is done in the Corresponding Converter.
+        auto thetuple = std::forward_as_tuple(colorFrame, bodyFrame, milliseconds_since_epoch);
+		bodyRGBMix.put(thetuple, 0);
+		RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB output;
+		bodyRGBMix.get(output);
+		qDebug()<<"OUTPUT is Frame with timestamp: "<<output.timeStamp<<" and Person with "<< output.persons.size()<<" and color"<< output.rgbImage.width<<endl;
+		pubproxy->newPersonListAndRGB(output);
 
-        if (!bodyFrame.is_valid() || bodyFrame.bodies().size()==0)
-        {
-
-            bodyBuff.clear();
-            return;
-        }
-        if(colorFrame.is_valid())
-        {
-            cout << "lapse putting mixed frames at "<<nanosec.count() << " ns" << endl;
-            const auto thetuple = std::make_tuple(colorFrame, bodyFrame, nanosec.count());
-            bodyRGBMix.put(thetuple, 0);
-        }
     }
 
 }

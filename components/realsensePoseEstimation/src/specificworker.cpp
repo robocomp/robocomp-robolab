@@ -96,7 +96,7 @@ void SpecificWorker::compute()
 	//InnerModelTransform* node = innerModel->getNode<InnerModelTransform>("box_t");
 	//node->update(tr.x*1000, tr.y*1000, tr.z*1000, 0, 0, 0);
 	float factor = 10000.;
-	innerModel->updateTransformValues("box_t", tr.x*factor, tr.y*factor, tr.z*factor, angles.z(), angles.x(), angles.y() );
+	innerModel->updateTransformValues("box_t", tr.x*factor, tr.y*factor, tr.z*factor, angles.x(), angles.y(), angles.z() );
 	
 	// Update innermodelviewer
 	innerModelViewer->update();

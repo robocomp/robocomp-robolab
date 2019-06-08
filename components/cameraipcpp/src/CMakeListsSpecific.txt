@@ -12,11 +12,4 @@ SET ( HEADERS
 )
 
 set(CMAKE_CXX_STANDARD 17)
-<<<<<<< HEAD
-
-SET (LIBS ${LIBS} -lopencv_highgui -lopencv_imgcodecs  -lopencv_core -lcurl  )
-
-=======
-ADD_DEFINITIONS( -O3 -mavx2)
 set( SPECIFIC_LIBS -lcurl)
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b

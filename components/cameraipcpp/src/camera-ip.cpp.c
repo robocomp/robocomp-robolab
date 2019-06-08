@@ -30,10 +30,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, MemoryStruct *mem
         printf("not enough memory (realloc returned NULL)\n");
         return 0;
     }
-
     memcpy(mem->memory + current, contents, realsize);
-    //mem->memory[mem->size] = 0;
-
     if (mem->size < 1024)
         return realsize;
 

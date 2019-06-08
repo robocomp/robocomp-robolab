@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <thread>
 #include <opencv2/opencv.hpp>
 #include <curl/curl.h>
 
@@ -13,9 +14,16 @@
 class IPCamReader
 {
     public:
-	    void init()
+        void init()
         {
-          
+            t1 = std::thread([this]{ run(); });
+        }
+        void getImage()
+        {
+            
+        }
+	    void run()
+        {
             MemoryStruct chunk{(char *)malloc(1), 0, 0, 0};
             curl_global_init(CURL_GLOBAL_ALL);
             curl_handle = curl_easy_init();
@@ -34,6 +42,7 @@ class IPCamReader
             curl_global_cleanup();
         }
     private:
+        std::thread t1;
         struct MemoryStruct
         {
             char *memory;
@@ -55,10 +64,8 @@ class IPCamReader
                 printf("not enough memory (realloc returned NULL)\n");
                 return 0;
             }
-
             memcpy(mem->memory + current, contents, realsize);
-            //mem->memory[mem->size] = 0;
-
+        
             if (mem->size < 1024)
                 return realsize;
 
@@ -78,9 +85,10 @@ class IPCamReader
                 std::vector<uchar> buf;
                 buf.assign(mem->memory + mem->begin, mem->memory + mem->end);
                 cv::Mat img = cv::imdecode(buf, CV_LOAD_IMAGE_COLOR);
-                cv::imshow("Camara sala de reuniones", img);
-                cvWaitKey(1);
-                printf("hola\n");
+                //printf("hola \n");
+                //cv::imshow("Camara sala de reuniones", img);
+                //cvWaitKey(1);
+
                 size_t nbytes = mem->size - mem->end;
                 char *tmp = (char *)malloc(nbytes);
                 memcpy(tmp, mem->memory + mem->end, nbytes);
@@ -90,8 +98,7 @@ class IPCamReader
                 mem->memory = tmp;
             }
             return realsize;
-    }
-
+        }
 };
 
 #endif

@@ -18,19 +18,11 @@
  */
 
 
-<<<<<<< HEAD
-/** \mainpage RoboComp::cameraipcpp
- *
- * \section intro_sec Introduction
- *
- * The cameraipcpp component...
-=======
 /** \mainpage RoboComp::cameraipccp
  *
  * \section intro_sec Introduction
  *
  * The cameraipccp component...
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
  *
  * \section interface_sec Interface
  *
@@ -42,11 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
-<<<<<<< HEAD
- * cd cameraipcpp
-=======
  * cd cameraipccp
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
  * <br>
  * cmake . && make
  * <br>
@@ -64,11 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
-<<<<<<< HEAD
- * Just: "${PATH_TO_BINARY}/cameraipcpp --Ice.Config=${PATH_TO_CONFIG_FILE}"
-=======
  * Just: "${PATH_TO_BINARY}/cameraipccp --Ice.Config=${PATH_TO_CONFIG_FILE}"
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
  *
  * \subsection running_ssec Once running
  *
@@ -100,10 +84,7 @@
 #include <camerasimpleI.h>
 
 #include <CameraSimple.h>
-<<<<<<< HEAD
-=======
 #include <GetAprilTags.h>
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 
 // User includes here
@@ -112,17 +93,10 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-<<<<<<< HEAD
-class cameraipcpp : public RoboComp::Application
-{
-public:
-	cameraipcpp (QString prfx) { prefix = prfx.toStdString(); }
-=======
 class cameraipccp : public RoboComp::Application
 {
 public:
 	cameraipccp (QString prfx) { prefix = prfx.toStdString(); }
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 private:
 	void initialize();
 	std::string prefix;
@@ -132,22 +106,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-<<<<<<< HEAD
-void ::cameraipcpp::initialize()
-=======
 void ::cameraipccp::initialize()
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-<<<<<<< HEAD
-int ::cameraipcpp::run(int argc, char* argv[])
-=======
 int ::cameraipccp::run(int argc, char* argv[])
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 {
 	QCoreApplication a(argc, argv);  // NON-GUI application
 
@@ -166,18 +132,11 @@ int ::cameraipccp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-<<<<<<< HEAD
-
-=======
 	GetAprilTagsPrxPtr getapriltags_proxy;
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 	string proxy, tmp;
 	initialize();
 
 
-<<<<<<< HEAD
-	tprx = std::tuple<>();
-=======
 	try
 	{
 		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTagsProxy", proxy, ""))
@@ -195,7 +154,6 @@ int ::cameraipccp::run(int argc, char* argv[])
 
 
 	tprx = std::make_tuple(getapriltags_proxy);
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
@@ -322,11 +280,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-<<<<<<< HEAD
-	::cameraipcpp app(prefix);
-=======
 	::cameraipccp app(prefix);
->>>>>>> eea2392695743c234d5db54b3b0e434d726fbb1b
 
 	return app.main(argc, argv, configFile.c_str());
 }

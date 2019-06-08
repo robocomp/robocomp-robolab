@@ -93,21 +93,19 @@ void SpecificWorker::compute()
 	RMat::Quaternion q(rot.x,rot.y,rot.z,rot.w);
 	QVec angles = q.toAngles();
 	
-	//InnerModelTransform* node = innerModel->getNode<InnerModelTransform>("box_t");
-	//node->update(tr.x*1000, tr.y*1000, tr.z*1000, 0, 0, 0);
 	float factor = 10000.;
 	innerModel->updateTransformValues("box_t", tr.x*factor, tr.y*factor, tr.z*factor, angles.x(), angles.y(), angles.z() );
 	
 	// Update innermodelviewer
 	innerModelViewer->update();
 	osgView->frame();
+	
 }
 
 
 FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
 	return FullPose();
-
 }
 
 

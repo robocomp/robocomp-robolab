@@ -1,0 +1,11 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+
+# Endpoints for implemented interfaces
+FullPoseEstimation.Endpoints=tcp -p 10696
+
+InnerModelPath=/home/robocomp/robocomp/files/innermodel/cubeOnFloor.xml
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

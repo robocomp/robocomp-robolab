@@ -1,0 +1,13 @@
+import "FullPoseEstimation.idsl";
+
+Component RealSensePoseEstimation
+{
+    Communications
+    {
+        implements FullPoseEstimation;
+    };
+	language Cpp11;
+    gui Qt(QWidget);
+    options InnerModelViewer;
+};
+

@@ -43,7 +43,7 @@ void SpecificWorker::initialize()
 	" Max steering speed: " << params["MaxSteering"].value << std::endl;
 	
 	open();
-	jtimer->start(100);
+	//jtimer->start(100);
 	timer.stop();
 	
 }
@@ -115,7 +115,12 @@ void SpecificWorker::receivedJoyStickEvent(int value, int type, int number)
 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
 		}
 		sendSpeed = true;
-		differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
+		try
+		{
+			differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
+		//	std::cout << base_joy_axis.actualX <<  " " << base_joy_axis.actualY << std::endl;
+		}
+		catch(const Ice::Exception &ex) { std::cout << ex << std::endl;}
 	}
 }
 

@@ -6,7 +6,7 @@ JoyStick.Endpoints=tcp -p 10002
 
 
 # Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 12238
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 
 # User config parameters
 # Example = value
@@ -15,7 +15,7 @@ Joy.XMotionAxis = 0
 Joy.YMotionAxis = 1
 Joy.SampleRate = 10
 Joy.MaxSteering = 1.
-Joy.MaxAdvance = 500.
+Joy.MaxAdvance = 700.
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

@@ -33,7 +33,7 @@ class SpecificWorker(GenericWorker):
 
 	def setParams(self, params):
 		try:
-			self.puerto = open("/dev/ttyACM3", "r")
+			self.puerto = open("/dev/ttyACM2", "r")
 		except FileNotFoundError:
 			print "Error opoening serial port, check device is connected"
 		return True

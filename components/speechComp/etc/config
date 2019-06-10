@@ -1,5 +1,10 @@
-SpeechComp.Endpoints=tcp -p 10021
+# Endpoints for implemented interfaces
+Speech.Endpoints=tcp -p 10021
 
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+tts=google
 # Component properties
 #
 Ice.Warn.Connections=0

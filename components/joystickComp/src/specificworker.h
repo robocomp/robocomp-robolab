@@ -54,9 +54,9 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	bool open();
-	void initialize();
-	void writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
-	void readJoyStickBufferedData(JoyStickBufferedData &gbd);
+	void initialize(int period);
+	void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
+	void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd);
 
 public slots:
 	void compute();

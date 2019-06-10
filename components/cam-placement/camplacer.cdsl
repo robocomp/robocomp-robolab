@@ -1,0 +1,12 @@
+
+Component camplacer
+{
+    Communications
+    {
+    };
+	language Cpp11;
+	gui Qt(QWidget);
+	//options agmagent;
+	options InnerModelViewer;
+};
+

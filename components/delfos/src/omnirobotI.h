@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,9 +19,6 @@
 #ifndef OMNIROBOT_H
 #define OMNIROBOT_H
 
-// QT includes
-#include <QtCore/QObject>
-
 // Ice includes
 #include <Ice/Ice.h>
 #include <OmniRobot.h>
@@ -31,28 +28,24 @@
 
 using namespace RoboCompOmniRobot;
 
-class OmniRobotI : public QObject , public virtual RoboCompOmniRobot::OmniRobot
+class OmniRobotI : public virtual RoboCompOmniRobot::OmniRobot
 {
-Q_OBJECT
 public:
-	OmniRobotI( GenericWorker *_worker, QObject *parent = 0 );
+OmniRobotI(GenericWorker *_worker);
 	~OmniRobotI();
-	
+
 	void correctOdometer(const int  x, const int  z, const float  alpha, const Ice::Current&);
 	void getBasePose( int  &x,  int  &z,  float  &alpha, const Ice::Current&);
 	void resetOdometer(const Ice::Current&);
-	void setOdometer(const TBaseState  &state, const Ice::Current&);
-	void getBaseState( TBaseState  &state, const Ice::Current&);
+	void setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
+	void getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&);
 	void setOdometerPose(const int  x, const int  z, const float  alpha, const Ice::Current&);
 	void stopBase(const Ice::Current&);
 	void setSpeedBase(const float  advx, const float  advz, const float  rot, const Ice::Current&);
 
-	QMutex *mutex;
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

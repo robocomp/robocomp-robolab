@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,9 +26,9 @@
 
 
 #include <CommonBehavior.h>
+
 #include <OmniRobot.h>
-
-
+#include <GenericBase.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -38,11 +38,12 @@ typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 using namespace std;
 
 using namespace RoboCompOmniRobot;
+using namespace RoboCompGenericBase;
 
 
 
 
-class GenericWorker : 
+class GenericWorker :
 public QObject
 {
 Q_OBJECT
@@ -51,25 +52,27 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
+
 
 
 	virtual void correctOdometer(const int x, const int z, const float alpha) = 0;
 	virtual void getBasePose(int &x, int &z, float &alpha) = 0;
 	virtual void resetOdometer() = 0;
-	virtual void setOdometer(const TBaseState &state) = 0;
-	virtual void getBaseState(TBaseState &state) = 0;
+	virtual void setOdometer(const RoboCompGenericBase::TBaseState &state) = 0;
+	virtual void getBaseState(RoboCompGenericBase::TBaseState &state) = 0;
 	virtual void setOdometerPose(const int x, const int z, const float alpha) = 0;
 	virtual void stopBase() = 0;
 	virtual void setSpeedBase(const float advx, const float advz, const float rot) = 0;
 
-
 protected:
 	QTimer timer;
 	int Period;
+
+private:
+
 
 public slots:
 	virtual void compute() = 0;

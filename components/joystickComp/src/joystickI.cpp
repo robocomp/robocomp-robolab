@@ -30,11 +30,11 @@ JoyStickI::~JoyStickI()
 
 void JoyStickI::writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&)
 {
-	worker->writeJoyStickBufferedData(gbd);
+	worker->JoyStick_writeJoyStickBufferedData(gbd);
 }
 
 void JoyStickI::readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&)
 {
-	worker->readJoyStickBufferedData(gbd);
+	worker->JoyStick_readJoyStickBufferedData(gbd);
 }
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,10 +18,9 @@
  */
 #include "omnirobotI.h"
 
-OmniRobotI::OmniRobotI(GenericWorker *_worker, QObject *parent) : QObject(parent)
+OmniRobotI::OmniRobotI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
 }
 
 
@@ -44,12 +43,12 @@ void OmniRobotI::resetOdometer(const Ice::Current&)
 	worker->resetOdometer();
 }
 
-void OmniRobotI::setOdometer(const TBaseState  &state, const Ice::Current&)
+void OmniRobotI::setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)
 {
 	worker->setOdometer(state);
 }
 
-void OmniRobotI::getBaseState( TBaseState  &state, const Ice::Current&)
+void OmniRobotI::getBaseState( RoboCompGenericBase::TBaseState  &state, const Ice::Current&)
 {
 	worker->getBaseState(state);
 }
@@ -68,9 +67,4 @@ void OmniRobotI::setSpeedBase(const float  advx, const float  advz, const float 
 {
 	worker->setSpeedBase(advx, advz, rot);
 }
-
-
-
-
-
 

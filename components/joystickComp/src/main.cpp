@@ -149,7 +149,7 @@ int ::joystick::run(int argc, char* argv[])
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy DifferentialRobot: " << ex;
 		return EXIT_FAILURE;
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
@@ -173,27 +173,43 @@ int ::joystick::run(int argc, char* argv[])
 
 	try
 	{
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		try {
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+			}
+			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
+			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+			adapterCommonBehavior->activate();
 		}
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
-		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
-		adapterCommonBehavior->activate();
+		catch(const Ice::Exception& ex)
+		{
+			status = EXIT_FAILURE;
+
+			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
+			cout << ex;
+
+		}
 
 
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "JoyStick.Endpoints", tmp, ""))
+
+		try
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoyStick";
-		}
-		Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
-		JoyStickI *joystick = new JoyStickI(worker);
-		adapterJoyStick->add(joystick, Ice::stringToIdentity("joystick"));
-		adapterJoyStick->activate();
-		cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "JoyStick.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JoyStick";
+			}
+			Ice::ObjectAdapterPtr adapterJoyStick = communicator()->createObjectAdapterWithEndpoints("JoyStick", tmp);
+			JoyStickI *joystick = new JoyStickI(worker);
+			adapterJoyStick->add(joystick, Ice::stringToIdentity("joystick"));
+			adapterJoyStick->activate();
+			cout << "[" << PROGRAM_NAME << "]: JoyStick adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for JoyStick\n";
+			}
 
 
 
@@ -202,10 +218,10 @@ int ::joystick::run(int argc, char* argv[])
 
 		// User defined QtGui elements ( main window, dialogs, etc )
 
-#ifdef USE_QTGUI
-		//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
-		a.setQuitOnLastWindowClosed( true );
-#endif
+		#ifdef USE_QTGUI
+			//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
+			a.setQuitOnLastWindowClosed( true );
+		#endif
 		// Run QT Application Event Loop
 		a.exec();
 
@@ -219,11 +235,11 @@ int ::joystick::run(int argc, char* argv[])
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
 
-#ifdef USE_QTGUI
+	}
+	#ifdef USE_QTGUI
 		a.quit();
-#endif
+	#endif
 
-}
 	status = EXIT_SUCCESS;
 	monitor->terminate();
 	monitor->wait();

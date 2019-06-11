@@ -24,7 +24,7 @@
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {}
 
-void SpecificWorker::initialize()
+void SpecificWorker::initialize(int period)
 {
 	// Set the base joystick axis initial data
 	base_joy_axis.actualX = 0.;
@@ -43,7 +43,7 @@ void SpecificWorker::initialize()
 	" Max steering speed: " << params["MaxSteering"].value << std::endl;
 	
 	open();
-	jtimer->start(100);
+	//jtimer->start(100);
 	timer.stop();
 	
 }
@@ -72,7 +72,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	config.maxAdv = std::stoi(params["MaxAdvance"].value);
 	config.maxRot = std::stof(params["MaxSteering"].value);
 	
-	initialize();
+	initialize(100);
 	return true;
 }
 
@@ -115,7 +115,12 @@ void SpecificWorker::receivedJoyStickEvent(int value, int type, int number)
 			cout << "[" << PROGRAM_NAME << "]: Motion in axis Y: "<< base_joy_axis.actualY<<endl;
 		}
 		sendSpeed = true;
-		differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
+		try
+		{
+			differentialrobot_proxy->setSpeedBase(base_joy_axis.actualY * config.maxAdv , base_joy_axis.actualX * config.maxRot);
+		//	std::cout << base_joy_axis.actualX <<  " " << base_joy_axis.actualY << std::endl;
+		}
+		catch(const Ice::Exception &ex) { std::cout << ex << std::endl;}
 	}
 }
 
@@ -143,13 +148,13 @@ void SpecificWorker::sendJoyStickEvent()
 // ICE pull methods
 /////////////////////////////////////////
 
-void SpecificWorker::writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	joystickBufferedData = gbd;
 }
 
-void SpecificWorker::readJoyStickBufferedData(JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	gbd = joystickBufferedData;

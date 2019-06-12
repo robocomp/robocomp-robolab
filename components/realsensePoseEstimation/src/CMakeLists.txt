@@ -38,7 +38,6 @@ ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( CommonBehavior FullPoseEstimation)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
-QT_WRAP_UI( UI_HEADERS mainUI.ui )
 
 # Specify construction and link process
 ADD_EXECUTABLE( RealSensePoseEstimation ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

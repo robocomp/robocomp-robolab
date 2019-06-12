@@ -54,6 +54,8 @@ private:
 	std::shared_ptr<InnerModel> innerModel;
 	OsgView *osgView;
 	InnerModelViewer *innerModelViewer;
+	mutable std::mutex bufferMutex;
+	FullPose fullpose;
 	
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;

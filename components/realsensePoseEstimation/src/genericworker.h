@@ -60,6 +60,8 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
 
+
+
 	virtual FullPose FullPoseEstimation_getFullPose() = 0;
 
 protected:

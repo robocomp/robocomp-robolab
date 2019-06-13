@@ -22,14 +22,14 @@
 */
 SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _communicator):GenericMonitor(_worker, _communicator)
 {
-
+	ready = false;
 }
 /**
 * \brief Default destructor
 */
 SpecificMonitor::~SpecificMonitor()
 {
-
+	std::cout << "Destroying SpecificMonitor" << std::endl;
 }
 
 void SpecificMonitor::run()
@@ -64,8 +64,10 @@ void SpecificMonitor::initialize()
 		rError("Error reading config parameters. Exiting");
 		killYourSelf();
 	}
-	state = RoboCompCommonBehavior::Running;
+	state = RoboCompCommonBehavior::State::Running;
+	emit initializeWorker(period);
 }
+
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)
 {
 	if(checkParams(params))
@@ -81,6 +83,7 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 	return false;
 
 }
+
 ///Local Component parameters read at start
 ///Reading parameters from config file or passed in command line, with Ice machinery
 ///We need to supply a list of accepted values to each call
@@ -123,7 +126,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["InnerModelPath"] = aux;
 }
 
-//comprueba que los parametros sean correctos y los transforma a la estructura del worker
+//Check parameters and transform them to worker structure
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;

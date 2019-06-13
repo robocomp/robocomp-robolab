@@ -81,13 +81,11 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <rgbdI.h>
 #include <humantrackerI.h>
+#include <rgbdI.h>
 
-#include <RGBD.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
-#include <HumanTracker.h>
 
 
 // User includes here
@@ -135,10 +133,46 @@ int ::astraRGBD::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
 
 	string proxy, tmp;
 	initialize();
 
+	IceStorm::TopicManagerPrx topicManager;
+	try
+	{
+		topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
+	IceStorm::TopicPrx humantrackerjointsandrgb_topic;
+
+	while (!humantrackerjointsandrgb_topic)
+	{
+		try
+		{
+			humantrackerjointsandrgb_topic = topicManager->retrieve("HumanTrackerJointsAndRGB");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving HumanTrackerJointsAndRGB topic. \n";
+			try
+			{
+				humantrackerjointsandrgb_topic = topicManager->create("HumanTrackerJointsAndRGB");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the HumanTrackerJointsAndRGB topic. It's possible that other component have created\n";
+			}
+		}
+	}
+
+	Ice::ObjectPrx humantrackerjointsandrgb_pub = humantrackerjointsandrgb_topic->getPublisher()->ice_oneway();
+	humantrackerjointsandrgb_pubproxy = RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx::uncheckedCast(humantrackerjointsandrgb_pub);
+	mprx["HumanTrackerJointsAndRGBPub"] = (::IceProxy::Ice::Object*)(&humantrackerjointsandrgb_pubproxy);
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -181,24 +215,6 @@ int ::astraRGBD::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
-			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
-			}
-			Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
-			RGBDI *rgbd = new RGBDI(worker);
-			adapterRGBD->add(rgbd, Ice::stringToIdentity("rgbd"));
-			adapterRGBD->activate();
-			cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
-			}
-			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for RGBD\n";
-			}
-
-
-		try
-		{
-			// Server adapter creation and publication
 			if (not GenericMonitor::configGetString(communicator(), prefix, "HumanTracker.Endpoints", tmp, ""))
 			{
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy HumanTracker";
@@ -211,6 +227,24 @@ int ::astraRGBD::run(int argc, char* argv[])
 			}
 			catch (const IceStorm::TopicExists&){
 				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for HumanTracker\n";
+			}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBD";
+			}
+			Ice::ObjectAdapterPtr adapterRGBD = communicator()->createObjectAdapterWithEndpoints("RGBD", tmp);
+			RGBDI *rgbd = new RGBDI(worker);
+			adapterRGBD->add(rgbd, Ice::stringToIdentity("rgbd"));
+			adapterRGBD->activate();
+			cout << "[" << PROGRAM_NAME << "]: RGBD adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for RGBD\n";
 			}
 
 

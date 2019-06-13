@@ -21,8 +21,11 @@
 
 class MultiFrameListener : public astra::FrameListener
 {
+	astra::StreamSet streamSet;
+	astra::StreamReader *reader;
+
+
     ::std::map< ::std::string, bool> streamBools;
-    astra::StreamReader *reader;
     astra::PointStream *pointStream;
     astra::DepthStream *depthStream;
     astra::ColorStream *colorStream;
@@ -36,31 +39,34 @@ class MultiFrameListener : public astra::FrameListener
     DoubleBuffer<astra::DepthFrame, RoboCompRGBD::DepthSeq, FloatSeqConverter> depthBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::ColorSeq, ColorSeqConverter> colorBuff;
     DoubleBuffer<astra::ColorFrame, RoboCompRGBD::imgType, ByteSeqConverter> colorBuff2;
-//    DoubleBuffer<astra::BodyFrame, RoboCompHumanTracker::PersonList, BodiesPeopleConverter> bodyBuff;
+    DoubleBuffer<astra::BodyFrame, RoboCompHumanTracker::PersonList, BodiesPeopleConverter> bodyBuff;
+	DoubleBuffer<std::tuple<astra::ColorFrame&,astra::BodyFrame&, long int>, RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB, BodyRGBConverter> bodyRGBMix;
 
 
-    ByteSeqConverter byteConverter;
-    FloatSeqConverter depthConverter;
-    ColorSeqConverter colorConverter;
-    PointStreamConverter pointStreamConverter;
-	PointSeqConverter pointConverter;
+    ByteSeqConverter *byteConverter;
+    FloatSeqConverter *depthConverter;
+    ColorSeqConverter *colorConverter;
+    PointStreamConverter *pointStreamConverter;
+	PointSeqConverter *pointConverter;
+    BodiesPeopleConverter *bodiesConverter;
+	BodyRGBConverter *bodyRgbConverter;
 
-//    BodiesPeopleConverter bodiesConverter;
     RoboCompHumanTracker::PersonList bodylist;
     std::chrono::steady_clock::time_point end;
+	RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &pubproxy;
 //    DoubleBuffer<RoboCompRGBD::PointSeq> pointBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> depthBuff;
 //    DoubleBuffer<RoboCompRGBD::ColorSeq> colorBuff;
 //    DoubleBuffer<RoboCompRGBD::DepthSeq> irBuff;
 
 
-	std::map<int,jointListType> PersonDepth;
+	std::map<int, RoboCompHumanTracker::jointListType> PersonDepth;
 
 public:
 
     bool is_writting = false; //bandera
 
-    MultiFrameListener(astra::StreamReader& reader_);
+    MultiFrameListener(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &pubproxy);
 
     void update_depth(astra::Frame& frame);
 
@@ -80,12 +86,12 @@ public:
     void get_points_stream(imgType& pointStream);
     void get_color(ColorSeq& colors);
     void get_color(imgType& colors);
-    void get_people(PersonList& people);
-    joint getJointDepth(int idperson, string idjoint);
+    void get_people(RoboCompHumanTracker::PersonList& people);
+	RoboCompHumanTracker::joint getJointDepth(int idperson, string idjoint);
 
 
 private:
-	std::map<astra::JointType, ::std::string> joint2String ;
+	std::map<astra::JointType, ::std::string> JOINT2STRING ;
 
     mutable std::mutex my_mutex;
     astra::DepthStream configure_depth(astra::StreamReader& reader);

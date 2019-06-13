@@ -14,9 +14,10 @@ SET ( HEADERS
   DoubleBuffer.h
 )
 
+set(CMAKE_CXX_STANDARD 17)
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/astra.cmake)
 INCLUDE($ENV{ROBOCOMP}/cmake/modules/opencv.cmake)
 
 ADD_DEFINITIONS( -std=c++11 -L/opt )
 
-
+SET (LIBS ${LIBS}  )

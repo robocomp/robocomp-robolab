@@ -26,19 +26,20 @@
 
 #include <CommonBehavior.h>
 
-#include <RGBD.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
 #include <HumanTracker.h>
+#include <RGBD.h>
+#include <HumanTrackerJointsAndRGB.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompHumanTracker;
-using namespace RoboCompRGBD;
 using namespace RoboCompJointMotor;
 using namespace RoboCompGenericBase;
+using namespace RoboCompHumanTracker;
+using namespace RoboCompRGBD;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
@@ -57,7 +58,14 @@ public:
 	QMutex *mutex;
 
 
+	RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx humantrackerjointsandrgb_pubproxy;
 
+	virtual void HumanTracker_getJointsPosition(const int id, jointListType &jointList) = 0;
+	virtual void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
+	virtual void HumanTracker_getUser(const int id, TPerson &user) = 0;
+	virtual bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint) = 0;
+	virtual void HumanTracker_getUsersList(PersonList &users) = 0;
+	virtual void HumanTracker_getUserState(const int id, TrackingState &state) = 0;
 	virtual Registration RGBD_getRegistration() = 0;
 	virtual void RGBD_getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
@@ -68,12 +76,6 @@ public:
 	virtual void RGBD_getXYZByteStream(imgType &pointStream, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
 	virtual void RGBD_getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual void HumanTracker_getJointsPosition(const int id, jointListType &jointList) = 0;
-	virtual void HumanTracker_getRTMatrixList(const int id, RTMatrixList &RTMatList) = 0;
-	virtual void HumanTracker_getUser(const int id, TPerson &user) = 0;
-	virtual bool HumanTracker_getJointDepthPosition(const int idperson, const string &idjoint, joint &depthjoint) = 0;
-	virtual void HumanTracker_getUsersList(PersonList &users) = 0;
-	virtual void HumanTracker_getUserState(const int id, TrackingState &state) = 0;
 
 protected:
 	QTimer timer;

@@ -41,6 +41,7 @@ RGBDI(GenericWorker *_worker);
 	TRGBDParams getRGBDParams(const Ice::Current&);
 	void getDepth( DepthSeq  &depth,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 	void setRegistration( Registration  value, const Ice::Current&);
+	void getXYZByteStream( imgType  &pointStream,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 	void getImage( ColorSeq  &color,  DepthSeq  &depth,  PointSeq  &points,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 	void getDepthInIR( depthType  &distanceMatrix,  RoboCompJointMotor::MotorStateMap  &hState,  RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
 

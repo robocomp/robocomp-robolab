@@ -48,7 +48,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	//Default value
 	m_width = 640;
 	m_height = 480;
-
 	try
 	{
 		INPUTIFACE = Camera;
@@ -268,6 +267,12 @@ void SpecificWorker::compute()
 			RoboCompRGBD::ColorSeq colorseq;
 			RoboCompRGBD::DepthSeq depthseq;
 			rgbd_proxy->getRGB(colorseq, hState, bState);
+			if(image_color.total() != colorseq.size() || image_color.total() != m_width*m_height || colorseq.size() == 0)
+			{
+				std::cout<<"\033[1;31m"<<"Wrong size on readed image. Check the config and the ruuning camera component."<<"\033[0m"<<std::endl;
+				std::cout<<"\033[1;31m"<<"Frame discarded to avoid Segmentation Fault."<<"\033[0m"<<std::endl;
+				return;
+			}
 			memcpy(image_color.data , &colorseq[0], m_width*m_height*3);
 			cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
 			searchTags(image_gray);

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -83,19 +83,13 @@
 
 #include <getapriltagsI.h>
 
-#include <GetAprilTags.h>
-#include <AprilTags.h>
 #include <GenericBase.h>
 #include <JointMotor.h>
-#include <RGBD.h>
-#include <JointMotor.h>
-#include <GenericBase.h>
-#include <RGBDBus.h>
-#include <Camera.h>
 #include <CommonHead.h>
 #include <JointMotor.h>
 #include <GenericBase.h>
-#include <CameraSimple.h>
+#include <JointMotor.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -143,65 +137,14 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	RGBDBusPrx rgbdbus_proxy;
-	RGBDPrx rgbd_proxy;
-	CameraSimplePrx camerasimple_proxy;
-	AprilTagsPrx apriltags_proxy;
+	AprilTagsPrx apriltags_pubproxy;
 	CameraPrx camera_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	RGBDPrx rgbd_proxy;
+	RGBDBusPrx rgbdbus_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBusProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBusProxy\n";
-		}
-		rgbdbus_proxy = RGBDBusPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("RGBDBusProxy initialized Ok!");
-	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);//Remote server proxy creation example
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
-		}
-		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("RGBDProxy initialized Ok!");
-	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimpleProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimpleProxy\n";
-		}
-		camerasimple_proxy = CameraSimplePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("CameraSimpleProxy initialized Ok!");
-	mprx["CameraSimpleProxy"] = (::IceProxy::Ice::Object*)(&camerasimple_proxy);//Remote server proxy creation example
 
 
 	try
@@ -214,12 +157,63 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Camera: " << ex;
 		return EXIT_FAILURE;
 	}
 	rInfo("CameraProxy initialized Ok!");
+
 	mprx["CameraProxy"] = (::IceProxy::Ice::Object*)(&camera_proxy);//Remote server proxy creation example
 
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimpleProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimpleProxy\n";
+		}
+		camerasimple_proxy = CameraSimplePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy CameraSimple: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraSimpleProxy initialized Ok!");
+
+	mprx["CameraSimpleProxy"] = (::IceProxy::Ice::Object*)(&camerasimple_proxy);//Remote server proxy creation example
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
+		}
+		rgbd_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy RGBD: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("RGBDProxy initialized Ok!");
+
+	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDBusProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDBusProxy\n";
+		}
+		rgbdbus_proxy = RGBDBusPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy RGBDBus: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("RGBDBusProxy initialized Ok!");
+
+	mprx["RGBDBusProxy"] = (::IceProxy::Ice::Object*)(&rgbdbus_proxy);//Remote server proxy creation example
 	IceStorm::TopicManagerPrx topicManager;
 	try
 	{
@@ -230,8 +224,8 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
 		return EXIT_FAILURE;
 	}
-
 	IceStorm::TopicPrx apriltags_topic;
+
 	while (!apriltags_topic)
 	{
 		try
@@ -240,20 +234,21 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 		}
 		catch (const IceStorm::NoSuchTopic&)
 		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving AprilTags topic. \n";
 			try
 			{
 				apriltags_topic = topicManager->create("AprilTags");
 			}
 			catch (const IceStorm::TopicExists&){
 				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the AprilTags topic. It's possible that other component have created\n";
 			}
 		}
 	}
+
 	Ice::ObjectPrx apriltags_pub = apriltags_topic->getPublisher()->ice_oneway();
-	AprilTagsPrx apriltags = AprilTagsPrx::uncheckedCast(apriltags_pub);
-	mprx["AprilTagsPub"] = (::IceProxy::Ice::Object*)(&apriltags);
-
-
+	apriltags_pubproxy = AprilTagsPrx::uncheckedCast(apriltags_pub);
+	mprx["AprilTagsPub"] = (::IceProxy::Ice::Object*)(&apriltags_pubproxy);
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -272,31 +267,43 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 	try
 	{
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		try {
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+			}
+			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
+			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+			adapterCommonBehavior->activate();
 		}
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
-		adapterCommonBehavior->activate();
-
-
-
-
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTags.Endpoints", tmp, ""))
+		catch(const Ice::Exception& ex)
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTags";
+			status = EXIT_FAILURE;
+
+			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
+			cout << ex;
+
 		}
-		Ice::ObjectAdapterPtr adapterGetAprilTags = communicator()->createObjectAdapterWithEndpoints("GetAprilTags", tmp);
-		GetAprilTagsI *getapriltags = new GetAprilTagsI(worker);
-		adapterGetAprilTags->add(getapriltags, communicator()->stringToIdentity("getapriltags"));
-		adapterGetAprilTags->activate();
-		cout << "[" << PROGRAM_NAME << "]: GetAprilTags adapter created in port " << tmp << endl;
 
 
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTags.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTags";
+			}
+			Ice::ObjectAdapterPtr adapterGetAprilTags = communicator()->createObjectAdapterWithEndpoints("GetAprilTags", tmp);
+			GetAprilTagsI *getapriltags = new GetAprilTagsI(worker);
+			adapterGetAprilTags->add(getapriltags, Ice::stringToIdentity("getapriltags"));
+			adapterGetAprilTags->activate();
+			cout << "[" << PROGRAM_NAME << "]: GetAprilTags adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for GetAprilTags\n";
+			}
 
 
 
@@ -305,10 +312,10 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 
 		// User defined QtGui elements ( main window, dialogs, etc )
 
-#ifdef USE_QTGUI
-		//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
-		a.setQuitOnLastWindowClosed( true );
-#endif
+		#ifdef USE_QTGUI
+			//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
+			a.setQuitOnLastWindowClosed( true );
+		#endif
 		// Run QT Application Event Loop
 		a.exec();
 
@@ -326,7 +333,6 @@ int ::AprilTagsComp::run(int argc, char* argv[])
 	#ifdef USE_QTGUI
 		a.quit();
 	#endif
-
 
 	status = EXIT_SUCCESS;
 	monitor->terminate();

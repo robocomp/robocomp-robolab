@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2006-2019 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -25,7 +25,6 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetector(NULL), m_tagCodes(::AprilTags::tagCodes16h5), m_draw(true)
 {
-	innermodel = NULL;
 //	cv::namedWindow("deo");
 	worker_params_mutex = new QMutex();
 	RoboCompCommonBehavior::Parameter aux;
@@ -41,7 +40,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx), m_tagDetecto
 */
 SpecificWorker::~SpecificWorker()
 {
-
+	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -163,25 +162,26 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	image_color.create(m_height,m_width,CV_8UC3);
 	try
 	{
-		innermodel = new InnerModel(innermodel_path);
+		innerModel = std::make_shared<InnerModel>(innermodel_path);
 	}
 	catch (QString &s)
 	{
 		printf("error reading iner model %s\n", s.toStdString().c_str());
 	}
-	m_fx = innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
-	m_fy = innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
+	m_fx = innerModel->getNode<InnerModelRGBD>("rgbd")->getFocal();
+	m_fy = innerModel->getNode<InnerModelRGBD>("rgbd")->getFocal();
 
 	qDebug() << QString::fromStdString(innermodel_path) << " " << QString::fromStdString(camera_name);
-	qDebug() << "FOCAL LENGHT:" << innermodel->getNode<InnerModelRGBD>("rgbd")->getFocal();
+	qDebug() << "FOCAL LENGHT:" << innerModel->getNode<InnerModelRGBD>("rgbd")->getFocal();
 
 	//Reading id sets size to create a map
+
 
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:0-10");
 		qDebug() << "ID:0-10" << QString::fromStdString(par.value);
-		Q_ASSERT(par.value > 0);
+		Q_ASSERT(QString::fromStdString(par.value).toFloat() > 0);
 		for(int i=0;i<=10; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
@@ -191,7 +191,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:11-20");
 		qDebug() << "ID:11-20" << QString::fromStdString(par.value);
-		Q_ASSERT(par.value > 0);
+		Q_ASSERT(QString::fromStdString(par.value).toFloat() > 0);
 		for(int i=11;i<=20; i++)
 			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
@@ -201,7 +201,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("ID:21-100");
 		qDebug() << "ID:21-100" << QString::fromStdString(par.value);
-		Q_ASSERT(par.value > 0);
+		Q_ASSERT(QString::fromStdString(par.value).toFloat() > 0);
 		for(int i=21;i<=100; i++)
 			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
@@ -213,7 +213,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("AprilTagsSize");
 		qDebug() << QString::fromStdString(par.value);
-		Q_ASSERT(par.value > 0);
+		Q_ASSERT(QString::fromStdString(par.value).toFloat() > 0);
 		m_tagSize = QString::fromStdString(par.value).toFloat();
 	}
 	catch(std::exception e) { std::cout << e.what() << std::endl;}
@@ -221,11 +221,19 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	return true;
 }
 
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	this->Period = period;
+	timer.start(Period);
+
+}
+
 void SpecificWorker::compute()
 {
     
 	static QTime reloj = QTime::currentTime();
-	if (innermodel == NULL) return;
+	if (innerModel == NULL) return;
 
 	static int frame = 0;
 	static QTime lastTime = QTime::currentTime();
@@ -391,7 +399,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 	{
 		try
 		{
-			apriltags_proxy->newAprilTag(detections2send);
+			apriltags_pubproxy->newAprilTag(detections2send);
 		}
 		catch(const Ice::Exception &ex)
 		{
@@ -400,7 +408,7 @@ void SpecificWorker::print_detection(vector< ::AprilTags::TagDetection> detectio
 		try
 		{
 			// qDebug()<<"bState"<<bState.correctedX<<bState.correctedZ<<bState.correctedAlpha;
-			apriltags_proxy->newAprilTagAndPose(detections2send,bState,hState);
+			apriltags_pubproxy->newAprilTagAndPose(detections2send,bState,hState);
 		}
 		catch(const Ice::Exception &ex)
 		{
@@ -463,7 +471,7 @@ double SpecificWorker::tic()
 /// IMPLEMENTS
 ////////
 
-listaMarcas SpecificWorker::checkMarcas()
+listaMarcas SpecificWorker::GetAprilTags_checkMarcas()
 {
   QMutexLocker locker(mutex);
   return  listaDeMarcas;

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2006-2019 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -21,6 +21,8 @@
        \brief
        @author authorname
 */
+
+
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
@@ -48,15 +50,16 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(MapPrx& mprx);	
+	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	//virtual void  newAprilTag(int id, float tx, float ty, float tz, float rx, float ry, float rz){};
-	listaMarcas checkMarcas();
+	listaMarcas GetAprilTags_checkMarcas();
 	RoboCompCommonBehavior::ParameterList getWorkerParams();
-public slots:
-	void compute(); 	
 
+public slots:
+	void compute();
+	void initialize(int period);
 private:
 	::AprilTags::TagDetector* m_tagDetector;
 	::AprilTags::TagCodes m_tagCodes;
@@ -81,7 +84,7 @@ private:
 	double m_py;
 	string camera_name;
 	string innermodel_path;
-	InnerModel *innermodel;
+	std::shared_ptr<InnerModel> innerModel;
 	
 	void print_detection(vector< ::AprilTags::TagDetection> detections);
 	void loop();
@@ -102,4 +105,3 @@ private:
 };
 
 #endif
-

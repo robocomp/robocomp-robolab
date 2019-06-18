@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,45 +20,36 @@
 #define GENERICWORKER_H
 
 #include "config.h"
-#include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-
 #include <CommonBehavior.h>
 
+#include <GenericBase.h>
+#include <JointMotor.h>
+#include <CommonHead.h>
 #include <GetAprilTags.h>
 #include <AprilTags.h>
-#include <GenericBase.h>
-#include <JointMotor.h>
-#include <RGBD.h>
-#include <JointMotor.h>
-#include <GenericBase.h>
-#include <RGBDBus.h>
 #include <Camera.h>
-#include <CommonHead.h>
-#include <JointMotor.h>
-#include <GenericBase.h>
 #include <CameraSimple.h>
+#include <RGBD.h>
+#include <RGBDBus.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
 using namespace std;
-
-using namespace RoboCompCamera;
-using namespace RoboCompGetAprilTags;
 using namespace RoboCompGenericBase;
+using namespace RoboCompJointMotor;
 using namespace RoboCompCommonHead;
+using namespace RoboCompGetAprilTags;
+using namespace RoboCompAprilTags;
+using namespace RoboCompCamera;
+using namespace RoboCompCameraSimple;
 using namespace RoboCompRGBD;
 using namespace RoboCompRGBDBus;
-using namespace RoboCompJointMotor;
-using namespace RoboCompCameraSimple;
-using namespace RoboCompAprilTags;
 
-
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
 class GenericWorker :
@@ -75,15 +66,16 @@ public:
 	QMutex *mutex;
 
 
-	RGBDPrx rgbd_proxy;
-	CameraSimplePrx camerasimple_proxy;
-	RGBDBusPrx rgbdbus_proxy;
-	AprilTagsPrx apriltags_proxy;
 	CameraPrx camera_proxy;
+	CameraSimplePrx camerasimple_proxy;
+	RGBDPrx rgbd_proxy;
+	RGBDBusPrx rgbdbus_proxy;
+	AprilTagsPrx apriltags_pubproxy;
 
-	virtual listaMarcas checkMarcas() = 0;
+	virtual listaMarcas GetAprilTags_checkMarcas() = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -92,6 +84,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

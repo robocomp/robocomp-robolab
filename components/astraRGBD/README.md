@@ -34,19 +34,27 @@ As any other component, *astraRGBD* needs a configuration file to start. In
 you can find an example of a configuration file. We can find there the following lines:
 
     CommonBehavior.Endpoints=tcp -p 11111
-
+    
+    
     # Endpoints for implemented interfaces
     RGBD.Endpoints=tcp -p 10096
-
+    HumanTracker.Endpoints=tcp -p 11666
+    
+    
+    
     Ice.MessageSizeMax=20004800
     Ice.Warn.Connections=0
     Ice.Trace.Network=0
     Ice.Trace.Protocol=0
     Ice.ACM.Client=10
     Ice.ACM.Server=10
-
+    
     depth=true
     color=true
+    body=true
+    point=true
+
+At the bottom you can find the flags to read from the different streams that Astra camera supply.
 
 ##### Otros ficheros relacionados
 You can find the needed cmake module for astra on this path
@@ -65,3 +73,19 @@ After editing the new config file we can run the component:
 ## Final notes
 Just some of the main functions of the rgbd interface have been currently implemented.
 It's under development.
+
+## Known issues
+The AstraSDK-v__XXX__-Linux/samples$ ./SimpleBodyViewer-SFML sometimes fails silently showing just a black screen.
+You can change the messages shown on on the terminal by the example modifying the lib/astra.toml and set
+the  
+**level = "trace"** or **level = "debug"**  
+If you do so, you can see all the steps done inside the astraSDK when launching the example.
+Take a deep look to the messages shown. If you find a message like this:
+lib/Plugins/libOrbbecBodyTracking.so System could not load library. Perhaps a dependency is missing.
+its possible that you have a problem with the libpng library. If you are using ubuntu 18.04 probably you have installed
+the libpng16 and that plugin requeries libpng12.
+You can see the description of the problem on the orbbec forums:  
+https://3dclub.orbbec3d.com/t/resolved-liborbbecbodytracking-so-system-could-not-load-library-bodyviewer-sfml-example-with-astrasdk-2-0-8-ubuntu-17-10-starting-bodystream/1462
+
+And you can download libpng12 from here:
+https://packages.ubuntu.com/xenial/amd64/libpng12-0/download

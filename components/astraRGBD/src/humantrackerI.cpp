@@ -30,31 +30,31 @@ HumanTrackerI::~HumanTrackerI()
 
 void HumanTrackerI::getJointsPosition(const int  id,  jointListType  &jointList, const Ice::Current&)
 {
-	worker->getJointsPosition(id, jointList);
+	worker->HumanTracker_getJointsPosition(id, jointList);
 }
 
 void HumanTrackerI::getRTMatrixList(const int  id,  RTMatrixList  &RTMatList, const Ice::Current&)
 {
-	worker->getRTMatrixList(id, RTMatList);
+	worker->HumanTracker_getRTMatrixList(id, RTMatList);
 }
 
 void HumanTrackerI::getUser(const int  id,  TPerson  &user, const Ice::Current&)
 {
-	worker->getUser(id, user);
+	worker->HumanTracker_getUser(id, user);
 }
 
 bool HumanTrackerI::getJointDepthPosition(const int  idperson, const string  &idjoint,  joint  &depthjoint, const Ice::Current&)
 {
-	return worker->getJointDepthPosition(idperson, idjoint, depthjoint);
+	return worker->HumanTracker_getJointDepthPosition(idperson, idjoint, depthjoint);
 }
 
 void HumanTrackerI::getUsersList( PersonList  &users, const Ice::Current&)
 {
-	worker->getUsersList(users);
+	worker->HumanTracker_getUsersList(users);
 }
 
 void HumanTrackerI::getUserState(const int  id,  TrackingState  &state, const Ice::Current&)
 {
-	worker->getUserState(id, state);
+	worker->HumanTracker_getUserState(id, state);
 }
 

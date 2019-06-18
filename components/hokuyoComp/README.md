@@ -96,7 +96,7 @@ In member function 'RoboCompGenericBase::TBaseState GenericLaserHandler getBaseS
 error: cannot declare catch parameter to be abstract class type 'IceUtil::Exception'
   catch(IceUtil::Exception e)
 ```   
-The simple workaround is bypassing the try-catch structure and just execute:
+The simple workaround is bypassing the try-catch structure in function `RoboCompGenericBase::TBaseState getBaseState()`:
 
 ```c++
 RoboCompGenericBase::TBaseState getBaseState()

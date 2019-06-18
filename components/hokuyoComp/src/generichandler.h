@@ -55,19 +55,15 @@ public:
 private:
 	virtual void run() = 0;
 	virtual bool readLaserData() = 0;
-	
+
 
 public slots:
 	RoboCompGenericBase::TBaseState getBaseState()
 	{
 		RoboCompGenericBase::TBaseState b;
-		try{
-			base->getBaseState(b);
-		}
-		catch(Ice::Exception e)
-		{
-			rError("Error talking to differentialRobot");
-		}
+
+		base->getBaseState(b);
+
 		printf("seguimos...\n");
 		return b;
 	}

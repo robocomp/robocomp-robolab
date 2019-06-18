@@ -2,7 +2,8 @@
 # hokuyo
 
 Hokuyo laser sensor family is a low-cost laser sensor applied in many areas in robotics research such as navigation, etc. It provides range data in short distance from 0.4~5 meters for basic localization or SLAM task in small indoor environment.
-The hokuyoComp component provides a wrapper for accessing data from [Hokuyo urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and publish the laser data over RoboComp environment using Ice middleware framework.
+
+The hokuyoComp component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and publish the laser data over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface.
 
 ## Resolve dependencies
 This section assumes user already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
@@ -10,12 +11,15 @@ This section assumes user already installed RoboComp core library and pull Robol
 Before compiling the component, we must first resolve its dependencies which are the Hokuyo driver packages:
 
 **For Ubuntu 14.04 Trusty Tahr**
+
 ```
 sudo apt-get install -y liburg0-dev
 ```
 
 **For Ubuntu 16.04 Xenial Xerus onward**
+
 Because `liburg0-dev` package does not exist in official PPA from Ubuntu 16.04 onward, we should download deb package directly from Trusty repo and install it by `dpkg`.
+
 ```
 sudo apt install -y libc6 libgcc1 libsdl-net1.2 libstdc++6 libsdl1.2debian
 cd ~/Downloads
@@ -71,22 +75,14 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
 
-Note that the `Laser.Driver` and `Laser.Device` param can be different depended on your Hokuyo device name and current port that the sensor is connected to. For checking every USB ports that haveRoboCompGenericBase::TBaseState getBaseState()
-	{
-		RoboCompGenericBase::TBaseState b;
-
-		base->getBaseState(b);
-
-		printf("seguimos...\n");
-		return b;
-	} been connected:
+Note that the `Laser.Driver` and `Laser.Device` param can be different depended on your Hokuyo device name and current port that the sensor is connected to. For checking every USB ports that have been connected:
 ```
 ls /dev/ttyACM*
 ```
 Then find the corresponding port that Hokuyo sensor is connected to.
 
 ## Starting the component
-After editing config file for matching with Hokuyo device name and desired parameters of your laser sensor, we plug the Hokuyo sensor in and start the component using these commands:
+After editing config file for matching with Hokuyo device name and desired parameters of your laser sensor, we plug the Hokuyo sensor in any USB port and start the component using these commands:
 
 ```
 ./bin/hokuyo --Ice.Config=config

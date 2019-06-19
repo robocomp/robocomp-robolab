@@ -1,0 +1,13 @@
+import "tts.idsl";
+
+Component clientts
+{
+	Communications
+	{
+            requires TTSpeech;
+        };
+	language python;
+	gui Qt(QMainWindow);
+};
+
+// QWidget - QDialog

@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 by YOUR NAME HERE
 #
@@ -17,10 +19,11 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, traceback, time
-
-from PySide import QtGui, QtCore
 from genericworker import *
+GreetList = []
+ByeList = []
+import random
+
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -34,6 +37,9 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 2000
 		self.timer.start(self.Period)
+
+	def __del__(self):
+		print 'SpecificWorker destructor'
 
 	def setParams(self, params):
 		#try:
@@ -62,6 +68,7 @@ class SpecificWorker(GenericWorker):
 
 		return True
 
+# ====================================== Methods for TTS =====================================================================================
 	def ponerEsp(self):
 	    voices  = self.engine.getProperty('voices')
 	    idvoice = 0
@@ -70,36 +77,65 @@ class SpecificWorker(GenericWorker):
 		idvoice+=1
 		if voice.id == 'spanish':
 		        print("void ID: ", voice.id)
-			self.engine.setProperty('voice', voice.id)
-			self.engine.say("Definido el lenguaje")
-			self.engine.runAndWait()
-
-	def prueba(self):
-		frase = 'Me gustan las casas con las paredes azules y el tejado verde'
-		self.engine.setProperty('rate', 180)
-		self.engine.setProperty('voice', 'spanish+f6')
-		self.engine.say(frase)
-		self.engine.setProperty('voice', 'spanish+f1')
-		self.engine.say(frase)
-		self.engine.setProperty('voice', 'spanish+f2')
-		self.engine.say(frase)
-		self.engine.setProperty('voice', 'spanish+f3')
-		self.engine.say(frase)
-		self.engine.setProperty('voice', 'spanish+f4')
-		self.engine.say(frase)
-		self.engine.setProperty('voice', 'spanish+f5')
-		self.engine.say(frase)
-
+			self.engine.setProperty('voice', voice.id)	
 	#
 	# say
 	#
 	def say(self, text):
-		import pyttsx3
-		self.engine = pyttsx3.init()
-		#self.ponerEsp()
-		self.prueba()
-		#self.engine.say(text)	
+		if text is None: 
+			print("¿Qué quieres escuchar?")
+			text = input()
+		self.ponerEsp()
+		self.engine.say(text)	
 		self.engine.runAndWait()
-		self.engine.stop()
 		pass
+
+# ======================================== Methods for Alternative Phrases ===================================================================
+	def sayAlternativeGreet(self):
+		global GreetList
+		if list:
+			frase = random.choice(GreetList)
+		else:
+			frase = "Hola"
+		self.say(frase)
+
+	def addGreet(self):
+		global GreetList
+		frase = input()
+		GreetList.append(frase)
+
+	def deleteGreet(self):
+		global GreetList
+		frase = input()
+		if frase in GreetList:
+			GreetList.remove(frase)
+		else:
+			print('La frase no se encuentra en la lista')
+
+	def showGreet(self):
+		print(*GreetList, sep = "\n")
+
+	def sayAlternativeBye(self):
+		global ByeList
+		if list:
+			frase = random.choice(GreetList)
+		else:
+			frase = "Hola"
+		self.say(frase)
+
+	def addBye(self):
+		global ByeList
+		frase = input()
+		GreetList.append(frase)
+
+	def deleteBye(self):
+		global ByeList
+		frase = input()
+		if frase in GreetList:
+			GreetList.remove(frase)
+		else:
+			print('La frase no se encuentra en la lista')
+
+	def showBye(self):
+		print(*ByeList, sep = "\n")
 

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 by Isabel Najarro Borrego
+# Copyright (C) 2019 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -62,3 +62,7 @@ class TTSpeechI(TTSpeech):
 
 	def say(self, text, c):
 		return self.worker.say(text)
+	def sayLanguage(self, text, language):
+		return self.worker.sayLanguage(text, language)
+	def sayVoice(self, text, voice):
+		return self.worker.sayVoice(text, voice)

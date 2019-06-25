@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 by YOUR NAME HERE
 #
@@ -17,7 +19,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
-from PySide import QtGui, QtCore
+from PySide2 import QtWidgets, QtCore
 
 ROBOCOMP = ''
 try:

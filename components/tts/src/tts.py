@@ -60,7 +60,7 @@ import sys, traceback, IceStorm, subprocess, threading, time, Queue, os, copy
 # Ctrl+c handling
 import signal
 
-from PySide import QtGui, QtCore
+from PySide2 import QtCore
 
 from specificworker import *
 
@@ -88,8 +88,10 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 			status = 1
 			return
 
-
-
+#SIGNALS handler
+def sigint_handler(*args):
+	QtCore.QCoreApplication.quit()
+    
 if __name__ == '__main__':
 	app = QtCore.QCoreApplication(sys.argv)
 	params = copy.deepcopy(sys.argv)
@@ -107,13 +109,16 @@ if __name__ == '__main__':
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
+	else:
+		print "Error getting required connections, check config file"
+		sys.exit(-1)
 
 	adapter = ic.createObjectAdapter('TTSpeech')
 	adapter.add(TTSpeechI(worker), ic.stringToIdentity('ttspeech'))
 	adapter.activate()
 
 
-	signal.signal(signal.SIGINT, signal.SIG_DFL)
+	signal.signal(signal.SIGINT, sigint_handler)
 	app.exec_()
 
 	if ic:
@@ -122,6 +127,3 @@ if __name__ == '__main__':
 		except:
 			traceback.print_exc()
 			status = 1
-
-#def __init__(self):
-

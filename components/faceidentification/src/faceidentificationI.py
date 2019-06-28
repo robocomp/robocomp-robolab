@@ -62,7 +62,7 @@ class FaceIdentificationI(FaceIdentification):
 
 	def deleteLabel(self, faceLabel, c):
 		return self.worker.deleteLabel(faceLabel)
-	def getFaceLabels(self, faces, c):
-		return self.worker.getFaceLabels(faces)
-	def addNewFace(self, faceImg, c):
-		return self.worker.addNewFace(faceImg)
+	def getFaceLabels(self, faceImg, c):
+		return self.worker.getFaceLabels(faceImg)
+	def addNewFace(self, faceImg, faceLabel, c):
+		return self.worker.addNewFace(faceImg, faceLabel)

@@ -1,6 +1,8 @@
 # Endpoints for implemented interfaces
 FaceIdentification.Endpoints=tcp -p 10008
 
+
+
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 

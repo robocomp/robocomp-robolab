@@ -18,11 +18,15 @@
 #
 
 import sys, os, traceback, time
-import numpy as np
-import tensorflow as tf
+
 from PySide import QtGui, QtCore
 from genericworker import *
 
+# If RoboComp was compiled with Python bindings you can use InnerModel in Python
+# sys.path.append('/opt/robocomp/lib')
+# import librobocomp_qmat
+# import librobocomp_osgviewer
+# import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -30,22 +34,31 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
 		self.timer.start(self.Period)
-		self.datafile_name = 'facial_database.npy'
-		self.datafile_path = './'
-		files = os.listdir(self.datafile_path)
-		if (self.datafile_name not in files):
-			print ("No dataset found. Creating a new empty numpy file")
-			data = []
-			np.save(os.path.join(self.datafile_path, self.datafile_name), data)
-		self.data = np.load(os.path.join(self.datafile_path, self.datafile_name), allow_pickle=True)
-		print ('Loaded the facial database')
 
 	def setParams(self, params):
+		#try:
+		#	self.innermodel = InnerModel(params["InnerModelPath"])
+		#except:
+		#	traceback.print_exc()
+		#	print "Error reading config params"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
+		#computeCODE
+		#try:
+		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
+		#except Ice.Exception, e:
+		#	traceback.print_exc()
+		#	print e
+
+		# The API of python-innermodel is not exactly the same as the C++ version
+		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
+		# z = librobocomp_qmat.QVec(3,0)
+		# r = self.innermodel.transform("rgbd", z, "laser")
+		# r.printvector("d")
+		# print r[0], r[1], r[2]
 
 		return True
 
@@ -63,18 +76,18 @@ class SpecificWorker(GenericWorker):
 	#
 	# getFaceLabels
 	#
-	def getFaceLabels(self, faces):
+	def getFaceLabels(self, faceImg):
 		#
 		#implementCODE
 		#
-		faceNames = FaceLabels()
-		return faceNames
+		faceLabel = str()
+		return faceLabel
 
 
 	#
 	# addNewFace
 	#
-	def addNewFace(self, faceImg):
+	def addNewFace(self, faceImg, faceLabel):
 		#
 		#implementCODE
 		#

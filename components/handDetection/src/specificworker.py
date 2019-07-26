@@ -22,6 +22,10 @@
 import sys, os, traceback, time
 
 from PySide import QtGui, QtCore
+from datetime import datetime
+
+from HandDetection.Hand import Hand
+from HandDetection.roi import Roi, SIDE
 from genericworker import *
 from libs.HandDetection.HandDetection import HandDetector
 from scipy import stats
@@ -82,81 +86,90 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		try:
-
 			color, depth, _, _ = self.rgbd_proxy.getData()
+		except Ice.Exception, e:
+			traceback.print_exc()
+			print e
+			return False
+		else:
 
 			frame = np.fromstring(color, dtype=np.uint8)
 			frame = frame.reshape(480, 640, 3)
+			search_roi = Roi.from_frame(frame, SIDE.CENTER, 100)
 
 			depth = np.array(depth, dtype=np.float32)
 			depth = np.fromstring(depth, dtype=np.float32)
 			if self.depth_thresold < 1:
 				self.calculate_depth_threshold(depth)
 
-
 			# depth = np.array(depth, dtype=np.uint8)
 			# depth = depth.reshape(480, 640, 1)
 			if self.flip:
-				frame = cv2.flip(frame,0)
+				frame = cv2.flip(frame, 0)
 				depth = depth.reshape(480, 640, 1)
-				depth = cv2.flip(depth,0)
-				depth = depth.reshape(480*640)
+				depth = cv2.flip(depth, 0)
+				depth = depth.reshape(480 * 640)
+				depth_image = self.depth_normalization(depth).reshape(480, 640, 1).astype(np.uint8)
 
-			self.hand_detector.set_depth_mask(np.array(depth))
 			if self.debug:
-				depth_to_show = self.depth_normalization(depth).reshape(480, 640, 1).astype(np.uint8)
+				depth_to_show = depth_image.copy()
 				frame_to_show = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+				frame_to_show = cv2.rectangle(frame_to_show, (search_roi.y,search_roi.x), (search_roi.y + search_roi.height, search_roi.x + search_roi.width), [0, 0, 0])
+				depth_to_show = cv2.rectangle(depth_to_show, (search_roi.y, search_roi.x),
+											  (search_roi.y + search_roi.height, search_roi.x + search_roi.width),
+											  [0, 0, 0])
 				cv2.imshow("DEBUG: HandDetection: Specificworker: depth readed ", depth_to_show)
 				cv2.imshow("DEBUG: HandDetection: Specificworker: color", frame_to_show)
 
-
-		except Ice.Exception, e:
-			traceback.print_exc()
-			print e
-			return False
-
 		if self.state == "add_new_hand":
-			search_roi = (self.new_hand_roi.x, self.new_hand_roi.y, self.new_hand_roi.w, self.new_hand_roi.h)
-			self.hand_detector.add_hand2(frame, search_roi)
-			if len(self.hand_detector.hands) >= self.expected_hands:
-				self.state = "tracking"
-				self.new_hand_roi = None
+			# TODO: To test. remove
+			# cv2.imwrite("/home/robolab/robocomp/components/robocomp-robolab/components/handDetection/src/images/depth_images/"+str(datetime.now().strftime("%Y%m%d%H%M%S"))+".png", depth_image)
+			self.hand_detector.add_new_expected_hand(search_roi)
+			self.state = "tracking"
 		elif self.state == "tracking":
-			self.hand_detector.update_detection_and_tracking(frame)
+			# depth_image = cv2.imread(
+			# 	"/home/robolab/robocomp/components/robocomp-robolab/components/handDetection/src/images/depth_images/20190725130344.png",
+			# 	0)
+			self.hand_detector.update_expected_hands(depth_image)
 			for detected_hand in self.hand_detector.hands:
 				try:
 					points, _, _ = self.rgbd_proxy.getXYZByteStream()
-					np_points = np.fromstring(points, dtype=np.float32)
-					points_frame = np_points.reshape(480, 640, 3)
-					if self.flip:
-						points_frame = cv2.flip(points_frame, 0)
-					# print len(np_points)ç
-					cm = detected_hand.center_of_mass
-					# print ("%s %s"%(str(detected_hand.center_of_mass), str(points_frame.shape)))
-					point_x = points_frame[cm[1], cm[0], 0]
-					point_y = points_frame[cm[1], cm[0], 1]
-					point_z = points_frame[cm[1], cm[0], 2]
-					# IT'S A 640x480 matrix
-					# point_x = points_frame[360, 240, 0]
-					# point_y = points_frame[360, 240, 1]
-					# point_z = points_frame[360, 240, 2]
-					detected_hand.center_of_mass_xyz = [int(point_x), int(point_y), int(point_z)]
-					if self.debug:
-						print("%d %d %d" % (int(detected_hand.center_of_mass_xyz[0]), int(detected_hand.center_of_mass_xyz[1]), int(detected_hand.center_of_mass_xyz[2])))
-						# print("%d %d " % (cm[0], cm[1]))
-						xyz_to_show = self.depth_normalization(points_frame[:,:,2]).astype(np.uint8)
-						# print xyz_to_show.shape
-						# gray_xyz = cv2.cvtColor(xyz_to_show, cv2.COLOR_BGR2GRAY)
-						cv2.circle(xyz_to_show, (cm[0],cm[1]), 20, (0, 0, 255), -1)
-						font = cv2.FONT_HERSHEY_SIMPLEX
-						cv2.putText(xyz_to_show, str(cm), cm, font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-						cv2.imshow("XYZ", xyz_to_show)
-						# print("%d" % (len(detected_hand.center_of_mass)))
-						# print("%f %f %f" % (int(point_x), int(point_y), int(point_z)))
 
 				except Exception as e:
 					print("Problem getting points (XYZ) from rgbd")
 					print e
+				else:
+					if len(points) !=0:
+						np_points = np.fromstring(points, dtype=np.float32)
+						points_frame = np_points.reshape(480, 640, 3)
+						if self.flip:
+							points_frame = cv2.flip(points_frame, 0)
+						# print len(np_points)ç
+						cm = detected_hand.center_of_mass
+						# print ("%s %s"%(str(detected_hand.center_of_mass), str(points_frame.shape)))
+						point_x = points_frame[cm[1], cm[0], 0]
+						point_y = points_frame[cm[1], cm[0], 1]
+						point_z = points_frame[cm[1], cm[0], 2]
+						# IT'S A 640x480 matrix
+						# point_x = points_frame[360, 240, 0]
+						# point_y = points_frame[360, 240, 1]
+						# point_z = points_frame[360, 240, 2]
+						detected_hand.center_of_mass_xyz = [int(point_x), int(point_y), int(point_z)]
+						if self.debug:
+							print("%d %d %d" % (
+							int(detected_hand.center_of_mass_xyz[0]), int(detected_hand.center_of_mass_xyz[1]),
+							int(detected_hand.center_of_mass_xyz[2])))
+							# print("%d %d " % (cm[0], cm[1]))
+							xyz_to_show = self.depth_normalization(points_frame[:, :, 2]).astype(np.uint8)
+							# print xyz_to_show.shape
+							# gray_xyz = cv2.cvtColor(xyz_to_show, cv2.COLOR_BGR2GRAY)
+							cv2.circle(xyz_to_show, (cm[0], cm[1]), 20, (0, 0, 255), -1)
+							font = cv2.FONT_HERSHEY_SIMPLEX
+							cv2.putText(xyz_to_show, str(cm), cm, font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+							cv2.imshow("XYZ", xyz_to_show)
+					# print("%d" % (len(detected_hand.center_of_mass)))
+					# print("%f %f %f" % (int(point_x), int(point_y), int(point_z)))
+
 		self.calculate_fps(False)
 		# print "%s with %d of %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands), self.expected_hands, self.hand_detector.mask_mode, self.fps)
 		return True
@@ -169,6 +182,7 @@ class SpecificWorker(GenericWorker):
 			print("%d fps"%(self.fps))
 
 
+	# TODO: move to Utils file
 	def depth_normalization(self, depth):
 		depth_min = np.min(depth)
 		depth_max = np.max(depth)
@@ -176,7 +190,9 @@ class SpecificWorker(GenericWorker):
 			depth = np.interp(depth, [depth_min, depth_max], [0.0, 255.0], right=255, left=0)
 		return depth
 
-	def calculate_depth_threshold(self, depth):
+	def calculate_depth_threshold(self, depth, normalize= True):
+		depth_min = np.min(depth)
+		depth_max = np.max(depth)
 		depth = np.array(depth)
 		criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
 		# Create 3 clusters of point (0, intermediate, far)
@@ -188,8 +204,10 @@ class SpecificWorker(GenericWorker):
 		# print np.mean(clusters[index])
 		# Use the most repeated value as the depth to wich the wall or table can be.
 		# TODO: ENV_DEPENDECE: 70 is the amount of space for the frame of the tv or for inclination from the camera plane
-		self.depth_thresold = stats.mode(clusters[index])[0][0]-70
-		self.hand_detector.set_depth_threshold(self.depth_thresold)
+		self.depth_threshold = stats.mode(clusters[index])[0][0]-70
+		if normalize:
+			self.depth_threshold = np.interp(self.depth_threshold, [depth_min, depth_max], [0.0, 255.0], right=255, left=0) - 6
+		self.hand_detector.set_depth_threshold(self.depth_threshold)
 
 
 	def addNewHand(self, expected_hands, new_hand_roi):

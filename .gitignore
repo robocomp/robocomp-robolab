@@ -98,4 +98,4 @@ CXX.*
 *.cbp
 
 components/astraRGBD/build/
-components/robocomp-robolab/components/faceidentification/assets/20180408-102900/*
+components/faceidentification/assets/20180408-102900/*

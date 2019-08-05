@@ -20,7 +20,6 @@
 import sys, os, traceback, time
 import numpy as np
 import cv2
-import tensorflow as tf
 import wx
 from wx.lib import buttons
 from PIL import Image
@@ -29,6 +28,8 @@ from genericworker import *
 from assets.src import face_detect as detector
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from threading import Thread
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+import tensorflow as tf
 
 face_cascade = cv2.CascadeClassifier('assets/haarcascade_frontalface_default.xml')
 
@@ -39,6 +40,7 @@ class SpecificWorker(GenericWorker):
 		self.Period = 50
 		self.timer.start(self.Period)
 		self.save_path = './'
+		self.face_detect_gpu_memory = 0.4
 		#### Defining the GUI 
 		self.app = wx.App()
 		self.window = wx.Frame(None, -1, title = "Face Recognition Options", size=(640,480),
@@ -95,14 +97,19 @@ class SpecificWorker(GenericWorker):
 		if dlg.ShowModal() == wx.ID_OK:
 			self.window.filename = dlg.GetPath()
 			img = cv2.imread(self.window.filename)
-			faces = self.face_detection(img, flag = 0)
+			faces = self.face_detection(img, flag = 1)
 
 			for idx, face in enumerate(faces):
 				x = faces[idx,0]
 				y = faces[idx,1]
 				w = faces[idx,2]
 				h = faces[idx,3]
-				FaceName = "Unknown"
+				im = TImage()
+				im.width = int(faces[idx,4].shape[0])
+				im.height = int(faces[idx,4].shape[1])
+				im.depth = int(faces[idx,4].shape[2])
+				im.image = faces[idx,4]
+				FaceName = self.faceidentification_proxy.getFaceLabels(im)
 				cv2.rectangle(img, (x,y), (x+w,y+h), (255,0,0),2)
 				cv2.putText(img, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
 			img_path = '%sFace.png'%(self.save_path)	
@@ -131,18 +138,26 @@ class SpecificWorker(GenericWorker):
 					print ("Multiple people found in the image.")
 				else:
 					#### Adding image to the database
+					im = TImage()
+					im.width = int(faces[0,4].shape[0])
+					im.height = int(faces[0,4].shape[1])
+					im.depth = int(faces[0,4].shape[2])
+					im.image = faces[0,4]
+					self.faceidentification_proxy.addNewFace(im,self.window.label_add)
 					print ("%s added to the database"%(self.window.label_add))
 			dlg.Destroy()
 
-	### Defining the fucnction to delete a specific label
+	### Fucnction to delete a specific label
 	def Delete_specific_label(self, event):
 		if self.window.text_ctrl.GetValue() == "Enter the label to add or delete ...":
 			wx.MessageBox("Enter the label you want to delete in the text box below")
 		else:
 			self.window.label_delete = self.window.text_ctrl.GetValue()
+			self.faceidentification_proxy.deleteLabel(self.window.label_delete)
 			print ("Deleting the label : " + self.window.label_delete)
 			wx.MessageBox("Label deleted successfully")	
 
+	#### Function to detect multiple faces in an image 
 	def face_detection(self, img, flag):
 		#### Use Haar Cascade for face detection
 		if (flag == 0):
@@ -150,13 +165,13 @@ class SpecificWorker(GenericWorker):
 			faces = face_cascade.detectMultiScale(gray)
 			faces_data = []
 			for (x,y,w,h) in faces:
-				I_align = img[int(x):int(x+w), int(y):int(y+h)]
+				I_align = np.array(img[int(y):int(y + h), int(x):int(x + w)])
 				faces_data.append([x,y,w,h, I_align])
 			faces_data = np.array(faces_data)
 
 		#### Use MTCNN for face detection
 		elif (flag == 1):
-			faces_data = detector.draw_bounding_box(img)
+			faces_data = detector.draw_bounding_box(img, self.face_detect_gpu_memory)
 		return faces_data
 
 
@@ -167,16 +182,22 @@ class SpecificWorker(GenericWorker):
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
 			frame = np.reshape(arr, (data.width, data.height, data.depth))
-
 			### Getting bounding boxes across the faces using Harr cascade implementation
 			faces = self.face_detection(frame, flag = 0)
 
+			#### Finding name for each person for the bounding boxes
 			for idx, face in enumerate(faces):
 				x = faces[idx,0]
 				y = faces[idx,1]
 				w = faces[idx,2]
 				h = faces[idx,3]
-				FaceName = "Unknown"
+				im = TImage()
+				im.width = int(faces[idx,4].shape[0])
+				im.height = int(faces[idx,4].shape[1])
+				im.depth = int(faces[idx,4].shape[2])
+				im.image = faces[idx,4]
+				FaceName = self.faceidentification_proxy.getFaceLabels(im)
+
 				cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0),2)
 				cv2.putText(frame, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
 

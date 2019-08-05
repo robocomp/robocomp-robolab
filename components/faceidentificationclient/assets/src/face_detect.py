@@ -54,8 +54,8 @@ def alignment(I,points):
 	output = cv2.warpAffine(I,R,(W,H),flags = cv2.INTER_CUBIC)
 	return output
 
-def draw_bounding_box(img):
-	rectangles, points = test_img.bounding_box_face(img)
+def draw_bounding_box(img, gpu_memory):
+	rectangles, points = test_img.bounding_box_face(img,gpu_memory)
 	points = np.transpose(points)
 
 	#### Increasing the size of bounding box by 10%

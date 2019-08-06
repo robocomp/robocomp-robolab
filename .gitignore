@@ -98,3 +98,4 @@ CXX.*
 *.cbp
 
 components/astraRGBD/build/
+components/faceidentification/assets/20180408-102900/*

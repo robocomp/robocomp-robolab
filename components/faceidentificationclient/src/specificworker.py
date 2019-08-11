@@ -114,7 +114,8 @@ class SpecificWorker(GenericWorker):
 				cv2.putText(img, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
 			img_path = '%sFace.png'%(self.save_path)	
 			cv2.imwrite(img_path, img)
-			print ("Image with the bounding box saved at %s"%(img_path))
+			msg = "Image with the bounding box saved at %s"%(img_path)
+			wx.MessageBox(msg)
 		dlg.Destroy()
 
 	### Defining the function to add image to an existing label
@@ -123,6 +124,7 @@ class SpecificWorker(GenericWorker):
 			wx.MessageBox("Enter the existing label for which image is to be added in the text box below")
 		else:
 			self.window.label_add = self.window.text_ctrl.GetValue()
+			self.window.label_add = self.window.label_add.lower()
 			dlg = wx.FileDialog(self.window, "Open image file...", os.getcwd()+"/image",
 								style=wx.FD_OPEN,
 								wildcard = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg")
@@ -133,9 +135,10 @@ class SpecificWorker(GenericWorker):
 				img = cv2.imread(self.window.filename)
 				faces = self.face_detection(img, flag = 1)
 				if (faces.shape[0] == 0):
-					print ("No face found in the given image.")
+					wx.MessageBox("No face found in the given image")
 				elif (faces.shape[0] > 1):
-					print ("Multiple people found in the image.")
+					wx.MessageBox("Multiple people found in the image")
+
 				else:
 					#### Adding image to the database
 					im = TImage()
@@ -143,16 +146,21 @@ class SpecificWorker(GenericWorker):
 					im.height = int(faces[0,4].shape[1])
 					im.depth = int(faces[0,4].shape[2])
 					im.image = faces[0,4]
-					self.faceidentification_proxy.addNewFace(im,self.window.label_add)
-					print ("%s added to the database"%(self.window.label_add))
+					status = self.faceidentification_proxy.addNewFace(im,self.window.label_add)
+					if (status):
+						msg = "%s added to the database"%(self.window.label_add)
+					else:
+						msg = "Given person is stored with a different name. Hence the given encoding is not stored."
+					wx.MessageBox(msg)
 			dlg.Destroy()
 
-	### Fucnction to delete a specific label
+	### Function to delete a specific label
 	def Delete_specific_label(self, event):
 		if self.window.text_ctrl.GetValue() == "Enter the label to add or delete ...":
 			wx.MessageBox("Enter the label you want to delete in the text box below")
 		else:
 			self.window.label_delete = self.window.text_ctrl.GetValue()
+			self.window.label_delete = self.window.label_delete.lower()
 			self.faceidentification_proxy.deleteLabel(self.window.label_delete)
 			print ("Deleting the label : " + self.window.label_delete)
 			wx.MessageBox("Label deleted successfully")	

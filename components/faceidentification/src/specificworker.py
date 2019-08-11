@@ -83,7 +83,7 @@ class SpecificWorker(GenericWorker):
 			print ('Embeddings file found')
 			self.neural_embeddings = np.load(self.file_name, allow_pickle=True)
 		else:
-			### Creating an embedding file if no exmbeddings exist already
+			### Creating an embedding file if no embeddings exist already
 			print ('No File Found. Creating an empty numpy file for neural embeddings')
 			self.neural_embeddings = np.zeros((1,2), dtype = np.ndarray)
 			self.neural_embeddings[0,0] = np.zeros((1,512), dtype = np.float32)			
@@ -96,8 +96,13 @@ class SpecificWorker(GenericWorker):
 
 		##### Defining the face recognition model and parameters
 		self.model_path = './assets/20180408-102900/'
+		##### Thresholds
 		self.threshold_1 = 1.10
 		self.threshold_2 = 0.55
+		##### Better threshold to check if incorrect label is given
+		self.threshold_3 = 1.25
+		##### Threshold to remove redundant data
+		self.threshold_4 = 3
 		self.image_size = 160
 
 		#### Loading the Face Recognition Model
@@ -116,28 +121,25 @@ class SpecificWorker(GenericWorker):
 
 
 	#### Finding the nearest neighbor for the given test embedding
-	def compare_embeddings(self, test_face_embedding):
+	def compare_embeddings(self, test_face_embedding, thresh):
 		possible_faces = {}
 		for idx in range(self.neural_embeddings.shape[0]):
 			dist = cal_face_dist(self.neural_embeddings[idx,0], test_face_embedding[0])
-			if (dist > self.threshold_1):
+			if (dist > thresh):
 				if (self.neural_embeddings[idx,1] not in possible_faces):
 					possible_faces[self.neural_embeddings[idx,1]] = 1
 				else:
 					possible_faces[self.neural_embeddings[idx,1]] = possible_faces[self.neural_embeddings[idx,1]] + 1
-
 		if not possible_faces:
 			return "Unknown", -1
 		pred_label = max(possible_faces.iteritems(), key=operator.itemgetter(1))[0]
 		if (pred_label == '####'):
 			return "Unknown", -1
-		print (possible_faces)
 		return pred_label, possible_faces[pred_label]
 
 
 	@QtCore.Slot()
 	def compute(self):
-		# print ('SpecificWorker.compute...')
 		return True
 
 	#### Deleting an already existing label
@@ -165,7 +167,7 @@ class SpecificWorker(GenericWorker):
 		image = preprocess_image(image, self.image_size)
 		feed_dict = {self.images_placeholder:image, self.phase_train_placeholder:False}
 		feature_vector = self.sess.run(self.embeddings, feed_dict=feed_dict)		
-		prediction, number_matches = self.compare_embeddings(feature_vector)
+		prediction, number_matches = self.compare_embeddings(feature_vector, self.threshold_1)
 		faceLabel = prediction
 		return faceLabel
 
@@ -176,6 +178,19 @@ class SpecificWorker(GenericWorker):
 		image = preprocess_image(image, self.image_size)
 		feed_dict = {self.images_placeholder:image, self.phase_train_placeholder:False }
 		feature_vector = self.sess.run(self.embeddings, feed_dict=feed_dict)
-		temp = np.array([[feature_vector, faceLabel]])
-		self.neural_embeddings = np.concatenate((self.neural_embeddings, temp),axis = 0)
-		np.save(self.file_name, self.neural_embeddings)
+		
+		#### Data Reduction and Error check on the Label
+		prediction, number_matches = self.compare_embeddings(feature_vector, self.threshold_4)
+		#### If new image is very similar to the old image, then it is not added to the database.
+		if (prediction == faceLabel):
+			return True
+
+		#### Check whether given image is not similar to a different label in the database.
+		prediction, number_matches = self.compare_embeddings(feature_vector, self.threshold_3)
+		if (prediction == "Unknown" or prediction == faceLabel):
+			temp = np.array([[feature_vector, faceLabel]])
+			self.neural_embeddings = np.concatenate((self.neural_embeddings, temp),axis = 0)
+			np.save(self.file_name, self.neural_embeddings)
+			return True
+		else:
+			return False

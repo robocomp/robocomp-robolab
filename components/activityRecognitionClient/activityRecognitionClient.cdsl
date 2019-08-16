@@ -1,0 +1,11 @@
+import "ActivityRecognition.idsl";
+
+Component activityRecognitionClient
+{
+	Communications
+	{
+		requires ActivityRecognition;
+	};
+	language python;
+};
+

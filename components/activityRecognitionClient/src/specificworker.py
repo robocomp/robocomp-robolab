@@ -22,11 +22,20 @@ import sys, os, traceback, time
 from PySide import QtGui, QtCore
 from genericworker import *
 
+import numpy as np
+import pickle
+
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
+
+# test sample path, used only in debug mode
+_test_sample_path = 'src/data/test_sample.npy'
+# turn on the debug mode to test the client + activity recognition component without the real camera input
+_DEBUG = True
+
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -36,29 +45,16 @@ class SpecificWorker(GenericWorker):
 		self.timer.start(self.Period)
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
-		#computeCODE
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception, e:
-		#	traceback.print_exc()
-		#	print e
-
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
+		if _DEBUG:
+			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
+			sample = np.load(_test_sample_path)
+			for i in range(sample.shape[1]):
+				self.activityrecognition_proxy.addSkeleton(sample[:, i, :])
 
 		return True
 

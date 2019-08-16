@@ -33,8 +33,8 @@ import numpy as np
 import pickle
 from feature_extraction import extract_features
 
-# turn on the debug mode to test the component without the activityRecognition Client
-_DEBUG = True
+# turn on the debug mode to test the component on its own without the activityRecognition Client
+_DEBUG = False
 # path to the model
 _model_dir = 'src/data/all_final_model.pkl'
 # test sample path, used only in debug mode
@@ -68,7 +68,7 @@ class SpecificWorker(GenericWorker):
 
 	def predict(self):
 		# extract features from the existing skeleton frames, run prediction and print the top 5 predictions
-		sample = np.array(self.skeletons)
+		sample = np.swapaxes(np.array(self.skeletons), 0, 1)
 		x = extract_features(sample)
 		y_pred = self.predictor.predict_proba(x.reshape(1, -1))
 		sorted_ind = np.argsort(y_pred[0])
@@ -81,11 +81,6 @@ class SpecificWorker(GenericWorker):
 		print('')
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
 		return True
 
 	@QtCore.Slot()
@@ -94,21 +89,8 @@ class SpecificWorker(GenericWorker):
 		if _DEBUG:
 			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
 			sample = np.load(_test_sample_path)
-			for i in range(sample.shape[0]):
-				self.addSkeleton(sample[i, :, :])
-		#computeCODE
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception, e:
-		#	traceback.print_exc()
-		#	print e
-
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
+			for i in range(sample.shape[1]):
+				self.addSkeleton(sample[:, i, :])
 
 		return True
 

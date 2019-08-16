@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-ActivityRecognitionProxy = activityrecognition:tcp -h localhost -p 0
+ActivityRecognitionProxy = activityrecognition:tcp -h localhost -p 12250
 
 
 

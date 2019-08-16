@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces
-ActivityRecognition.Endpoints=tcp -p 0
+ActivityRecognition.Endpoints=tcp -p 12250
 
 
 

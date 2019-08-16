@@ -25,7 +25,6 @@ import sys, os, traceback, time
 from PySide import QtGui, QtCore
 from genericworker import *
 import numpy as np
-# import tqdm
 import math
 import cv2
 from scipy.optimize import brentq

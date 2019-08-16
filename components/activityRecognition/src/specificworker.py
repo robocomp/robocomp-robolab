@@ -29,6 +29,19 @@ from genericworker import *
 # import librobocomp_innermodel
 
 import collections
+import numpy as np
+import pickle
+from feature_extraction import extract_features
+
+# turn on the debug mode to test the component without the activityRecognition Client
+_DEBUG = True
+# path to the model
+_model_dir = 'src/data/all_final_model.pkl'
+# test sample path, used only in debug mode
+_test_sample_path = 'src/data/test_sample.npy'
+# string names of the CAD-60 classes
+_class_names = ['talking on the phone', 'writing on whiteboard', 'drinking water', 'rinsing mouth with water', 'brushing teeth', 'wearing contact lenses',
+ 'talking on couch', 'relaxing on couch', 'cooking (chopping)', 'cooking (stirring)', 'opening pill container', 'working on computer']
 
 
 class SpecificWorker(GenericWorker):
@@ -38,20 +51,34 @@ class SpecificWorker(GenericWorker):
 		self.Period = 2000
 		self.timer.start(self.Period)
 
-                self.min_num_frames = 4
-                # stores the latest predicted acivity
-                self.currentActivity = None
-                # 4 latest poses required for inference
-                self.skeletons = collections.deque()
-                self.predictor = None
+		# number of frames necessary to run the prediction
+		self.min_num_frames = 4
+		# stores the latest predicted acivity
+		self.currentActivity = None
+		# 4 latest poses required for inference
+		self.skeletons = collections.deque()
+		# load the model
+		with open(_model_dir, 'rb') as f:
+			self.predictor = pickle.load(f)
 
-        # indicator that component has received at least n frames and made a prediction
-        @property
-        def ready(self):
-                return len(self.skeletons) >= self.min_num_frames
+	# indicator that component has received at least n frames and made a prediction
+	@property
+	def ready(self):
+		return len(self.skeletons) >= self.min_num_frames
 
-        def predict(self):
-                pass
+	def predict(self):
+		# extract features from the existing skeleton frames, run prediction and print the top 5 predictions
+		sample = np.array(self.skeletons)
+		x = extract_features(sample)
+		y_pred = self.predictor.predict_proba(x.reshape(1, -1))
+		sorted_ind = np.argsort(y_pred[0])
+		top_ind = np.flip(sorted_ind[-5:])
+		top_probs = np.around(y_pred[0, top_ind], decimals=4)
+		self.currentActivity = _class_names[top_ind[0]]
+		print('Prediction results: ')
+		for i in range(len(top_ind)):
+			print(_class_names[top_ind[i]] + ': ' + str(top_probs[i]))
+		print('')
 
 	def setParams(self, params):
 		#try:
@@ -64,6 +91,11 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
+		if _DEBUG:
+			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
+			sample = np.load(_test_sample_path)
+			for i in range(sample.shape[0]):
+				self.addSkeleton(sample[i, :, :])
 		#computeCODE
 		#try:
 		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
@@ -92,9 +124,9 @@ class SpecificWorker(GenericWorker):
 	# addSkeleton
 	#
 	def addSkeleton(self, skeleton):
-                self.skeletons.append(skeleton)
-                if len(self.skeletons) == self.min_num_frames:
-                        self.skeletons.popleft()
-                        self.predict()
+		self.skeletons.append(skeleton)
+		if len(self.skeletons) == self.min_num_frames:
+			self.predict()
+			self.skeletons.popleft()
 		return self.ready
 

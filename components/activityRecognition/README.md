@@ -3,8 +3,17 @@
 #
 ``` activityRecognition
 ```
-Intro to component here
+This component predict human activity based on the sequence of human skeletons (set of a human joints, can also be referred to as the pose).  
+The component implements interface ActivityRecognition. It provides two functions: addSkeleton() which expects a numpy array of shape (3, 15) for xyz positions of 
+15 joints, and getCurrentActivity(), which returns top 1 prediction of the activity.  
+After the component receives its first 4 skeletons, it runs inference and prints its top 5 predictions. After that it will produce inference after each 1 skeleton added.
 
+## Requirements
+
+python2  
+numpy  
+matplotlib  
+scikit-learn
 
 ## Configuration parameters
 As any other component,

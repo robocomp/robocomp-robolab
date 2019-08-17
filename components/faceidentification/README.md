@@ -34,3 +34,11 @@ After editing the new config file we can run the component:
 ```faceidentification ```
 
     --Ice.Config=config
+
+## Python Libraries Required
+- Numpy 1.16.4
+- OpenCV 4.0.0
+- Scipy 1.2.2
+- Scikit Learn 0.20.3
+- Tensorflow 1.13.1
+

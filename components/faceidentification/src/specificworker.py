@@ -95,10 +95,10 @@ class SpecificWorker(GenericWorker):
 
 		##### Defining the face recognition model and parameters
 		self.model_path = './assets/20180408-102900/'
-		##### Thresholds
+		##### Thresholds for matching the neural embeddings for label prediction
 		self.threshold_1 = 1.10
 		self.threshold_2 = 0.55
-		##### Better threshold to check if incorrect label is given
+		##### Relaxed threshold to check if incorrect label is given
 		self.threshold_3 = 1.25
 		##### Threshold to remove redundant data
 		self.threshold_4 = 3
@@ -118,24 +118,28 @@ class SpecificWorker(GenericWorker):
 	def setParams(self, params):
 		return True
 
-
-	#### Finding the nearest neighbor for the given test embedding
 	def compare_embeddings(self, test_face_embedding, thresh):
-		possible_faces = {}
+		possible_faces_score = {}
+		possible_faces_weight = {}
+		possible_faces_count = {}
 		for idx in range(self.neural_embeddings.shape[0]):
 			dist = cal_face_dist(self.neural_embeddings[idx,0], test_face_embedding[0])
 			if (dist > thresh):
-				if (self.neural_embeddings[idx,1] not in possible_faces):
-					possible_faces[self.neural_embeddings[idx,1]] = 1
+				if (self.neural_embeddings[idx,1] not in possible_faces_score):
+					possible_faces_count[self.neural_embeddings[idx,1]] = 1
+					possible_faces_score[self.neural_embeddings[idx,1]] = dist
+					possible_faces_weight[self.neural_embeddings[idx,1]] = 1
 				else:
-					possible_faces[self.neural_embeddings[idx,1]] = possible_faces[self.neural_embeddings[idx,1]] + 1
-		if not possible_faces:
+					val = possible_faces_score[self.neural_embeddings[idx,1]] * possible_faces_count[self.neural_embeddings[idx,1]]
+					possible_faces_weight[self.neural_embeddings[idx,1]] = possible_faces_weight[self.neural_embeddings[idx,1]] + 0.5
+					possible_faces_count[self.neural_embeddings[idx,1]] = possible_faces_count[self.neural_embeddings[idx,1]] + 1
+					possible_faces_score[self.neural_embeddings[idx,1]] = (val + (dist*possible_faces_weight[self.neural_embeddings[idx,1]])) / possible_faces_count[self.neural_embeddings[idx,1]]
+		if not possible_faces_score:
 			return "Unknown", -1
-		pred_label = max(possible_faces.iteritems(), key=operator.itemgetter(1))[0]
+		pred_label = max(possible_faces_score.iteritems(), key=operator.itemgetter(1))[0]
 		if (pred_label == '####'):
 			return "Unknown", -1
-		return pred_label, possible_faces[pred_label]
-
+		return pred_label, possible_faces_score[pred_label]
 
 	@QtCore.Slot()
 	def compute(self):

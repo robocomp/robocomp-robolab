@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces
-ActivityRecognition.Endpoints=tcp -p 12253
+PoseEstimation.Endpoints=tcp -p 12254
 
 
 

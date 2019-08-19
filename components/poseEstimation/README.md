@@ -3,7 +3,7 @@
 #
 ``` poseEstimation
 ```
-This component produces 3D and 2D pose estimation based on a RGB image. getSkeleton() method returns (16, 3) and (16, 2) arrays respectively. The 16 joints are 
+This component produces 2D and 3D pose estimation based on a RGB image. getSkeleton() method returns (16, 2) and (16, 3) arrays respectively. The 16 joints are 
 listed at the bottom of the file.
 
 ## Requirements

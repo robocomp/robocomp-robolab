@@ -60,5 +60,5 @@ class PoseEstimationI(PoseEstimation):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def getSkeleton(self, img, c):
-		return self.worker.getSkeleton(img)
+	def getSkeleton(self, img, shape, c):
+		return self.worker.getSkeleton(img, shape)

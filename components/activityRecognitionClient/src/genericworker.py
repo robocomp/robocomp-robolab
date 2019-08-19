@@ -54,6 +54,30 @@ if not ice_ActivityRecognition:
 	print 'Couln\'t load ActivityRecognition'
 	sys.exit(-1)
 from RoboCompActivityRecognition import *
+ice_PoseEstimation = False
+for p in icePaths:
+	if os.path.isfile(p+'/PoseEstimation.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"PoseEstimation.ice"
+		Ice.loadSlice(wholeStr)
+		ice_PoseEstimation = True
+		break
+if not ice_PoseEstimation:
+	print 'Couln\'t load PoseEstimation'
+	sys.exit(-1)
+from RoboCompPoseEstimation import *
+ice_CameraSimple = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraSimple.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraSimple = True
+		break
+if not ice_CameraSimple:
+	print 'Couln\'t load CameraSimple'
+	sys.exit(-1)
+from RoboCompCameraSimple import *
 
 
 
@@ -67,6 +91,8 @@ class GenericWorker(QtCore.QObject):
 
 
 		self.activityrecognition_proxy = mprx["ActivityRecognitionProxy"]
+		self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+		self.poseestimation_proxy = mprx["PoseEstimationProxy"]
 
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

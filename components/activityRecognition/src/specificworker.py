@@ -36,7 +36,7 @@ from feature_extraction import extract_features
 # turn on the debug mode to test the component on its own without the activityRecognition Client
 _DEBUG = False
 # path to the model
-_model_dir = 'src/data/all_final_model.pkl'
+_model_dir = os.path.join(os.path.dirname(__file__), 'data/all_final_model.pkl')
 # test sample path, used only in debug mode
 _test_sample_path = 'src/data/test_sample.npy'
 # string names of the CAD-60 classes
@@ -68,7 +68,8 @@ class SpecificWorker(GenericWorker):
 
 	def predict(self):
 		# extract features from the existing skeleton frames, run prediction and print the top 5 predictions
-		sample = np.swapaxes(np.array(self.skeletons), 0, 1)
+		sample = np.array(self.skeletons)
+		sample = np.swapaxes(sample, 0, 1)
 		x = extract_features(sample)
 		y_pred = self.predictor.predict_proba(x.reshape(1, -1))
 		sorted_ind = np.argsort(y_pred[0])
@@ -90,7 +91,9 @@ class SpecificWorker(GenericWorker):
 			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
 			sample = np.load(_test_sample_path)
 			for i in range(sample.shape[1]):
-				self.addSkeleton(sample[:, i, :])
+				ready = self.addSkeleton(sample[:, i, :])
+				if ready:
+					print(self.getCurrentActivity())
 
 		return True
 
@@ -107,8 +110,9 @@ class SpecificWorker(GenericWorker):
 	#
 	def addSkeleton(self, skeleton):
 		self.skeletons.append(skeleton)
+		if len(self.skeletons) > self.min_num_frames:
+			self.skeletons.popleft()
 		if len(self.skeletons) == self.min_num_frames:
 			self.predict()
-			self.skeletons.popleft()
 		return self.ready
 

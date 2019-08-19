@@ -1,9 +1,10 @@
 import numpy as np
 import pickle
+import os
 
 _NUM_FEATURES = 16
 # this file contains values to normalize the test sample obtained during training
-_NORMAL_DENOMS = 'src/data/normalization_denoms.pkl'
+_NORMAL_DENOMS = os.path.join(os.path.dirname(__file__), 'data/normalization_denoms.pkl')
 
 
 def extract_features(sample):

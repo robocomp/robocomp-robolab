@@ -1,5 +1,7 @@
 # Proxies for required interfaces
 ActivityRecognitionProxy = activityrecognition:tcp -h localhost -p 12253
+PoseEstimationProxy = poseestimation:tcp -h localhost -p 12254
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 
 
 

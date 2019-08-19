@@ -3,10 +3,12 @@
 #
 ``` activityRecognition
 ```
-This component predict human activity based on the sequence of human skeletons (set of a human joints, can also be referred to as the pose).  
-The component implements interface ActivityRecognition. It provides two functions: addSkeleton() which expects a numpy array of shape (3, 15) for xyz positions of 
+This component predicts human activity based on the sequence of human skeletons (set of a human joints, can also be referred to as the pose).  
+The component implements interface ActivityRecognition. It provides two functions: addSkeleton() which expects an array of shape (3, 15) for xyz positions of 
 15 joints, and getCurrentActivity(), which returns top 1 prediction of the activity.  
-After the component receives its first 4 skeletons, it runs inference and prints its top 5 predictions. After that it will produce inference after each 1 skeleton added.
+After the component receives its first 4 skeletons, it runs inference and prints its top 5 predictions. After that it will produce inference after each 1 skeleton added.  
+It is possible to run the component in the debug mode without other components by setting the flag ```_DEBUG``` in the specificworker.py to True. It will read one test file and produce inference for it.  
+For normal functioning relies on the input from activityRecognitionClient.
 
 ## Requirements
 
@@ -22,24 +24,13 @@ needs a configuration file to start. In
 
     etc/config
 
-you can find an example of a configuration file. We can find there the following lines:
+Make sure that number of the port of PoseEstimation.Endpoints is the same as the corresponding number of the client component using the poseEstimation component.
 
-    EXAMPLE HERE
 
     
 ## Starting the component
-To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
+To run the code from activityRecognition directory:
 
-    cd
-
-``` <activityRecognition 's path> ```
-
-    cp etc/config config
-    
-After editing the new config file we can run the component:
-
-    bin/
-
-```activityRecognition ```
-
-    --Ice.Config=config
+```shell
+python src/activityRecognition.py --Ice.Config=etc/config
+```

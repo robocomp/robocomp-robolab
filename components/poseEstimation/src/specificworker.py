@@ -24,6 +24,7 @@ from genericworker import *
 
 import torch
 import simpleinference
+import numpy as np
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -40,10 +41,13 @@ class SpecificWorker(GenericWorker):
 
 		if torch.cuda.is_available():
 			self.device = 'cuda:0'
+			print('using GPU')
 		else: 
 			self,device = 'cpu'
+			print('using CPU')
 
 		self.estimator = simpleinference.PoseEstimator(device=self.device)
+
 
 	def setParams(self, params):
 		return True
@@ -58,8 +62,10 @@ class SpecificWorker(GenericWorker):
 	#
 	# getSkeleton
 	#
-	def getSkeleton(self, img):
+	def getSkeleton(self, img, shape):
+		# reconstruct a 3d array from the input. (input comes as a string)		
+		arr = np.fromstring(img, np.uint8)
+		img_restored = np.reshape(arr, (shape[0], shape[1], shape[2]))
+		skeleton2d, skeleton3d = self.estimator.estimate(img_restored)
+		return skeleton2d, skeleton3d
 
-		image = img.image
-		skeleton2d, skeleton3d = self.estimator.estimate(image)
-		return [skeleton3d, skeleton2d]

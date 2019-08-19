@@ -3,7 +3,14 @@
 #
 ``` activityRecognitionClient
 ```
-Intro to component here
+This component relies on the RGB frames from camera, which it passes to the pose estimator component and receives back the 2d and 3d joints data. It then communicates with activityRecognition component to produce predictions about the human activities and also visualizes the pose.  
+Overall, the whole pipeline involves 4 components: activityRecognition, activityRecognitionClient, poseEstimation, cameraSimple.
+
+## Requirements
+
+python  
+numpy  
+opencv  
 
 
 ## Configuration parameters
@@ -13,24 +20,21 @@ needs a configuration file to start. In
 
     etc/config
 
-you can find an example of a configuration file. We can find there the following lines:
-
-    EXAMPLE HERE
+Make sure that number of the port of the ports of the required interfaces match the endpoints in the config fles of the respective required interfaces.
 
     
 ## Starting the component
-To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
-    cd
+To run the code from activityRecognitionClient directory:
 
-``` <activityRecognitionClient 's path> ```
+```shell
+python src/activityRecognitionClient.py --Ice.Config=etc/config
+```
 
-    cp etc/config config
-    
-After editing the new config file we can run the component:
+## Starting the whole group of components for Activity Recognition
 
-    bin/
+run the provided shell script. It will start all 4 components involved in activity recognition
 
-```activityRecognitionClient ```
-
-    --Ice.Config=config
+```shell
+./start/sh
+```

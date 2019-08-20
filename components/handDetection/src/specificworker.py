@@ -85,7 +85,15 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
+		"""
+		Main component method.
+		Read an rgb image and depth from RGBD component.
+		It switch depending on the current state to add a new expected hand or to update the existing ones
+		TODO: should be moved to a state machine model (smdsl)
+		:return:
+		"""
 		try:
+			# TODO: It could probably be moved to another state, avoiding reading on all states.
 			color, depth, _, _ = self.rgbd_proxy.getData()
 		except Ice.Exception, e:
 			traceback.print_exc()
@@ -122,7 +130,7 @@ class SpecificWorker(GenericWorker):
 				cv2.imshow("DEBUG: HandDetection: Specificworker: color", frame_to_show)
 
 		if self.state == "add_new_hand":
-			# TODO: To test. remove
+			# TODO: To test. remove or comment next line on production
 			# cv2.imwrite("/home/robolab/robocomp/components/robocomp-robolab/components/handDetection/src/images/depth_images/"+str(datetime.now().strftime("%Y%m%d%H%M%S"))+".png", depth_image)
 			self.hand_detector.add_new_expected_hand(search_roi)
 			self.state = "tracking"
@@ -175,6 +183,12 @@ class SpecificWorker(GenericWorker):
 		return True
 
 	def calculate_fps(self, to_print=False):
+		"""
+		Method to easyly calculate fps and to print it
+
+		:param to_print: Bool to specify if it should be printed or not
+		:return: None
+		"""
 		current_time = time.time()
 		self.fps=1.0 / (current_time - self.last_time)
 		self.last_time = current_time
@@ -184,33 +198,61 @@ class SpecificWorker(GenericWorker):
 
 	# TODO: move to Utils file
 	def depth_normalization(self, depth):
+		"""
+		Normalice the depth values to 0, 255 values. This way it can be displayed as an grayscale image.
+
+		:param depth: array of depth values
+		:return: array of depth normalized to a 0 - 255 range.
+		"""
+		norm_depth = []
 		depth_min = np.min(depth)
 		depth_max = np.max(depth)
 		if depth_max != depth_min and depth_max > 0:
-			depth = np.interp(depth, [depth_min, depth_max], [0.0, 255.0], right=255, left=0)
-		return depth
+			norm_depth = np.interp(depth, [depth_min, depth_max], [0.0, 255.0], right=255, left=0)
+		return norm_depth
 
 	def calculate_depth_threshold(self, depth, normalize= True):
-		depth_min = np.min(depth)
-		depth_max = np.max(depth)
+		"""
+		Look for the depth value where most of the points are. It looks for a "plane" where most
+		of the points would be concentrated.
+		It uses kmeans to divide all the points into 3 clusters (0, intermediate, far)
+		From the tree clusters it looks for the one with most of the points.
+		For that cluster it get the mean distance of those points
+
+		TODO: Probably it would me moved to a utils and return the threshold value, not the depending of self.
+
+		:param depth: array of depth values.
+		:param normalize: if set, convert the threshold value to one between 0 and 255.
+		:return:
+		"""
+		# TODO: Make it work for an array of 1 dimension or 2. Check it's not a 3 channel image.
 		depth = np.array(depth)
 		criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-		# Create 3 clusters of point (0, intermediate, far)
+		# Create 3 clusters of points (0, intermediate, far)
 		ret, label, center = cv2.kmeans(depth.astype(np.float32), 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 		clusters = [depth[label.ravel() == 0], depth[label.ravel() == 1], depth[label.ravel() == 2]]
 		# The wall or table probably is the bigger one of the clusters
 		index = np.argmax(map(len, clusters))
 		# print np.median(clusters[index])
 		# print np.mean(clusters[index])
-		# Use the most repeated value as the depth to wich the wall or table can be.
+		# Use the most repeated value as the depth to which the wall or table can be.
 		# TODO: ENV_DEPENDECE: 70 is the amount of space for the frame of the tv or for inclination from the camera plane
+		# TODO: it could be coverted to a percentage amount dependant of the min/max, or may be to be moved out of the method.
 		self.depth_threshold = stats.mode(clusters[index])[0][0]-70
 		if normalize:
-			self.depth_threshold = np.interp(self.depth_threshold, [depth_min, depth_max], [0.0, 255.0], right=255, left=0) - 6
+			# TODO: Look for the way to remove the -6 value. It would be resolved with the previous -70
+			self.depth_threshold = self.depth_normalization(depth)  - 6
 		self.hand_detector.set_depth_threshold(self.depth_threshold)
 
 
 	def addNewHand(self, expected_hands, new_hand_roi):
+		"""
+		TODO: Refactor to the new way of adding hand. This add an expected hand.
+		TODO: It should add the hand no matter if it's been detected or not.
+		:param expected_hands: TODO: remove, not needed after refactoring.
+		:param new_hand_roi: TODO: Initial roi for the new hand to be detected.
+		:return: TODO: It would return nothing.
+		"""
 		self.new_hand_roi = new_hand_roi
 		self.expected_hands = expected_hands
 		self.state = "add_new_hand"
@@ -218,6 +260,11 @@ class SpecificWorker(GenericWorker):
 
 
 	def getHands(self):
+		"""
+		Implementation of the corresponging method for component calls.
+		TODO: refactor to the new way of getting the hands. It's probably not needed.
+		:return: list of hands
+		"""
 		ret = []
 		for detected_hand in self.hand_detector.hands:
 			new_hand = Hand()
@@ -246,6 +293,10 @@ class SpecificWorker(GenericWorker):
 
 
 	def getHandsCount(self):
+		"""
+		Implementationof the corresponging method for component calls.
+		:return: number of hands been detected/tracked.
+		"""
 		return len(self.hand_detector.hands)
 
 

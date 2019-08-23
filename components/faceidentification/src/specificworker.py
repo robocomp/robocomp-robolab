@@ -67,8 +67,11 @@ def preprocess_image(img, image_size, do_prewhiten=True):
 ## Calculating the distance between given 2 feature vectors.
 def cal_face_dist(train,test):
 	train = train[0]
-	return 1/(np.linalg.norm(train-test))							### Thresh_1 = 1.10
-	# return np.sum(train*test)										### Thresh_2 = 0.55
+	if ((train == test).all()):
+		return 1e6
+	else:
+		return 1/(np.linalg.norm(train-test))							### Thresh_1 = 1.10
+		# return np.sum(train*test)										### Thresh_2 = 0.55
 
 
 class SpecificWorker(GenericWorker):
@@ -147,7 +150,6 @@ class SpecificWorker(GenericWorker):
 
 	#### Deleting an already existing label
 	def deleteLabel(self, faceLabel):
-		max_data = self.neural_embeddings.shape[0]
 		flag = 0
 		count = 0
 		for idx, label in enumerate(self.neural_embeddings):

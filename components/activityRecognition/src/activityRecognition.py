@@ -62,6 +62,9 @@ import signal
 
 from PySide import QtGui, QtCore
 
+# To use SVM for recognition import specificworkersvm instead of specificworker
+# 
+# from specificworkersvm import *
 from specificworker import *
 
 

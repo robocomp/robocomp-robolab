@@ -27,6 +27,7 @@ import pickle
 import time
 from visualizer import Visualizer
 import time
+import json
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -46,14 +47,6 @@ class Timer:
 			return True
 		return False
 
-# test sample path, used only in debug mode
-_test_sample_path = 'src/data/test_sample.npy'
-# turn on the debug mode to test the client + activity recognition component without the real camera input
-_DEBUG = False
-# do pose estimation at 10 fps
-_wait_time_pose = 1000/10
-# do activity recognition inference at 1 fps
-_wait_time_inference = 1000/1
 # order of joints to bring the results of the pose estimation component in compliance with CAD-60 joints order
 # assumes that 8th joints is first replaced by the torso, which is calculated as mid-point between the neck and the middle of the hips
 _joints_order_cad = [9, 8, 8, 13, 14, 12, 11, 3, 4, 2, 1, 15, 10, 5, 0]
@@ -69,7 +62,8 @@ class SpecificWorker(GenericWorker):
 		self.visualizer = Visualizer()
 		self.cam_timer = Timer(fps=30)
 		self.pose_timer = Timer(fps=10)
-		self.inference_timer = Timer(fps=1)
+		self.inference_timer = Timer(fps=10)
+		self.print_timer = Timer(fps=0.5)
 
 		self.camera_image = None
 		self.img_restored = None
@@ -92,50 +86,47 @@ class SpecificWorker(GenericWorker):
 		skeleton[0, :] *= -1
 		skeleton[1, :] *= -1
 		skeleton[2, :] *= -1
-		skeleton[2, 3:] += 2000
+		# skeleton[2, 3:] += 2000
 		return skeleton
 
 
 	@QtCore.Slot()
 	def compute(self):
-		if _DEBUG:
-			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
-			sample = np.load(_test_sample_path)
-			for i in range(sample.shape[1]):
-				ready = self.activityrecognition_proxy.addSkeleton(sample[:, i, :])
-				if ready:
-					activity= self.activityrecognition_proxy.getCurrentActivity()
-					print(activity)
-		else:
-			now = current_milli_time()
-			cam_ready = self.cam_timer.isReady(now)
-			if cam_ready:
+		now = current_milli_time()
+		cam_ready = self.cam_timer.isReady(now)
+		if cam_ready:
+			try:
+				self.camera_image = self.camerasimple_proxy.getImage()
+				arr = np.fromstring(self.camera_image.image, np.uint8)
+				self.img_restored = np.reshape(arr, (self.camera_image.width, self.camera_image.height, self.camera_image.depth))
+			except Ice.Exception, e:
+				traceback.print_exc()
+				print e
+
+		if self.pose_timer.isReady(now):
+			skeleton2d, skeleton3d = self.poseestimation_proxy.getSkeleton(
+				self.img_restored.data, [self.camera_image.width, self.camera_image.height, self.camera_image.depth])
+
+			self.skeleton2d = np.asarray(skeleton2d)
+			self.skeleton3d = np.asarray(skeleton3d, dtype=np.float32)
+			self.skeleton3d = self.adjustSkeleton(skeleton3d)
+
+		if cam_ready:
+			self.visualizer.add_img(self.img_restored)
+			if self.skeleton2d is not None:
+				self.visualizer.add_point_2d(self.skeleton2d, (255, 0, 0))
+			self.visualizer.show_all_imgs(pause=False)
+
+		if self.inference_timer.isReady(now):
+			ready = self.activityrecognition_proxy.addSkeleton(self.skeleton3d)
+			if ready and self.print_timer.isReady(now):
+				activity = self.activityrecognition_proxy.getCurrentActivity()
+				print
 				try:
-					self.camera_image = self.camerasimple_proxy.getImage()
-					arr = np.fromstring(self.camera_image.image, np.uint8)
-					self.img_restored = np.reshape(arr, (self.camera_image.width, self.camera_image.height, self.camera_image.depth))
-				except Ice.Exception, e:
-					traceback.print_exc()
-					print e
-
-			if self.pose_timer.isReady(now):
-				skeleton2d, skeleton3d = self.poseestimation_proxy.getSkeleton(
-					self.img_restored.data, [self.camera_image.width, self.camera_image.height, self.camera_image.depth])
-
-				self.skeleton2d = np.asarray(skeleton2d)
-				self.skeleton3d = np.asarray(skeleton3d, dtype=np.float32)
-				self.skeleton3d = self.adjustSkeleton(skeleton3d)
-
-			if cam_ready:
-				self.visualizer.add_img(self.img_restored)
-				if self.skeleton2d is not None:
-					self.visualizer.add_point_2d(self.skeleton2d, (255, 0, 0))
-				self.visualizer.show_all_imgs(pause=False)
-
-			if self.inference_timer.isReady(now):
-				ready = self.activityrecognition_proxy.addSkeleton(self.skeleton3d)
-				if ready:
-					activity= self.activityrecognition_proxy.getCurrentActivity()
+					activity = json.loads(activity)
+					for clazz, prob in sorted(activity.items(), key=lambda x: float(x[1]), reverse=True):
+						print(clazz + ': ' + prob)
+				except:
 					print(activity)
 
 		return True

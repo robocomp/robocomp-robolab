@@ -45,7 +45,7 @@ _wait_time_pose = 1000/10
 _wait_time_inference = 1000/1
 # order of joints to bring the results of the pose estimation component in compliance with CAD-60 joints order
 # assumes that 8th joints is first replaced by the torso, which is calculated as mid-point between the neck and the middle of the hips
-_joints_order_cad = [9, 7, 8, 13, 14, 12, 11, 3, 4, 2, 1, 15, 10, 5, 0]
+_joints_order_cad = [9, 8, 8, 13, 14, 12, 11, 3, 4, 2, 1, 15, 10, 5, 0]
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -65,10 +65,17 @@ class SpecificWorker(GenericWorker):
 	def adjustSkeleton(self, skeleton):
 		# adjust the data to fit the activity recognition inference requirements
 		skeleton = np.swapaxes(skeleton, 0, 1)
-		skeleton[:, 8] = (skeleton[:, 7] + skeleton[:, 6]) / 2
+		skel_copy = np.copy(skeleton)
+		torso = (skel_copy[:, 8] + skel_copy[:, 6]) / 2
 		skeleton = skeleton[:, _joints_order_cad]
+		skeleton[:, 2] = torso
 		# pose estimator return values in meters, activity recognition expects values in mm
 		skeleton = skeleton * 1000
+		# in CAD-60 left and right sides are mirrored and z increases in depth direction
+		skeleton[0, :] *= -1
+		skeleton[1, :] *= -1
+		skeleton[2, :] *= -1
+		skeleton[2, 3:] += 2000
 		return skeleton
 
 

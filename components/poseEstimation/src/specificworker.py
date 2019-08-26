@@ -43,7 +43,7 @@ class SpecificWorker(GenericWorker):
 			self.device = 'cuda:0'
 			print('using GPU')
 		else: 
-			self,device = 'cpu'
+			self.device = 'cpu'
 			print('using CPU')
 
 		self.estimator = simpleinference.PoseEstimator(device=self.device)

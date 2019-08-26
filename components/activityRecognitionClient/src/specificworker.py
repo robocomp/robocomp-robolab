@@ -33,7 +33,18 @@ import time
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
+class Timer:
+	def __init__(self, fps):
+		self.fps = fps
+		self.ms = 1000 / fps
+		self.tick = None
 
+	# tock - current time in milliseconds
+	def isReady(self, tock):
+		if self.tick is None or tock - self.tick > self.ms:
+			self.tick = tock
+			return True
+		return False
 
 # test sample path, used only in debug mode
 _test_sample_path = 'src/data/test_sample.npy'
@@ -53,11 +64,17 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 20
 		self.timer.start(self.Period)
-		self.prev = current_milli_time() - 100
-		self.prev2 = current_milli_time() - 1000
 		self.visualizer = Visualizer()
+		self.cam_timer = Timer(fps=30)
+		self.pose_timer = Timer(fps=10)
+		self.inference_timer = Timer(fps=1)
+
+		self.camera_image = None
+		self.img_restored = None
+		self.skeleton2d = None
+		self.skeleton3d = None
 
 	def setParams(self, params):
 		return True
@@ -81,7 +98,6 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
 		if _DEBUG:
 			print('Component is run in the debug mode on one test sample, change the _DEBUG variable in the specificworker.py to False to run in the normal mode')
 			sample = np.load(_test_sample_path)
@@ -92,34 +108,35 @@ class SpecificWorker(GenericWorker):
 					print(activity)
 		else:
 			now = current_milli_time()
-			if now - self.prev >= _wait_time_pose:
-				self.prev = now
+			cam_ready = self.cam_timer.isReady(now)
+			if cam_ready:
 				try:
-					data = self.camerasimple_proxy.getImage()
+					self.camera_image = self.camerasimple_proxy.getImage()
+					arr = np.fromstring(self.camera_image.image, np.uint8)
+					self.img_restored = np.reshape(arr, (self.camera_image.width, self.camera_image.height, self.camera_image.depth))
 				except Ice.Exception, e:
 					traceback.print_exc()
 					print e
-				# reconstruct a 3d array from the input. (input comes as a string)
-				arr = np.fromstring(data.image, np.uint8)
-				img_restored = np.reshape(arr, (data.width, data.height, data.depth))
 
-				skeleton2d, skeleton3d = self.poseestimation_proxy.getSkeleton(img_restored.data, [data.width, data.height, data.depth])
+			if self.pose_timer.isReady(now):
+				skeleton2d, skeleton3d = self.poseestimation_proxy.getSkeleton(
+					self.img_restored.data, [self.camera_image.width, self.camera_image.height, self.camera_image.depth])
 
-				skeleton2d = np.asarray(skeleton2d)
-				skeleton3d = np.asarray(skeleton3d, dtype=np.float32)	
-				skeleton3d = self.adjustSkeleton(skeleton3d)
-				
-				self.visualizer.add_img(img_restored)
-				self.visualizer.add_point_2d(skeleton2d, (255, 0, 0))
+				self.skeleton2d = np.asarray(skeleton2d)
+				self.skeleton3d = np.asarray(skeleton3d, dtype=np.float32)
+				self.skeleton3d = self.adjustSkeleton(skeleton3d)
+
+			if cam_ready:
+				self.visualizer.add_img(self.img_restored)
+				if self.skeleton2d is not None:
+					self.visualizer.add_point_2d(self.skeleton2d, (255, 0, 0))
 				self.visualizer.show_all_imgs(pause=False)
-				now2 = current_milli_time()
-				if now2 - self.prev2 >= _wait_time_inference:
-					self.prev2 = now2
-					ready = self.activityrecognition_proxy.addSkeleton(skeleton3d)
-					if ready:
-						activity= self.activityrecognition_proxy.getCurrentActivity()
-						print(activity)
 
+			if self.inference_timer.isReady(now):
+				ready = self.activityrecognition_proxy.addSkeleton(self.skeleton3d)
+				if ready:
+					activity= self.activityrecognition_proxy.getCurrentActivity()
+					print(activity)
 
 		return True
 

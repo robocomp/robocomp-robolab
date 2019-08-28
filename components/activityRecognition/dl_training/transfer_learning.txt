@@ -1,0 +1,20 @@
+Information about transfer learning results:
+
+Pre-trained model:
+NTU-RGB-D-CS/HCN06
+accuracy: 0.824
+
+Fine-tuning on CAD-60
+random flipping of train data with 50% chance, cutting at 100/50 + sliding window +2
+1 fold, hcn 18
+0.898 on 626 val samples
+2 fold, hcn 19
+0.896 on 604 val samples
+3 fold, hcn 20
+0.728 on 614 samples 
+4 fold, hcn 19
+0.814 on 728 samples
+
+mean accuracy: 0.8329
+
+

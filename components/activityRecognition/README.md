@@ -28,7 +28,7 @@ needs a configuration file to start. In
 
     etc/config
 
-Make sure that number of the port of PoseEstimation.Endpoints is the same as the corresponding number of the client component using the poseEstimation component.
+Make sure that number of the port of activityRecognition.Endpoints is the same as the corresponding number of the client component using the activityRecognition component.
 
 
     
@@ -39,6 +39,10 @@ To run the code from activityRecognition directory:
 python src/activityRecognition.py --Ice.Config=etc/config
 ```
 
+## Training activity recognition model
+
+Inside of the component directory you will find the training code for producing a convolutional neural network (```dl_training```) that is used by this component to produce predictions. Follow the README inside of the ```dl_training``` folder if you want to train your own model. Once you have your model, replace the default model ```src/data/best.pth.tar``` with your own ```*.pth.tar``` file. 
+
 ## Additional Information
 
-The component also contains specificworkerSVM.py which can be used instead of the default specificworker.py. It uses SVM instead of CNN. In this case Scikit-Learn library is required. However the SVM classifier does not generalize well.
+The component also contains specificworkerSVM.py which can be used instead of the default specificworker.py. It uses SVM instead of CNN. In this case Scikit-Learn library is required. However the SVM classifier does not generalize. There's also a ```SVM_hand_crafted``` folder inside of the component, which provides the code for feature extraction and fitting SVM model. 

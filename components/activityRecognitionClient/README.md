@@ -4,7 +4,7 @@
 ``` activityRecognitionClient
 ```
 This component relies on the RGB frames from camera, which it passes to the pose estimator component and receives back the 2d and 3d joints data. It then communicates with activityRecognition component to produce predictions about the human activities and also visualizes the pose.  
-Overall, the whole pipeline involves 4 components: activityRecognition, activityRecognitionClient, poseEstimation, cameraSimple.
+Overall, the whole pipeline involves 4 components: activityRecognition, activityRecognitionClient, poseEstimation, cameraSimple. see below the communication diagram to understand the process.
 
 ## Requirements
 
@@ -38,3 +38,7 @@ run the provided shell script. It will start all 4 components involved in activi
 ```shell
 ./start/sh
 ```
+
+## Diagram
+
+![Communication diagram](HAR_interaction.png)

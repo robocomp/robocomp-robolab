@@ -6,7 +6,8 @@
 This component predicts human activity based on the sequence of human skeletons (set of a human joints, can also be referred to as the pose).  
 The component implements interface ActivityRecognition. It provides two functions: addSkeleton() which expects an array of shape (3, 15) for xyz positions of 
 15 joints, and getCurrentActivity(), which returns a json string of top activities with their probabilities.  
-The component requires a minimum of 32 skeletons to produce a prediction.
+The component requires a minimum of 32 skeletons to produce a prediction.  
+The component can be run together with activityRecognitionClient, poseEstimation and camerasimple components to produce predictions based on the real-time input. Check the communication diagram below.
 
 ## Requirements
 
@@ -46,3 +47,7 @@ Inside of the component directory you will find the training code for producing 
 ## Additional Information
 
 The component also contains specificworkerSVM.py which can be used instead of the default specificworker.py. It uses SVM instead of CNN. In this case Scikit-Learn library is required. However the SVM classifier does not generalize. There's also a ```SVM_hand_crafted``` folder inside of the component, which provides the code for feature extraction and fitting SVM model. 
+
+## Communication diagram
+
+![Communication diagram](HAR_interaction.png)

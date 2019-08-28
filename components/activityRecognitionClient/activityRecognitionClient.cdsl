@@ -1,0 +1,13 @@
+import "ActivityRecognition.idsl";
+import "PoseEstimation.idsl";
+import "CameraSimple.idsl";
+
+Component activityRecognitionClient
+{
+	Communications
+	{
+		requires ActivityRecognition, PoseEstimation, CameraSimple;
+	};
+	language python;
+};
+

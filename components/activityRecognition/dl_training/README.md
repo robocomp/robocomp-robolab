@@ -1,14 +1,12 @@
-# This code is based on PyTorch Reimplementation of HCN
-**Co-occurrence Feature Learning from Skeleton Data for Action Recognition and Detection with Hierarchical Aggregation**.
-Chao Li, Qiaoyong Zhong, Di Xie, Shiliang Pu, IJCAI 2018.
-
-[Arxiv Preprint](http://arxiv.org/pdf/1804.06055.pdf)
-
-[original repository](https://github.com/huguyuehuhu/HCN-pytorch)
 
 ## Transfer Learning
 
-The code is aimed at pre-training on NTU RGB-D dataset and fine-tuning afterwards on CAD-60
+The code is aimed at pre-training on NTU RGB-D dataset and fine-tuning afterwards on CAD-60.  
+
+It is based on PyTorch Reimplementation of HCN
+**Co-occurrence Feature Learning from Skeleton Data for Action Recognition and Detection with Hierarchical Aggregation**.
+Chao Li, Qiaoyong Zhong, Di Xie, Shiliang Pu, IJCAI 2018. Please check below for details.
+
 
 ## Prerequisites
 
@@ -96,6 +94,15 @@ transfer_learning.txt contains information about the accuracies achieved for CAD
 
 
 ## Reference
+
+This code is based on PyTorch Reimplementation of HCN
+**Co-occurrence Feature Learning from Skeleton Data for Action Recognition and Detection with Hierarchical Aggregation**.
+Chao Li, Qiaoyong Zhong, Di Xie, Shiliang Pu, IJCAI 2018.
+
+[Arxiv Preprint](http://arxiv.org/pdf/1804.06055.pdf)
+
+[original repository](https://github.com/huguyuehuhu/HCN-pytorch)
+
 [1] Chao Li, Qiaoyong Zhong, Di Xie, Shiliang Pu. Co-occurrence Feature Learning from Skeleton Data for Action Recognition and Detection with Hierarchical Aggregation. IJCAI 2018.
 https://github.com/huguyuehuhu/HCN-pytorch
 

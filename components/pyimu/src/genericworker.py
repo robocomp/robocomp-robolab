@@ -17,7 +17,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
-from PySide import QtGui, QtCore
+from PySide2 import QtWidgets, QtCore
 
 ROBOCOMP = ''
 try:
@@ -42,18 +42,6 @@ except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
-ice_IMUPub = False
-for p in icePaths:
-	if os.path.isfile(p+'/IMUPub.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMUPub.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMUPub = True
-		break
-if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
-	sys.exit(-1)
-from RoboCompIMUPub import *
 ice_IMU = False
 for p in icePaths:
 	if os.path.isfile(p+'/IMU.ice'):
@@ -66,8 +54,21 @@ if not ice_IMU:
 	print 'Couln\'t load IMU'
 	sys.exit(-1)
 from RoboCompIMU import *
+ice_IMUPub = False
+for p in icePaths:
+	if os.path.isfile(p+'/IMUPub.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"IMUPub.ice"
+		Ice.loadSlice(wholeStr)
+		ice_IMUPub = True
+		break
+if not ice_IMUPub:
+	print 'Couln\'t load IMUPub'
+	sys.exit(-1)
+from RoboCompIMUPub import *
 
 
+from imuI import *
 
 
 class GenericWorker(QtCore.QObject):

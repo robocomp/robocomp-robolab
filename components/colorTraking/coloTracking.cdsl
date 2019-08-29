@@ -1,0 +1,11 @@
+import "RGBD.idsl";
+
+Component colorTracking
+{
+	Communications
+	{
+		requires RGBD;
+	};
+	language Python;
+};
+

@@ -1,11 +1,15 @@
 CommonBehavior.Endpoints=tcp -p 11111
-HumanTracker.Endpoints= tcp -p 11666
+
 
 # Endpoints for implemented interfaces
+HumanTracker.Endpoints=tcp -p 11666
 RGBD.Endpoints=tcp -p 10096
 
 
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+InnerModelPath = innermodel.xml
 Ice.MessageSizeMax=20004800
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
@@ -14,5 +18,6 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 
 depth=true
-color=false
+color=true
 body=false
+point=false

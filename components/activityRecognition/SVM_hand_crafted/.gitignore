@@ -1,0 +1,8 @@
+### JupyterNotebook ###
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+/data0
+evaluation*.txt
+test*.py
+*.png

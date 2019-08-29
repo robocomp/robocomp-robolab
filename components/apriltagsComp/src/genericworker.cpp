@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -23,17 +23,18 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
+
+	camera_proxy = (*(CameraPrx*)mprx["CameraProxy"]);
 	camerasimple_proxy = (*(CameraSimplePrx*)mprx["CameraSimpleProxy"]);
 	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
-	camera_proxy = (*(CameraPrx*)mprx["CameraProxy"]);
 	rgbdbus_proxy = (*(RGBDBusPrx*)mprx["RGBDBusProxy"]);
-	apriltags_proxy = (*(AprilTagsPrx*)mprx["AprilTagsPub"]);
+	apriltags_pubproxy = (*(AprilTagsPrx*)mprx["AprilTagsPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
- 	timer.start(Period);
+
 }
 
 /**

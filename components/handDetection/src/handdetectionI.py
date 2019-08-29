@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 by YOUR NAME HERE
+# Copyright (C) 2019 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -43,7 +43,9 @@ except:
 
 ice_HandDetection = False
 for p in icePaths:
+	print 'Trying', p, 'to load HandDetection.ice'
 	if os.path.isfile(p+'/HandDetection.ice'):
+		print 'Using', p, 'to load HandDetection.ice'
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
 		wholeStr = preStr+"HandDetection.ice"
 		Ice.loadSlice(wholeStr)
@@ -55,7 +57,9 @@ if not ice_HandDetection:
 from RoboCompHandDetection import *
 ice_CameraSimple = False
 for p in icePaths:
+	print 'Trying', p, 'to load CameraSimple.ice'
 	if os.path.isfile(p+'/CameraSimple.ice'):
+		print 'Using', p, 'to load CameraSimple.ice'
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
 		wholeStr = preStr+"CameraSimple.ice"
 		Ice.loadSlice(wholeStr)
@@ -67,7 +71,9 @@ if not ice_CameraSimple:
 from RoboCompCameraSimple import *
 ice_RGBD = False
 for p in icePaths:
+	print 'Trying', p, 'to load RGBD.ice'
 	if os.path.isfile(p+'/RGBD.ice'):
+		print 'Using', p, 'to load RGBD.ice'
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
 		wholeStr = preStr+"RGBD.ice"
 		Ice.loadSlice(wholeStr)

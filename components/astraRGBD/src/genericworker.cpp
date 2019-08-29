@@ -23,12 +23,13 @@
 GenericWorker::GenericWorker(MapPrx& mprx) :
 QObject()
 {
+	humantrackerjointsandrgb_pubproxy = (*(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx*)mprx["HumanTrackerJointsAndRGBPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
-// 	timer.start(Period);
+
 }
 
 /**

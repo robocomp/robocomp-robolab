@@ -15,6 +15,6 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
-debug=true
+debug=false
 flip=true
 

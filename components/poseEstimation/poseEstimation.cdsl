@@ -1,0 +1,11 @@
+import "PoseEstimation.idsl";
+
+Component poseEstimation
+{
+	Communications
+	{
+		implements PoseEstimation;
+	};
+	language python;
+};
+

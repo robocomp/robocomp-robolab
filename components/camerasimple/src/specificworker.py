@@ -43,7 +43,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
+		# print 'SpecificWorker.compute...'
 
 		retL, self.frameL = self.capL.read()
 		if retL:
@@ -51,7 +51,7 @@ class SpecificWorker(GenericWorker):
 		else:
 			print "No frame could be read"
 
-		
+
 		# Display the resulting frame
 		#cv2.imshow('frameL',self.frameL)
 		return True

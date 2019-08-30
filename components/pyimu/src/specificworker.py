@@ -33,26 +33,80 @@ class SpecificWorker(GenericWorker):
 
 	def setParams(self, params):
 		try:
-			self.puerto = open("/dev/ttyACM2", "r")
+			self.puerto = open("/dev/ttyACM1", "r")
+                        print "Device opened"
 		except FileNotFoundError:
 			print "Error opoening serial port, check device is connected"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
-#		print 'SpecificWorker.compute...'
+		print 'SpecificWorker.compute...'
 		try:
 			line = self.puerto.readline()
 			values = line.strip().split(' ')
-#			print values
 			self.imu.rot.Yaw = float(values[0])
 			self.imu.rot.Roll = float(values[1])
 			self.imu.rot.Pitch = float(values[2])
 			print self.imu.rot.Yaw, self.imu.rot.Roll, self.imu.rot.Pitch
 			self.imupub_proxy.publish(self.imu)
-#			print "sent data package"
+			print "sent data package"
 		except Ice.Exception, e:
 			traceback.print_exc()
 			print e
 		return True
 
+# IMU implemntation
+
+        # resetImu
+        #
+        def resetImu(self):
+                #
+                #implementCODE
+                #
+                pass
+
+        #
+        # getAngularVel
+        #
+        def getAngularVel(self):
+                ret = Gyroscope()
+                #
+                #implementCODE
+                #
+                return ret
+
+
+        #
+        # getOrientation
+        #
+        def getOrientation(self):
+                ret = Orientation()
+                #
+                #implementCODE
+                #
+                return ret
+
+
+        #
+        # getDataImu
+        #
+        def getDataImu(self):
+            return DataImu()
+
+        #
+        # getMagneticFields
+        #
+        def getMagneticFields(self):
+                ret = Magnetic()
+                #
+                #implementCODE
+                #
+                return ret
+
+
+        #
+        # getAcceleration
+        #
+        def getAcceleration(self):
+                ret = Acceleration()

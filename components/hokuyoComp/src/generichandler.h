@@ -25,10 +25,9 @@
 #include <Laser.h>
 #include <qlog/qlog.h>
 #include <q4serialport/q4serialport.h>
-
 #include "constants.h"
 #include <math.h>
-
+#include <Ice/Ice.h>
 
 /**
 	\class GenericLaserHandler <p>Generic abstract class for LaserComp component handlers. It defines a generic interface for laser handler classes. Real laser handlers should be implemented as a derived class.</p>
@@ -64,7 +63,7 @@ public slots:
 		try{
 			base->getBaseState(b);
 		}
-		catch(Ice::Exception e)
+		catch(const Ice::Exception &e)
 		{
 			rError("Error talking to differentialRobot");
 		}

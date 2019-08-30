@@ -3,9 +3,9 @@ import unittest
 
 import cv2
 
-from HandDetection.Hand import Hand
-from HandDetection.rgbdframe import RGBDFrame
-from HandDetection.roi import Roi, SIDE
+from Hand import Hand
+from rgbdframe import RGBDFrame
+from roi import Roi, SIDE
 
 
 class Frame: pass

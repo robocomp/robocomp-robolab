@@ -3,7 +3,7 @@
 #
 ``` poseEstimation
 ```
-This component produces 2D and 3D pose estimation based on a RGB image. getSkeleton() method returns (16, 2) and (16, 3) arrays respectively. The 16 joints are 
+This component produces 3D and 2D pose estimation based on a RGB image. getSkeleton() method returns (16, 3) and (16, 2) arrays respectively. The 16 joints are 
 listed at the bottom of the file.
 
 ## Requirements
@@ -40,19 +40,19 @@ python src/poseEstimation.py --Ice.Config=etc/config
 
 ## Joints
 
-0 right_foot  
-1 right_knee  
-2 right_hip  
-3 left_hip  
-4 left_knee  
-5 left_foot  
-6 between_hips  
-7 neck  
-8 neck - this is not a typo, neck is returned twice  
-9 head  
-10 right_hand  
-11 right_elbow  
-12 right_shoulder  
-13 left_shoulder  
-14 left_elbow  
-15 left_hand
+<!-- # 0 right_foot
+# 1 right_knee
+# 2 right_hip
+# 3 left_hip
+# 4 left_knee
+# 5 left_foot
+# 6 between_hips
+# 7 neck
+# 8 neck - this is not a typo, neck is returned twice
+# 9 head
+# 10 right_hand
+# 11 right_elbow
+# 12 right_shoulder
+# 13 left_shoulder
+# 14 left_elbow
+# 15 left_hand -->

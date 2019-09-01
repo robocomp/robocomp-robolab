@@ -3,7 +3,7 @@
 
 Hokuyo laser sensor family is a low-cost laser sensor applied in many areas in robotics research such as navigation, etc. It provides range data in short distance from 0.4~5 meters for basic localization or SLAM task in small indoor environment.
 
-The hokuyoComp component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and publish the laser data over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface.
+The hokuyoComp component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and publish the laser data over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface. Briefly, `Laser.idsl` interface provides method template `getLaserData()` to return laser measurements as type `TLaserData` and method `getLaserConfData()` to return specific laser configurations as type `LaserConfData`.
 
 ## Resolve dependencies
 This section assumes user already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
@@ -36,13 +36,7 @@ make
 ```
 
 ## Configuration parameters
-Unlike any other component, `hokuyoComp` is under development and has not any config file yet. However, we can copy config file from `sickLaser` due to similarity of interfaces between laser sensors.
-
-```
-cp ../sickLaser/etc/config config
-```
-
-You can then add Hokuyo specific parameters according to `constants.h` file in the component folder. Example of the config file can be described as below:
+According to `Laser.idsl` interface, Hokuyo specific parameters are characterized as the config file described below:
 
 ```
 CommonBehavior.Endpoints=tcp -p 10000
@@ -79,7 +73,7 @@ Note that the `Laser.Driver` and `Laser.Device` param can be different depended 
 ```
 ls /dev/ttyACM*
 ```
-Then find the corresponding port that Hokuyo sensor is connected to.
+Then find the corresponding port that Hokuyo sensor is connected to. Regarding configuring Hokuyo hardware specific parameters, user should refer to this [link](https://devel.iri.upc.edu/docs/labrobotica/hokuyo_laser_2d/laser_specs.html).
 
 ## Starting the component
 After editing config file for matching with Hokuyo device name and desired parameters of your laser sensor, we plug the Hokuyo sensor in any USB port and start the component using these commands:
@@ -89,25 +83,3 @@ After editing config file for matching with Hokuyo device name and desired param
 ```
 
 ## Known issues
-
-The hokuyoComp is compiled error on Ubuntu 18.04 in file `generichandler.h` with the error:
-```
-In member function 'RoboCompGenericBase::TBaseState GenericLaserHandler getBaseState()':
-error: cannot declare catch parameter to be abstract class type 'IceUtil::Exception'
-  catch(IceUtil::Exception e)
-```   
-The simple workaround is bypassing the try-catch structure in function `RoboCompGenericBase::TBaseState getBaseState()`:
-
-```c++
-RoboCompGenericBase::TBaseState getBaseState()
-{
-  RoboCompGenericBase::TBaseState b;
-
-  base->getBaseState(b);
-
-  printf("seguimos...\n");
-  return b;
-}
-```
-
-Then the component is compiled successfully.

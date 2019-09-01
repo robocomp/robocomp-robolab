@@ -176,7 +176,7 @@ int ::hokuyo::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
 		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
+		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 		adapterCommonBehavior->activate();
 
 
@@ -189,7 +189,7 @@ int ::hokuyo::run(int argc, char* argv[])
 		}
 		Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
 		LaserI *laser = new LaserI(worker);
-		adapterLaser->add(laser, communicator()->stringToIdentity("laser"));
+		adapterLaser->add(laser, Ice::stringToIdentity("laser"));
 		adapterLaser->activate();
 		cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
 

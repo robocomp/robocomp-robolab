@@ -1,0 +1,152 @@
+Environment: bathroom
+Labels distribution: 
+[0. 0. 0. 4. 4. 8. 0. 0. 0. 0. 0. 0.]
+/data1/0512164800.txt | 3
+/data1/0512164529.txt | 4
+/data1/0512165327.txt | 5
+/data1/0512165243.txt | 5
+/data2/0510171120.txt | 3
+/data2/0510171507.txt | 5
+/data2/0510171427.txt | 5
+/data2/0510170707.txt | 4
+/data3/0511130920.txt | 5
+/data3/0511130523.txt | 3
+/data3/0511130138.txt | 4
+/data3/0511131018.txt | 5
+/data4/0512160254.txt | 5
+/data4/0512160143.txt | 5
+/data4/0512155606.txt | 3
+/data4/0512155226.txt | 4
+Num of frames in samples: 
+[1746 1351  395  440 1446  790  625 1675  375 1503 1783  447  491  609
+ 1865 1580]
+Samples statistics: 
+16 samples
+3 coords
+1070.06 average frames
+15 joints
+------------------
+Environment: bedroom
+Labels distribution: 
+[ 4.  0.  4.  0.  0.  0.  0.  0.  0.  0. 12.  0.]
+/data1/0512173623.txt | 10
+/data1/0512173312.txt | 2
+/data1/0512173548.txt | 10
+/data1/0512173520.txt | 10
+/data1/0512171649.txt | 0
+/data2/0510163444.txt | 10
+/data2/0510161658.txt | 2
+/data2/0510163513.txt | 10
+/data2/0510163542.txt | 10
+/data2/0510161326.txt | 0
+/data3/0511123218.txt | 10
+/data3/0511121954.txt | 2
+/data3/0511121542.txt | 0
+/data3/0511123142.txt | 10
+/data3/0511123238.txt | 10
+/data4/0512150451.txt | 0
+/data4/0512151934.txt | 10
+/data4/0512151857.txt | 10
+/data4/0512150912.txt | 2
+/data4/0512152013.txt | 10
+Num of frames in samples: 
+[ 244 1587  248  257 1525  210  778  147  606  830  218 1310 1288  157
+  246 1308  349  261 1529  402]
+Samples statistics: 
+20 samples
+3 coords
+675.00 average frames
+15 joints
+------------------
+Environment: kitchen
+Labels distribution: 
+[ 0.  0.  4.  0.  0.  0.  0.  0.  4.  4. 12.  0.]
+/data1/0512173623.txt | 10
+/data1/0512173312.txt | 2
+/data1/0512173548.txt | 10
+/data1/0512173520.txt | 10
+/data1/0512171444.txt | 9
+/data1/0512171207.txt | 8
+/data2/0510163444.txt | 10
+/data2/0510161658.txt | 2
+/data2/0510163513.txt | 10
+/data2/0510163542.txt | 10
+/data2/0510163840.txt | 9
+/data2/0510164129.txt | 8
+/data3/0511124349.txt | 8
+/data3/0511123218.txt | 10
+/data3/0511121954.txt | 2
+/data3/0511124101.txt | 9
+/data3/0511123142.txt | 10
+/data3/0511123238.txt | 10
+/data4/0512152943.txt | 8
+/data4/0512152416.txt | 9
+/data4/0512151934.txt | 10
+/data4/0512151857.txt | 10
+/data4/0512150912.txt | 2
+/data4/0512152013.txt | 10
+Num of frames in samples: 
+[ 244 1587  248  257 1346 1565  210  778  147  606 1349 1664 1754  218
+ 1310 1467  157  246 1910 1835  349  261 1529  402]
+Samples statistics: 
+24 samples
+3 coords
+893.29 average frames
+15 joints
+------------------
+Environment: livingroom
+Labels distribution: 
+[4. 0. 4. 0. 0. 0. 4. 4. 0. 0. 0. 0.]
+/data1/0512173312.txt | 2
+/data1/0512174513.txt | 6
+/data1/0512174643.txt | 7
+/data1/0512171649.txt | 0
+/data2/0510162529.txt | 6
+/data2/0510161658.txt | 2
+/data2/0510161326.txt | 0
+/data2/0510162821.txt | 7
+/data3/0511122214.txt | 6
+/data3/0511122813.txt | 7
+/data3/0511121954.txt | 2
+/data3/0511121542.txt | 0
+/data4/0512150451.txt | 0
+/data4/0512151230.txt | 6
+/data4/0512151444.txt | 7
+/data4/0512150912.txt | 2
+Num of frames in samples: 
+[1587 1681 1447 1525 1539  778  830 1497 1712 1379 1310 1288 1308 1812
+ 1853 1529]
+Samples statistics: 
+16 samples
+3 coords
+1442.19 average frames
+15 joints
+------------------
+Environment: office
+Labels distribution: 
+[4. 4. 4. 0. 0. 0. 0. 0. 0. 0. 0. 4.]
+/data1/0512173312.txt | 2
+/data1/0512175502.txt | 1
+/data1/0512170134.txt | 11
+/data1/0512171649.txt | 0
+/data2/0510165136.txt | 1
+/data2/0510161658.txt | 2
+/data2/0510164621.txt | 11
+/data2/0510161326.txt | 0
+/data3/0511124850.txt | 1
+/data3/0511121954.txt | 2
+/data3/0511121542.txt | 0
+/data3/0511123806.txt | 11
+/data4/0512150451.txt | 0
+/data4/0512153758.txt | 11
+/data4/0512154505.txt | 1
+/data4/0512150912.txt | 2
+Num of frames in samples: 
+[1587 1792 1265 1525 1637  778 1530  830 1597 1310 1288 1222 1308 1662
+ 1792 1529]
+Samples statistics: 
+16 samples
+3 coords
+1415.75 average frames
+15 joints
+------------------

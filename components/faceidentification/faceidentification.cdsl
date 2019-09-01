@@ -1,0 +1,10 @@
+import "FaceIdentification.idsl";
+
+Component faceidentification
+{
+	Communications
+	{
+		implements FaceIdentification;
+	};
+	language Python;
+};

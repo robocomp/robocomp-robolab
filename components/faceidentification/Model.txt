@@ -1,0 +1,4 @@
+Download the model from the following links and then place it in the folder /components/faceidentification/assets
+
+Link 1: https://drive.google.com/file/d/1R77HmFADxe87GmoLwzfgMu_HY0IhcyBz/view
+Link 2: https://drive.google.com/drive/folders/1TwAwp4yvRWx2aE5RPliqsMtRz_iNJUDc?usp=sharing	

@@ -20,7 +20,7 @@
 import sys, os, traceback, time
 import numpy as np
 import cv2
-from PySide import QtGui, QtCore
+from PySide import QtCore
 from genericworker import *
 
 

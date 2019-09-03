@@ -3,8 +3,9 @@
 #
 ``` RealSensePoseEstimation
 ```
-Intro to component here
-
+This component interfaces to the RealSense SDK 2.0
+You need to dowload, compile and install the library "realsense2.so" in the system to compile and link the component
+Get the software from: https://www.intelrealsense.com/developers/
 
 ## Configuration parameters
 As any other component,

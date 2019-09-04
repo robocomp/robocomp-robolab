@@ -23,7 +23,12 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-
+#if Qt5_FOUND
+	#include <QtWidgets>
+#else
+	#include <QtGui>
+#endif
+#include <ui_mainUI.h>
 #include <CommonBehavior.h>
 
 #include <FullPoseEstimation.h>
@@ -38,7 +43,11 @@ using TuplePrx = std::tuple<>;
 
 
 class GenericWorker :
-public QObject
+#ifdef USE_QTGUI
+	public QWidget, public Ui_guiDlg
+#else
+	public QObject
+ #endif
 {
 Q_OBJECT
 public:
@@ -55,6 +64,7 @@ public:
 	virtual FullPose FullPoseEstimation_getFullPose() = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -63,7 +73,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

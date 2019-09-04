@@ -9,7 +9,7 @@ Component RealSensePoseEstimation
   //      publishes FullPoseEstimationPub;
     };
 	language Cpp11;
-//    gui Qt(QWidget);
-//    options InnerModelViewer;
+    gui Qt(QWidget);
+    options InnerModelViewer;
 };
 

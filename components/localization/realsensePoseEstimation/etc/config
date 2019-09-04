@@ -4,7 +4,8 @@ CommonBehavior.Endpoints=tcp -p 10000
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 10696
 
-InnerModelPath=/home/robocomp/robocomp/files/innermodel/cubeOnFloor.xml
+InnerModelPath=/home/robocomp/robocomp/components/robocomp-viriato/etcSim/simulation.xml
+/home/robocomp/robocomp/files/innermodel/cubeOnFloor.xml
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

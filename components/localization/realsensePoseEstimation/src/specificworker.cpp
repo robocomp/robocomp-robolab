@@ -23,15 +23,16 @@
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 {
-//	innerModelViewer = NULL;
-//	osgView = new OsgView(this);
-//	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
-//	osg::Vec3d eye(osg::Vec3(4000.,4000.,-1000.));
-//	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
-//	osg::Vec3d up(osg::Vec3(0.,1.,0.));
-//	tb->setHomePosition(eye, center, up, true);
-//	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
-//	osgView->setCameraManipulator(tb);
+	innerModelViewer = NULL;
+	osgView = new OsgView(this);
+	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
+	osg::Vec3d eye(osg::Vec3(4000.,4000.,-1000.));
+	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
+	osg::Vec3d up(osg::Vec3(0.,1.,0.));
+	tb->setHomePosition(eye, center, up, true);
+	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
+	osgView->setCameraManipulator(tb);
+	
 }
 
 /**
@@ -51,7 +52,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		std::string innermodel_path = par.value;
 		innerModel = std::make_shared<InnerModel>(innermodel_path);
-//		innerModelViewer = new InnerModelViewer (innerModel, "root", osgView->getRootGroup(), true);
+		innerModelViewer = new InnerModelViewer (innerModel, "root", osgView->getRootGroup(), true);
 	}
 	catch(const std::exception &e) { qFatal("Error reading config params"); }
 
@@ -87,21 +88,24 @@ void SpecificWorker::compute()
 			  << pose_data.rotation.z << " "
 			  << pose_data.rotation.w << " (quat)";
 
-	// Move the box
+	// Move the robot
 	const auto &tr = pose_data.translation;
 	const auto &rot = pose_data.rotation;
 	RMat::Quaternion q(rot.x,rot.y,rot.z,rot.w);
 	QVec angles = q.toAngles();
 
 	std::lock_guard<std::mutex> lock(bufferMutex);
-		fullpose = {tr.x*1000, tr.y*1000, tr.z*1000, angles.x(), angles.y(), angles.z()};
+		fullpose = {tr.x*1000 + x_offset, 
+					tr.y*1000, 
+					tr.z*1000 + z_offset, 
+					angles.x(), angles.y(), angles.z()};
 	
-	// float factor = 10000.;
-	// innerModel->updateTransformValues("box_t", tr.x*factor, tr.y*factor, tr.z*factor, angles.x(), angles.y(), angles.z() );
-	
+	 
+	 innerModel->updateTransformValues("robot", fullpose.x, fullpose.y, fullpose.z, fullpose.rx, fullpose.ry, fullpose.rz );
+
 	// Update innermodelviewer
-	// innerModelViewer->update();
-	// osgView->frame();
+	 innerModelViewer->update();
+	 osgView->frame();
 	
 }
 
@@ -109,7 +113,7 @@ void SpecificWorker::compute()
 FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
 	std::lock_guard<std::mutex> lock(bufferMutex);
-		return fullpose;
+	return fullpose;
 }
 
 

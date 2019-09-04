@@ -57,6 +57,10 @@ private:
 	mutable std::mutex bufferMutex;
 	FullPose fullpose;
 	
+	// Initial pose offset
+	int x_offset = 1500;
+	int z_offset = -1500;
+	
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
 	// Create a configuration for configuring the pipeline with a non default profile

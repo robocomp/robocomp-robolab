@@ -6,10 +6,9 @@ SET ( SOURCES
   $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
   hokuyohandler.cpp
   hokuyogenerichandler.cpp
-)
-SET ( HEADERS
   generichandler.h
 )
+
 
 set(CMAKE_CXX_STANDARD 17)
 

@@ -50,7 +50,7 @@ qDebug()<<"name"<<config.device.c_str();
 	// Create the sampling timer
 	timer = new QTimer(this );
 	pm_timer = NULL;
-	powerOn = FALSE;
+	powerOn = false;
 
 	setConfig(config);
 }
@@ -92,20 +92,20 @@ bool HokuyoHandler::open()
 	{
 		timer->start();
 		printf("[HokuyoHandler]: Failed to open: %s", laserDevice.name().toLatin1().data());
-		return FALSE;
+		return false;
 	}
 	for (int i=0; i< 5; i++)
 	{
 		qDebug() << " Trying to power the Laser device. Try: " << i;
-		if (poweronLaser()==TRUE)
+		if (poweronLaser()==true)
 			break;
 		usleep(300000);
 	}
-	if (powerOn == FALSE) qFatal("[HokuyoHandler]: Could not start Laser device");
+	if (powerOn == false) qFatal("[HokuyoHandler]: Could not start Laser device");
 
 	timer->start();
 
-	return TRUE;
+	return true;
 }
 
 bool HokuyoHandler::isPowerOn()
@@ -117,16 +117,16 @@ bool HokuyoHandler::poweronLaser()
 {
 	if ( !powerOn )
 	{
-		if ( setLaserPowerState ( TRUE ) )
+		if ( setLaserPowerState ( true ) )
 		{
-			powerOn = TRUE;
+			powerOn = true;
 			qWarning ( "[" PROGRAM_NAME "]: Power magnament: laser on." );
-			return TRUE;
+			return true;
 		}
 		else
 		{
 			qWarning ( "[" PROGRAM_NAME "]: Power magnament: unable to power on laser." );
-			return FALSE;
+			return false;
 		}
 	}
 	return true;
@@ -136,9 +136,9 @@ void HokuyoHandler::poweroffLaser()
 {
 	if ( powerOn )
 	{
-		if ( setLaserPowerState ( FALSE ) )
+		if ( setLaserPowerState ( false ) )
 		{
-			powerOn = FALSE;
+			powerOn = false;
 			qWarning ( "[" PROGRAM_NAME "]: Power magnament: laser off." );
 		}
 		else
@@ -171,7 +171,7 @@ bool HokuyoHandler::setLaserPowerState ( bool state )
 	{
 
 		qWarning ( "[HokuyoHandler]: Write error on laser device!" );
-		return FALSE;
+		return false;
 	}
 
 	// Get the echo from the laser
@@ -180,7 +180,7 @@ bool HokuyoHandler::setLaserPowerState ( bool state )
 	if ( strcmp ( command, data_block ) != 0 )
 	{
 		qWarning ( "[HokuyoHandler]: Laser CRC error setting power status!" );
-		return FALSE;
+		return false;
 	}
 
 	// Get the laser status ( 0 = ok )
@@ -188,13 +188,13 @@ bool HokuyoHandler::setLaserPowerState ( bool state )
 	if ( strcmp ( "0\n", data_block ) !=0 )
 	{
 		qWarning ( "[HokuyoHandler]: Error: Laser status != 0" );
-		return FALSE;
+		return false;
 	}
 
 	// Read the final /n
 	dataRead = laserDevice.readLine ( data_block, sizeof ( data_block ) );
 
-	return TRUE;
+	return true;
 }
 
 bool HokuyoHandler::readLaserData()
@@ -208,7 +208,7 @@ bool HokuyoHandler::readLaserData()
 
 	if (powerOn==false)
 	{
-		if (setLaserPowerState(TRUE) == false)
+		if (setLaserPowerState(true) == false)
 		{
 			printf( "[" PROGRAM_NAME "]: Power magnament: error laser off." );
 			return false;
@@ -289,7 +289,7 @@ bool HokuyoHandler::readLaserData()
 		}
 
 	}
-	powerOn = TRUE;
+	powerOn = true;
 
 
 	//Double buffering

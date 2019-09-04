@@ -24,7 +24,7 @@ HokuyoGenericHandler::HokuyoGenericHandler(RoboCompLaser::LaserConfData &config,
 	// Create the sampling timer
 	timer = new QTimer(this );
 	pm_timer = NULL;
-	powerOn = FALSE;
+	powerOn = false;
 	setConfig(config);
 }
 

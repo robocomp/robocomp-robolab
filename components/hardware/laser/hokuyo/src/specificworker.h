@@ -43,15 +43,16 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	TLaserData getLaserData();
-	LaserConfData getLaserConfData();
-	TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
+	TLaserData Laser_getLaserData();
+	LaserConfData Laser_getLaserConfData();
+	TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
 
 public slots:
 	void compute();
+	void initialize(int period);    
 
 private:
-	InnerModel *innerModel;
+	std::shared_ptr<InnerModel> innerModel;
 	GenericLaserHandler *lh;
 	RoboCompLaser::LaserConfData laserConf;
 };

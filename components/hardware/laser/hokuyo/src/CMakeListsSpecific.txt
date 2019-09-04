@@ -11,7 +11,8 @@ SET ( HEADERS
   generichandler.h
 )
 
-ADD_DEFINITIONS( -std=c++11 )
+set(CMAKE_CXX_STANDARD 17)
 
 SET( SPECIFIC_LIBS -lc_urg -lc_urg_system -lc_urg_connection )
 
+SET (LIBS ${LIBS}  )

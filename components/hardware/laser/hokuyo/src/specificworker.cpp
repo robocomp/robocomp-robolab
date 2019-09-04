@@ -31,7 +31,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	
+	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -74,6 +74,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	return true;
 }
 
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	this->Period = period;
+	timer.start(Period);
+
+}
+
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
@@ -91,17 +99,17 @@ void SpecificWorker::compute()
 }
 
 
-TLaserData SpecificWorker::getLaserData()
+TLaserData SpecificWorker::Laser_getLaserData()
 {
 	return lh->getNewData();
 }
 
-LaserConfData SpecificWorker::getLaserConfData()
+LaserConfData SpecificWorker::Laser_getLaserConfData()
 {
 	return laserConf;
 }
 
-TLaserData SpecificWorker::getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
+TLaserData SpecificWorker::Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
 {
 	bState = lh->getBaseState();
 	return lh->getNewData();

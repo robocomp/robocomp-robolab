@@ -3,7 +3,7 @@
 
 Hokuyo laser sensor family is a low-cost laser sensor applied in many areas in robotics research such as navigation, etc. It provides range data in short distance from 0.4~5 meters for basic localization or SLAM task in small indoor environment.
 
-The hokuyoComp component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and serves the laser measurements over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface. Briefly, `Laser.idsl` interface provides method template `getLaserData()` to return laser measurements as type `TLaserData` and method `getLaserConfData()` to return specific laser configurations as type `LaserConfData`.
+The hokuyo component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and serves the laser measurements over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface. Briefly, `Laser.idsl` interface provides method template `getLaserData()` to return laser measurements as type `TLaserData` and method `getLaserConfData()` to return specific laser configurations as type `LaserConfData`.
 
 ## Resolve dependencies
 This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
@@ -28,9 +28,9 @@ wget http://ftp.br.debian.org/debian/pool/main/u/urg/liburg0-dev_0.8.18-2_amd64.
 sudo dpkg -i liburg0_0.8.18-2_amd64.deb liburg0-dev_0.8.18-2_amd64.deb
 ```
 
-Then we can compile the `hokuyoComp` component:
+Then we can compile the `hokuyo` component:
 ```
-cd ~/robocomp/components/robocomp-robolab/components/hokuyoComp/
+cd ~/robocomp/components/robocomp-robolab/components/hardware/laser/hokuyo/
 cmake .
 make
 ```

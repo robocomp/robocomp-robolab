@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,30 +20,25 @@
 #define GENERICWORKER_H
 
 #include "config.h"
-#include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-
 #include <CommonBehavior.h>
 
-#include <Laser.h>
 #include <GenericBase.h>
+#include <Laser.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
-
 using namespace std;
-
 using namespace RoboCompGenericBase;
 using namespace RoboCompLaser;
 
+typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
-
-class GenericWorker : 
+class GenericWorker :
 public QObject
 {
 Q_OBJECT
@@ -52,18 +47,19 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
+
 
 	GenericBasePrx genericbase_proxy;
 
-	virtual TLaserData getLaserData() = 0;
-	virtual LaserConfData getLaserConfData() = 0;
-	virtual TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual TLaserData Laser_getLaserData() = 0;
+	virtual LaserConfData Laser_getLaserConfData() = 0;
+	virtual TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -72,6 +68,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

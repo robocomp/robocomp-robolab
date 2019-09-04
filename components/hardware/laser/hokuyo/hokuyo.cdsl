@@ -1,12 +1,12 @@
-import "/robocomp/interfaces/IDSLs/Laser.idsl";
-import "/robocomp/interfaces/IDSLs/DifferentialRobot.idsl";
+import "Laser.idsl";
+import "GenericBase.idsl";
 
 Component hokuyo
 {
 	Communications
 	{
 		implements Laser;
-		requires DifferentialRobot;
+		requires GenericBase;
 	};
 	language Cpp;
 };

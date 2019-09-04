@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -71,6 +71,7 @@
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
+#include <sigwatch/sigwatch.h>
 #include <qlog/qlog.h>
 
 #include "config.h"
@@ -82,7 +83,6 @@
 
 #include <laserI.h>
 
-#include <Laser.h>
 #include <GenericBase.h>
 
 
@@ -124,7 +124,10 @@ int ::hokuyo::run(int argc, char* argv[])
 	sigaddset(&sigs, SIGTERM);
 	sigprocmask(SIG_UNBLOCK, &sigs, 0);
 
-
+	UnixSignalWatcher sigwatch;
+	sigwatch.watchForSignal(SIGINT);
+	sigwatch.watchForSignal(SIGTERM);
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &a, SLOT(quit()));
 
 	int status=EXIT_SUCCESS;
 
@@ -144,13 +147,12 @@ int ::hokuyo::run(int argc, char* argv[])
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy GenericBase: " << ex;
 		return EXIT_FAILURE;
 	}
 	rInfo("GenericBaseProxy initialized Ok!");
+
 	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
-
-
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
@@ -161,39 +163,51 @@ int ::hokuyo::run(int argc, char* argv[])
 
 	if ( !monitor->isRunning() )
 		return status;
-	
+
 	while (!monitor->ready)
 	{
 		usleep(10000);
 	}
-	
+
 	try
 	{
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+		try {
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+			}
+			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
+			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+			adapterCommonBehavior->activate();
 		}
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
-		adapterCommonBehavior->activate();
-
-
-
-
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
+		catch(const Ice::Exception& ex)
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
+			status = EXIT_FAILURE;
+
+			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
+			cout << ex;
+
 		}
-		Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
-		LaserI *laser = new LaserI(worker);
-		adapterLaser->add(laser, Ice::stringToIdentity("laser"));
-		adapterLaser->activate();
-		cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
 
 
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
+			}
+			Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
+			LaserI *laser = new LaserI(worker);
+			adapterLaser->add(laser, Ice::stringToIdentity("laser"));
+			adapterLaser->activate();
+			cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
+			}
+			catch (const IceStorm::TopicExists&){
+				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Laser\n";
+			}
 
 
 
@@ -202,12 +216,14 @@ int ::hokuyo::run(int argc, char* argv[])
 
 		// User defined QtGui elements ( main window, dialogs, etc )
 
-#ifdef USE_QTGUI
-		//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
-		a.setQuitOnLastWindowClosed( true );
-#endif
+		#ifdef USE_QTGUI
+			//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
+			a.setQuitOnLastWindowClosed( true );
+		#endif
 		// Run QT Application Event Loop
 		a.exec();
+
+
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -217,12 +233,16 @@ int ::hokuyo::run(int argc, char* argv[])
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
 
-#ifdef USE_QTGUI
+	}
+	#ifdef USE_QTGUI
 		a.quit();
-#endif
-		monitor->exit(0);
-}
+	#endif
 
+	status = EXIT_SUCCESS;
+	monitor->terminate();
+	monitor->wait();
+	delete worker;
+	delete monitor;
 	return status;
 }
 
@@ -264,4 +284,3 @@ int main(int argc, char* argv[])
 
 	return app.main(argc, argv, configFile.c_str());
 }
-

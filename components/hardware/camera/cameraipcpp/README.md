@@ -4,7 +4,7 @@
 `CameraIPCpp` component serves image with `AprilTags` across RoboComp ecosystem through TCP/IP protocol from a camera server, which ensures connection reliability for data integrity. This component uses:
 
 - `CameraSimple.idsl` interface, which provides method template `idempotent void getImage(out TImage im)` to return image data as type `TImage`. The `CameraSimple.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/CameraSimple.idsl`.
-- `GetAprilTags.idsl` interface. The interface provides method template `checkMarcas()` to return image data as type `listaMarcas`, which is an array of coordinates and orientations of tags represented as message type `marca`.
+- `GetAprilTags.idsl` interface. The interface provides method template `checkMarcas()` to return image data as type `listaMarcas`, which is an array of coordinates and orientations of tags represented as message type `marca`. The `GetAprilTags.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/GetAprilTags.idsl`.
 
 The component is implemented in C++, user should refer to `CameraIP` component for Python version.
 

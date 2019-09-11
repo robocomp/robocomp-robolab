@@ -35,8 +35,9 @@ class SpecificWorker(GenericWorker):
 		try:
 			self.puerto = open(params["device"], "r")
 			print ("Device opened:",)
-		except FileNotFoundError:
+		except IOError:
 			print("Error opening serial port:", params["device"], "check device is connected")
+			sys.exit(-1)
 		return True
 
 	@QtCore.Slot()
@@ -86,7 +87,7 @@ class SpecificWorker(GenericWorker):
 		#
 		# getMagneticFields
 		#
-        def getMagneticFields(self):
+		def getMagneticFields(self):
 				ret = Magnetic()
 				return ret
 

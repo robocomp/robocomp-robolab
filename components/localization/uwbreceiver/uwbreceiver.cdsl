@@ -1,0 +1,14 @@
+import "FullPoseEstimation.idsl";
+import "FullPoseEstimationPub.idsl";
+
+Component uwbreceiver
+{
+	Communications
+	{
+		implements FullPoseEstimation;
+		publishes FullPoseEstimationPub;
+	};
+	language Cpp11;
+	statemachine "statemachine.smdsl";
+};
+

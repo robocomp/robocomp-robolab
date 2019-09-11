@@ -109,3 +109,4 @@ components/astraRGBD/src/HumanTracker\.h
 
 components/astraRGBD/build/
 components/faceidentification/assets/20180408-102900/*
+components/detection/apriltagsComp/build/

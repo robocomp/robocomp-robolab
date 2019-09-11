@@ -29,84 +29,69 @@ class SpecificWorker(GenericWorker):
 		self.imu = DataImu()
 		self.Period = 100
 		self.timer.start(self.Period)
-		print "Start with period: ", self.Period
+		print("Start with period: ", self.Period)
 
 	def setParams(self, params):
 		try:
-			self.puerto = open("/dev/ttyACM1", "r")
-                        print "Device opened"
+			self.puerto = open(params["device"], "r")
+			print ("Device opened:",)
 		except FileNotFoundError:
-			print "Error opoening serial port, check device is connected"
+			print("Error opening serial port:", params["device"], "check device is connected")
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
+		print ('SpecificWorker.compute...')
 		try:
 			line = self.puerto.readline()
 			values = line.strip().split(' ')
 			self.imu.rot.Yaw = float(values[0])
 			self.imu.rot.Roll = float(values[1])
 			self.imu.rot.Pitch = float(values[2])
-			print self.imu.rot.Yaw, self.imu.rot.Roll, self.imu.rot.Pitch
+			print ("Data(y,r,p):", self.imu.rot.Yaw, self.imu.rot.Roll, self.imu.rot.Pitch)
 			self.imupub_proxy.publish(self.imu)
-			print "sent data package"
-		except Ice.Exception, e:
+			
+		except Ice.Exception as e:
 			traceback.print_exc()
-			print e
+			print(e)
 		return True
 
-# IMU implemntation
+# IMU implementation
 
-        # resetImu
-        #
-        def resetImu(self):
-                #
-                #implementCODE
-                #
-                pass
+		# resetImu
+		#
+		def resetImu(self):
+				print("ERROR: not implemented yet")
 
-        #
-        # getAngularVel
-        #
-        def getAngularVel(self):
-                ret = Gyroscope()
-                #
-                #implementCODE
-                #
-                return ret
+		#
+		# getAngularVel
+		#
+		def getAngularVel(self):
+				ret = Gyroscope()
+				return ret
 
+		#
+		# getOrientation
+		#
+		def getOrientation(self):
+				ret = Orientation()
+				return ret
 
-        #
-        # getOrientation
-        #
-        def getOrientation(self):
-                ret = Orientation()
-                #
-                #implementCODE
-                #
-                return ret
+		#
+		# getDataImu
+		#
+		def getDataImu(self):
+				return DataImu()
 
-
-        #
-        # getDataImu
-        #
-        def getDataImu(self):
-            return DataImu()
-
-        #
-        # getMagneticFields
-        #
+		#
+		# getMagneticFields
+		#
         def getMagneticFields(self):
-                ret = Magnetic()
-                #
-                #implementCODE
-                #
-                return ret
+				ret = Magnetic()
+				return ret
 
-
-        #
-        # getAcceleration
-        #
-        def getAcceleration(self):
-                ret = Acceleration()
+		#
+		# getAcceleration
+		#
+		def getAcceleration(self):
+				ret = Acceleration()

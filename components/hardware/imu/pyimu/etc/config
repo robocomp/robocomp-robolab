@@ -3,6 +3,8 @@
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
+device="/dev/ttyACM1"
+
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0

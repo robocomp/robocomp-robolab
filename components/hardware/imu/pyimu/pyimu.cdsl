@@ -1,7 +1,7 @@
 import "IMUPub.idsl";
 import "IMU.idsl";
 
-Component PyImu
+Component pyimu
 {
 	Communications
 	{

@@ -23,7 +23,7 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
+	print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 
 preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
@@ -39,7 +39,7 @@ try:
 		additionalPathStr += ' -I' + p + ' '
 	icePaths.append('/opt/robocomp/interfaces')
 except:
-	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
+	print ('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
 ice_IMU = False
@@ -51,7 +51,7 @@ for p in icePaths:
 		ice_IMU = True
 		break
 if not ice_IMU:
-	print 'Couln\'t load IMU'
+	print ('Couln\'t load IMU')
 	sys.exit(-1)
 from RoboCompIMU import *
 ice_IMUPub = False
@@ -63,7 +63,7 @@ for p in icePaths:
 		ice_IMUPub = True
 		break
 if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
+	print ('Couln\'t load IMUPub')
 	sys.exit(-1)
 from RoboCompIMUPub import *
 
@@ -79,7 +79,7 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
-		self.imupub_proxy = mprx["IMUPubPub"]
+		self.imupub_proxy = mprx["IMUPub"]
 
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
@@ -96,6 +96,6 @@ class GenericWorker(QtCore.QObject):
 	# @param per Period in ms
 	@QtCore.Slot(int)
 	def setPeriod(self, p):
-		print "Period changed", p
+		print ("Period changed", p)
 		Period = p
 		timer.start(Period)

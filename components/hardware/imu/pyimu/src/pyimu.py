@@ -20,7 +20,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# \mainpage RoboComp::PyImu
+# \mainpage RoboComp::pyimu
 #
 # \section intro_sec Introduction
 #
@@ -48,7 +48,7 @@
 #
 # \subsection execution_ssec Execution
 #
-# Just: "${PATH_TO_BINARY}/PyImu --Ice.Config=${PATH_TO_CONFIG_FILE}"
+# Just: "${PATH_TO_BINARY}/pyimu --Ice.Config=${PATH_TO_CONFIG_FILE}"
 #
 # \subsection running_ssec Once running
 #
@@ -76,14 +76,14 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 		try:
 			return self.handler.timeAwake()
 		except:
-			print 'Problem getting timeAwake'
+			print ('Problem getting timeAwake')
 	def killYourSelf(self, current = None):
 		self.handler.killYourSelf()
 	def getAttrList(self, current = None):
 		try:
 			return self.handler.getAttrList()
 		except:
-			print 'Problem getting getAttrList'
+			print ('Problem getting getAttrList')
 			traceback.print_exc()
 			status = 1
 			return
@@ -112,8 +112,8 @@ if __name__ == '__main__':
 	obj = ic.stringToProxy(proxy)
 	try:
 		topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
-	except Ice.ConnectionRefusedException, e:
-		print 'Cannot connect to IceStorm! ('+proxy+')'
+	except Ice.ConnectionRefusedException as e:
+		print ('Cannot connect to IceStorm! ('+proxy+')')
 		status = 1
 
 	# Create a proxy to publish a IMUPub topic
@@ -129,16 +129,16 @@ if __name__ == '__main__':
 			try:
 				topic = topicManager.create("IMUPub")
 			except:
-				print 'Another client created the IMUPub topic? ...'
+				print ('Another client created the IMUPub topic? ...')
 	pub = topic.getPublisher().ice_oneway()
 	imupubTopic = IMUPubPrx.uncheckedCast(pub)
-	mprx["IMUPubPub"] = imupubTopic
+	mprx["IMUPub"] = imupubTopic
 
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
 	else:
-		print "Error getting required connections, check config file"
+		print ("Error getting required connections, check config file")
 		sys.exit(-1)
 
 	adapter = ic.createObjectAdapter('IMU')

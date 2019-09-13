@@ -29,6 +29,7 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <QtSerialPort/QSerialPort>
 
 class SpecificWorker : public GenericWorker
 {
@@ -37,7 +38,11 @@ public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-
+	QPointF readData(QSerialPort &serial);
+	void compute_initial_pose(int ntimes);
+    float degreesToRadians(const float angle_);
+	int bitsToInt( const unsigned char* bits, uint init, bool little_endian = true );
+	//Ice interface
 	FullPose FullPoseEstimation_getFullPose();
 
 public slots:
@@ -51,6 +56,10 @@ public slots:
 //--------------------
 private:
 	std::shared_ptr<InnerModel> innerModel;
+    RoboCompCommonBehavior::ParameterList params;
+	QSerialPort serial_port;
+	float xPos;
+	float zPos;
 
 };
 

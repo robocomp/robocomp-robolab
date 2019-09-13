@@ -35,62 +35,80 @@ SpecificWorker::~SpecificWorker()
 	emit computetofinalize();
 }
 
-bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
+bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList _params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = new InnerModel(innermodel_path);
-//	}
-//	catch(std::exception e) { qFatal("Error reading config params"); }
+    params = _params;
 
-
-
-	defaultMachine.start();
-	
-
-
-	return true;
+    defaultMachine.start();
+    
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 	this->Period = period;
+	xPos = 0;
+	zPos = 0;
 	timer.start(Period);
 	emit this->initializetocompute();
 
 }
 
+void SpecificWorker::compute_initial_pose(int ntimes)
+{
+	QPointF pos;
+	float xMed = 0;
+	float zMed = 0;
+	for (int cont=0; cont < ntimes; cont++)
+	{
+        pos = readData(serial_port);
+		xMed += pos.x();
+		zMed += pos.y();
+		std::cout << "Pose read: "<< pos.x() << " " << pos.y() << std::endl;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	xPos = xMed / ntimes;
+	zPos = zMed / ntimes;
+	std::cout << "initial pose: "<< xPos << " " << zPos << std::endl;
+}
 void SpecificWorker::compute()
 {
-//computeCODE
-//QMutexLocker locker(mutex);
-//	try
-//	{
-//		camera_proxy->getYImage(0,img, cState, bState);
-//		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-//		searchTags(image_gray);
-//	}
-//	catch(const Ice::Exception &e)
-//	{
-//		std::cout << "Error reading from Camera" << e << std::endl;
-//	}
+	QPointF pos = readData(serial_port);
+
+	try
+	{
+		RoboCompFullPoseEstimation::FullPose pose;
+		pose.x = pos.x();
+		pose.z = pos.y();
+		fullposeestimationpub_pubproxy->newFullPose(pose);
+	}
+	catch(const Ice::Exception &e)
+	{
+		std::cout <<"Error pose publication, check Ice connection: "<< e << std::endl;
+	}
+
 }
 
 
 void SpecificWorker::sm_compute()
 {
 	std::cout<<"Entered state compute"<<std::endl;
+    
 	compute();
 }
 
 void SpecificWorker::sm_initialize()
 {
 	std::cout<<"Entered initial state initialize"<<std::endl;
+	serial_port.setPortName(QString::fromStdString(params["device"].value));
+	if(!serial_port.open(QIODevice::ReadWrite))
+	{
+		std::cout << "Error reading "  << std::endl;
+ 		exit(-1); 
+	}
+	serial_port.setBaudRate(QSerialPort::Baud115200);
+	compute_initial_pose(std::stoi( params["initial_reading"].value));
 }
 
 void SpecificWorker::sm_finalize()
@@ -100,12 +118,83 @@ void SpecificWorker::sm_finalize()
 
 
 
+QPointF SpecificWorker::readData(QSerialPort &serial)
+{
+	QByteArray responseData;
+	responseData.append((char)2);
+    responseData.append((char)0);
+
+//	for(int i=0; i<1; i++)
+//	{
+		serial.write(responseData);
+  		if (serial.waitForBytesWritten(200)) {}
+          //qDebug() << "escrito ok";
+		int numRead = 0, numReadTotal = 0;
+
+		char *b;b = new char[18];
+		for (;;) 
+		{
+			if (serial.waitForReadyRead(100)) 
+			{
+				numRead  = serial.read(b + numReadTotal, serial.bytesAvailable());
+				numReadTotal += numRead;
+			}
+			if(numReadTotal >= 18)
+			break;
+		}
+
+		// for(int i=0; i<18; i++)
+		// 	std::cout << (int)b[i] << " "; 
+		// std::cout <<  std::endl;
+
+		if(!(b[0] == 64 and b[1] == 1 and b[2] == 0 and b[3] == 65))
+		{	
+			qDebug() << "Bad sequence, aborting";
+			return QPointF();
+		}
+
+		int x = bitsToInt((unsigned char*)b,5,true);
+		int y = bitsToInt((unsigned char*)b,9,true);
+		int z = bitsToInt((unsigned char*)b,13,true);
+		//qDebug() << x << y << z;
+		//qDebug() << "---------------------";
+		delete b;
+		serial.flush();
+		//usleep(100000);
+		return(QPointF(x,y));
+//	}
+}
+
+//UTILITIES
+float SpecificWorker::degreesToRadians(const float angle_)
+{	
+	float angle = angle_ * 2*M_PI / 360;
+	if(angle > M_PI)
+   		return angle - M_PI*2;
+	else if(angle < -M_PI)
+   		return angle + M_PI*2;
+	else return angle;
+}
+
+int SpecificWorker::bitsToInt( const unsigned char* bits, uint init, bool little_endian)
+	{
+		int result = 0;
+		if (little_endian)
+			for (int n = sizeof( result ); n >= 0; n--)
+			result = (result << 8) + bits[ init + n ];
+		else
+			for (unsigned n = 0; n < sizeof( result ); n++)
+			result = (result << 8) + bits[ n ];
+		return result;
+	}
 
 
 FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
-//implementCODE
-
+	RoboCompFullPoseEstimation::FullPose pose;
+	pose.x = xPos;
+	pose.z = zPos;
+	return pose;
 }
 
 

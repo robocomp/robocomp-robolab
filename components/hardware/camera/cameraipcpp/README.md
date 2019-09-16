@@ -40,11 +40,11 @@ The `Camera` parameter specifies the TCP/IP link that this component will use to
 
 To avoid changing the config file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 ```
-cp etc/config config
+cp etc/config etc/config-run
 ```
 
 After editing the new config file we can run the component:
 ```
-./bin/cameraipcpp --Ice.Config=config
+./bin/cameraipcpp --Ice.Config=etc/config-run
 ```
 ## Known issues

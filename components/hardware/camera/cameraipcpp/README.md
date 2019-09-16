@@ -34,7 +34,7 @@ Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
-The `Camera` parameter specifies the TCP/IP link that this component will stream the image message from. Note that we need to make sure the port number of the parameter `CameraSimple.Endpoints` is the same as the corresponding number of the client component using the `CameraIPCpp` component.
+The `Camera` parameter specifies the TCP/IP link that this component will use to received the streaming images. Note that we need to make sure the port number of the parameter `CameraSimple.Endpoints` is the same as the corresponding number of the client component using the `CameraIPCpp` component.
 
 ## Starting the component
 

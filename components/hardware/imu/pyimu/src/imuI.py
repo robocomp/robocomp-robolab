@@ -1,5 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 by YOUR NAME HERE
 #
@@ -17,87 +15,74 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-import sys, Ice, os
-from PySide2 import QtWidgets, QtCore
+import sys, os, Ice
 
 ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
-except KeyError:
+except:
 	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
 	ROBOCOMP = '/opt/robocomp'
-
-preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
-Ice.loadSlice(preStr+"CommonBehavior.ice")
-import RoboCompCommonBehavior
+if len(ROBOCOMP)<1:
+	print 'ROBOCOMP environment variable not set! Exiting.'
+	sys.exit()
 
 additionalPathStr = ''
-icePaths = [ '/opt/robocomp/interfaces' ]
+icePaths = []
 try:
+	icePaths.append('/opt/robocomp/interfaces')
 	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
 	for p in SLICE_PATH:
 		icePaths.append(p)
 		additionalPathStr += ' -I' + p + ' '
-	icePaths.append('/opt/robocomp/interfaces')
 except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
+ice_IMU = False
+for p in icePaths:
+	print 'Trying', p, 'to load IMU.ice'
+	if os.path.isfile(p+'/IMU.ice'):
+		print 'Using', p, 'to load IMU.ice'
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"IMU.ice"
+		Ice.loadSlice(wholeStr)
+		ice_IMU = True
+		break
+if not ice_IMU:
+	print 'Couldn\'t load IMU'
+	sys.exit(-1)
+from RoboCompIMU import *
 ice_IMUPub = False
 for p in icePaths:
+	print 'Trying', p, 'to load IMUPub.ice'
 	if os.path.isfile(p+'/IMUPub.ice'):
+		print 'Using', p, 'to load IMUPub.ice'
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
 		wholeStr = preStr+"IMUPub.ice"
 		Ice.loadSlice(wholeStr)
 		ice_IMUPub = True
 		break
 if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
-	sys.exit(-1)
-from RoboCompIMUPub import *
-ice_IMUPub = False
-for p in icePaths:
-	if os.path.isfile(p+'/IMUPub.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMUPub.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMUPub = True
-		break
-if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
+	print 'Couldn\'t load IMUPub'
 	sys.exit(-1)
 from RoboCompIMUPub import *
 
+class IMUI(IMU):
+	def __init__(self, worker):
+		self.worker = worker
 
-from imuI import *
-
-
-class GenericWorker(QtCore.QObject):
-
-	kill = QtCore.Signal()
-
-	def __init__(self, mprx):
-		super(GenericWorker, self).__init__()
-
-
-		self.imupub_proxy = mprx["IMUPubPub"]
-
-		
-		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-		self.Period = 30
-		self.timer = QtCore.QTimer(self)
-
-
-	@QtCore.Slot()
-	def killYourSelf(self):
-		rDebug("Killing myself")
-		self.kill.emit()
-
-	# \brief Change compute period
-	# @param per Period in ms
-	@QtCore.Slot(int)
-	def setPeriod(self, p):
-		print "Period changed", p
-		Period = p
-		timer.start(Period)
+	def resetImu(self, c):
+		return self.worker.resetImu()
+	def getAngularVel(self, c):
+		return self.worker.getAngularVel()
+	def getOrientation(self, c):
+		return self.worker.getOrientation()
+	def getDataImu(self, c):
+		return self.worker.getDataImu()
+	def getMagneticFields(self, c):
+		return self.worker.getMagneticFields()
+	def getAcceleration(self, c):
+		return self.worker.getAcceleration()

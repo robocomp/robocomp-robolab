@@ -67,7 +67,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			if(params["joystickUniversal.DirectionAxis"].value == apar.name)
 			{
 				data.dirAxisIndex = i;
-					qDebug() << "Setting dir index to:"+QString::number(data.dirAxisIndex);
+				qDebug() << "Setting dir index to:"+QString::number(data.dirAxisIndex);
 			}			
 			apar.value = 0;
 			data.axes.push_back(apar);
@@ -77,7 +77,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 			aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
 			aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
 			aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
-			qDebug()<<"axes"<<QString::fromStdString(aux.name)<<aux.minRange<<aux.maxRange<<aux.inverted;
+			qDebug() << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
 			joystickParams.axes[i] = aux;
 		}
 		for (int i=0; i<joystickParams.numButtons; i++)
@@ -103,7 +103,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		}
 		else
 		{
-			qDebug() << "FAILED TO STAR JOYSTICK";
+			qDebug() << "FAILED TO START JOYSTICK";
 		}
 
 		// Connect signals
@@ -161,32 +161,16 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 			//~ rDebug(QString::number(fabs(normalized_value - joystickParams.data.axes[number].value) > JOYSTICK_PRECISION ));
 			//~ rDebug("New value: "+QString::number(normalized_value)+", Old value: "+QString::number(joystickParams.data.axes[number].value)+", Diff: "+QString::number(fabs(normalized_value - joystickParams.data.axes[number].value)));
 			float normalized_value;
-			if(fabs(value) < JOYSTICK_CENTER)
+			if(fabs(value) > JOYSTICK_CENTER)
 			{
-				normalized_value = normalize(0, joystickParams.axes[number].minRange, joystickParams.axes[number].maxRange, -1.f , 1.f );
-				qDebug() << "Invert: "+QString::number(joystickParams.axes[number].inverted);
+				normalized_value = normalize(value, -32000, 32000, joystickParams.axes[number].minRange, joystickParams.axes[number].maxRange);
+				if(joystickParams.axes[number].inverted )	normalized_value *= -1;
 				data.axes[number].value = normalized_value;
+				qDebug() << "Axis:" << number << "Value:" << normalized_value;
 				sendEvent = true;
 				break;
 			}
-			else
-			{
-				if(joystickParams.axes[number].inverted)
-				{
-					value *= -1;
-				}
-				
-				normalized_value = normalize(value, joystickParams.axes[number].minRange, joystickParams.axes[number].maxRange, -1.f , 1.f );
-				
-				if( fabs(normalized_value - data.axes[number].value) > JOYSTICK_PRECISION )
-				{
-					//~ rDebug(QString::number(fabs(normalized_value - joystickParams.data.axes[number].value) > JOYSTICK_PRECISION ));
-					data.axes[number].value = normalized_value;
-					sendEvent = true;
-				}
-			}
 		}
-		break;
 		case JOYSTICK_EVENT_TYPE_BUTTON:
 		{
 			//rDebug("Received Button Event: "+QString::number(value)+", "+QString::number(type)+", "+QString::number(number));

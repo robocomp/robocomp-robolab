@@ -19,8 +19,6 @@
 #ifndef CONST_H
 #define CONST_H
 
-#define PROGRAM_NAME        "JoyStickHandler"
-#define PROGRAM_FILE_NAME   "joystickhandler"
 
 //OJO tiene que ser simétrico de momento
 #define JOYSTICK_MAX_RAW 32767.

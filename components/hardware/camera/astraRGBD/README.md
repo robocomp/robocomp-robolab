@@ -74,9 +74,9 @@ After editing the new config file we can run the component:
 `astraRGBD` is currently under development and hence only some of the main functions of the `RGBD.idsl` interface have been implemented.
 
 ## Known issues
-The command
+In the directory `AstraSDK-v__XXX__-Linux/samples`, the command
 ```
-./bin/SimpleBodyViewer-SFML
+./SimpleBodyViewer-SFML
 ```
 sometimes fails silently showing just a black screen.
 You can change the messages shown on on the terminal by the example modifying the `lib/astra.toml` and set

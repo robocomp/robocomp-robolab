@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,45 +16,39 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "joystickhandler.h"
+#include "specificworker.h"
 
-JoyStickHandler::JoyStickHandler(qjh_cfg_t cfg,RoboCompOmniRobot::OmniRobotPrx _base_proxy, QString joystick_device )
+/**
+* \brief Default constructor
+*/
+SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
 	mutex = new QMutex(QMutex::Recursive);
 	buttonPressed = false;
-	config = cfg;
-	base_proxy = _base_proxy;
-	try
-	{
-//		RoboCompOmniRobot::TMechParams mparams;
-//		mparams = base_proxy->getParams();
-// 		if(mparams.maxVelAdv < config.maxAdv)
-// 			config.maxAdv = mparams.maxVelAdv;
-// 		if(mparams.maxVelRot < config.maxRot)
-// 			config.maxRot = mparams.maxVelRot;
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Failure reading differentialRobot params. Using maxAdv and maxSteer values from config" << endl;
-	}
+
 	// Set the base joystick axis initial data
 	base_joy_axis.actualX = 0.;
 	base_joy_axis.actualY = 0.;
 	base_joy_axis.actualZ = 0.;
 
-	joystick = new QJoyStick(joystick_device, 3);
+	
 	jtimer = new QTimer();
 	sendSpeed = false;
 
 	// Connect signals
-	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoyStickEvent(int, int, int) ) );
+	
 	connect( jtimer, SIGNAL( timeout() ), this, SLOT( sendJoyStickEvent() ) );
 	qWarning("[%s]: New JoyStick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d], ZMotionAxis [%2d]", PROGRAM_NAME, config.XMotionAxis, config.YMotionAxis, config.ZMotionAxis);
 	qWarning("[%s]: Max advance speed: [%i, %i], Max steering speed: [%f]",PROGRAM_NAME, config.maxAdvX, config.maxAdvZ, config.maxRot);
+
 }
 
-JoyStickHandler::~JoyStickHandler()
+/**
+* \brief Default destructor
+*/
+SpecificWorker::~SpecificWorker()
 {
+	std::cout << "Destroying SpecificWorker" << std::endl;
 	jtimer->stop();
 	joystick->stop();
 	
@@ -65,20 +59,60 @@ JoyStickHandler::~JoyStickHandler()
 	delete joystick;
 }
 
-bool JoyStickHandler::open()
+bool SpecificWorker::open()
 {
 	if (joystick->openQJoy())
 	{
 		joystick->start();
 		if (config.SampleRate < 1) config.SampleRate = 1;
 		jtimer->start( 1000 / config.SampleRate );
-		return TRUE;
+		return true;
 	}
 	else
-		return FALSE;
+		return false;
 }
 
-void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
+bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList _params)
+{
+	params = _params;
+
+	config.XMotionAxis = stoi(params.at("XMotionAxis").value);
+	config.YMotionAxis = stoi(params.at("YMotionAxis").value);
+	config.ZMotionAxis = stoi(params.at("ZMotionAxis").value);
+	config.SampleRate = stoi(params.at("SampleRate").value);
+	config.maxAdvX = stoi(params.at("MaxAdvanceX").value);
+	config.maxAdvZ = stoi(params.at("MaxAdvanceZ").value);
+	config.maxRot = stof(params.at("MaxSteering").value);
+	joystick = new QJoyStick(QString::fromStdString(params.at("Device").value), 3);
+	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoyStickEvent(int, int, int) ) );
+	return true;
+}
+
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	this->Period = period;
+	timer.start(Period);
+	open();
+}
+
+void SpecificWorker::compute()
+{
+//computeCODE
+//QMutexLocker locker(mutex);
+//	try
+//	{
+//		camera_proxy->getYImage(0,img, cState, bState);
+//		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
+//		searchTags(image_gray);
+//	}
+//	catch(const Ice::Exception &e)
+//	{
+//		std::cout << "Error reading from Camera" << e << std::endl;
+//	}
+}
+
+void SpecificWorker::receivedJoyStickEvent(int value, int type, int number)
 {
 // 	printf("a\n");
 	QMutexLocker locker(mutex);
@@ -121,7 +155,7 @@ void JoyStickHandler::receivedJoyStickEvent(int value, int type, int number)
 // 	printf("z\n");
 }
 
-void JoyStickHandler::sendJoyStickEvent()
+void SpecificWorker::sendJoyStickEvent()
 {
 	QMutexLocker locker(mutex);
 
@@ -151,7 +185,7 @@ void JoyStickHandler::sendJoyStickEvent()
 	try
 	{
 		printf("send: (%f %f) %f\n", xv, zv, rv);
-		base_proxy->setSpeedBase(xv, zv, rv);
+		omnirobot_proxy->setSpeedBase(xv, zv, rv);
 	}
 	catch(const Ice::Exception& ex)
 	{
@@ -163,4 +197,17 @@ void JoyStickHandler::sendJoyStickEvent()
 	bzv = zv;
 	brv = rv;
 }
+
+
+void SpecificWorker::JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
+{
+	joystickBufferedData = gbd;
+	
+}
+
+void SpecificWorker::JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd)
+{
+	gbd = joystickBufferedData;
+}
+
 

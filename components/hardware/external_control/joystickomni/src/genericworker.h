@@ -23,16 +23,19 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-
 #include <CommonBehavior.h>
 
-#include <JoystickAdapter.h>
+#include <GenericBase.h>
+#include <JoyStick.h>
+#include <OmniRobot.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompJoystickAdapter;
+using namespace RoboCompGenericBase;
+using namespace RoboCompJoyStick;
+using namespace RoboCompOmniRobot;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
@@ -51,10 +54,13 @@ public:
 	QMutex *mutex;
 
 
-	JoystickAdapterPrx joystickadapter_pubproxy;
+	OmniRobotPrx omnirobot_proxy;
 
+	virtual void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd) = 0;
+	virtual void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd) = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -63,7 +69,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

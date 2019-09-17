@@ -1,0 +1,13 @@
+import "JoyStick.idsl";
+import "OmniRobot.idsl";
+
+Component joystickomni
+{
+    Communications
+    {
+        implements JoyStick;
+        requires OmniRobot;
+    };
+	language Cpp;
+};
+

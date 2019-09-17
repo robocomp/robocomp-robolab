@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,27 +16,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef JOYSTICKHANDLER_H
-#define JOYSTICKHANDLER_H
 
-#include <math.h>
-#include <QtCore>
-#include <QIODevice>
-#include <QTimer>
+/**
+       \brief
+       @author authorname
+*/
 
-#include <Ice/Ice.h>
 
-#include <OmniRobot.h>
 
-#include <qjoystick/qjoystick.h>
+#ifndef SPECIFICWORKER_H
+#define SPECIFICWORKER_H
+
+#include <genericworker.h>
+#include <innermodel/innermodel.h>
+#include <joystickhandler.h>
 #include <const.h>
 
-using namespace std;
-
-class JoyStickHandler : public QObject
+class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
-public:
+private:
+	RoboCompJoyStick::JoyStickBufferedData joystickBufferedData; 
+	RoboCompCommonBehavior::ParameterList params;
+	std::shared_ptr<InnerModel> innerModel;
+	QMutex *mutex;
 	struct qjh_cfg_t
 	{
 		int32_t XMotionAxis;
@@ -46,35 +49,33 @@ public:
 		float maxRot;
 		int32_t SampleRate;
 	};
-
-private:
-	QMutex *mutex;
 	struct qjh_joy_axis
 	{
 		float actualX;
 		float actualY;
 		float actualZ;
 	};
-
 	QTimer *jtimer; // Resend joy data to client
 	qjh_joy_axis base_joy_axis;
-	RoboCompOmniRobot::OmniRobotPrx base_proxy;
-
 	QJoyStick *joystick;
 	qjh_cfg_t config;
 
 	bool buttonPressed;
 	bool sendSpeed;
 public:
-	JoyStickHandler(qjh_cfg_t cfg, RoboCompOmniRobot::OmniRobotPrx base_proxy, QString joystick_device);
-	~JoyStickHandler();
-
+	SpecificWorker(MapPrx& mprx);
+	~SpecificWorker();
+	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	bool open();
+	void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
+	void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd);
 
-private slots:
+public slots:
+	void compute();
+	void initialize(int period);
 	void receivedJoyStickEvent( int value, int type, int number );
 	void sendJoyStickEvent();
+
 };
 
 #endif
-

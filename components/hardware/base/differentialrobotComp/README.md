@@ -1,19 +1,15 @@
-```
-```
-#
-``` DifferentialRobotComp
-```
+# DifferentialRobotComp
 
 `DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. The follow list specifies set of implemented control functions as specified in interface `DifferentialRobot.ice`:
 
-- *getBaseState(RoboCompGenericBase::TBaseState  &state)*: gets robot state type `TBaseState`.
-- *getBasePose(int  &x,  int  &z,  float  &alpha)*: returns current robot pose (e.g x-z coordinate and orientation alpha).
-- *setSpeedBase(const float  advx, const float advz, const float  rot)*: sets robot speed with translational `(advx, advz)` and rotational velocity `rot`. For the case of differential robot, translational velocity is only effective in X direction.  
-- *stopBase(const Ice::Current&)*: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.
-- *resetOdometer()*: resets odometry of robot to values `x=0, z=0, alpha=0`
-- *setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)*: sets user-input odometry via `TBaseState` state type for the robot base. It also updates the internal model by calling function *correctOdometer*.
-- *setOdometerPose(const int  x, const int  z, const float  alpha)*: sets user-input odometry in the innermodel to the values x,z,alpha.
-- *correctOdometer(const int  x, const int  z, const float  alpha)*: sets user-input odometry in the innermodel to the values x,z,alpha.
+- **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets robot state type `TBaseState`.
+- **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).
+- **setSpeedBase(const float  advx, const float advz, const float  rot)**: sets robot speed with translational `(advx, advz)` and rotational velocity `rot`. For the case of differential robot, translational velocity is only effective in X direction.  
+- **stopBase(const Ice::Current&)**: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.
+- **resetOdometer()**: resets odometry of robot to values x=0, z=0, alpha=0.
+- **setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)**: sets user-input odometry via `TBaseState` state type for the robot base. It also updates the internal model by calling function **correctOdometer**.
+- **setOdometerPose(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
+- **correctOdometer(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
 
 More information about input parameters of these function can be found in file `robocomp/interfaces/DifferentialRobot.ice`.
 

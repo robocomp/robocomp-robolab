@@ -4,7 +4,7 @@
 ``` DifferentialRobotComp
 ```
 
-`DifferentialRobotComp` component is implemented as a controller for differential robot (e.g two wheels robot) simulated in Gazebo environment. The follow list specifies set of implemented control functions for the simulated robot on Gazebo, as specified in interface `DifferentialRobot.ice`:
+`DifferentialRobotComp` component is implemented as a generic controller for differential robot (e.g two wheels robot). The follow list specifies set of implemented control functions as specified in interface `DifferentialRobot.ice`:
 
 - *getBaseState*: gets robot state in Gazebo environment.
 - *getBasePose*: provides current robot pose (e.g x-y coordinate and orientation) in Gazebo environment.
@@ -51,12 +51,12 @@ DifferentialRobotComp.Endpoints=tcp -p 10004
 #DRobot.Handler= Player
 
 #Robex configuration
-DRobot.Device=/dev/ttyUSB0
-DRobot.Handler = Robex
+DRobot.Device=/dev/ttyUSB0 # specifies USB port that the motor driver is connected
+DRobot.Handler = Robex     
 
 DRobot.Logger = local
-DRobot.maxVelAdv = 300
-DRobot.maxVelRot = 0.8
+DRobot.maxVelAdv = 300     # max translational velocity allowed
+DRobot.maxVelRot = 0.8     # max rotational velocity allowed
 
 #Pulguita usa Maxon
 #Speedy usa Faulhaber
@@ -95,7 +95,7 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
 
-Note that we need to make sure the port number of the parameter `DifferentialRobotComp.Endpoints` is the same as the corresponding number of the client component using the `DifferentialRobotComp` component.
+The config file is self-explained, please note that we can switch between simulation and real operation by changing the parameter `DRobot.Device`. Also note that we need to make sure the port number of the parameter `DifferentialRobotComp.Endpoints` is the same as the corresponding number of the client component using the `DifferentialRobotComp` component.
 
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:

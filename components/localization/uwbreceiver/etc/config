@@ -4,8 +4,8 @@ CommonBehavior.Endpoints=tcp -p 10000
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 0
 
-device = /dev/ttyACM0
-initial_reading = 50
+device = /dev/uwb
+initial_reading = 10
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

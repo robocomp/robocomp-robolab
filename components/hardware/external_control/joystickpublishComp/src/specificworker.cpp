@@ -135,7 +135,7 @@ void SpecificWorker::sendJoystickEvent()
 			}
 			if(sendEvent)
 				sendEvent = false;
-			joystickadapter_proxy->sendData(data);
+			joystickadapter_pubproxy->sendData(data);
 		}
 	}
 	catch(const Ice::Exception& ex)

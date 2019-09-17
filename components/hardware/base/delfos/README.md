@@ -3,36 +3,62 @@
 #
 ``` delfos
 ```
-Intro to component here
 
-This is the base controller for the omnidirectional Viriato robot. Implements OmniRobot interface
+`delfos` component is implemented as generic controller for omnidirectional robot (e.g omni wheels robot) in RoboComp left-handed coordinate. The follow list specifies set of implemented control functions as specified in interface `OmniRobot.idsl`:
 
+- *getBaseState(RoboCompGenericBase::TBaseState  &state)*: gets robot state type `TBaseState`.
+- *getBasePose(int  &x,  int  &z,  float  &alpha)*: returns current robot pose (e.g x-z coordinate and orientation alpha).
+- *setSpeedBase(const float  advx, const float advz, const float  rot)*: sets robot speed with translational `(advx, advz)` and rotational velocity `rot`. For the case of omnidirectional robot, translational velocity is effective with all directions in X-Z coordinate.  
+- *stopBase(const Ice::Current&)*: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.
+- *resetOdometer()*: resets odometry of robot to values `x=0, z=0, alpha=0`
+- *setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)*: sets user-input odometry via `TBaseState` state type for the robot base. It also updates the internal model by calling function *correctOdometer*.
+- *setOdometerPose(const int  x, const int  z, const float  alpha)*: sets user-input odometry in the innermodel to the values x,z,alpha.
+- *correctOdometer(const int  x, const int  z, const float  alpha)*: sets user-input odometry in the innermodel to the values x,z,alpha.
+
+More information about input parameters of these function can be found in file `robocomp/interfaces/IDSLs/OmniRobot.ice`.
+
+## Compiling and Installation
+
+This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
+
+If so, we can compile the `delfos` component:
+```
+cd ~/robocomp/components/robocomp-robolab/components/hardware/base/delfos/
+cmake .
+make
+```
 
 ## Configuration parameters
-As any other component,
-``` *delfos* ```
-needs a configuration file to start. In
+As any other component, *delfos*
+needs a configuration file to start. In `etc/config` you can find an example of a configuration file. We can find there the following lines:
 
-    etc/config
+```
+CommonBehavior.Endpoints=tcp -p 12321
 
-you can find an example of a configuration file. We can find there the following lines:
 
-    EXAMPLE HERE
+# Endpoints for implemented interfaces
+OmniRobot.Endpoints=tcp -p 12238
 
-    
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+```
+
+Note that we need to make sure the port number of the parameter `OmniRobot.Endpoints` is the same as the corresponding number of the client component using the `delfos` component.
+
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
-    cd
+```
+cp etc/config etc/config-run
+```
 
-``` <delfos 's path> ```
-
-    cp etc/config config
-    
 After editing the new config file we can run the component:
 
-    bin/
-
-```delfos ```
-
-    --Ice.Config=config
+```
+./bin/delfos --Ice.Config=etc/config-run
+```

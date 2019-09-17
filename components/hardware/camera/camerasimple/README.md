@@ -36,11 +36,11 @@ Note that we need to make sure the port number of the parameter `CameraSimple.En
 
 To avoid changing the config file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 ```
-cp etc/config config
+cp etc/config etc/config-run
 ```
 
 After editing the new config file we can run the component:
 ```
-python src/camerasimple.py --Ice.Config=config
+python src/camerasimple.py --Ice.Config=etc/config-run
 ```
 ## Known issues

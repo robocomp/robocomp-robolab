@@ -81,6 +81,7 @@ void SpecificWorker::compute()
 		RoboCompFullPoseEstimation::FullPose pose;
 		pose.x = pos.x();
 		pose.z = pos.y();
+		std::cout << "Pose read: "<< pos.x() << " " << pos.y() << std::endl;
 		fullposeestimationpub_pubproxy->newFullPose(pose);
 	}
 	catch(const Ice::Exception &e)
@@ -93,7 +94,7 @@ void SpecificWorker::compute()
 
 void SpecificWorker::sm_compute()
 {
-	std::cout<<"Entered state compute"<<std::endl;
+	//std::cout<<"Entered state compute"<<std::endl;
     
 	compute();
 }

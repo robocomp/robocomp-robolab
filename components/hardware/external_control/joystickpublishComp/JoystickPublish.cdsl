@@ -1,9 +1,0 @@
-import "JoystickAdapter.idsl";
-
-Component JoystickPublishComp{
-	Communications{
-		publishes JoystickAdapter;
-	};
-	
-	language Cpp;
-};

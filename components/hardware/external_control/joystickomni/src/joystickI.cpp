@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,28 +18,23 @@
  */
 #include "joystickI.h"
 
-JoyStickI::JoyStickI(  QObject *parent)
-    : QObject(parent)
+JoyStickI::JoyStickI(GenericWorker *_worker)
 {
-  
-    // Component initialization ...
+	worker = _worker;
 }
 
 
 JoyStickI::~JoyStickI()
 {
-    // Free component resources here
 }
 
-void JoyStickI::readJoyStickBufferedData( RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current& ) 
+void JoyStickI::writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&)
 {
-    gbd = joystickBufferedData;
+	worker->JoyStick_writeJoyStickBufferedData(gbd);
 }
 
-void JoyStickI::writeJoyStickBufferedData( const RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current& )
+void JoyStickI::readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&)
 {
-    joystickBufferedData = gbd;
+	worker->JoyStick_readJoyStickBufferedData(gbd);
 }
 
-
-// Component functions, implementation

@@ -51,7 +51,7 @@ public:
 	QMutex *mutex;
 
 
-	JoystickAdapterPrx joystickadapter_proxy;
+	JoystickAdapterPrx joystickadapter_pubproxy;
 
 
 protected:

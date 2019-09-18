@@ -24,8 +24,8 @@ import sys, os, traceback, time
 from PySide import QtGui, QtCore
 from datetime import datetime
 
-from HandDetection.Hand import Hand
-from HandDetection.roi import Roi, SIDE
+from libs.HandDetection.Hand import Hand
+from libs.HandDetection.roi import Roi, SIDE
 from genericworker import *	
 from libs.HandDetection.HandDetection import HandDetector
 from scipy import stats

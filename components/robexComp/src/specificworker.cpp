@@ -109,7 +109,7 @@ void SpecificWorker::DifferentialRobot_setOdometer(const RoboCompGenericBase::TB
 
 void SpecificWorker::DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state)
 {
-	bState = handler->getBaseState();
+	state = handler->getBaseState();
 }
 
 void SpecificWorker::DifferentialRobot_setOdometerPose(const int x, const int z, const float alpha)

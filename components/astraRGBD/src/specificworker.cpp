@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C)2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,167 +19,286 @@
 #include "specificworker.h"
 #include <csignal>
 
-
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx)
+		:GenericWorker(mprx)
 {
-    setPeriod(33);
-//    timer.stop();
-//    QObject::connect(this, SIGNAL(kill()), this, SLOT(this->terminate()));
-
 }
-
-
 
 /**
 * \brief Default destructor
 */
 SpecificWorker::~SpecificWorker()
 {
-    qDebug()<<"Destroying SpecificWorker";
-    this->terminate();
+	qDebug() << "Destroying SpecificWorker";
+	this->terminate();
 }
 
 void SpecificWorker::terminate()
 {
-    std::cout<<"Terminating astra"<<std::endl;
-    astra::terminate();
+	std::cout << "Terminating astra" << std::endl;
+	astra::terminate();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 
-    depthB = QString::fromStdString(params["depth"].value).contains("true");
+	depthB = QString::fromStdString(params["depth"].value).contains("true");
 	colorB = QString::fromStdString(params["color"].value).contains("true");
 	bodyB = QString::fromStdString(params["body"].value).contains("true");
+	pointB = QString::fromStdString(params["point"].value).contains("true");
 
+	astra::initialize();
 
-    astra::initialize();
-    reader = new astra::StreamReader(streamSet.create_reader());
-    frameListener = new MultiFrameListener(*reader);
+// Para abrir varias camaras con streamSet("")
+//    astra::StreamSet streamSet1("device/sensor0");
+//    astra::StreamSet streamSet2("device/sensor1");
+//    streamSet = streamSet2;
+
+	frameListener = new MultiFrameListener(this->humantrackerjointsandrgb_pubproxy);
+	frameListener->set_color_stream(colorB);
+	qDebug() << "Color stream will be opened? " << colorB;
+	frameListener->set_depth_stream(depthB);
+	qDebug() << "Depth stream will be opened? " << depthB;
+	frameListener->set_point_stream(pointB);
+	qDebug() << "Points  stream will be opened? " << pointB;
+	frameListener->set_body_stream(bodyB);
+	qDebug() << "Body stream will be opened? " << bodyB;
+
 //	timer.start(Period);
 //    initializeStreams();
-    frameListener->set_color_stream(colorB);
-    qDebug()<<"Color stream will be opened? "<<colorB;
-    frameListener->set_depth_stream(depthB);
-    qDebug()<<"Depth stream will be opened? "<<depthB;
-    frameListener->set_point_stream(false);
-    qDebug()<<"Points  stream will be opened? "<<false;
-    frameListener->set_body_stream(bodyB);
-    qDebug()<<"Body stream will be opened? "<<bodyB;
 
-    reader->add_listener(*frameListener);
+
 	return true;
+}
+
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	//currently there's no default way to change the period without getting this overwrited by initialize
+	this->Period = 1/30;
+	timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
 	QMutexLocker locker(mutex);
-    astra_update();
-
-    PersonList users;
-    qDebug()<<"SIZE OF USERS "<<users.size();
-
-//    users.clear();
-
-    getUsersList(users);
-
-    qDebug()<<"SIZE OF USERS "<<users.size();
-
-
-    for(auto what : users)
-    {
-        qDebug()<<"ID " <<what.first << "STATUS"<<what.second.state;
-        jointListType jointsperson;
-
-        jointsperson = what.second.joints;
-
-//        for (auto j : jointsperson)
-//        {
-//        }
-    }
-
-
-    users.clear();
-    qDebug()<<"-----------------------------------------------------------------";
+	astra_update();
 
 }
 
+float SpecificWorker::compute_fps(bool print)
+{
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point current_time = std::chrono::system_clock::now();
+	fsec delta_time = current_time-last_time;
+	if (print) {
+		std::cout << fsec(1)/delta_time << endl;
+	}
+	last_time = current_time;
+	return fsec(1)/delta_time;
+}
 
-Registration SpecificWorker::getRegistration()
+Registration SpecificWorker::RGBD_getRegistration()
+{
+	qDebug() << "getRGBDParams Not implemented yet";
+}
+
+void
+SpecificWorker::RGBD_getData(imgType& rgbMatrix, depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
+{
+	if (!this->colorB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	if (!this->depthB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_color(rgbMatrix);
+	frameListener->get_depth(distanceMatrix);
+
+}
+
+void
+SpecificWorker::RGBD_getXYZ(PointSeq& points, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
+{
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::system_clock::time_point initial_time = std::chrono::system_clock::now();
+
+	if (!this->pointB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_points(points);
+
+	std::cout << "RGBD_getXYZ: fps " << fsec(1)/(std::chrono::system_clock::now()-initial_time) << endl;
+	compute_fps(true);
+
+}
+
+void
+SpecificWorker::RGBD_getRGB(ColorSeq& color, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
+{
+	if (!this->colorB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_color(color);
+}
+
+TRGBDParams SpecificWorker::RGBD_getRGBDParams()
+{
+	qDebug() << "getRGBDParams Not implemented yet";
+}
+
+void
+SpecificWorker::RGBD_getDepth(DepthSeq& depth, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
 {
 //implementCODE
-
+	if (!this->depthB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_depth(depth);
 }
 
-void SpecificWorker::getData(imgType &rgbMatrix, depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::RGBD_setRegistration(const Registration& value)
 {
 //implementCODE
-//	RGBMutex->lock();
-//	rgbMatrix=*colorImage;
-//	RGBMutex->unlock();
-//	depthMutex->lock();
-//	distanceMatrix=*depthImage;
-//	depthMutex->unlock();
-//    qDebug()<<"Trying to get data";
-
-    frameListener->get_color(rgbMatrix);
-    frameListener->get_depth(distanceMatrix);
-//    qDebug()<<"getDepth"<<distanceMatrix.size();
-
+	qDebug() << "RGBD_setRegistration Not implemented yet";
 }
 
-void SpecificWorker::getXYZ(PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void
+SpecificWorker::RGBD_getXYZByteStream(imgType& pointStream, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
 {
 //implementCODE
-    frameListener->get_points(points);
+	if (!this->pointB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_points_stream(pointStream);
+
 }
 
-void SpecificWorker::getRGB(ColorSeq &color, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void
+SpecificWorker::RGBD_getImage(ColorSeq& color, DepthSeq& depth, PointSeq& points,
+		RoboCompJointMotor::MotorStateMap& hState, RoboCompGenericBase::TBaseState& bState)
 {
 //implementCODE
-    frameListener->get_color(color);
+	if (!this->colorB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"color\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	if (!this->depthB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"depth\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	if (!this->pointB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"points\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+
+	frameListener->get_color(color);
+	frameListener->get_depth(depth);
+	frameListener->get_points(points);
+
 }
 
-TRGBDParams SpecificWorker::getRGBDParams()
+void
+SpecificWorker::RGBD_getDepthInIR(depthType& distanceMatrix, RoboCompJointMotor::MotorStateMap& hState,
+		RoboCompGenericBase::TBaseState& bState)
+{
+	qDebug() << "getDepthInIR Not implemented yet";
+}
+
+void SpecificWorker::HumanTracker_getJointsPosition(const int id, RoboCompHumanTracker::jointListType& jointList)
 {
 //implementCODE
-    qDebug()<<"getRGBDParams Not implemented yet";
+	qDebug() << "HumanTracker_getJointsPosition Not implemented yet";
 }
 
-void SpecificWorker::getDepth(DepthSeq &depth, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+void SpecificWorker::HumanTracker_getRTMatrixList(const int id, RoboCompHumanTracker::RTMatrixList& RTMatList)
 {
 //implementCODE
-    frameListener->get_depth(depth);
+	qDebug() << "HumanTracker_getRTMatrixList Not implemented yet";
 }
 
-void SpecificWorker::setRegistration(const Registration &value)
+void SpecificWorker::HumanTracker_getUser(const int id, RoboCompHumanTracker::TPerson& user)
 {
 //implementCODE
-    qDebug()<<"setRegistration Not implemented yet";
+	qDebug() << "HumanTracker_getUser Not implemented yet";
 }
 
-void SpecificWorker::getImage(ColorSeq &color, DepthSeq &depth, PointSeq &points, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
+bool SpecificWorker::HumanTracker_getJointDepthPosition(const int idperson, const string& idjoint, RoboCompHumanTracker::joint& depthjoint)
+{
+
+	if (!this->bodyB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"body\" flag in etc/config or the config file you are using."
+				<< endl;
+		return false;
+	}
+	depthjoint = frameListener->getJointDepth(idperson, idjoint);
+
+	if (depthjoint.size()>0)
+		return true;
+
+	else {
+		depthjoint = {};
+		return false;
+	};
+}
+
+void SpecificWorker::HumanTracker_getUsersList(RoboCompHumanTracker::PersonList& users)
+{
+	if (!this->bodyB) {
+		std::cout << "WARNING: A request for a not initiated STREAM have been received." << endl;
+		std::cout
+				<< "WARNING: Probably you want to check the \"body\" flag in etc/config or the config file you are using."
+				<< endl;
+		return;
+	}
+	frameListener->get_people(users);
+}
+
+void SpecificWorker::HumanTracker_getUserState(const int id, RoboCompHumanTracker::TrackingState& state)
 {
 //implementCODE
-    frameListener->get_color(color);
-    frameListener->get_depth(depth);
-    frameListener->get_points(points);
+	qDebug() << "HumanTracker_getUserState Not implemented yet";
 }
-
-void SpecificWorker::getDepthInIR(depthType &distanceMatrix, RoboCompJointMotor::MotorStateMap &hState, RoboCompGenericBase::TBaseState &bState)
-{
-    qDebug()<<"getDepthInIR Not implemented yet";
-}
-
-void  SpecificWorker::getUsersList(PersonList &users){
-    qDebug()<<"getUserList";
-    frameListener->get_people(users);
-
-
-};
-
-
-

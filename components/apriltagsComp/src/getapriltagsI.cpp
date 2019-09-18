@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2018 by YOUR NAME HERE
+ *    Copyright (C) 2019 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -30,6 +30,6 @@ GetAprilTagsI::~GetAprilTagsI()
 
 listaMarcas GetAprilTagsI::checkMarcas(const Ice::Current&)
 {
-	return worker->checkMarcas();
+	return worker->GetAprilTags_checkMarcas();
 }
 

@@ -1,0 +1,28 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+
+# Endpoints for implemented interfaces
+Laser.Endpoints=tcp -p 10003
+
+# Hokuyo sensor specific parameters
+Laser.Driver=HokuyoURG
+Laser.Device=/dev/ttyACM0
+Laser.StartValue=0
+Laser.EndValue=768
+Laser.SkipValue=1
+Laser.SampleRate=100
+Laser.angleRes=0.00613593
+Laser.angleIni=-2.356197
+Laser.Cluster=1
+Laser.minRange=40
+Laser.maxRange=4094
+Laser.TalkToBase=false
+Laser.maxDegrees=240
+Laser.staticConf=1
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10

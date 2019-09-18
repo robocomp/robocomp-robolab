@@ -29,7 +29,7 @@ SpecificMonitor::SpecificMonitor(GenericWorker *_worker,Ice::CommunicatorPtr _co
 */
 SpecificMonitor::~SpecificMonitor()
 {
-    qDebug()<<"Destroying SpecificMonitor";
+	std::cout << "Destroying SpecificMonitor" << std::endl;
 }
 
 void SpecificMonitor::run()
@@ -61,7 +61,8 @@ void SpecificMonitor::initialize()
 		rError("Error reading config parameters. Exiting");
 		killYourSelf();
 	}
-	state = RoboCompCommonBehavior::Running;
+	state = RoboCompCommonBehavior::State::Running;
+	emit initializeWorker(period);
 }
 
 bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList params)
@@ -93,9 +94,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["color"] = aux;
 	configGetString("", "body", aux.value,"true");
 	params["body"] = aux;
+	configGetString("", "point", aux.value,"true");
+	params["point"] = aux;
 }
 
-//comprueba que los parametros sean correctos y los transforma a la estructura del worker
+//Check parameters and transform them to worker structure
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;

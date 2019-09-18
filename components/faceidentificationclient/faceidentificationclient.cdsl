@@ -1,0 +1,12 @@
+import "CameraSimple.idsl";
+import "FaceIdentification.idsl";
+
+Component faceidentificationclient
+{
+	Communications
+	{
+		requires CameraSimple;
+		requires FaceIdentification;
+	};
+	language Python;
+};

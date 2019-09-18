@@ -82,8 +82,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList _params)
 	config.SampleRate = stoi(params.at("SampleRate").value);
 	config.maxAdvX = stoi(params.at("MaxAdvanceX").value);
 	config.maxAdvZ = stoi(params.at("MaxAdvanceZ").value);
-	config.maxRot = stof(params.at("MaxSteering").value);
-	joystick = new QJoyStick(QString::fromStdString(params.at("Device").value), 3);
+	config.maxRot = QString::fromStdString(params.at("MaxSteering").value).toFloat();
+    joystick = new QJoyStick(QString::fromStdString(params.at("Device").value), 3);
 	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoyStickEvent(int, int, int) ) );
 	return true;
 }

@@ -29,8 +29,8 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-#include <joystickhandler.h>
 #include <const.h>
+#include <qjoystick/qjoystick.h>
 
 class SpecificWorker : public GenericWorker
 {

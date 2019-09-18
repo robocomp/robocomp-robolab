@@ -1,8 +1,10 @@
 CommonBehavior.Endpoints=tcp -p 10000
-
-
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 10696
+
+
+# Proxies for required interfaces
+FullPoseEstimationProxy = fullposeestimation:tcp -h localhost -p 12400
 
 InnerModelPath=/home/robocomp/robocomp/components/robocomp-viriato/etcSim/simulation.xml
 /home/robocomp/robocomp/files/innermodel/cubeOnFloor.xml

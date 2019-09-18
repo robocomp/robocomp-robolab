@@ -5,6 +5,7 @@ Component RealSensePoseEstimation
 {
     Communications
     {
+        requires FullPoseEstimation;
         implements FullPoseEstimation;
   //      publishes FullPoseEstimationPub;
     };

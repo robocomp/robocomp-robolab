@@ -95,7 +95,7 @@ void SpecificWorker::compute()
 	
 	float factor = 10000.;
 	innerModel->updateTransformValues("box_t", tr.x*factor, tr.y*factor, tr.z*factor, angles.x(), angles.y(), angles.z() );
-	
+	full_pose = {tr.x*1000, tr.y*1000, tr.z*1000, angles.x(), angles.y(), angles.z()};
 	// Update innermodelviewer
 	innerModelViewer->update();
 	osgView->frame();
@@ -105,7 +105,7 @@ void SpecificWorker::compute()
 
 FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
-	return FullPose();
+	return full_pose;
 }
 
 

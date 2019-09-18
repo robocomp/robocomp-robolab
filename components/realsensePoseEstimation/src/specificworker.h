@@ -29,6 +29,7 @@
 #include <osgviewer/osgview.h>
 #include <innermodel/innermodelviewer.h>
 #include <innermodel/innermodel.h>
+#include <doublebuffer/DoubleBuffer.h>
 
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
@@ -54,6 +55,7 @@ private:
 	std::shared_ptr<InnerModel> innerModel;
 	OsgView *osgView;
 	InnerModelViewer *innerModelViewer;
+	FullPose full_pose;
 	
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;

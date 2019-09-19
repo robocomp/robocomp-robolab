@@ -43,6 +43,7 @@ public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
+	void getInitialPose();
 
 	FullPose FullPoseEstimation_getFullPose();
 
@@ -55,11 +56,7 @@ private:
 	OsgView *osgView;
 	InnerModelViewer *innerModelViewer;
 	mutable std::mutex bufferMutex;
-	FullPose fullpose;
-	
-	// Initial pose offset
-	int x_offset = 1500;
-	int z_offset = -1500;
+	FullPose fullpose, initial_offset;
 	
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;

@@ -39,7 +39,7 @@
 using namespace std;
 using namespace RoboCompFullPoseEstimation;
 
-using TuplePrx = std::tuple<>;
+using TuplePrx = std::tuple<RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr>;
 
 
 class GenericWorker :
@@ -60,6 +60,7 @@ public:
 	QMutex *mutex;
 
 
+	FullPoseEstimationPrxPtr fullposeestimation_proxy;
 
 	virtual FullPose FullPoseEstimation_getFullPose() = 0;
 

@@ -34,7 +34,7 @@ class TestRoi(unittest.TestCase):
 
 
         }
-        full_path = "/home/robolab/robocomp/components/robocomp-robolab/components/handDetection/src/images/depth_images"
+        full_path = "/home/robolab/robocomp/components/robocomp-robolab/components/detection/handDetection/src/images/depth_images"
         for file in sorted(os.listdir(full_path)):
             if file.endswith(".png") and file in expected_results:
                 frame = RGBDFrame(cv2.imread(os.path.join(full_path, file),0))

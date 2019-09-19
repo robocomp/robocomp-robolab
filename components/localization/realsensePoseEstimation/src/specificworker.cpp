@@ -66,9 +66,20 @@ void SpecificWorker::initialize(int period)
 	cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
 	// Start pipeline with chosen configuration
 	pipe.start(cfg);
-
+	initial_offset = {0,0,0,0.,0.,0.};
+	getInitialPose();
 	this->Period = 20;
 	timer.start(Period);
+}
+
+void SpecificWorker::getInitialPose()
+{
+	try{
+		initial_offset = fullposeestimation_proxy->getFullPose();
+	}catch(const Ice::Exception& ex)
+	{
+		std::cout << "Exception getting initial pose: "<<ex << std::endl;
+	}
 }
 
 void SpecificWorker::compute()
@@ -95,9 +106,9 @@ void SpecificWorker::compute()
 	QVec angles = q.toAngles();
 
 	std::lock_guard<std::mutex> lock(bufferMutex);
-		fullpose = {tr.x*1000 + x_offset, 
+		fullpose = {tr.x*1000 + initial_offset.x, 
 					tr.y*1000, 
-					tr.z*1000 + z_offset, 
+					tr.z*1000 + initial_offset.z, 
 					angles.x(), angles.y(), angles.z()};
 	
 	 

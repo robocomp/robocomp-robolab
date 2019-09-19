@@ -423,6 +423,7 @@ class Hand(object):
             if self._debug:
                 print("Mode depth")
             assert self._depth_threshold != -1, "Depth threshold must be set with set_depth_mask method. Use this method only with RGBD cameras"
+            assert image.depth is not None, "Need to have depth information on the image"
             assert len(image.shape) == 2 or image.shape[2] == 1, "Depth image should have only one channel and it have %d" % image.shape[2]
             #TODO: ENV_DEPENDENCE: the second value depends on the distance from the camera to the maximum depth where it can be found in a scale of 0-255
 

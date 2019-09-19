@@ -10,9 +10,9 @@ OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 # User config parameters
 # Example = value
 Joy.Device = /dev/input/js0
-Joy.XMotionAxis = 1
-Joy.YMotionAxis = 2
-Joy.ZMotionAxis = 0
+Joy.XMotionAxis = 0
+Joy.YMotionAxis = 1
+Joy.ZMotionAxis = 2
 Joy.SampleRate = 5
 Joy.MaxSteering = 0.3
 Joy.MaxAdvanceX = 100

@@ -32,14 +32,16 @@
 #include <CommonBehavior.h>
 
 #include <FullPoseEstimation.h>
+#include <IMU.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
 using namespace RoboCompFullPoseEstimation;
+using namespace RoboCompIMU;
 
-using TuplePrx = std::tuple<RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr>;
+using TuplePrx = std::tuple<RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr,RoboCompIMU::IMUPrxPtr>;
 
 
 class GenericWorker :
@@ -61,6 +63,7 @@ public:
 
 
 	FullPoseEstimationPrxPtr fullposeestimation_proxy;
+	IMUPrxPtr imu_proxy;
 
 	virtual FullPose FullPoseEstimation_getFullPose() = 0;
 

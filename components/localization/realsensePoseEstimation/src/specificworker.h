@@ -30,6 +30,7 @@
 #include <innermodel/innermodelviewer.h>
 #include <innermodel/innermodel.h>
 
+#define DECLINATION 0.01989675
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
 

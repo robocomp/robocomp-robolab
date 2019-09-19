@@ -135,6 +135,7 @@ int ::RealSensePoseEstimation::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	FullPoseEstimationPrxPtr fullposeestimation_proxy;
+	IMUPrxPtr imu_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -156,7 +157,23 @@ int ::RealSensePoseEstimation::run(int argc, char* argv[])
 	rInfo("FullPoseEstimationProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(fullposeestimation_proxy);
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "IMUProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy IMUProxy\n";
+		}
+		imu_proxy = Ice::uncheckedCast<IMUPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy IMU: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("IMUProxy initialized Ok!");
+
+
+	tprx = std::make_tuple(fullposeestimation_proxy,imu_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

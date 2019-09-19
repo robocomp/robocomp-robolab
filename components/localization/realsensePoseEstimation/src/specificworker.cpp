@@ -74,11 +74,32 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::getInitialPose()
 {
+	int iterations = 10;
+	//Position
+	float x = 0.f;
+	float z = 0.f;
 	try{
-		initial_offset = fullposeestimation_proxy->getFullPose();
+		RoboCompFullPoseEstimation::FullPose pose;
+		for(int i=0;i<iterations;i++)
+		{
+			 pose = fullposeestimation_proxy->getFullPose();
+			 x += pose.x;
+			 z += pose.z;
+		}
+		initial_offset.x = x/iterations;
+		initial_offset.z = z/iterations;
 	}catch(const Ice::Exception& ex)
 	{
-		std::cout << "Exception getting initial pose: "<<ex << std::endl;
+		std::cout << "Exception getting initial pose(UWB): "<<ex << std::endl;
+	}
+	//Rotation
+	try{
+		RoboCompIMU::DataImu imu = imu_proxy->getDataImu();
+		float angle = atan2(imu.mag.YMag, imu.mag.XMag);
+		initial_offset.ry = angle - DECLINATION;
+	}catch(const Ice::Exception& ex)
+	{
+		std::cout << "Exception getting initial pose(IMU): "<<ex << std::endl;
 	}
 }
 
@@ -109,7 +130,9 @@ void SpecificWorker::compute()
 		fullpose = {tr.x*1000 + initial_offset.x, 
 					tr.y*1000, 
 					tr.z*1000 + initial_offset.z, 
-					angles.x(), angles.y(), angles.z()};
+					angles.x(), 
+					angles.y() + initial_offset.ry, 
+					angles.z()};
 	
 	 
 	 innerModel->updateTransformValues("robot", fullpose.x, fullpose.y, fullpose.z, fullpose.rx, fullpose.ry, fullpose.rz );

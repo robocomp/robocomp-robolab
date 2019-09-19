@@ -1,11 +1,12 @@
 import "FullPoseEstimation.idsl";
+import "IMU.idsl";
 //import "FullPoseEstimationPub.idsl";
 
 Component RealSensePoseEstimation
 {
     Communications
     {
-        requires FullPoseEstimation;
+        requires FullPoseEstimation, IMU;
         implements FullPoseEstimation;
   //      publishes FullPoseEstimationPub;
     };

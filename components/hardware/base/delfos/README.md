@@ -1,6 +1,6 @@
 # delfos
 
-`delfos` component is implemented as generic controller for omnidirectional robot (e.g omni wheels robot) in RoboComp left-handed coordinate. The follow list specifies set of implemented functions for controlling and robot state measuring as specified in interface `OmniRobot.idsl`:
+`delfos` component is implemented as generic controller for omnidirectional robot (e.g omni wheels robot) in RoboComp left-handed coordinate. For developer notices, the follow list specifies set of implemented functions for controlling and robot state measuring as specified in interface `OmniRobot.idsl`:
 
 - **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets robot state type `TBaseState`.
 - **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).
@@ -11,7 +11,7 @@
 - **setOdometerPose(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
 - **correctOdometer(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
 
-More information about input parameters of these function can be found in file `robocomp/interfaces/IDSLs/OmniRobot.ice`.
+More information about interface parameters can be found in file `robocomp/interfaces/IDSLs/OmniRobot.ice`.
 
 ## Compiling and Installation
 
@@ -56,5 +56,5 @@ cp etc/config etc/config-run
 After editing the new config file we can run the component:
 
 ```
-./bin/delfos --Ice.Config=etc/config-run
+./bin/delfos etc/config-run
 ```

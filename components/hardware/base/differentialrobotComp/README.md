@@ -1,6 +1,6 @@
 # DifferentialRobotComp
 
-`DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. The follow list specifies set of implemented control functions as specified in interface `DifferentialRobot.ice`:
+`DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. For developer notices,  the follow list specifies set of implemented control functions as specified in interface `DifferentialRobot.ice`:
 
 - **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets robot state type `TBaseState`.
 - **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).
@@ -11,7 +11,7 @@
 - **setOdometerPose(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
 - **correctOdometer(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
 
-More information about input parameters of these function can be found in file `robocomp/interfaces/DifferentialRobot.ice`.
+More information about interface parameters can be found in file `robocomp/interfaces/DifferentialRobot.ice`.
 
 ## Compiling and Installation
 
@@ -104,5 +104,5 @@ cp etc/config etc/config-run
 After editing the new config file we can run the component:
 
 ```
-./bin/differentialrobotComp --Ice.Config=etc/config-run
+./bin/differentialrobotComp etc/config-run
 ```

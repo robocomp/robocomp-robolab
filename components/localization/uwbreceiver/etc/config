@@ -4,7 +4,9 @@ CommonBehavior.Endpoints=tcp -p 10000
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 0
 
-device = /dev/uwb
+ndevices = 2
+left = /dev/uwbL
+right = /dev/uwbR
 initial_reading = 10
 
 # This property is used by the clients to connect to IceStorm.

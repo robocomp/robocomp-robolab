@@ -88,9 +88,17 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = false;
-	configGetString( "","device", aux.value, "");
-	params["device"] = aux;
-	configGetString( "","initial_reading", aux.value, "50");
+	configGetString( "","ndevices", aux.value, "1");
+	params["ndevices"] = aux;
+	configGetString( "","left", aux.value, "/dev/uwbL");
+	params["left"] = aux;
+	configGetString( "","right", aux.value, "/dev/uwbR");
+	params["right"] = aux;
+	configGetString( "","left_offset", aux.value, "-300");
+	params["left_offset"] = aux;
+	configGetString( "","right_offset", aux.value, "300");
+	params["right_offset"] = aux;
+	configGetString( "","initial_reading", aux.value, "20");
 	params["initial_reading"] = aux;
 }
 

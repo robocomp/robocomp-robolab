@@ -57,31 +57,49 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute_initial_pose(int ntimes)
 {
-	QPointF pos;
+	QPointF posL, posR;
 	float xMed = 0;
 	float zMed = 0;
+	float angle = 0;
 	for (int cont=0; cont < ntimes; cont++)
 	{
-        pos = readData(serial_port);
-		xMed += pos.x();
-		zMed += pos.y();
-		std::cout << "Pose read: "<< pos.x() << " " << pos.y() << std::endl;
+        posL = readData(left_device);
+		if (ndevices == 2)
+		{
+			posR = readData(right_device);
+			xMed += (posL.x() + posR.x()) / 2.;
+			zMed += (posL.y() + posR.y()) / 2.;
+			angle += QLineF(posR, posL).angle();
+		}
+		else
+		{
+			xMed += posL.x();
+			zMed += posL.y();
+		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	xPos = xMed / ntimes;
 	zPos = zMed / ntimes;
-	std::cout << "initial pose: "<< xPos << " " << zPos << std::endl;
+	ryPos = angle / ntimes;
+	std::cout << "initial pose: "<< xPos << " " << zPos << " " << ryPos << std::endl;
 }
 void SpecificWorker::compute()
 {
-	QPointF pos = readData(serial_port);
+	QPointF posL = readData(left_device);
 
 	try
 	{
 		RoboCompFullPoseEstimation::FullPose pose;
-		pose.x = pos.x();
-		pose.z = pos.y();
-		std::cout << "Pose read: "<< pos.x() << " " << pos.y() << std::endl;
+		pose.x = posL.x();
+		pose.z = posL.y();
+		if (ndevices == 2)
+		{
+			QPointF posR = readData(right_device);
+			pose.x = (posL.x() + posR.x()) / 2.;
+			pose.z  = (posL.y() + posR.y()) / 2.;
+			pose.ry = QLineF(posR, posL).angle();
+		}
+		std::cout << "Pose read: "<< pose.x << " " << pose.y << " " << pose.ry << std::endl;
 		fullposeestimationpub_pubproxy->newFullPose(pose);
 	}
 	catch(const Ice::Exception &e)
@@ -102,13 +120,25 @@ void SpecificWorker::sm_compute()
 void SpecificWorker::sm_initialize()
 {
 	std::cout<<"Entered initial state initialize"<<std::endl;
-	serial_port.setPortName(QString::fromStdString(params["device"].value));
-	if(!serial_port.open(QIODevice::ReadWrite))
+	//Check devices number => If there is just one, left variable is used
+	ndevices = std::stoi( params["ndevices"].value);
+	left_device.setPortName(QString::fromStdString(params["left"].value));
+	if(!left_device.open(QIODevice::ReadWrite))
 	{
-		std::cout << "Error reading "  << std::endl;
+		std::cout << "Error opening left_device: " << params["left"].value << std::endl;
  		exit(-1); 
 	}
-	serial_port.setBaudRate(QSerialPort::Baud115200);
+	left_device.setBaudRate(QSerialPort::Baud115200);
+	if (ndevices == 2)
+	{
+		right_device.setPortName(QString::fromStdString(params["right"].value));
+		if(!right_device.open(QIODevice::ReadWrite))
+		{
+			std::cout << "Error opening left_device: " << params["right"].value << std::endl;
+			exit(-1); 
+		}
+		right_device.setBaudRate(QSerialPort::Baud115200);
+	}
 	compute_initial_pose(std::stoi( params["initial_reading"].value));
 }
 

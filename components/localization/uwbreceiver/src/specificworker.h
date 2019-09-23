@@ -57,9 +57,13 @@ public slots:
 private:
 	std::shared_ptr<InnerModel> innerModel;
     RoboCompCommonBehavior::ParameterList params;
-	QSerialPort serial_port;
+	QSerialPort left_device, right_device;
+	int ndevices = 0;
+	int left_offset;
+	int right_offset;
 	float xPos;
 	float zPos;
+	float ryPos;
 
 };
 

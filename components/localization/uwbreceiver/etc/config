@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # Endpoints for implemented interfaces
-FullPoseEstimation.Endpoints=tcp -p 0
+FullPoseEstimation.Endpoints=tcp -p 12400
 
 ndevices = 2
 left = /dev/uwbL

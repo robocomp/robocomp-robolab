@@ -97,9 +97,12 @@ void SpecificWorker::compute()
 			QPointF posR = readData(right_device);
 			pose.x = (posL.x() + posR.x()) / 2.;
 			pose.z  = (posL.y() + posR.y()) / 2.;
-			pose.ry = QLineF(posR, posL).angle();
+			pose.ry = degreesToRadians(QLineF(posR, posL).angle()-180);
+			xPos = pose.x;
+			zPos = pose.z;
+			ryPos = pose.ry;
 		}
-		std::cout << "Pose read: "<< pose.x << " " << pose.y << " " << pose.ry << std::endl;
+		std::cout << "Pose read(x,z,ry): "<< pose.x << " " << pose.z << " " << pose.ry << std::endl;
 		fullposeestimationpub_pubproxy->newFullPose(pose);
 	}
 	catch(const Ice::Exception &e)
@@ -225,6 +228,7 @@ FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 	RoboCompFullPoseEstimation::FullPose pose;
 	pose.x = xPos;
 	pose.z = zPos;
+	pose.ry = ryPos;
 	return pose;
 }
 

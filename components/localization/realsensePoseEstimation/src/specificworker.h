@@ -30,6 +30,7 @@
 #include <innermodel/innermodelviewer.h>
 #include <innermodel/innermodel.h>
 
+#define CAMERA_OFFSET 140
 #define DECLINATION 0.01989675
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
@@ -57,8 +58,8 @@ private:
 	OsgView *osgView;
 	InnerModelViewer *innerModelViewer;
 	mutable std::mutex bufferMutex;
-	FullPose fullpose, initial_offset;
-	
+	FullPose fullpose;
+	RTMat initialPose;
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
 	// Create a configuration for configuring the pipeline with a non default profile

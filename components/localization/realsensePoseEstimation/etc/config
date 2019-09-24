@@ -1,4 +1,4 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 13000
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 10696
 

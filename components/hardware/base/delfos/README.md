@@ -1,6 +1,10 @@
 # delfos
 
-`delfos` component is implemented as generic controller for omnidirectional robot (e.g omni wheels robot) in RoboComp left-handed coordinate. For developer notices, the follow list specifies set of implemented functions for controlling and robot state measuring as specified in interface `OmniRobot.idsl`:
+`delfos` component is implemented as generic controller for omnidirectional robot (e.g omni wheels robot) in RoboComp left-handed coordinate. The left-handed coordinate has the positive x, y and z axes point right, up and forward, respectively (see picture below. Credit: https://www.oreilly.com). Positive rotation is clockwise about the axis of rotation.
+
+![coordinate](https://www.oreilly.com/library/view/learn-arcore-/9781788830409/assets/a465e4c5-b6ca-4006-a40e-1aa9ad2ebc5d.png)
+
+For developer notices, the follow list specifies set of implemented functions for controlling and robot state measuring as specified in interface `OmniRobot.idsl`:
 
 - **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets robot state type `TBaseState`.
 - **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).

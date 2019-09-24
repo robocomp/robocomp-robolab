@@ -8,8 +8,8 @@
 - **stopBase(const Ice::Current&)**: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.
 - **resetOdometer()**: resets odometry of robot to values x=0, z=0, alpha=0.
 - **setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)**: sets user-input odometry via `TBaseState` state type for the robot base. It also updates the internal model by calling function **correctOdometer**.
-- **setOdometerPose(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
-- **correctOdometer(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the innermodel to the values x,z,alpha.
+- **setOdometerPose(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the [innermodel](https://github.com/robocomp/robocomp/blob/stable/doc/innermodel.md) to the values x,z,alpha.
+- **correctOdometer(const int  x, const int  z, const float  alpha)**: sets user-input odometry in the [innermodel](https://github.com/robocomp/robocomp/blob/stable/doc/innermodel.md) to the values x,z,alpha.
 
 More information about interface parameters can be found in file `robocomp/interfaces/IDSLs/OmniRobot.ice`.
 

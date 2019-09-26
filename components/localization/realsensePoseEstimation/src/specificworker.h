@@ -45,7 +45,6 @@ public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	void getInitialPose();
 
 	FullPose FullPoseEstimation_getFullPose();
 
@@ -59,7 +58,6 @@ private:
 	InnerModelViewer *innerModelViewer;
 	mutable std::mutex bufferMutex;
 	FullPose fullpose;
-	RTMat initialPose;
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
 	// Create a configuration for configuring the pipeline with a non default profile

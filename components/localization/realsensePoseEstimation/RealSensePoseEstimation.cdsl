@@ -1,14 +1,12 @@
 import "FullPoseEstimation.idsl";
-import "IMU.idsl";
-//import "FullPoseEstimationPub.idsl";
+import "FullPoseEstimationPub.idsl";
 
 Component RealSensePoseEstimation
 {
     Communications
     {
-        requires FullPoseEstimation, IMU;
         implements FullPoseEstimation;
-  //      publishes FullPoseEstimationPub;
+        publishes FullPoseEstimationPub;
     };
 	language Cpp11;
     gui Qt(QWidget);

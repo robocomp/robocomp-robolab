@@ -83,6 +83,7 @@
 
 #include <fullposeestimationI.h>
 
+#include <FullPoseEstimation.h>
 
 
 // User includes here
@@ -134,46 +135,47 @@ int ::RealSensePoseEstimation::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	FullPoseEstimationPrxPtr fullposeestimation_proxy;
-	IMUPrxPtr imu_proxy;
+	FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
 
 	string proxy, tmp;
 	initialize();
 
-
+	IceStorm::TopicManagerPrxPtr topicManager;
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "FullPoseEstimationProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FullPoseEstimationProxy\n";
-		}
-		fullposeestimation_proxy = Ice::uncheckedCast<FullPoseEstimationPrx>( communicator()->stringToProxy( proxy ) );
+		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
 	}
-	catch(const Ice::Exception& ex)
+	catch (const Ice::Exception &ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy FullPoseEstimation: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
 		return EXIT_FAILURE;
 	}
-	rInfo("FullPoseEstimationProxy initialized Ok!");
+	std::shared_ptr<IceStorm::TopicPrx> fullposeestimationpub_topic;
 
-
-	try
+	while (!fullposeestimationpub_topic)
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "IMUProxy", proxy, ""))
+		try
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy IMUProxy\n";
+			fullposeestimationpub_topic = topicManager->retrieve("FullPoseEstimationPub");
 		}
-		imu_proxy = Ice::uncheckedCast<IMUPrx>( communicator()->stringToProxy( proxy ) );
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving FullPoseEstimationPub topic. \n";
+			try
+			{
+				fullposeestimationpub_topic = topicManager->create("FullPoseEstimationPub");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the FullPoseEstimationPub topic. It's possible that other component have created\n";
+			}
+		}
 	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy IMU: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("IMUProxy initialized Ok!");
 
+	auto fullposeestimationpub_pub = fullposeestimationpub_topic->getPublisher()->ice_oneway();
+	fullposeestimationpub_pubproxy = Ice::uncheckedCast<FullPoseEstimationPubPrx>(fullposeestimationpub_pub);
 
-	tprx = std::make_tuple(fullposeestimation_proxy,imu_proxy);
+	tprx = std::make_tuple(fullposeestimationpub_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

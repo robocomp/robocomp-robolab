@@ -66,45 +66,8 @@ void SpecificWorker::initialize(int period)
 	cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
 	// Start pipeline with chosen configuration
 	pipe.start(cfg);
-	getInitialPose();
 	this->Period = 20;
 	timer.start(Period);
-}
-
-void SpecificWorker::getInitialPose()
-{
-	int iterations = 10;
-	//Position
-	float x = 0.f;
-	float z = 0.f;
-	float angle = 0.f;
-	try{
-		RoboCompFullPoseEstimation::FullPose pose;
-		for(int i=0;i<iterations;i++)
-		{
-			 pose = fullposeestimation_proxy->getFullPose();
-			 x += pose.x;
-			 z += pose.z + CAMERA_OFFSET;
-			 //Rotation
-			 angle += pose.ry;
-			 
-		}
-		initialPose.set(0.f, angle/iterations, 0.f, x/iterations, 0.f, z/iterations);
-		
-		initialPose.print("InitialRobotPose");
-	}catch(const Ice::Exception& ex)
-	{
-		std::cout << "Exception getting initial pose(UWB): "<<ex << std::endl;
-	}
-	//Rotation ==> Using IMU
-/*	try{
-		RoboCompIMU::DataImu imu = imu_proxy->getDataImu();
-		float angle = atan2(imu.mag.YMag, imu.mag.XMag);
-		initial_offset.ry = angle - DECLINATION;
-	}catch(const Ice::Exception& ex)
-	{
-		std::cout << "Exception getting initial pose(IMU): "<<ex << std::endl;
-	}*/
 }
 
 void SpecificWorker::compute()
@@ -131,21 +94,30 @@ void SpecificWorker::compute()
 	QVec angles = q.toAngles();
 	
 	std::lock_guard<std::mutex> lock(bufferMutex);
-	RTMat cam(angles.x(), -angles.y(), angles.z(),
-			  tr.x*1000, tr.y*1000, -tr.z*1000);
-	std::cout << "X "<<tr.x<<std::endl;
-	RTMat pose = initialPose * cam;
-	QVec angles2 = pose.extractAnglesR();
-	innerModel->updateTransformValues("robot", pose.getTr().x(),
-												pose.getTr().y(),
-												pose.getTr().z(),
-												angles2.rx(),
-												angles2.ry(),
-												angles2.rz());
+	fullpose.x = tr.x*1000;
+	fullpose.y = tr.y*1000;
+	fullpose.z = -tr.z*1000;
+	fullpose.rx = angles.rx();
+	fullpose.ry = -angles.ry();
+	fullpose.rz = angles.rz();
 
+	//publish
+	try
+	{
+		fullposeestimationpub_pubproxy->newFullPose(fullpose);
+	}catch(const Ice::Exception& ex)
+	{
+		std::cout << "Exception publishing pose: "<<ex << std::endl;
+	}
 	// Update innermodelviewer
-	 innerModelViewer->update();
-	 osgView->frame();
+	innerModel->updateTransformValues("robot",  fullpose.x,
+												fullpose.y,
+												fullpose.z,
+												fullpose.rx,
+												fullpose.ry,
+												fullpose.rz);
+	innerModelViewer->update();
+	osgView->frame();
 	
 }
 

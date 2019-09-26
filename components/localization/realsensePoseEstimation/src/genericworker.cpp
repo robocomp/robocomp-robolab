@@ -29,8 +29,7 @@ QObject()
 
 {
 
-	fullposeestimation_proxy = std::get<0>(tprx);
-	imu_proxy = std::get<1>(tprx);
+	fullposeestimationpub_pubproxy = std::get<0>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

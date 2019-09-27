@@ -90,6 +90,7 @@ void SpecificWorker::compute()
 	try
 	{
 		RoboCompFullPoseEstimation::FullPose pose;
+		pose.source = "uwb";
 		pose.x = posL.x();
 		pose.z = posL.y();
 		if (ndevices == 2)

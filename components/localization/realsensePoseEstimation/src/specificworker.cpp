@@ -62,6 +62,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
+	fullpose.source = "realsense";
 	// Add pose stream
 	cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
 	// Start pipeline with chosen configuration

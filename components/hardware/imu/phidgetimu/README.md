@@ -59,6 +59,8 @@ CommonBehavior.Endpoints=tcp -p 1653
 # Endpoints for implemented interfaces
 IMU.Endpoints=tcp -p 10066
 
+device=/dev/ttyACM0
+
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
@@ -66,7 +68,7 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
 
-Note that we need to make sure the port number of the parameter `IMU.Endpoints` is the same as the corresponding number of the client component using the `phidgetimu` component.
+Note that we need to make sure the port number of the parameter `IMU.Endpoints` is the same as the corresponding number of the client component using the `phidgetimu` component. User also has to determine which port that the IMU sensor is connected to, and then change the parameter `device` to that port.
 
 ## Starting the component
 

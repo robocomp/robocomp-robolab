@@ -35,6 +35,7 @@ FullPoseEstimationI(GenericWorker *_worker);
 	~FullPoseEstimationI();
 
 	FullPose getFullPose(const Ice::Current&);
+	void setInitialPose(const float  x, const float  y, const float  z, const float  rx, const float  ry, const float  rz, const Ice::Current&);
 
 private:
 

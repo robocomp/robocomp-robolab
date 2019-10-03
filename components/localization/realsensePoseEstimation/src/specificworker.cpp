@@ -23,16 +23,8 @@
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 {
-	innerModelViewer = NULL;
-	osgView = new OsgView(this);
-	osgGA::TrackballManipulator *tb = new osgGA::TrackballManipulator;
-	osg::Vec3d eye(osg::Vec3(4000.,4000.,-1000.));
-	osg::Vec3d center(osg::Vec3(0.,0.,-0.));
-	osg::Vec3d up(osg::Vec3(0.,1.,0.));
-	tb->setHomePosition(eye, center, up, true);
-	tb->setByMatrix(osg::Matrixf::lookAt(eye,center,up));
-	osgView->setCameraManipulator(tb);
-	
+	initialPose.set(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+	FullPoseEstimation_setInitialPose(0,0,0,0,-3.14,0);
 }
 
 /**
@@ -45,17 +37,6 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-	try
-	{
-		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-		std::string innermodel_path = par.value;
-		innerModel = std::make_shared<InnerModel>(innermodel_path);
-		innerModelViewer = new InnerModelViewer (innerModel, "root", osgView->getRootGroup(), true);
-	}
-	catch(const std::exception &e) { qFatal("Error reading config params"); }
-
 	return true;
 }
 
@@ -93,11 +74,17 @@ void SpecificWorker::compute()
 	const auto &rot = pose_data.rotation;
 	RMat::Quaternion q(rot.x,rot.y,rot.z,rot.w);
 	QVec angles = q.toAngles();
-	
+		
+	RTMat cam(angles.x(), -angles.y(), angles.z(),
+			  tr.x*1000, tr.y*1000, -tr.z*1000);
+	std::cout << "X "<<tr.x<<std::endl;
+	RTMat pose = initialPose * cam;
+	QVec angles2 = pose.extractAnglesR();
+
 	std::lock_guard<std::mutex> lock(bufferMutex);
-	fullpose.x = tr.x*1000;
-	fullpose.y = tr.y*1000;
-	fullpose.z = -tr.z*1000;
+	fullpose.x = pose.getTr().x();
+	fullpose.y = pose.getTr().y();
+	fullpose.z = pose.getTr().z();
 	fullpose.rx = angles.rx();
 	fullpose.ry = -angles.ry();
 	fullpose.rz = angles.rz();
@@ -110,15 +97,6 @@ void SpecificWorker::compute()
 	{
 		std::cout << "Exception publishing pose: "<<ex << std::endl;
 	}
-	// Update innermodelviewer
-	innerModel->updateTransformValues("robot",  fullpose.x,
-												fullpose.y,
-												fullpose.z,
-												fullpose.rx,
-												fullpose.ry,
-												fullpose.rz);
-	innerModelViewer->update();
-	osgView->frame();
 	
 }
 
@@ -129,4 +107,9 @@ FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 	return fullpose;
 }
 
+void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz)
+{
+	std::cout << "New initial pose received: " <<x<<" "<<y<<" "<<z<<" "<<rx<<" "<<ry<<" "<<rz<<std::endl;
+	initialPose.set(x, y, z, rx, ry, rz);
 
+}

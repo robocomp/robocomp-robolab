@@ -26,12 +26,8 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <osgviewer/osgview.h>
-#include <innermodel/innermodelviewer.h>
-#include <innermodel/innermodel.h>
+#include <qmat/QMatAll>
 
-#define CAMERA_OFFSET 140
-#define DECLINATION 0.01989675
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
 
@@ -47,22 +43,20 @@ public:
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
 	FullPose FullPoseEstimation_getFullPose();
+	void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
 
 public slots:
 	void compute();
 	void initialize(int period);
 
 private:
-	std::shared_ptr<InnerModel> innerModel;
-	OsgView *osgView;
-	InnerModelViewer *innerModelViewer;
 	mutable std::mutex bufferMutex;
 	FullPose fullpose;
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
 	// Create a configuration for configuring the pipeline with a non default profile
 	rs2::config cfg;
-
+	RTMat initialPose;
 };
 
 #endif

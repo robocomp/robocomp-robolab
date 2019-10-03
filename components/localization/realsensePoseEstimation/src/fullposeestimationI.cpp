@@ -33,3 +33,8 @@ FullPose FullPoseEstimationI::getFullPose(const Ice::Current&)
 	return worker->FullPoseEstimation_getFullPose();
 }
 
+void FullPoseEstimationI::setInitialPose(const float  x, const float  y, const float  z, const float  rx, const float  ry, const float  rz, const Ice::Current&)
+{
+	worker->FullPoseEstimation_setInitialPose(x, y, z, rx, ry, rz);
+}
+

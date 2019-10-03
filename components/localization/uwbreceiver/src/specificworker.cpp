@@ -224,6 +224,8 @@ int SpecificWorker::bitsToInt( const unsigned char* bits, uint init, bool little
 	}
 
 
+//***********INTERFACE*****************//
+
 FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
 	RoboCompFullPoseEstimation::FullPose pose;
@@ -232,5 +234,8 @@ FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 	pose.ry = ryPos;
 	return pose;
 }
-
+void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz)
+{
+	qDebug()<<"Not implemented yet";
+}
 

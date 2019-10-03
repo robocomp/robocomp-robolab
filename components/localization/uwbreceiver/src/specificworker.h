@@ -44,7 +44,8 @@ public:
 	int bitsToInt( const unsigned char* bits, uint init, bool little_endian = true );
 	//Ice interface
 	FullPose FullPoseEstimation_getFullPose();
-
+	void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
+	
 public slots:
 	void compute();
 	void initialize(int period);

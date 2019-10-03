@@ -57,6 +57,7 @@ public:
 	FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
 
 	virtual FullPose FullPoseEstimation_getFullPose() = 0;
+	virtual void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz) = 0;
 
 protected:
 //State Machine

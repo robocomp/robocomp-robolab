@@ -83,6 +83,7 @@
 
 #include <fullposeestimationI.h>
 
+#include <FullPoseEstimation.h>
 
 
 // User includes here

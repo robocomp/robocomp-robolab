@@ -24,7 +24,6 @@
 SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 {
 	initialPose.set(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
-	FullPoseEstimation_setInitialPose(0,0,0,0,-3.14,0);
 }
 
 /**
@@ -39,7 +38,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 	return true;
 }
-
+#include <librealsense2/rs.hpp>
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
@@ -50,6 +49,8 @@ void SpecificWorker::initialize(int period)
 	pipe.start(cfg);
 	this->Period = 20;
 	timer.start(Period);
+
+
 }
 
 void SpecificWorker::compute()

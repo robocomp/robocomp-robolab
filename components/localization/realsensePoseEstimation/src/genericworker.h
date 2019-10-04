@@ -23,12 +23,6 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-#if Qt5_FOUND
-	#include <QtWidgets>
-#else
-	#include <QtGui>
-#endif
-#include <ui_mainUI.h>
 #include <CommonBehavior.h>
 
 #include <FullPoseEstimation.h>
@@ -45,11 +39,7 @@ using TuplePrx = std::tuple<RoboCompFullPoseEstimationPub::FullPoseEstimationPub
 
 
 class GenericWorker :
-#ifdef USE_QTGUI
-	public QWidget, public Ui_guiDlg
-#else
-	public QObject
- #endif
+public QObject
 {
 Q_OBJECT
 public:

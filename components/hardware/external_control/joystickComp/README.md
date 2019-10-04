@@ -7,7 +7,7 @@ For developer notice, these functions will be implemented:
 - **void readJoyStickBufferedData(JoyStickBufferedData &gbd, const Ice::Current&)**: reads raw throttles from joystick.
 
 The `JoyStick.idsl` can be found in file `robocomp/interfaces/IDSLs/JoyStick.idsl`.
-
+For detail of `DifferentialRobot.idsl` interface and its implemented component please find in `robocomp/components/robocomp-robolab/components/hardware/base/differentialrobotComp` document.
 
 ## Compiling and Installation
 
@@ -48,7 +48,7 @@ Ice.Trace.Protocol=0
 
 ```
 
-Depending on application demands, we can regulate control signal converted from joystick throttles via parameters `SampleRate, MaxSteering, MaxAdvance`. For sending control signals to target robot, please input valid proxy url in parameter `DifferentialRobotProxy`.
+Depending on application demands, we can regulate control signal converted from joystick throttles via parameters `MaxSteering, MaxAdvance`. For sending control signals to target robot, please input valid proxy url in parameter `DifferentialRobotProxy`.
 Note that we need to make sure the port number of the parameter `JoyStick.Endpoints` is the same as the corresponding number of the client component using the `JoystickComp` component. User also has to determine which port that the joystick is connected to, and then change the parameter `Joy.Device` to that port.
 
 ## Starting the component

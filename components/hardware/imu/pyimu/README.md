@@ -1,7 +1,7 @@
 
 # PyIMU
 
-`PyIMU` component is a Python version implementation of Itertial Measurement Unit (IMU) driver. The component uses `IMU.idsl` interface to serve combined message type `DataImu` consisted of component data type `Acceleration,  Gyroscope, Magnetic, Orientation, temperature`, which are measured from IMU sensor. In addition, `PyIMU` also utilizes `IMUPub.idsl` interface as a proxy to publish message type `DataImu` across RoboComp.  
+`PyIMU` component is a Python version implementation of Inertial Measurement Unit (IMU) driver. The component uses `IMU.idsl` interface to serve combined message type `DataImu` consisted of component data type `Acceleration,  Gyroscope, Magnetic, Orientation, temperature`, which are measured from IMU sensor. In addition, `PyIMU` also utilizes `IMUPub.idsl` interface as a proxy to publish message type `DataImu` across RoboComp.  
 
 For developer notice, these functions will be implemented:
 - **getDataImu()**: returns combined message type `DataImu`.

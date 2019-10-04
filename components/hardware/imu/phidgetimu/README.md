@@ -1,7 +1,7 @@
 
 # phidgetimu
 
-`phidgetimu` component is a C++ version implementation of Itertial Measurement Unit (IMU) driver. The component uses `IMU.idsl` interface to serve combined message type `DataImu` consisted of component data type `Acceleration,  Gyroscope, Magnetic, Orientation, temperature`, which are measured from IMU sensor.
+`phidgetimu` component is a C++ version implementation of Inertial Measurement Unit (IMU) driver. The component uses `IMU.idsl` interface to serve combined message type `DataImu` consisted of component data type `Acceleration,  Gyroscope, Magnetic, Orientation, temperature`, which are measured from IMU sensor.
 
 For developer notice, these functions will be implemented:
 - **getDataImu()**: returns combined message type `DataImu`.

@@ -41,7 +41,7 @@ For sending control signals to target robot, please input valid proxy hostname a
 
 ## Starting the component
 
-To see the effect of Qt GUI joystick on the simulated differential robot on (RCIS)[https://github.com/robocomp/robocomp#testing-the-installation-using-the-rcis-robotics-simulator], we suggest that user should run the RCIS simulator first:
+To see the effect of Qt GUI joystick on the simulated differential robot on [RCIS](https://github.com/robocomp/robocomp#testing-the-installation-using-the-rcis-robotics-simulator), we suggest that user should run the RCIS simulator first:
 
 ```
 cd ~/robocomp/files/innermodel

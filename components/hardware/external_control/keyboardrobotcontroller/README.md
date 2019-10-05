@@ -1,6 +1,6 @@
 # KeyboardRobotController
 
-`KeyboardRobotController` component is a Python implementation for controlling simulated differential robots using keyboard. The component just requires interactions with the keyboard to convert threshold values to translational and rotational velocities, in order to control differential robots via `DifferentialRobot.idsl` interface. When running the component, user can interact with `KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT` arrows to control the robot on (RCIS simulator)[https://github.com/robocomp/robocomp#testing-the-installation-using-the-rcis-robotics-simulator].
+`KeyboardRobotController` component is a Python implementation for controlling simulated differential robots using keyboard. The component just requires interactions with the keyboard to convert threshold values to translational and rotational velocities, in order to control differential robots via `DifferentialRobot.idsl` interface. When running the component, user can interact with `KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT` arrows to control the robot on [RCIS simulator](https://github.com/robocomp/robocomp#testing-the-installation-using-the-rcis-robotics-simulator).
 
 For detail of `DifferentialRobot.idsl` interface and its implemented component please find in `robocomp/components/robocomp-robolab/components/hardware/base/differentialrobotComp` document.
 
@@ -36,7 +36,7 @@ For sending control signals to target robot, please input valid proxy hostname a
 
 ## Starting the component
 
-To see the effect of keyboard controller on the simulated differential robot on (RCIS)[https://github.com/robocomp/robocomp#testing-the-installation-using-the-rcis-robotics-simulator], we suggest that user should run the RCIS simulator first:
+To see the effect of keyboard controller on the simulated differential robot on RCIS, we suggest that user should run the RCIS simulator first:
 
 ```
 cd ~/robocomp/files/innermodel

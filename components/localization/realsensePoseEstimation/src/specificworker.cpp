@@ -36,21 +36,37 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	serial = params["serial"].value;
 	return true;
 }
-#include <librealsense2/rs.hpp>
+
+//workaround => using serial value not working on actual api version
+rs2::device SpecificWorker::get_device(const std::string& serial_number) {
+    rs2::context ctx;
+    while (true) {
+        for (auto&& dev : ctx.query_devices())
+            if (std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)) == serial_number)
+                return dev;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 	fullpose.source = "realsense";
 	// Add pose stream
-	cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
-	// Start pipeline with chosen configuration
-	pipe.start(cfg);
+	try{
+		cfg.enable_device(serial);
+		cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
+		// Start pipeline with chosen configuration
+		pipe.start(cfg);
+	}catch(...)
+	{
+		qFatal("Unable to open device, please check config file");
+	}
 	this->Period = 20;
 	timer.start(Period);
-
-
 }
 
 void SpecificWorker::compute()

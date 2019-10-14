@@ -1,6 +1,6 @@
 # speechComp
 
-The `speechComp` component is a Python wrapper implementation of many libraries for Text-to-Speech(TTS) task. The underlying logic is to run bash command utilizing `festival` TTS library or online TTS Google service for different languages via Python environment. This component uses `Speech.idsl` interface to implement template functions for running TTS from a string argument.
+The `speechComp` component is a Python wrapper implementation of many libraries for the Text-to-Speech(TTS) task. The underlying logic is to run bash command utilizing `festival` TTS library or online TTS Google service for different languages via Python environment. This component uses `Speech.idsl` interface to implement template functions for running TTS from a string argument.
 
 ## Compiling and Installation
 
@@ -34,7 +34,7 @@ echo "Robocomp es el mejor software de robótica de Extremadura" | iconv -f utf-
 ```
 
 #### Google TTS
-For the online Google TTS service, there are many more languages to choose. Please install the `gTTS` library:
+For the online Google TTS service, there are many more languages to choose from. Please install the `gTTS` library:
 
 ```
 pip install gTTS
@@ -71,7 +71,7 @@ Ice.ACM.Server=10
 ```
 
 By setting `tts` parameter, we can switch between TTS services of Google and `festival` (e.g `tts=google` for Google TTS and `tts=festival` for `festival` library).
-Also note that we need to make sure the port number of the parameter `Speech.Endpoints` is the same as the corresponding number of the client component using the `speechComp` component.
+Note that we need to make sure the port number of the parameter `Speech.Endpoints` is the same as the corresponding number of the client component using the `speechComp` component.
 
 
 ## Starting the component
@@ -110,4 +110,4 @@ The **rcmonitor UI** for this examples looks like this:
 
 ![Screenshot from 2019-05-06 13-15-51](https://user-images.githubusercontent.com/5784096/57222000-626b7b00-7001-11e9-86fe-06cf11207450.png)
 
-You can use the **Random** button to talk some random sentences, or use the input field form, then click on **Say** button to send it to the `speechComp`.
+You can use the **Random** button to talk some random sentences or use the input field form, then click on **Say** button to send it to the `speechComp`.

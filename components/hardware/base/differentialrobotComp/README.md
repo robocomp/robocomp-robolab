@@ -1,8 +1,8 @@
 # DifferentialRobotComp
 
-`DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. For developer notices,  the follow list specifies set of implemented control functions as specified in interface `DifferentialRobot.ice`:
+`DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. For developer notices,  the following list specifies the set of implemented control functions as specified in interface `DifferentialRobot.ice`:
 
-- **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets robot state type `TBaseState`.
+- **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets the robot state type `TBaseState`.
 - **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).
 - **setSpeedBase(const float  advx, const float advz, const float  rot)**: sets robot speed with translational `(advx, advz)` and rotational velocity `rot`. For the case of differential robot, translational velocity is only effective in X direction.  
 - **stopBase(const Ice::Current&)**: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.

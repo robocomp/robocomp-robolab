@@ -1,6 +1,6 @@
 # RobexComp
 
-`RobexComp` component is a controller software for custom-made mobile robot in Robolab, University of Extremadura. The controller component consists of `JoystickAdapter.idsl` for sending control data message, `DifferentialRobot.idsl` for reading and controlling specific dynamics of differential robot and `GenericBase.idsl` for reading general robot states. For developer notices, the follow list specifies set of implemented functions for each of the interfaces:
+`RobexComp` component is a controller software for custom-made mobile robot in Robolab, University of Extremadura. The controller component consists of `JoystickAdapter.idsl` for sending control data message, `DifferentialRobot.idsl` for reading and controlling specific dynamics of differential robot and `GenericBase.idsl` for reading general robot states. For developer notices, the following list specifies the set of implemented functions for each of the interfaces:
 
 * **DifferentialRobot.idsl**: please refer to `DifferentialRobotComp` documentation in file `robocomp/components/robocomp-robolab/components/hardware/base/differentialrobotComp/`.
 * **JoystickAdapter.idsl**:

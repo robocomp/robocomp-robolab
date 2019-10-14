@@ -11,7 +11,7 @@ For developer notice, these functions will be implemented:
 - **getOrientation()**: returns current angle values type `Orientation` of yaw, pitch, row axis of the IMU coordinate.
 - **resetImu()**: resets all measured values of the IMU to zeros.
 
-The detail data type components can be found in file `robocomp/interfaces/IDSLs/IMU.idsl`.
+The detailed data type components can be found in file `robocomp/interfaces/IDSLs/IMU.idsl`.
 
 
 ## Compiling and Installation

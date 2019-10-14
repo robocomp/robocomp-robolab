@@ -12,14 +12,14 @@ This section assumes the user has already installed the RoboComp core library an
 
 The current implementation provides two languages for TTS:
 
-##### English
+- **English**
 To use English TTS, the user must install `festival` library, which is already available in Ubuntu PPA:
 
 ```bash
 sudo apt install festival
 ```
 
-##### Spanish
+- **Spanish**
 
 The default language of `festival` is English. If the user would like Spanish TTS, the user can download the Junta de Andalucía's synthetic voices that can be found in this [Github repository](https://github.com/guadalinex-archive/hispavoces/find/master).
 

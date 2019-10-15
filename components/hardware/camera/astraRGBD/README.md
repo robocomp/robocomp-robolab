@@ -64,11 +64,11 @@ You can find the needed cmake module for astra on this path
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
     cd $ROBOCOMP/components/robocomp-robolab/components/astraRGBD/
-    cp etc/config config
+    cp etc/config etc/config-run
 
 After editing the new config file we can run the component:
 
-    ./bin/astraRGBD --Ice.Config=config
+    ./bin/astraRGBD etc/config-run
 
 ## Final notes
 `astraRGBD` is currently under development and hence only some of the main functions of the `RGBD.idsl` interface have been implemented.

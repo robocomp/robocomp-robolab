@@ -8,7 +8,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
 #serial number is a string, but in config file sould appear without quotes
-serial=925122110807
+serial=905312110667
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

@@ -97,7 +97,6 @@ void SpecificWorker::compute()
 	std::cout << "X "<<tr.x<<std::endl;
 	RTMat pose = initialPose * cam;
 	QVec angles2 = pose.extractAnglesR();
-
 	std::lock_guard<std::mutex> lock(bufferMutex);
 	fullpose.x = pose.getTr().x();
 	fullpose.y = pose.getTr().y();
@@ -127,6 +126,5 @@ FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz)
 {
 	std::cout << "New initial pose received: " <<x<<" "<<y<<" "<<z<<" "<<rx<<" "<<ry<<" "<<rz<<std::endl;
-	initialPose.set(x, y, z, rx, ry, rz);
-
+	initialPose.set(rx, ry, rz, x, y, z);
 }

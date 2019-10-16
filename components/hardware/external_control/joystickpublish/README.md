@@ -7,7 +7,7 @@ The message type and parameter detail can be found in file `robocomp/interfaces/
 
 ## Compiling and Installation
 
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). We can compile `JoystickPublishComp` to start using the component:
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). We can compile `JoystickPublishComp` to start using the component:
 
 ```
 cd ~/robocomp/components/robocomp-robolab/components/hardware/external_control/joystickpublish/

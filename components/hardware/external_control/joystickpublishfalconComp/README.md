@@ -8,7 +8,7 @@ The message type and parameter detail can be found in file `robocomp/interfaces/
 
 ### Resolving dependencies
 
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). Before compiling the component, we need to download and install `libnifalcon` library for **Falcon Haptic Controller**, which provides basic functionality to connect to the falcon and load firmware to the internal microcontroller.
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). Before compiling the component, we need to download and install `libnifalcon` library for **Falcon Haptic Controller**, which provides basic functionality to connect to the falcon and load firmware to the internal microcontroller.
 
 ```
 cd ~

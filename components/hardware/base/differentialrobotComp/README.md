@@ -2,9 +2,9 @@
 
 `DifferentialRobotComp` component is implemented as generic controller for differential robot (e.g two wheels robot) in RoboComp left-handed coordinate. For developer notices,  the following list specifies the set of implemented control functions as specified in interface `DifferentialRobot.ice`:
 
-- **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets the robot state type `TBaseState`.
+- **getBaseState(RoboCompGenericBase::TBaseState  &state)**: gets the robot state. Type: `TBaseState`.
 - **getBasePose(int  &x,  int  &z,  float  &alpha)**: returns current robot pose (e.g x-z coordinate and orientation alpha).
-- **setSpeedBase(const float  advx, const float advz, const float  rot)**: sets robot speed with translational `(advx, advz)` and rotational velocity `rot`. For the case of differential robot, translational velocity is only effective in X direction.  
+- **setSpeedBase(const float  advx, const float advz, const float  rot)**: sets robot speed with translational velocity `(advx, advz)` and rotational velocity `rot`. For the case of differential robot, translational velocity is only effective in X direction.  
 - **stopBase(const Ice::Current&)**: immediately stops robot. Robot is stopped applying 0 values in velocity parameters.
 - **resetOdometer()**: resets odometry of robot to values x=0, z=0, alpha=0.
 - **setOdometer(const RoboCompGenericBase::TBaseState  &state, const Ice::Current&)**: sets user-input odometry via `TBaseState` state type for the robot base. It also updates the internal model by calling function **correctOdometer**.
@@ -15,8 +15,7 @@ More information about interface parameters can be found in file `robocomp/inter
 
 ## Compiling and Installation
 
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
-
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
 If so, we can compile the `DifferentialRobotComp` component:
 ```
 cd ~/robocomp/components/robocomp-robolab/components/hardware/base/differentialrobotComp/

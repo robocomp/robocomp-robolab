@@ -6,7 +6,7 @@ Hokuyo laser sensor family is a low-cost laser sensor applied in many areas in r
 The hokuyo component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and serves the laser measurements over RoboComp environment using Ice middleware framework. The component uses `Laser.idsl` interface. Briefly, `Laser.idsl` interface provides method template `getLaserData()` to return laser measurements as type `TLaserData` and method `getLaserConfData()` to return specific laser configurations as type `LaserConfData`. The `Laser.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/Laser.idsl`.
 
 ## Resolve dependencies
-This section assumes the user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
 
 Before compiling the component, we must first resolve its dependencies which are the Hokuyo driver packages:
 

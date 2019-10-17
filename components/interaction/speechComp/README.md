@@ -1,14 +1,12 @@
 # speechComp
 
-The `speechComp` component is a Python wrapper implementation of many libraries for the Text-to-Speech(TTS) task. The underlying logic is to run bash command utilizing `festival` TTS library or online TTS Google service for different languages via Python environment. This component uses `Speech.idsl` interface to implement template functions for running TTS from a string argument.
+The `speechComp` component is a Robocomp Component wrapper implementation of several libraries for the Text-to-Speech(TTS) task. The underlying logic is to run bash command utilizing `festival` TTS library or online TTS Google service for different languages via Python environment. This component implements the `Speech.idsl` interface to receive string arguments to be spoken in the TTS.
 
-## Compiling and Installation
-
-### Resolving dependencies
+## Resolving dependencies
 
 This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). There are two TTS services:
 
-#### festival
+### festival
 
 The current implementation provides two languages for TTS:
 
@@ -33,22 +31,14 @@ and test the installation with this command:
 echo "Robocomp es el mejor software de robótica de Extremadura" | iconv -f utf-8 -t iso-8859-1 | festival --tts --language spanish
 ```
 
-#### Google TTS
+### Google TTS
 For the online Google TTS service, there are many more languages to choose from. Please install the `gTTS` library:
 
 ```
 pip install gTTS
 ```
 
-### Compile the component
-
-Finally, we can compile `speechComp` to start using the component:
-
-```
-cd ~/robocomp/components/robocomp-robolab/components/interaction/speechComp/
-cmake .
-make
-```
+After installing all dependencies, we can start using this component.
 
 ## Configuration parameters
 `speechComp` component parameters are characterized as the `etc/config` file described below:

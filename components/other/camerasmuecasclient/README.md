@@ -1,36 +1,51 @@
-```
-```
-#
-``` cameramuecasclient
-```
-Intro to component here
+
+# CamerasMuecasClient
+
+`CamerasMuecasClient` component receives two images as type `ImagePair` from `CamerasMuecas` component and rotates them upside down (180 degree), then show these images on openCV GUI. Specifically, this component implements `CamerasMuecas.idsl` interface to receives `ImagePair`. The `CamerasMuecas.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/CamerasMuecas.idsl`. The component is implemented in Python.
 
 
+## Compiling and Installation
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
+
+If so, we can compile the `CamerasMuecasClient` component:
+```
+cd ~/robocomp/components/robocomp-robolab/components/other/camerasmuecasclient/
+cmake .
+make
+```
 ## Configuration parameters
-As any other component,
-``` *cameramuecasclient* ```
-needs a configuration file to start. In
+As an example, `CamerasMuecasClient` component parameters are characterized in config file described below:
 
-    etc/config
+```
+# Endpoints for implemented interfaces
+# Proxies for required interfaces
+CamerasMuecasProxy = camerasmuecas:tcp -h localhost -p 10005
 
-you can find an example of a configuration file. We can find there the following lines:
 
-    EXAMPLE HERE
 
-    
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+Ice.MessageSizeMax = 2000000
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+```
+We increase the `Ice.MessageSizeMax` parameter for larger allowed message size, because the receiving data is image. Note that we need to make sure the parameter `CamerasMuecasProxy` to have hostname and port correctly from `CamerasMuecas` endpoint.
+
 ## Starting the component
-To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
-    cd
+To avoid changing the config file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
+```
+cp etc/config etc/config-run
+```
 
-``` <cameramuecasclient 's path> ```
-
-    cp etc/config config
-    
 After editing the new config file we can run the component:
-
-    bin/
-
-```cameramuecasclient ```
-
-    --Ice.Config=config
+```
+python src/camerasmuecasclient.py etc/config-run
+```
+## Known issues

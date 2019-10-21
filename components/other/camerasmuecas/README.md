@@ -9,7 +9,7 @@ This section assumes the user has already installed the RoboComp core library an
 
 If so, we can compile the `CamerasMuecas` component:
 ```
-cd ~/robocomp/components/robocomp-robolab/components/hardware/camera/cameraipcpp/
+cd ~/robocomp/components/robocomp-robolab/components/other/camerasmuecas/
 cmake .
 make
 ```
@@ -24,7 +24,7 @@ CamerasMuecas.Endpoints=tcp -p 10005
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-Ice.MessageSizeMax = 2000000
+Ice.MessageSizeMax = 2000000 # in bytes
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
@@ -32,7 +32,7 @@ Ice.Trace.Protocol=0
 Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
-The `Camera` parameter specifies the TCP/IP link that this component will use to received the streaming images. Note that we need to make sure the port number of the parameter `CamerasMuecas.Endpoints` is the same as the corresponding number of the client component using the `CamerasMuecas` component.
+We increase the `Ice.MessageSizeMax` parameter for larger allowed message size, because the streaming data is image. Note that we need to make sure the port number of the parameter `CamerasMuecas.Endpoints` is the same as the corresponding number of the client component using the `CamerasMuecas` component.
 
 ## Starting the component
 

@@ -57,19 +57,19 @@ Open 2 new terminals.
 
 Terminal 1:
 ```
-cd camerasimple
+cd hardware/camera/camerasimple
 python src/camerasimple.py etc/config-run
 ```
 
 Terminal 2:
 ```
-cd faceidentification
+cd detection/faceidentification
 python src/faceidentification.py etc/config-run
 ```
 
 Terminal 3:
 ```
-cd faceidentificationclient
+cd detection/test/faceidentificationclient
 python src/faceidentificationclient.py etc/config-run
 ```
 

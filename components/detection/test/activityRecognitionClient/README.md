@@ -39,7 +39,7 @@ Ice.ACM.Server=10
 
 You must ensure the proxies' hostname and port number of `ActivityRecognitionProxy`, `PoseEstimationProxy` and `CameraSimpleProxy` for correct communication between components.
 
-## Starting the component
+## Starting the monitoring Activity Recognition
 
 To avoid changing the config file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 ```
@@ -47,12 +47,37 @@ cd ~/robocomp/components/robocomp-robolab/components/detection/test/activityReco
 cp etc/config etc/config-run
 ```
 
-After editing the new config file we can run the component:
+After editing the new config file we can run the component as follow:
+
 ```
+cd robocomp/components/robocomp-robolab/components
+```
+Open 3 new terminals.
+
+Terminal 1:
+```
+cd hardware/camera/camerasimple
+python src/camerasimple.py etc/config-run
+```
+
+Terminal 2:
+```
+cd localization/poseEstimation
+python src/poseEstimation.py etc/config-run
+```
+
+Terminal 3:
+```
+cd detection/activityRecognition
+python src/activityRecognition.py etc/config-run
+```
+
+Terminal 4:
+```
+cd detection/test/activityRecognitionClient
 python src/activityRecognitionClient.py etc/config-run
 ```
 
-## Starting monitoring Activity Recognition
 If you would like to start all components at once, you can run the following script:
 
 ```

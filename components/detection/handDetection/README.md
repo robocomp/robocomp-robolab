@@ -46,7 +46,7 @@ flip=true
 Ice.ACM.Server=10
 ```
 
-In the config file, you can flip the image stream or not by switching the parameter `flip=true|false`. You also must ensure the proxies hostname and port number of `RGBDProxy` and `CameraSimpleProxy` to request correctly RGB and depth image stream.
+In the config file, you can flip the image stream or not by switching the parameter `flip=true|false`. You also must ensure the proxies' hostname and port number of `RGBDProxy` and `CameraSimpleProxy` to request correctly RGB and depth image stream.
 And, the port number of the parameter `HandDetection.Endpoints` must be the same as the corresponding number of the client component using the `HandDetection` component.
 
 

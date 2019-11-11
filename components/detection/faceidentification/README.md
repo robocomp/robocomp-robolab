@@ -1,6 +1,6 @@
 # FaceIdentification
 
-`FaceIdentification` component recognizes human faces and tags them according to training dataset. The component implements `FaceIdentification.idsl` interface, which  provides necessary functions and datatype to communicate with other components in RoboComp ecosystem. The component uses `tensorflow` for **training** and **inference** phases.
+`FaceIdentification` component recognizes human faces and tags them according to training dataset. The component implements `FaceIdentification.idsl` interface, which  provides necessary functions and datatypes to communicate with other components in RoboComp ecosystem. The component uses `tensorflow` for **training** and **inference** phases.
 
 For **training** models, you must first download the model files according to this [guide](Model.txt) and save them inside the folder `assets/`. You can find the training and model evaluation code in that folder.
 

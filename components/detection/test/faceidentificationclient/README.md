@@ -34,7 +34,7 @@ Ice.ACM.Server=10
 
 ```
 
-You must ensure the proxies' hostname and port number of `FaceIdentificationProxy` and `CameraSimpleProxy` for correct communication between components.
+You must ensure the proxies' hostname and port number of `FaceIdentificationProxy` and `CameraSimpleProxy` match the endpoints in the config files of the corresponding interfaces.
 
 ## Starting the monitoring Emotion Recognition
 

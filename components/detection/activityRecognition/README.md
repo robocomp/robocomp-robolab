@@ -27,7 +27,7 @@ pip install numpy matplotlib PyTorch torchnet openpyxl sklearn
 
 ## Configuration parameters
 
-As an example, `ActivityRecognition` component parameters are characterized in config file described below:
+As an example, `ActivityRecognition` component parameters are characterized in the config file described below:
 
 ```
 # Endpoints for implemented interfaces

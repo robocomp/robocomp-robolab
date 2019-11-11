@@ -37,7 +37,7 @@ Ice.ACM.Client=10
 Ice.ACM.Server=10
 ```
 
-You must ensure the proxies' hostname and port number of `ActivityRecognitionProxy`, `PoseEstimationProxy` and `CameraSimpleProxy` for correct communication between components.
+You must ensure the proxies' hostname and port number of `ActivityRecognitionProxy`, `PoseEstimationProxy` and `CameraSimpleProxy` match the endpoints in the config files of the corresponding interfaces.
 
 ## Starting the monitoring Activity Recognition
 

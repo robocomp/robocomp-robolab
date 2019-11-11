@@ -35,7 +35,7 @@ pip install dlib
 
 ## Configuration parameters
 
-As an example, `EmotionRecognition` component parameters are characterized in config file described below:
+As an example, `EmotionRecognition` component parameters are characterized in the config file described below:
 
 ```
 # Endpoints for implemented interfaces

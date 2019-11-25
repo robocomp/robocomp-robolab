@@ -5,7 +5,7 @@
 
 
 ## Compiling and Installation
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
 
 If so, we can compile the `CameraIP` component:
 ```

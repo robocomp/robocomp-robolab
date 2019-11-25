@@ -4,11 +4,11 @@
 `PyIMU` component is a Python version implementation of Inertial Measurement Unit (IMU) driver. The component uses `IMU.idsl` interface to serve combined message type `DataImu` consisted of component data type `Acceleration,  Gyroscope, Magnetic, Orientation, temperature`, which are measured from IMU sensor. In addition, `PyIMU` also utilizes `IMUPub.idsl` interface as a proxy to publish message type `DataImu` across RoboComp.  
 
 For developer notice, these functions will be implemented:
-- **getDataImu()**: returns combined message type `DataImu`.
-- **getAcceleration()**: returns linear accelerations type `Acceleration` of each axis of the IMU 3D cartesian coordinate.
-- **getAngularVel()**: returns angular velocities type `Gyroscope` of each axis of the IMU 3D cartesian coordinate.
-- **getMagneticFields()**: returns magnetic field strength components type `Magnetic` of each axis of the IMU 3D cartesian coordinate.
-- **getOrientation()**: returns current angle values type `Orientation` of yaw, pitch, row axis of the IMU coordinate.
+- **getDataImu()**: returns combined message. Type `DataImu`.
+- **getAcceleration()**: returns linear accelerations of each axis of the IMU 3D cartesian coordinate. Type: `Acceleration`.
+- **getAngularVel()**: returns angular velocities of each axis of the IMU 3D cartesian coordinate. Type: `Gyroscope`.
+- **getMagneticFields()**: returns magnetic field strength components of each axis of the IMU 3D cartesian coordinate. Type: `Magnetic`.
+- **getOrientation()**: returns current angle values of yaw, pitch, row axis of the IMU coordinate. Type: `Orientation`.
 - **resetImu()**: resets all measured values of the IMU to zeros.
 
 The detail data type components can be found in file `robocomp/interfaces/IDSLs/IMU.idsl`.
@@ -17,7 +17,7 @@ The detail data type components can be found in file `robocomp/interfaces/IDSLs/
 ## Compiling and Installation
 
 ### Resolving dependencies
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). Before compiling the component, user needs to install *PySide2* as follows:
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp). Before compiling the component, user needs to install *PySide2* as follows:
 
 ```
 pip install PySide2

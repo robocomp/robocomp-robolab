@@ -1,7 +1,7 @@
 
 # CamerasMuecasClient
 
-`CamerasMuecasClient` component receives two images as type `ImagePair` from `CamerasMuecas` component and rotates them upside down (180 degree), then show these images on openCV GUI. Specifically, this component implements `CamerasMuecas.idsl` interface to receives `ImagePair`. The `CamerasMuecas.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/CamerasMuecas.idsl`. The component is implemented in Python.
+`CamerasMuecasClient` component receives two images as type `ImagePair` from `CamerasMuecas` component and shows these images on a openCV GUI. Specifically, this component uses `CamerasMuecas.idsl` interface to receive `ImagePair`. The `CamerasMuecas.idsl` interface specification can be found in file `robocomp/interfaces/IDSLs/CamerasMuecas.idsl`. The component is implemented in Python.
 
 
 ## Compiling and Installation

@@ -1,6 +1,6 @@
 # Interaction Components
 
-**Interaction components** handles human-computer interaction methods such as speech. This category contains these components:
+**Interaction components** handle human-computer interaction methods such as speech. This category contains these components:
 - `speechComp` component is a Robocomp Component wrapper implementation of several libraries for the Text-to-Speech(TTS) task. The underlying logic is to run bash command utilizing `festival` TTS library or online TTS Google service.
 
 

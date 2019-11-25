@@ -13,12 +13,12 @@
   - `JoystickComp` component is a C++ implementation for generic joystick for controlling differential robots.
   - `JoystickOmni` component is a C++ implementation for generic joystick for controlling omni-directional robots.
   - `JoystickPublishComp` component is a C++ implementation for generic joystick used for controlling real or simulated robot.
-  - `KeyboardRobotController` component is a Python implementation for controlling simulated differential robots using keyboard.
+  - `KeyboardRobotController` component is a Python implementation for controlling differential robots using keyboard.
 - `imu` folder contains:
   - `phidgetimu` component is a C++ implementation of IMU driver.
   - `PyIMU` component is a Python version implementation of IMU driver.
 - `laser` folder contains:
   - `hokuyo` component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and serves the laser measurements.
-- `motor` folder contains motor driver components for specific motors. 
+- `motor` folder contains motor driver components for specific motors.
 
 The detail of the description, installation, and configuration of each component can be found on the respective component folder.

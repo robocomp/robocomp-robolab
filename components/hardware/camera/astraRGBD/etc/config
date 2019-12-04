@@ -14,10 +14,9 @@ Ice.MessageSizeMax=20004800
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
-Ice.ACM.Client=10
-Ice.ACM.Server=10
 
 depth=true
 color=true
-body=false
+body=true
 point=false
+device=/dev/video0

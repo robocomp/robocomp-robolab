@@ -41,7 +41,8 @@ Q_OBJECT
 
 
 	bool depthB,colorB, bodyB, pointB;
-	MultiFrameListener *frameListener;
+        std::string device;
+        MultiFrameListener *frameListener;
 
 //	void initializeStreams();
 //	void readFrame();

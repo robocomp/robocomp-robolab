@@ -61,12 +61,12 @@ class MultiFrameListener : public astra::FrameListener
 
 
 	std::map<int, RoboCompHumanTracker::jointListType> PersonDepth;
-
+        int cameraID;
 public:
 
     bool is_writting = false; //bandera
 
-    MultiFrameListener(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &pubproxy);
+    MultiFrameListener(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &pubproxy, int cameraID);
 
     void update_depth(astra::Frame& frame);
 

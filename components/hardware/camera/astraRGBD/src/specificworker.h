@@ -43,7 +43,7 @@ Q_OBJECT
 	bool depthB,colorB, bodyB, pointB;
         std::string device;
         MultiFrameListener *frameListener;
-
+        int cameraID;
 //	void initializeStreams();
 //	void readFrame();
 

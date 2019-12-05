@@ -20,3 +20,4 @@ color=true
 body=true
 point=false
 device=/dev/video0
+cameraID=0

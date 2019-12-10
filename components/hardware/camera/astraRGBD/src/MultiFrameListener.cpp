@@ -210,9 +210,9 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
         auto thetuple = std::forward_as_tuple(colorFrame, bodyFrame, milliseconds_since_epoch);
                 bodyRGBMix.put(thetuple, 0);
 		RoboCompHumanTrackerJointsAndRGB::MixedJointsRGB output;
-                output.cameraID = cameraID;
 		bodyRGBMix.get(output);
-		qDebug()<<"OUTPUT is Frame with timestamp: "<<output.timeStamp<<" and Person with "<< output.persons.size()<<" and color"<< output.rgbImage.width<<endl;
+		output.cameraID = cameraID;
+                qDebug()<<"OUTPUT is Frame with timestamp: "<<output.timeStamp<<" and Person with "<< output.persons.size()<<" and color"<< output.rgbImage.width<<endl;
 		pubproxy->newPersonListAndRGB(output);
 
     }

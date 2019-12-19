@@ -20,23 +20,53 @@
 #
 
 from genericworker import *
-
+import pyrealsense2 as rs
+import torch
+import numpy as np
+import cv2
+from openpifpaf.network import nets
+from openpifpaf import decoder, show, transforms
+import argparse
+import time
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
+COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
+SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
+						("left_knee", "left_hip"),
+						("right_ankle", "right_knee"),
+						("right_knee", "right_hip"),
+						("left_hip", "right_hip"),
+						("left_shoulder", "left_hip"),
+						("right_shoulder", "right_hip"),
+						("left_shoulder", "right_shoulder"),
+						("left_shoulder", "left_elbow"),
+						("right_shoulder", "right_elbow"),
+						("left_elbow", "left_wrist"),
+						("right_elbow", "right_wrist"),
+						("left_eye", "right_eye"),
+						("nose", "left_eye"),
+						("nose", "right_eye"),
+						("left_eye", "left_ear"),
+						("right_eye", "right_ear"),
+						("left_ear", "left_shoulder"),
+						("right_ear", "right_shoulder")]
+
+
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 20
 		self.timer.start(self.Period)
-
+		self.initialize()
 
 	def __del__(self):
 		print('SpecificWorker destructor')
+		self.pipeline.stop()
 
 	def setParams(self, params):
 		#try:
@@ -44,28 +74,110 @@ class SpecificWorker(GenericWorker):
 		#except:
 		#	traceback.print_exc()
 		#	print("Error reading config params")
+
 		return True
+
+	def initialize(self):
+		#openpifpaf configuration
+		class Args:
+			source = 0
+			checkpoint = None
+			basenet = None
+			dilation = None
+			dilation_end = None
+			headnets = ['pif', 'paf']
+			dropout = 0.0
+			quad = 1
+			pretrained = False
+			keypoint_threshold = None
+			seed_threshold = 0.2
+			force_complete_pose = False
+			debug_pif_indices = []
+			debug_paf_indices = []
+			connection_method = 'max'
+			fixed_b = None
+			pif_fixed_scale = None
+			profile_decoder = False
+			instance_threshold = 0.05
+			device = torch.device(type="cpu")
+			disable_cuda = False
+			scale = 1
+			key_point_threshold = 0.05
+			head_dropout = 0.0
+			head_quad = 0
+			default_kernel_size = 1
+			default_padding = 0
+			default_dilation = 1
+			head_kernel_size = 1
+			head_padding = 0
+			head_dilation = 0
+
+		self.args = Args()
+		model, _ = nets.factory_from_args(self.args)
+		model = model.to(self.args.device)
+		# model.cuda()
+		self.processor = decoder.factory_from_args(self.args, model)
+
+		#realsense configuration
+		try:
+
+			config = rs.config()
+			config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+			config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+			self.pipeline = rs.pipeline()
+			self.pipeline.start(config)
+		except Exception as e:
+			print(e)
+			exit(-1)
+		#data
+		self.src = np.zeros((480, 640, 3), np.uint8)
+
+
+
 
 	@QtCore.Slot()
 	def compute(self):
+		start = time.time()
 		print('SpecificWorker.compute...')
-		#computeCODE
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception as e:
-		#	traceback.print_exc()
-		#	print(e)
+		frames = self.pipeline.wait_for_frames()
+		self.depth = frames.get_depth_frame()
+		self.color = np.asanyarray(frames.get_color_frame().get_data())
+		if not self.depth:
+			return
 
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues('head_rot_tilt_pose', 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform('rgbd', z, 'laser')
-		# r.printvector('d')
-		# print(r[0], r[1], r[2])
-
+		self.processImage(0.3)
+		cv2.imshow("Color frame", self.color)
+		cv2.waitKey(1)
+		
+		print("FPS:", 1/(time.time()-start))
 		return True
 
-# =============== Methods for Component Implements ==================
+	def processImage(self, scale):
+		image = cv2.resize(self.color, None, fx=scale, fy=scale)
+		processed_image_cpu = transforms.image_transform(image)
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
+		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
+		fields = self.processor.fields(unsqueezed)[0]
+		keypoint_sets, _ = self.processor.keypoint_sets(fields)
+
+		# create joint dictionary
+		joints = dict()
+		for pos, joint in enumerate(keypoint_sets[0]):
+				joints[COCO_IDS[pos]] = [joint[0] / scale, joint[1] / scale, joint[2]]
+
+		#draw
+		for name1, name2 in SKELETON_CONNECTIONS:
+			joint1 = joints[name1]
+			joint2 = joints[name2]
+			if joint1[2] > 0.5:
+				cv2.circle(self.color, (int(joint1[0]), int(joint1[1])), 10, (0, 0, 255))
+			if joint2[2] > 0.5:
+				cv2.circle(self.color, (int(joint2[0]), int(joint2[1])), 10, (0, 0, 255))
+			if joint1[2] > 0.5 and joint2[2] > 0.5:
+				cv2.line(self.color, (int(joint1[0]), int(joint1[1])), (int(joint2[0]), int(joint2[1])), (0, 255, 0), 2)
+
+
+	# =============== Methods for Component Implements ==================
 # ===================================================================
 
 	#
@@ -75,9 +187,13 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		rgbMatrix = imgType()
-		distanceMatrix = depthType()
-		hState = RoboCompJointMotor.MotorStateMap()
+		rgbMatrix = []
+		distanceMatrix = []
+		for y in range(480):
+			for x in range(640):
+				distanceMatrix.append(self.depth.get_distance(x, y))
+
+		hState = {}
 		bState = RoboCompGenericBase.TBaseState()
 		return [rgbMatrix, distanceMatrix, hState, bState]
 
@@ -89,10 +205,13 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		depth = DepthSeq()
-		hState = RoboCompJointMotor.MotorStateMap()
-		bState = RoboCompGenericBase.TBaseState()
-		return [depth, hState, bState]
+		depth = []
+		for y in range(480):
+			for x in range(640):
+				depth.append(self.depth.get_distance(x, y))
+		hState = {}
+		bState = TBaseState()
+		return (depth, hState, bState)
 
 
 	#
@@ -102,8 +221,8 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		distanceMatrix = depthType()
-		hState = RoboCompJointMotor.MotorStateMap()
+		distanceMatrix = []
+		hState = {}
 		bState = RoboCompGenericBase.TBaseState()
 		return [distanceMatrix, hState, bState]
 
@@ -115,10 +234,10 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		color = ColorSeq()
-		depth = DepthSeq()
-		points = PointSeq()
-		hState = RoboCompJointMotor.MotorStateMap()
+		color = []
+		depth = []
+		points = []
+		hState = []
 		bState = RoboCompGenericBase.TBaseState()
 		return [color, depth, points, hState, bState]
 
@@ -130,8 +249,8 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		color = ColorSeq()
-		hState = RoboCompJointMotor.MotorStateMap()
+		color = []
+		hState = {}
 		bState = RoboCompGenericBase.TBaseState()
 		return [color, hState, bState]
 
@@ -165,8 +284,8 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		points = PointSeq()
-		hState = RoboCompJointMotor.MotorStateMap()
+		points = []
+		hState = {}
 		bState = RoboCompGenericBase.TBaseState()
 		return [points, hState, bState]
 
@@ -178,9 +297,9 @@ class SpecificWorker(GenericWorker):
 		#
 		# implementCODE
 		#
-		pointStream = imgType()
-		hState = RoboCompJointMotor.MotorStateMap()
-		bState = RoboCompGenericBase.TBaseState()
+		pointStream = []
+		hState = {}
+		bState = TBaseState()
 		return [pointStream, hState, bState]
 
 

@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces
-RGBD.Endpoints=tcp -p 0
+RGBD.Endpoints=tcp -p 10096
 
 
 

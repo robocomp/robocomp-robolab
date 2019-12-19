@@ -1,0 +1,13 @@
+import "RGBD.idsl";
+import "HumanPose.idsl";
+
+Component realsensehuman
+{
+    Communications
+    {
+        implements RGBD;
+        publishes HumanPose;
+    };
+	language python;
+};
+

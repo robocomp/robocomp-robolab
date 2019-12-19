@@ -96,6 +96,12 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["body"] = aux;
 	configGetString("", "point", aux.value,"true");
 	params["point"] = aux;
+	configGetString("", "device", aux.value,"/dev/video0");
+	params["device"] = aux;
+	configGetString("", "cameraID", aux.value,"1");
+	params["cameraID"] = aux;
+
+    
 }
 
 //Check parameters and transform them to worker structure

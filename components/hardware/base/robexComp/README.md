@@ -4,7 +4,7 @@
 
 * **DifferentialRobot.idsl**: please refer to `DifferentialRobotComp` documentation in file `robocomp/components/robocomp-robolab/components/hardware/base/differentialrobotComp/`.
 * **JoystickAdapter.idsl**:
-  - **sendData(const TData  &data, const Ice::Current&)**: sends robot control data with type `TData` specified in `JoystickAdapter.idsl`.
+  - **sendData(const TData  &data, const Ice::Current&)**: sends robot control data specified in `JoystickAdapter.idsl`. Type: `TData`.
 * **GenericBase.idsl**:
   - **getBaseState(RoboCompGenericBase::TBaseState  &state, const Ice::Current&)**: reads current robot state via Ice protocols.
   - **getBasePose(int  &x,  int  &z,  float  &alpha, const Ice::Current&)**: reads current robot pose via Ice protocols.
@@ -13,7 +13,7 @@ More information about interface parameters or data message type can be found in
 
 ## Compiling and Installation
 
-This section assumes user has already installed RoboComp core library and pull Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
+This section assumes the user has already installed the RoboComp core library and pulled Robolab's components according to this [README guide](https://github.com/robocomp/robocomp).
 
 If so, we can compile the `RobexComp` component:
 ```

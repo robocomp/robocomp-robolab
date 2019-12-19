@@ -49,15 +49,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	colorB = QString::fromStdString(params["color"].value).contains("true");
 	bodyB = QString::fromStdString(params["body"].value).contains("true");
 	pointB = QString::fromStdString(params["point"].value).contains("true");
+        device = params["device"].value;
+        cameraID = QString::fromStdString(params["cameraID"].value).toFloat();
+        astra::initialize();
+        
+        astra::StreamSet streamSet(device.c_str());
 
-	astra::initialize();
-
-// Para abrir varias camaras con streamSet("")
-//    astra::StreamSet streamSet1("device/sensor0");
-//    astra::StreamSet streamSet2("device/sensor1");
-//    streamSet = streamSet2;
-
-	frameListener = new MultiFrameListener(this->humantrackerjointsandrgb_pubproxy);
+	frameListener = new MultiFrameListener(this->humantrackerjointsandrgb_pubproxy, cameraID);
 	frameListener->set_color_stream(colorB);
 	qDebug() << "Color stream will be opened? " << colorB;
 	frameListener->set_depth_stream(depthB);

@@ -66,10 +66,12 @@ void SpecificWorker::initialize(int period)
 //     camera_data[1].name = "1";
 //     camera_data[1].rgbd_proxy = rgbd1_proxy;
 
-    camera_data[0].mfx = 460;
-    camera_data[0].mfy = 460;
+//     camera_data[0].mfx = 551; // window
+//     camera_data[0].mfy = 551;
+    camera_data[0].mfx = 545;  // entrance
+    camera_data[0].mfy = 545;
 //     camera_data[1].mfx = 530;
-//     camera_data[1].mfy = 535;
+//     camera_data[1].mfy = 535;4
     
     this->Period = period;
 	timer.start(Period);
@@ -110,8 +112,29 @@ void SpecificWorker::compute()
             innerModel->updateTransformValuesS(std::string("cam_")+camera_data[i].name, tr(0), tr(1), tr(2), tr(3), tr(4), tr(5));
             QVec tt = innerModel->transformS6D(std::string("april_")+camera_data[i].name, std::string("cam_")+camera_data[i].name);
             printf("CAM %s from the TAG: (%f %f %f)  (%f %f %f)\n", camera_data[i].name.c_str() , tr(0), tr(1), tr(2), tr(3), tr(4), tr(5));
-//             float d1 = tr(2);
-//             float d2 = depth[(640-tagsList[0].cx)+ 640*tagsList[0].cy];
+            float d1 = QVec::vec3(tr(0), tr(1), tr(2)).norm2();
+            printf("%f\n", d1);
+            
+// window cam: ground truth 3922mm
+// 460 - 3300
+// 500 - 3571
+// 518 - 3693
+// 531 - 3780
+// 545 - 3888
+// 551 - 3922 **
+// 552 - 3932
+// 555 - 3953
+// 559 - 3980
+// 565 - 4022
+// fridge cam: 3116mm
+// entrance cam: 3752mm
+// 545 - 3755
+// 548 - 3775
+// 550 - 3789
+// 551 - 3798            
+//             
+            
+//             float d2 = depth[tagsList[0].cx+ 640*tagsList[0].cy];
 //             if (d2 > 1)
 //             {
 //                 printf("  Ratio:   %f   %f\n", d1, d2);

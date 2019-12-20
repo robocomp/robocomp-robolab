@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-RGBDProxy = rgbd:tcp -h 10.253.247.234 -p 10096
+RGBDProxy  = rgbd:tcp -h 10.253.247.234 -p 10096
 RGBD1Proxy = rgbd:tcp -h 10.253.247.234 -p 10096
 
 AprilTagsServerProxy = apriltagsserver:tcp -h 158.49.247.146 -p 12555

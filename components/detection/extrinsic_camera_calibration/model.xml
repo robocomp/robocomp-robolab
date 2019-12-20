@@ -7,24 +7,12 @@
                     </transform>
                 </transform>
             </transform>
-            <transform id="cam_1">
-                <transform id="april_raw_1">
-                    <transform id="april_1" rx="-1.57079632679">
-                    </transform>
-                </transform>
+            <transform id="world_camera_0" tx="3249"  ty="1915" tz="-322" rx="1.318910" ry="-1.212849" rz="1.310650" >
             </transform>
-            <transform id="cam_2">
-                <transform id="april_raw_2">
-                    <transform id="april_2" rx="-1.57079632679">
-                    </transform>
-                </transform>
-            </transform>
-            <transform id="cam_3">
-                <transform id="april_raw_3">
-                    <transform id="april_3" rx="-1.57079632679">
-                    </transform>
-                </transform>
+            <transform id="world_camera_1" tx="-3201" ty="1962" tz="25"   rx="-1.225287" ry="1.883841" rz="1.259227" >
             </transform>
         </transform>
     </transform>
 </innerModel>
+<!-- CAMERA WINDOW = CAM 0 from the TAG: (3249.464844 1915.013306 -322.633087)  (1.318910 -1.212849 1.310650) -->
+<!-- CAMERA ENTRANCE CAM 0 from the TAG: (-3201.179688 1962.617188 25.884821)  (-1.225287 1.883841 1.259227) -->

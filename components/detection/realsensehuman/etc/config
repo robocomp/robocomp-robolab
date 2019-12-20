@@ -7,7 +7,7 @@ RGBD.Endpoints=tcp -p 10096
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
-device_serial=909522060513
+device_serial=844212071705
 width=640
 height=480
 openpifpaf=true

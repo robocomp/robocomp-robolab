@@ -28,11 +28,9 @@ from openpifpaf.network import nets
 from openpifpaf import decoder, show, transforms
 import argparse
 import time
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
+import PIL
+from PySide2.QtCore import QMutexLocker
+
 
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
@@ -59,23 +57,42 @@ SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
+		self.params = {}
+		self.width = 0
+		self.height = 0
+		self.openpifpaf = False
+		self.viewimage = False
 		self.timer.timeout.connect(self.compute)
-		self.Period = 20
-		self.timer.start(self.Period)
-		self.initialize()
+		self.Period = 1 
 
 	def __del__(self):
 		print('SpecificWorker destructor')
-		self.pipeline.stop()
+		if self.pipeline:
+			self.pipeline.stop()
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print("Error reading config params")
-
+		self.params = params
+		self.width = int(self.params["width"])
+		self.height = int(self.params["height"])
+		self.openpifpaf = "true" in self.params["openpifpaf"]
+		self.viewimage = "true" in self.params["viewimage"]
+		self.odepth = []
+		self.ocolor = []
+		self.opoints = []
+		self.oimgtype = []
+		cc = ColorRGB()
+		pp = PointXYZ()
+		for i in range(self.width*self.height):
+			self.odepth.append(0.)
+			self.ocolor.append(cc)
+			self.opoints.append(pp)
+			self.oimgtype.append(0.)
+			self.oimgtype.append(0.)
+			self.oimgtype.append(0.)
+		self.initialize()
+		self.timer.start(self.Period)
 		return True
+	
 
 	def initialize(self):
 		#openpifpaf configuration
@@ -97,7 +114,7 @@ class SpecificWorker(GenericWorker):
 			connection_method = 'max'
 			fixed_b = None
 			pif_fixed_scale = None
-			profile_decoder = False
+			profile_decoder = None
 			instance_threshold = 0.05
 			device = torch.device(type="cpu")
 			disable_cuda = False
@@ -111,7 +128,15 @@ class SpecificWorker(GenericWorker):
 			head_kernel_size = 1
 			head_padding = 0
 			head_dilation = 0
-
+			cross_talk = 0.0
+			two_scale = False
+			multi_scale = False
+			multi_scale_hflip = False
+			paf_th = 0.1
+			pif_th = 0.1
+			decoder_workers = None
+			experimental_decoder = False
+			extra_coupling = 0.0
 		self.args = Args()
 		model, _ = nets.factory_from_args(self.args)
 		model = model.to(self.args.device)
@@ -120,17 +145,15 @@ class SpecificWorker(GenericWorker):
 
 		#realsense configuration
 		try:
-
 			config = rs.config()
-			config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-			config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+			config.enable_device(self.params["device_serial"])
+			config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
+			config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
 			self.pipeline = rs.pipeline()
 			self.pipeline.start(config)
 		except Exception as e:
 			print(e)
 			exit(-1)
-		#data
-		self.src = np.zeros((480, 640, 3), np.uint8)
 
 
 
@@ -140,129 +163,141 @@ class SpecificWorker(GenericWorker):
 		start = time.time()
 		print('SpecificWorker.compute...')
 		frames = self.pipeline.wait_for_frames()
-		self.depth = frames.get_depth_frame()
-		self.color = np.asanyarray(frames.get_color_frame().get_data())
-		if not self.depth:
+		if not frames:
 			return
-
-		self.processImage(0.3)
-		cv2.imshow("Color frame", self.color)
-		cv2.waitKey(1)
+		self.mutex.lock()
+		self.depth = np.asanyarray(frames.get_depth_frame().get_data())
+		self.color = np.asanyarray(frames.get_color_frame().get_data())
 		
+
+		if self.openpifpaf:
+			self.color = cv2.flip(self.color, 0)
+			self.color = cv2.flip(self.color, 1)
+
+			self.processImage(0.3)
+		self.mutex.unlock()	
+		if self.viewimage:
+			cv2.imshow("Color frame", self.color)
+			cv2.waitKey(1)
+			
 		print("FPS:", 1/(time.time()-start))
 		return True
 
 	def processImage(self, scale):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
-		processed_image_cpu = transforms.image_transform(image)
+		image_pil = PIL.Image.fromarray(image)
+		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
-		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
-		fields = self.processor.fields(unsqueezed)[0]
+		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
 
 		# create joint dictionary
-		joints = dict()
-		for pos, joint in enumerate(keypoint_sets[0]):
-				joints[COCO_IDS[pos]] = [joint[0] / scale, joint[1] / scale, joint[2]]
+		for p in keypoint_sets:
+                    joints = dict()
+                    for pos, joint in enumerate(p):
+                                    joints[COCO_IDS[pos]] = [joint[0] / scale, joint[1] / scale, joint[2]]
 
-		#draw
-		for name1, name2 in SKELETON_CONNECTIONS:
-			joint1 = joints[name1]
-			joint2 = joints[name2]
-			if joint1[2] > 0.5:
-				cv2.circle(self.color, (int(joint1[0]), int(joint1[1])), 10, (0, 0, 255))
-			if joint2[2] > 0.5:
-				cv2.circle(self.color, (int(joint2[0]), int(joint2[1])), 10, (0, 0, 255))
-			if joint1[2] > 0.5 and joint2[2] > 0.5:
-				cv2.line(self.color, (int(joint1[0]), int(joint1[1])), (int(joint2[0]), int(joint2[1])), (0, 255, 0), 2)
+                    #draw
+                    for name1, name2 in SKELETON_CONNECTIONS:
+                            joint1 = joints[name1]
+                            joint2 = joints[name2]
+                            if joint1[2] > 0.5:
+                                    cv2.circle(self.color, (int(joint1[0]), int(joint1[1])), 10, (0, 0, 255))
+                            if joint2[2] > 0.5:
+                                    cv2.circle(self.color, (int(joint2[0]), int(joint2[1])), 10, (0, 0, 255))
+                            if joint1[2] > 0.5 and joint2[2] > 0.5:
+                                    cv2.line(self.color, (int(joint1[0]), int(joint1[1])), (int(joint2[0]), int(joint2[1])), (0, 255, 0), 2)
 
 
-	# =============== Methods for Component Implements ==================
+# =============== Methods for Component Implements ==================
 # ===================================================================
 
 	#
 	# getData
 	#
 	def getData(self):
-		#
-		# implementCODE
-		#
-		rgbMatrix = []
-		distanceMatrix = []
-		for y in range(480):
-			for x in range(640):
-				distanceMatrix.append(self.depth.get_distance(x, y))
+		locker = QMutexLocker(self.mutex)
+		for y in range(self.height):
+			for x in range(self.width):
+				self.odepth[self.width*(self.height-1-y)+x] = self.depth[y,x]
+				self.oimgtype[(self.width*y+(self.width-1-x))*3+0] = self.color[y,x,2]
+				self.oimgtype[(self.width*y+(self.width-1-x))*3+1] = self.color[y,x,1]
+				self.oimgtype[(self.width*y+(self.width-1-x))*3+2] = self.color[y,x,0]
 
 		hState = {}
-		bState = RoboCompGenericBase.TBaseState()
-		return [rgbMatrix, distanceMatrix, hState, bState]
+		bState = TBaseState()
+		
+		return (self.oimgtype, self.odepth, hState, bState)
 
 
 	#
 	# getDepth
 	#
 	def getDepth(self):
-		#
-		# implementCODE
-		#
-		depth = []
-		for y in range(480):
-			for x in range(640):
-				depth.append(self.depth.get_distance(x, y))
+		locker = QMutexLocker(self.mutex)
+		for y in range(self.height):
+			for x in range(self.width):
+				self.odepth[self.width*y+x] = self.depth[y,x]
+
 		hState = {}
 		bState = TBaseState()
-		return (depth, hState, bState)
+		return (self.odepth, hState, bState)
 
 
 	#
 	# getDepthInIR
 	#
 	def getDepthInIR(self):
-		#
-		# implementCODE
-		#
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		distanceMatrix = []
 		hState = {}
-		bState = RoboCompGenericBase.TBaseState()
-		return [distanceMatrix, hState, bState]
+		bState = TBaseState()
+		return (distanceMatrix, hState, bState)
 
 
 	#
 	# getImage
 	#
 	def getImage(self):
-		#
-		# implementCODE
-		#
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		color = []
 		depth = []
 		points = []
-		hState = []
-		bState = RoboCompGenericBase.TBaseState()
-		return [color, depth, points, hState, bState]
+		hState = {}
+		bState = TBaseState()
+		return (color, depth, points, hState, bState)
 
 
 	#
 	# getRGB
 	#
 	def getRGB(self):
-		#
-		# implementCODE
-		#
-		color = []
+		locker = QMutexLocker(self.mutex)
+		for y in range(self.height):
+			for x in range(self.width):
+				self.ocolor[(self.width*y+x)].red = int(self.color[y,x,2])
+				self.ocolor[(self.width*y+x)].green = int(self.color[y,x,1])
+				self.ocolor[(self.width*y+x)].blue = int(self.color[y,x,0])
+
+
 		hState = {}
-		bState = RoboCompGenericBase.TBaseState()
-		return [color, hState, bState]
+		bState = TBaseState()
+		return (self.ocolor, hState, bState)
 
 
 	#
 	# getRGBDParams
 	#
 	def getRGBDParams(self):
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		ret = TRGBDParams()
-		#
-		# implementCODE
-		#
 		return ret
 
 
@@ -270,10 +305,10 @@ class SpecificWorker(GenericWorker):
 	# getRegistration
 	#
 	def getRegistration(self):
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		ret = Registration()
-		#
-		# implementCODE
-		#
 		return ret
 
 
@@ -281,35 +316,35 @@ class SpecificWorker(GenericWorker):
 	# getXYZ
 	#
 	def getXYZ(self):
-		#
-		# implementCODE
-		#
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		points = []
 		hState = {}
 		bState = RoboCompGenericBase.TBaseState()
-		return [points, hState, bState]
+		return (points, hState, bState)
 
 
 	#
 	# getXYZByteStream
 	#
 	def getXYZByteStream(self):
-		#
-		# implementCODE
-		#
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		pointStream = []
 		hState = {}
 		bState = TBaseState()
-		return [pointStream, hState, bState]
+		return (pointStream, hState, bState)
 
 
 	#
 	# setRegistration
 	#
 	def setRegistration(self, value):
-		#
-		# implementCODE
-		#
+		locker = QMutexLocker(self.mutex)
+		print('not implemented')
+		sys.exit(0)
 		pass
 
 # ===================================================================

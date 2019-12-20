@@ -1,4 +1,4 @@
-# Endpoints for implemented interfaces
+# Endpoints for implemented interfaces66
 RGBD.Endpoints=tcp -p 10096
 
 
@@ -6,6 +6,15 @@ RGBD.Endpoints=tcp -p 10096
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+
+device_serial=909522060513
+width=640
+height=480
+openpifpaf=true
+viewimage=true
+
+# astra1 = 909522060513
+# astra2 = 839112062698
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

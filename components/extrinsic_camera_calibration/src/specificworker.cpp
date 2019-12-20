@@ -63,13 +63,13 @@ void SpecificWorker::initialize(int period)
 
     camera_data[0].name = "0";
     camera_data[0].rgbd_proxy = rgbd_proxy;
-    camera_data[1].name = "1";
-    camera_data[1].rgbd_proxy = rgbd1_proxy;
+//     camera_data[1].name = "1";
+//     camera_data[1].rgbd_proxy = rgbd1_proxy;
 
     camera_data[0].mfx = 460;
     camera_data[0].mfy = 460;
-    camera_data[1].mfx = 530;
-    camera_data[1].mfy = 535;
+//     camera_data[1].mfx = 530;
+//     camera_data[1].mfy = 535;
     
     this->Period = period;
 	timer.start(Period);
@@ -79,16 +79,14 @@ void SpecificWorker::compute()
 {
     static cv::Mat frame_m(480, 640, CV_8UC3);
     static DepthSeq depth;
-    static ColorSeq color;
+    static imgType color;
     RoboCompJointMotor::MotorStateMap hState;
     RoboCompGenericBase::TBaseState bState;
     RoboCompAprilTagsServer::tagsList tagsList;
 
     for (int i=0; i<NUMBER_OF_CAMERAS; i++)
     {
-        camera_data[i].rgbd_proxy->getDepth(depth, hState, bState);
-//         printf("%f\n", depth[320+ 240*640]);
-        camera_data[i].rgbd_proxy->getRGB(color, hState, bState);
+        camera_data[i].rgbd_proxy->getData(color, depth, hState, bState);
         memcpy(&frame_m.data[0], &(color[0]), 640*480*3);
         cv::cvtColor(frame_m, frame_m, CV_BGR2RGB);
         cv::flip(frame_m,frame_m, 1);
@@ -100,7 +98,6 @@ void SpecificWorker::compute()
         {
             for (int ic=0; ic<640; ic++)
             {
-//                 if 
                 frame_m.at<uint8_t>(ir, 640-ic, 2) = int(255.*depth[ic + 640*ir] / 10000.);
             }
         }

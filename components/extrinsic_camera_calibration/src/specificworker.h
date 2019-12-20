@@ -32,7 +32,7 @@
 
 #include "opencv2/opencv.hpp"
 
-#define NUMBER_OF_CAMERAS 2
+#define NUMBER_OF_CAMERAS 1
 
 struct CamDataStructure
 {

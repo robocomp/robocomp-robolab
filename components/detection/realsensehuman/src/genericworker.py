@@ -44,18 +44,6 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_GenericBase = False
-for p in icePaths:
-	if os.path.isfile(p+'/GenericBase.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"GenericBase.ice"
-		Ice.loadSlice(wholeStr)
-		ice_GenericBase = True
-		break
-if not ice_GenericBase:
-	print('Couln\'t load GenericBase')
-	sys.exit(-1)
-from RoboCompGenericBase import *
 ice_RGBD = False
 for p in icePaths:
 	if os.path.isfile(p+'/RGBD.ice'):
@@ -68,6 +56,18 @@ if not ice_RGBD:
 	print('Couln\'t load RGBD')
 	sys.exit(-1)
 from RoboCompRGBD import *
+ice_HumanCameraBody = False
+for p in icePaths:
+	if os.path.isfile(p+'/HumanCameraBody.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"HumanCameraBody.ice"
+		Ice.loadSlice(wholeStr)
+		ice_HumanCameraBody = True
+		break
+if not ice_HumanCameraBody:
+	print('Couln\'t load HumanCameraBody')
+	sys.exit(-1)
+from RoboCompHumanCameraBody import *
 ice_JointMotor = False
 for p in icePaths:
 	if os.path.isfile(p+'/JointMotor.ice'):
@@ -80,18 +80,18 @@ if not ice_JointMotor:
 	print('Couln\'t load JointMotor')
 	sys.exit(-1)
 from RoboCompJointMotor import *
-ice_HumanPose = False
+ice_GenericBase = False
 for p in icePaths:
-	if os.path.isfile(p+'/HumanPose.ice'):
+	if os.path.isfile(p+'/GenericBase.ice'):
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"HumanPose.ice"
+		wholeStr = preStr+"GenericBase.ice"
 		Ice.loadSlice(wholeStr)
-		ice_HumanPose = True
+		ice_GenericBase = True
 		break
-if not ice_HumanPose:
-	print('Couln\'t load HumanPose')
+if not ice_GenericBase:
+	print('Couln\'t load GenericBase')
 	sys.exit(-1)
-from RoboCompHumanPose import *
+from RoboCompGenericBase import *
 
 
 from rgbdI import *
@@ -105,7 +105,7 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
-		self.humanpose_proxy = mprx["HumanPosePub"]
+		self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
 		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

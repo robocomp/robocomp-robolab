@@ -1,13 +1,13 @@
 import "RGBD.idsl";
-import "HumanPose.idsl";
+import "HumanCameraBody.idsl";
 
 Component realsensehuman
 {
-    Communications
-    {
-        implements RGBD;
-        publishes HumanPose;
-    };
+	Communications
+	{
+		implements RGBD;
+		publishes HumanCameraBody;
+	};
 	language python;
 };
 

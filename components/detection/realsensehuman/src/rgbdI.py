@@ -41,20 +41,20 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_HumanPose = False
+ice_HumanCameraBody = False
 for p in icePaths:
-	print('Trying', p, 'to load HumanPose.ice')
-	if os.path.isfile(p+'/HumanPose.ice'):
-		print('Using', p, 'to load HumanPose.ice')
+	print('Trying', p, 'to load HumanCameraBody.ice')
+	if os.path.isfile(p+'/HumanCameraBody.ice'):
+		print('Using', p, 'to load HumanCameraBody.ice')
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"HumanPose.ice"
+		wholeStr = preStr+"HumanCameraBody.ice"
 		Ice.loadSlice(wholeStr)
-		ice_HumanPose = True
+		ice_HumanCameraBody = True
 		break
-if not ice_HumanPose:
-	print('Couldn\'t load HumanPose')
+if not ice_HumanCameraBody:
+	print('Couldn\'t load HumanCameraBody')
 	sys.exit(-1)
-from RoboCompHumanPose import *
+from RoboCompHumanCameraBody import *
 ice_RGBD = False
 for p in icePaths:
 	print('Trying', p, 'to load RGBD.ice')

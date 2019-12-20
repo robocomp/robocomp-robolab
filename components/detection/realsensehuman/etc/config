@@ -12,6 +12,7 @@ width=640
 height=480
 openpifpaf=true
 viewimage=true
+cameraid=0
 
 # astra1 = 909522060513
 # astra2 = 839112062698

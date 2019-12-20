@@ -60,8 +60,13 @@ class SpecificWorker(GenericWorker):
 		self.params = {}
 		self.width = 0
 		self.height = 0
+		self.cameraid = 0
+		self.depth = []
+		self.color = []
+		self.points = []
 		self.openpifpaf = False
 		self.viewimage = False
+		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 1 
 
@@ -74,6 +79,7 @@ class SpecificWorker(GenericWorker):
 		self.params = params
 		self.width = int(self.params["width"])
 		self.height = int(self.params["height"])
+		self.cameraid = int(self.params["cameraid"])
 		self.openpifpaf = "true" in self.params["openpifpaf"]
 		self.viewimage = "true" in self.params["viewimage"]
 		self.odepth = []
@@ -149,6 +155,8 @@ class SpecificWorker(GenericWorker):
 			config.enable_device(self.params["device_serial"])
 			config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
 			config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
+			
+			self.pointcloud = rs.pointcloud()
 			self.pipeline = rs.pipeline()
 			self.pipeline.start(config)
 		except Exception as e:
@@ -156,25 +164,37 @@ class SpecificWorker(GenericWorker):
 			exit(-1)
 
 
-
+	def publishData(self):
+		people = PeopleData()
+		people.cameraId = self.cameraid
+		people.timestamp = time.time()
+		
+		try:
+			self.humancamerabody_proxy.newPeopleData(people)
+		except:
+			print("Error on camerabody data publication")
+		
 
 	@QtCore.Slot()
 	def compute(self):
 		start = time.time()
-		print('SpecificWorker.compute...')
 		frames = self.pipeline.wait_for_frames()
 		if not frames:
 			return
 		self.mutex.lock()
-		self.depth = np.asanyarray(frames.get_depth_frame().get_data())
+		depthData = frames.get_depth_frame()
+		self.depth = np.asanyarray(depthData.get_data())
 		self.color = np.asanyarray(frames.get_color_frame().get_data())
-		
+		self.points =  np.asanyarray(self.pointcloud.calculate(depthData).get_vertices())
 
 		if self.openpifpaf:
 			self.color = cv2.flip(self.color, 0)
 			self.color = cv2.flip(self.color, 1)
 
 			self.processImage(0.3)
+			self.publishData()
+			
+			
 		self.mutex.unlock()	
 		if self.viewimage:
 			cv2.imshow("Color frame", self.color)
@@ -192,22 +212,34 @@ class SpecificWorker(GenericWorker):
 		
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
 
+		self.peoplelist = []
 		# create joint dictionary
-		for p in keypoint_sets:
-                    joints = dict()
-                    for pos, joint in enumerate(p):
-                                    joints[COCO_IDS[pos]] = [joint[0] / scale, joint[1] / scale, joint[2]]
+		for id, p in enumerate(keypoint_sets):
+			person = Person()
+			person.id = id
+			person.joints = dict()
+			for pos, joint in enumerate(p):
+				keypoint = KeyPoint()
+				keypoint.i = int(joint[0] / scale)
+				keypoint.j = int(joint[1] / scale)
+				keypoint.score = float(joint[2])
+				keyPoint.x = self.points[self.width*keypoint.j+keypoint.i][0]
+				keyPoint.y = self.points[self.width*keypoint.j+keypoint.i][1]
+				keyPoint.z = self.points[self.width*keypoint.j+keypoint.i][2]
+				person.joints[COCO_IDS[pos]] = keypoint
+			self.peoplelist.append(person)
 
-                    #draw
-                    for name1, name2 in SKELETON_CONNECTIONS:
-                            joint1 = joints[name1]
-                            joint2 = joints[name2]
-                            if joint1[2] > 0.5:
-                                    cv2.circle(self.color, (int(joint1[0]), int(joint1[1])), 10, (0, 0, 255))
-                            if joint2[2] > 0.5:
-                                    cv2.circle(self.color, (int(joint2[0]), int(joint2[1])), 10, (0, 0, 255))
-                            if joint1[2] > 0.5 and joint2[2] > 0.5:
-                                    cv2.line(self.color, (int(joint1[0]), int(joint1[1])), (int(joint2[0]), int(joint2[1])), (0, 255, 0), 2)
+			#draw
+			if self.viewimage:
+				for name1, name2 in SKELETON_CONNECTIONS:
+					joint1 = person.joints[name1]
+					joint2 = person.joints[name2]
+					if joint1.score > 0.5:
+						cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
+					if joint2.score > 0.5:
+						cv2.circle(self.color, (joint2.i, joint1.j), 10, (0, 0, 255))
+					if joint1.score > 0.5 and joint2.score > 0.5:
+						cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
 
 
 # =============== Methods for Component Implements ==================
@@ -220,10 +252,10 @@ class SpecificWorker(GenericWorker):
 		locker = QMutexLocker(self.mutex)
 		for y in range(self.height):
 			for x in range(self.width):
-				self.odepth[self.width*(self.height-1-y)+x] = self.depth[y,x]
-				self.oimgtype[(self.width*y+(self.width-1-x))*3+0] = self.color[y,x,2]
-				self.oimgtype[(self.width*y+(self.width-1-x))*3+1] = self.color[y,x,1]
-				self.oimgtype[(self.width*y+(self.width-1-x))*3+2] = self.color[y,x,0]
+				self.odepth[self.width*(self.height-1-y)+x] = self.points[self.width*y+(self.width-1-x)][2]
+				self.oimgtype[(self.width*y+x)*3+0] = self.color[y,x,2]
+				self.oimgtype[(self.width*y+x)*3+1] = self.color[y,x,1]
+				self.oimgtype[(self.width*y+x)*3+2] = self.color[y,x,0]
 
 		hState = {}
 		bState = TBaseState()

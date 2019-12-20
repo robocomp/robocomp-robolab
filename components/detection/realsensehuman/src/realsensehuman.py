@@ -116,23 +116,23 @@ if __name__ == '__main__':
 		print('Cannot connect to IceStorm! ('+proxy+')')
 		status = 1
 
-	# Create a proxy to publish a HumanPose topic
+	# Create a proxy to publish a HumanCameraBody topic
 	topic = False
 	try:
-		topic = topicManager.retrieve("HumanPose")
+		topic = topicManager.retrieve("HumanCameraBody")
 	except:
 		pass
 	while not topic:
 		try:
-			topic = topicManager.retrieve("HumanPose")
+			topic = topicManager.retrieve("HumanCameraBody")
 		except IceStorm.NoSuchTopic:
 			try:
-				topic = topicManager.create("HumanPose")
+				topic = topicManager.create("HumanCameraBody")
 			except:
-				print('Another client created the HumanPose topic? ...')
+				print('Another client created the HumanCameraBody topic? ...')
 	pub = topic.getPublisher().ice_oneway()
-	humanposeTopic = HumanPosePrx.uncheckedCast(pub)
-	mprx["HumanPosePub"] = humanposeTopic
+	humancamerabodyTopic = HumanCameraBodyPrx.uncheckedCast(pub)
+	mprx["HumanCameraBodyPub"] = humancamerabodyTopic
 
 	if status == 0:
 		worker = SpecificWorker(mprx)

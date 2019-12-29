@@ -24,12 +24,12 @@ from genericworker import *
 import torch
 import numpy as np
 import cv2
-from openpifpaf.network import nets
-from openpifpaf import decoder, show, transforms
 import argparse
-import time
+import time, sys
 import PIL
 from PySide2.QtCore import QMutexLocker
+from openpifpaf.network import nets
+from openpifpaf import decoder, show, transforms
 
 
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
@@ -68,7 +68,7 @@ class SpecificWorker(GenericWorker):
 		self.viewimage = False
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
-		self.Period = 1 
+		self.Period = 100
 
 	def __del__(self):
 		print('SpecificWorker destructor')
@@ -82,6 +82,7 @@ class SpecificWorker(GenericWorker):
 		self.cameraid = int(self.params["cameraid"])
 		self.openpifpaf = "true" in self.params["openpifpaf"]
 		self.viewimage = "true" in self.params["viewimage"]
+		self.cuda = "false" in self.params["cuda"]
 		# self.odepth = []
 		# self.ocolor = []
 		# self.opoints = []
@@ -146,68 +147,58 @@ class SpecificWorker(GenericWorker):
 		self.args = Args()
 		model, _ = nets.factory_from_args(self.args)
 		model = model.to(self.args.device)
-		# model.cuda()
+		if self.cuda:
+			model.cuda()
 		self.processor = decoder.factory_from_args(self.args, model)
-		print("hasta aqui")
-		#realsense configuration
-		# try:
-		# 	config = rs.config()
-		# 	config.enable_device(self.params["device_serial"])
-		# 	config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
-		# 	config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
-			
-		# 	self.pointcloud = rs.pointcloud()
-		# 	self.pipeline = rs.pipeline()
-		# 	self.pipeline.start(config)
-		# except Exception as e:
-		# 	print(e)
-		# 	exit(-1)
 
 	@QtCore.Slot()
 	def compute(self):
 		start = time.time()
-		#frames = self.pipeline.wait_for_frames()
-		#if not frames:
-		#	return
-		
 		try:
-			img = self.camerargbdsimple_proxy.getImage()
-			self.color = img.image
-		except:
-			print("Cannot read image from SimpleCameraRGBD")
+			data = self.camerargbdsimple_proxy.getImage()
+			color = np.fromstring(data.image, np.uint8).reshape( data.width, data.height, data.depth)
+		except Ice.Exception as e:
+			print("Cannot read image from SimpleCameraRGBD ", e)
 			return
 
-
-		self.mutex.lock()
-		#self.depth = np.asanyarray(frames.get_depth_frame().get_data())
-		#self.color = np.asanyarray(frames.get_color_frame().get_data())
+		#self.mutex.lock()
 		#self.points =  np.asanyarray(self.pointcloud.calculate(depthData).get_vertices())
 
 		if self.openpifpaf:
-			self.color = cv2.flip(self.color, 0)
-			self.color = cv2.flip(self.color, 1)
-
-			self.processImage(0.3)
+			#self.color = cv2.flip(self.color, 0)
+			#self.color = cv2.flip(self.color, 1)
+			self.processImage(color, 0.4)
 			self.publishData()
-			
-		self.mutex.unlock()	
+	
+		#self.mutex.unlock()	
 
 		if self.viewimage:
-			cv2.imshow("Color frame", self.color)
+			for name1, name2 in SKELETON_CONNECTIONS:
+				for person in self.peoplelist:
+					joint1 = person.joints[name1]
+					joint2 = person.joints[name2]
+					# if joint1.score > 0.5:
+					# 	cv2.circle(color, (joint1.i, joint1.j), 3, (0, 0, 255))
+					# if joint2.score > 0.5:
+					# 	cv2.circle(color, (joint2.i, joint1.j), 3, (0, 0, 255))
+					if joint1.score > 0.5 and joint2.score > 0.5:
+						cv2.line(color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+			cv2.imshow("Color frame", color)
 			cv2.waitKey(1)
 			
-		print("FPS:", 1/(time.time()-start))
+		#print("FPS:", 1/(time.time()-start))
 		return True
 
-	def processImage(self, scale):
-		image = cv2.resize(self.color, None, fx=scale, fy=scale)
+	def processImage(self, color, scale):
+		image = cv2.resize(color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
+		if self.cuda:
+			processed_image = processed_image_cpu.contiguous().to("cuda", non_blocking=True)
+		else:
+			processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
-		
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-
 		self.peoplelist = []
 		# create joint dictionary
 		for id, p in enumerate(keypoint_sets):
@@ -225,29 +216,18 @@ class SpecificWorker(GenericWorker):
 				person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)
 
-			#draw
-			if self.viewimage:
-				for name1, name2 in SKELETON_CONNECTIONS:
-					joint1 = person.joints[name1]
-					joint2 = person.joints[name2]
-					if joint1.score > 0.5:
-						cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
-					if joint2.score > 0.5:
-						cv2.circle(self.color, (joint2.i, joint1.j), 10, (0, 0, 255))
-					if joint1.score > 0.5 and joint2.score > 0.5:
-						cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
-
-#############################################################################
-### PUBLISHER
-#############################################################################
-def publishData(self):
-		people = PeopleData()
-		people.cameraId = self.cameraid
-		people.timestamp = time.time()
-		people.peoplelist = self.peoplelist
-		
-		try:
-			self.humancamerabody_proxy.newPeopleData(people)
-		except:
-			print("Error on camerabody data publication")
+	#############################################################################
+	### PUBLISHER
+	#############################################################################
+	def publishData(self):
+		if len(self.peoplelist) > 0:
+			people = PeopleData()
+			people.cameraId = self.cameraid
+			people.timestamp = time.time()
+			people.peoplelist = self.peoplelist
+			
+			try:
+				self.humancamerabody_proxy.newPeopleData(people)
+			except:
+				print("Error on camerabody data publication")
 		

@@ -44,18 +44,6 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_CameraRGBDSimple = False
-for p in icePaths:
-	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraRGBDSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraRGBDSimple = True
-		break
-if not ice_CameraRGBDSimple:
-	print('Couln\'t load CameraRGBDSimple')
-	sys.exit(-1)
-from RoboCompCameraRGBDSimple import *
 ice_HumanCameraBody = False
 for p in icePaths:
 	if os.path.isfile(p+'/HumanCameraBody.ice'):
@@ -68,6 +56,18 @@ if not ice_HumanCameraBody:
 	print('Couln\'t load HumanCameraBody')
 	sys.exit(-1)
 from RoboCompHumanCameraBody import *
+ice_CameraRGBDSimple = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraRGBDSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraRGBDSimple = True
+		break
+if not ice_CameraRGBDSimple:
+	print('Couln\'t load CameraRGBDSimple')
+	sys.exit(-1)
+from RoboCompCameraRGBDSimple import *
 
 
 

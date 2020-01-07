@@ -1,5 +1,5 @@
 # Endpoints for implemented interfaces66
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10178
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10180
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -12,7 +12,7 @@ height=240
 cuda=true
 openpifpaf=true
 viewimage=true
-cameraid=0
+cameraid=3
 
 # astra1 = 909522060513
 # astra2 = 839112062698

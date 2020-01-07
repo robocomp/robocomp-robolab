@@ -1,5 +1,8 @@
 # Endpoints for implemented interfaces66
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10179
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10178
+
+# Endpoints for subscriptions
+#CameraRGBDSimplePubTopic.Endpoints=tcp -p 14000
 
 
 # This property is used by the clients to connect to IceStorm.

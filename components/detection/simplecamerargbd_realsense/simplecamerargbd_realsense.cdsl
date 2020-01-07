@@ -1,8 +1,7 @@
 import "HumanCameraBody.idsl";
 import "CameraRGBDSimple.idsl";
 
-
-Component realsensehuman
+Component SimpleCameraRGBDRealSense
 {
 	Communications
 	{

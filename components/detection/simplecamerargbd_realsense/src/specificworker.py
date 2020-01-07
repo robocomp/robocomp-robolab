@@ -67,6 +67,7 @@ class SpecificWorker(GenericWorker):
 		self.openpifpaf = False
 		self.viewimage = False
 		self.peoplelist = []
+		self.new_image = []		# received by subscription
 		self.timer.timeout.connect(self.compute)
 		self.Period = 100
 
@@ -154,6 +155,9 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		start = time.time()
+		#color = self.new_image
+		#if len(color) == 0:
+		#	return
 		try:
 			data = self.camerargbdsimple_proxy.getImage()
 			color = np.fromstring(data.image, np.uint8).reshape( data.width, data.height, data.depth)
@@ -231,3 +235,10 @@ class SpecificWorker(GenericWorker):
 			except:
 				print("Error on camerabody data publication")
 		
+	# ##############################################################################
+	# ### SUBSCRIBES TO SimpleRGBDCameraPub
+	# #############################################################################
+	# def pushRGBD(self, im, dep):
+	# 	self.new_image = np.fromstring(im.image, np.uint8).reshape(im.width, im.height, im.depth)
+	# 	self.new_image = cv2.flip(self.new_image, 0)
+	# 	self.new_image = cv2.cvtColor(self.new_image, cv2.COLOR_RGB2BGR)

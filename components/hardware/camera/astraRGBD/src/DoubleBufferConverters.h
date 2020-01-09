@@ -480,7 +480,7 @@ public:
 		oTypeData.persons.clear();
 		astraBodies2RobocompPersonList(bodyFrame, oTypeData.persons);
 		uint astraColorFrameSize = colorFrame.width()*colorFrame.height()*3;
-		if (colorFrame.is_valid())
+/*		if (colorFrame.is_valid())
 		{
 			if(oTypeData.rgbImage.image.size()!= astraColorFrameSize)
 			{
@@ -494,12 +494,12 @@ public:
 			memcpy(&oTypeData.rgbImage.image[0], colorFrame.data(), astraColorFrameSize);
 			//            std::copy(std::begin(d.data()), std::end(d.data()), std::begin(writeBuffer));
 		}
-		else{
+		else{*/
 			oTypeData.rgbImage.image.clear();
 			oTypeData.rgbImage.height =0;
 			oTypeData.rgbImage.width =0;
 			oTypeData.rgbImage.depth =0;
-		}
+		//}
 		return true;
 
 	}

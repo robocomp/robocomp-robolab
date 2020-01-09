@@ -83,10 +83,14 @@ class SpecificWorker(GenericWorker):
         self.cameraid = int(self.params["cameraid"])
         self.openpifpaf = "true" in self.params["openpifpaf"]
         self.viewimage = "true" in self.params["viewimage"]
+        #rgdb
         self.odepth = []
         self.ocolor = []
         self.opoints = []
         self.oimgtype = []
+        #camerargdbsimple
+        self.ocdepth = []
+        self.ocimage = []
         cc = ColorRGB()
         pp = PointXYZ()
         for i in range(self.width * self.height):
@@ -96,6 +100,10 @@ class SpecificWorker(GenericWorker):
             self.oimgtype.append(0.)
             self.oimgtype.append(0.)
             self.oimgtype.append(0.)
+            self.ocdepth.append(0.)
+            self.ocimage.append(0.)
+            self.ocimage.append(0.)
+            self.ocimage.append(0.)
         self.initialize()
         self.timer.start(self.Period)
         return True
@@ -221,9 +229,9 @@ class SpecificWorker(GenericWorker):
                 keypoint.i = int(joint[0] / scale)
                 keypoint.j = int(joint[1] / scale)
                 keypoint.score = float(joint[2])
-                keyPoint.x = self.points[self.width * keypoint.j + keypoint.i][0]
-                keyPoint.y = self.points[self.width * keypoint.j + keypoint.i][1]
-                keyPoint.z = self.points[self.width * keypoint.j + keypoint.i][2]
+                keypoint.x = float(self.points[self.width * keypoint.j + keypoint.i][0])
+                keypoint.y = float(self.points[self.width * keypoint.j + keypoint.i][1])
+                keypoint.z = float(self.points[self.width * keypoint.j + keypoint.i][2])
                 person.joints[COCO_IDS[pos]] = keypoint
             self.peoplelist.append(person)
 
@@ -256,12 +264,13 @@ class SpecificWorker(GenericWorker):
         dep.height = self.height
         for y in range(self.height):
             for x in range(self.width):
-                dep.depth[self.width * (self.height - 1 - y) + x] = self.points[self.width * y + (self.width - 1 - x)][2]
-                im.image[(self.width * y + x) * 3 + 0] = self.color[y, x, 2]
-                im.image[(self.width * y + x) * 3 + 1] = self.color[y, x, 1]
-                im.image[(self.width * y + x) * 3 + 2] = self.color[y, x, 0]
-
-        return [im, dep]
+                self.ocdepth[self.width * (self.height - 1 - y) + x] = self.points[self.width * y + (self.width - 1 - x)][2]
+                self.ocimage[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
+                self.ocimage[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
+                self.ocimage[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
+        im.image = self.ocimage
+        dep.depth = self.ocdepth
+        return (im, dep)
 
     #
     # getDepth
@@ -273,7 +282,8 @@ class SpecificWorker(GenericWorker):
         dep.height = self.height
         for y in range(self.height):
             for x in range(self.width):
-                dep.depth[self.width * y + x] = self.depth[y, x]
+                self.ocdepth[self.width * y + x] = self.depth[y, x]
+        dep.depth = self.ocdepth
         return dep
 
     #
@@ -287,9 +297,10 @@ class SpecificWorker(GenericWorker):
         im.depth = 3
         for y in range(self.height):
             for x in range(self.width):
-                im.image[(self.width * y + x) * 3 + 0] = self.color[y, x, 2]
-                im.image[(self.width * y + x) * 3 + 1] = self.color[y, x, 1]
-                im.image[(self.width * y + x) * 3 + 2] = self.color[y, x, 0]
+                self.ocimage[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
+                self.ocimage[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
+                self.ocimage[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
+        im.image = self.ocimage
         return im
 
     ### RGBD ###
@@ -301,10 +312,9 @@ class SpecificWorker(GenericWorker):
         for y in range(self.height):
             for x in range(self.width):
                 self.odepth[self.width * (self.height - 1 - y) + x] = self.points[self.width * y + (self.width - 1 - x)][2]
-                self.oimgtype[(self.width * y + x) * 3 + 0] = self.color[y, x, 2]
-                self.oimgtype[(self.width * y + x) * 3 + 1] = self.color[y, x, 1]
-                self.oimgtype[(self.width * y + x) * 3 + 2] = self.color[y, x, 0]
-
+                self.oimgtype[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
+                self.oimgtype[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
+                self.oimgtype[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
         hState = {}
         bState = TBaseState()
 
@@ -356,9 +366,9 @@ class SpecificWorker(GenericWorker):
         locker = QMutexLocker(self.mutex)
         for y in range(self.height):
             for x in range(self.width):
-                self.ocolor[(self.width * y + x)].red = int(self.color[y, x, 2])
-                self.ocolor[(self.width * y + x)].green = int(self.color[y, x, 1])
-                self.ocolor[(self.width * y + x)].blue = int(self.color[y, x, 0])
+                self.ocolor(self.width*y+(639-x)).red = int(self.color[y, x, 2])
+                self.ocolor(self.width*y+(639-x)).green = int(self.color[y, x, 1])
+                self.ocolor(self.width*y+(639-x)).blue = int(self.color[y, x, 0])
 
         hState = {}
         bState = TBaseState()
@@ -416,6 +426,3 @@ class SpecificWorker(GenericWorker):
         print('not implemented')
         sys.exit(0)
         pass
-
-# ===================================================================
-# ===================================================================

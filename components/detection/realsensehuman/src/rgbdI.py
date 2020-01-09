@@ -60,23 +60,23 @@ class RGBDI(RGBD):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def RGBD_getData(self, c):
+	def getData(self, c):
 		return self.worker.RGBD_getData()
-	def RGBD_getDepth(self, c):
+	def getDepth(self, c):
 		return self.worker.RGBD_getDepth()
-	def RGBD_getDepthInIR(self, c):
+	def getDepthInIR(self, c):
 		return self.worker.RGBD_getDepthInIR()
-	def RGBD_getImage(self, c):
+	def getImage(self, c):
 		return self.worker.RGBD_getImage()
-	def RGBD_getRGB(self, c):
+	def getRGB(self, c):
 		return self.worker.RGBD_getRGB()
-	def RGBD_getRGBDParams(self, c):
+	def getRGBDParams(self, c):
 		return self.worker.RGBD_getRGBDParams()
-	def RGBD_getRegistration(self, c):
+	def getRegistration(self, c):
 		return self.worker.RGBD_getRegistration()
-	def RGBD_getXYZ(self, c):
+	def getXYZ(self, c):
 		return self.worker.RGBD_getXYZ()
-	def RGBD_getXYZByteStream(self, c):
+	def getXYZByteStream(self, c):
 		return self.worker.RGBD_getXYZByteStream()
-	def RGBD_setRegistration(self, value, c):
+	def setRegistration(self, value, c):
 		return self.worker.RGBD_setRegistration(value)

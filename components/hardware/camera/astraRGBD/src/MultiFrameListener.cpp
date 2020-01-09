@@ -5,7 +5,7 @@
 #include "MultiFrameListener.h"
 
 #include <ctime>
-
+#include "innermodel/innermodel.h"
 
 MultiFrameListener::MultiFrameListener(RoboCompHumanTrackerJointsAndRGB::HumanTrackerJointsAndRGBPrx &_pubproxy, int _cameraID) : pubproxy (_pubproxy)
 {
@@ -99,7 +99,7 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 		astra::PointFrame pointFrame = frame.get<astra::PointFrame>();
 		if(pointFrame.is_valid())
 		{
-//			pointBuff.put(pointFrame, sizeof(float)*4);
+//		pointBuff.put(pointFrame, sizeof(float)*4);
             pointStreamBuff.put(pointFrame, sizeof(float)*4);
 		}
         end =  chrono::steady_clock::now();
@@ -214,6 +214,34 @@ void MultiFrameListener::on_frame_ready(astra::StreamReader& reader, astra::Fram
 		output.cameraID = cameraID;
                 qDebug()<<"OUTPUT is Frame with timestamp: "<<output.timeStamp<<" and Person with "<< output.persons.size()<<" and color"<< output.rgbImage.width<<endl;
 		pubproxy->newPersonListAndRGB(output);
+if(output.persons.size()>0){ 
+qDebug()<<"******************BODY******************";
+        const float fx=535.4, fy=539.2, sx=1, sy=1, Ox=320, Oy=240;
+        QMat K = QMat::zeros(3,3);
+	K(0,0) = fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
+	K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
+	K(2,0) = 0;		 K(2,1) = 0;		K(2,2) = 1;
+RoboCompHumanTrackerJointsAndRGB::PersonList people = output.persons;
+DepthSeq depth;
+depthBuff.get(depth);
+qDebug()<<"depth size"<<depth.size();
+for (auto person: people){
+try{
+    QVec p3D = QVec::vec3(person.second.joints.at("Head")[0], person.second.joints.at("Head")[1], person.second.joints.at("Head")[2]);
+    p3D.print("Head joint");
+    //point in depth image
+    QVec img = K * p3D;
+    int x = img[0]/img[2];
+    int y = img[1]/img[2];
+    float depthP = depth[y*640+x];
+    QVec pDepth= QVec::vec3( (x-320) *depthP/535.4  , -(y-240)*depthP/539.2, depthP);
+    pDepth.print("Depth point");
+}catch(...)
+{qDebug()<<"no data for that joint";}
+}
+}
+//points 
+//PointsSeq points = pointBuff.get(points);
 
     }
 

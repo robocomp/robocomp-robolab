@@ -23,20 +23,17 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
-
 #include <CommonBehavior.h>
 
 #include <CameraSimple.h>
-#include <GetAprilTags.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
 using namespace RoboCompCameraSimple;
-using namespace RoboCompGetAprilTags;
 
-using TuplePrx = std::tuple<RoboCompGetAprilTags::GetAprilTagsPrxPtr>;
+using TuplePrx = std::tuple<>;
 
 
 class GenericWorker :
@@ -53,11 +50,11 @@ public:
 	QMutex *mutex;
 
 
-	GetAprilTagsPrxPtr getapriltags_proxy;
 
 	virtual void CameraSimple_getImage(TImage &im) = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -66,7 +63,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

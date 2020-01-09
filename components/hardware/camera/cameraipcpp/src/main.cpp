@@ -83,8 +83,6 @@
 
 #include <camerasimpleI.h>
 
-#include <CameraSimple.h>
-#include <GetAprilTags.h>
 
 
 // User includes here
@@ -132,28 +130,12 @@ int ::cameraipccp::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	GetAprilTagsPrxPtr getapriltags_proxy;
+
 	string proxy, tmp;
 	initialize();
 
 
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTagsProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTagsProxy\n";
-		}
-		getapriltags_proxy = Ice::uncheckedCast<GetAprilTagsPrx>( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy GetAprilTags: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("GetAprilTagsProxy initialized Ok!");
-
-
-	tprx = std::make_tuple(getapriltags_proxy);
+	tprx = std::tuple<>();
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

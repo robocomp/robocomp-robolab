@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
+CameraSimpleProxy = camerasimple:tcp -h robonuc1.local -p 10005
 
 Ice.MessageSizeMax = 2000000
 

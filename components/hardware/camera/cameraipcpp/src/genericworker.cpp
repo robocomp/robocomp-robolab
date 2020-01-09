@@ -23,7 +23,7 @@
 GenericWorker::GenericWorker(TuplePrx tprx) :
 QObject()
 {
-	getapriltags_proxy = std::get<GetAprilTagsPrxPtr>(tprx);
+
 
 	mutex = new QMutex(QMutex::Recursive);
 

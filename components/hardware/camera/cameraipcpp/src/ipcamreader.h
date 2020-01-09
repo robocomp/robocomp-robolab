@@ -8,9 +8,6 @@
 #include <opencv2/opencv.hpp>
 #include <curl/curl.h>
 
-//#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-
 class IPCamReader
 {
     public:
@@ -85,10 +82,6 @@ class IPCamReader
                 std::vector<uchar> buf;
                 buf.assign(mem->memory + mem->begin, mem->memory + mem->end);
                 cv::Mat img = cv::imdecode(buf, CV_LOAD_IMAGE_COLOR);
-                //printf("hola \n");
-                //cv::imshow("Camara sala de reuniones", img);
-                //cvWaitKey(1);
-
                 size_t nbytes = mem->size - mem->end;
                 char *tmp = (char *)malloc(nbytes);
                 memcpy(tmp, mem->memory + mem->end, nbytes);

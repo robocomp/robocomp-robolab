@@ -1,12 +1,10 @@
 import "CameraSimple.idsl";
-import "GetAprilTags.idsl";
 
 Component cameraipccp
 {
     Communications
     {
         implements CameraSimple;
-        requires GetAprilTags;
     };
     language Cpp11;
 };

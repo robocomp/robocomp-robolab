@@ -32,6 +32,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)

@@ -13,7 +13,6 @@ ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/qt.cmake )
-INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
 INCLUDE ( CMakeListsSpecific.txt)
 
 # Sources set
@@ -36,7 +35,7 @@ FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior CameraSimple  GetAprilTags )
+ROBOCOMP_WRAP_ICE( CommonBehavior CameraSimple)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

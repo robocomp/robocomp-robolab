@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+# Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -41,20 +41,6 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_HumanCameraBody = False
-for p in icePaths:
-	print('Trying', p, 'to load HumanCameraBody.ice')
-	if os.path.isfile(p+'/HumanCameraBody.ice'):
-		print('Using', p, 'to load HumanCameraBody.ice')
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"HumanCameraBody.ice"
-		Ice.loadSlice(wholeStr)
-		ice_HumanCameraBody = True
-		break
-if not ice_HumanCameraBody:
-	print('Couldn\'t load HumanCameraBody')
-	sys.exit(-1)
-from RoboCompHumanCameraBody import *
 ice_RGBD = False
 for p in icePaths:
 	print('Trying', p, 'to load RGBD.ice')
@@ -74,23 +60,23 @@ class RGBDI(RGBD):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def getData(self, c):
-		return self.worker.getData()
-	def getDepth(self, c):
-		return self.worker.getDepth()
-	def getDepthInIR(self, c):
-		return self.worker.getDepthInIR()
-	def getImage(self, c):
-		return self.worker.getImage()
-	def getRGB(self, c):
-		return self.worker.getRGB()
-	def getRGBDParams(self, c):
-		return self.worker.getRGBDParams()
-	def getRegistration(self, c):
-		return self.worker.getRegistration()
-	def getXYZ(self, c):
-		return self.worker.getXYZ()
-	def getXYZByteStream(self, c):
-		return self.worker.getXYZByteStream()
-	def setRegistration(self, value, c):
-		return self.worker.setRegistration(value)
+	def RGBD_getData(self, c):
+		return self.worker.RGBD_getData()
+	def RGBD_getDepth(self, c):
+		return self.worker.RGBD_getDepth()
+	def RGBD_getDepthInIR(self, c):
+		return self.worker.RGBD_getDepthInIR()
+	def RGBD_getImage(self, c):
+		return self.worker.RGBD_getImage()
+	def RGBD_getRGB(self, c):
+		return self.worker.RGBD_getRGB()
+	def RGBD_getRGBDParams(self, c):
+		return self.worker.RGBD_getRGBDParams()
+	def RGBD_getRegistration(self, c):
+		return self.worker.RGBD_getRegistration()
+	def RGBD_getXYZ(self, c):
+		return self.worker.RGBD_getXYZ()
+	def RGBD_getXYZByteStream(self, c):
+		return self.worker.RGBD_getXYZByteStream()
+	def RGBD_setRegistration(self, value, c):
+		return self.worker.RGBD_setRegistration(value)

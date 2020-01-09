@@ -1,6 +1,6 @@
-# Endpoints for implemented interfaces66
+# Endpoints for implemented interfaces
 RGBD.Endpoints=tcp -p 10096
-
+CameraRGBDSimple.Endpoints=tcp -p 10178
 
 
 # This property is used by the clients to connect to IceStorm.

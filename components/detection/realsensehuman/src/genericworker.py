@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+# Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -44,30 +44,6 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_RGBD = False
-for p in icePaths:
-	if os.path.isfile(p+'/RGBD.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"RGBD.ice"
-		Ice.loadSlice(wholeStr)
-		ice_RGBD = True
-		break
-if not ice_RGBD:
-	print('Couln\'t load RGBD')
-	sys.exit(-1)
-from RoboCompRGBD import *
-ice_HumanCameraBody = False
-for p in icePaths:
-	if os.path.isfile(p+'/HumanCameraBody.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"HumanCameraBody.ice"
-		Ice.loadSlice(wholeStr)
-		ice_HumanCameraBody = True
-		break
-if not ice_HumanCameraBody:
-	print('Couln\'t load HumanCameraBody')
-	sys.exit(-1)
-from RoboCompHumanCameraBody import *
 ice_JointMotor = False
 for p in icePaths:
 	if os.path.isfile(p+'/JointMotor.ice'):
@@ -80,6 +56,42 @@ if not ice_JointMotor:
 	print('Couln\'t load JointMotor')
 	sys.exit(-1)
 from RoboCompJointMotor import *
+ice_CameraRGBDSimple = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraRGBDSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraRGBDSimple = True
+		break
+if not ice_CameraRGBDSimple:
+	print('Couln\'t load CameraRGBDSimple')
+	sys.exit(-1)
+from RoboCompCameraRGBDSimple import *
+ice_HumanCameraBody = False
+for p in icePaths:
+	if os.path.isfile(p+'/HumanCameraBody.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"HumanCameraBody.ice"
+		Ice.loadSlice(wholeStr)
+		ice_HumanCameraBody = True
+		break
+if not ice_HumanCameraBody:
+	print('Couln\'t load HumanCameraBody')
+	sys.exit(-1)
+from RoboCompHumanCameraBody import *
+ice_RGBD = False
+for p in icePaths:
+	if os.path.isfile(p+'/RGBD.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"RGBD.ice"
+		Ice.loadSlice(wholeStr)
+		ice_RGBD = True
+		break
+if not ice_RGBD:
+	print('Couln\'t load RGBD')
+	sys.exit(-1)
+from RoboCompRGBD import *
 ice_GenericBase = False
 for p in icePaths:
 	if os.path.isfile(p+'/GenericBase.ice'):
@@ -94,6 +106,7 @@ if not ice_GenericBase:
 from RoboCompGenericBase import *
 
 
+from camerargbdsimpleI import *
 from rgbdI import *
 
 

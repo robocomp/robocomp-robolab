@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+# Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -140,6 +140,11 @@ if __name__ == '__main__':
 	else:
 		print("Error getting required connections, check config file")
 		sys.exit(-1)
+
+	adapter = ic.createObjectAdapter('CameraRGBDSimple')
+	adapter.add(CameraRGBDSimpleI(worker), ic.stringToIdentity('camerargbdsimple'))
+	adapter.activate()
+
 
 	adapter = ic.createObjectAdapter('RGBD')
 	adapter.add(RGBDI(worker), ic.stringToIdentity('rgbd'))

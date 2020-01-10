@@ -16,6 +16,8 @@ height=480
 openpifpaf=true
 viewimage=true
 cameraid=0
+verticalflip=true
+horizontalflip=true
 
 # astra1 = 909522060513
 # astra2 = 839112062698

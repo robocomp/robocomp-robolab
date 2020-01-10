@@ -82,6 +82,8 @@ class SpecificWorker(GenericWorker):
         self.height = int(self.params["height"])
         self.cameraid = int(self.params["cameraid"])
         self.openpifpaf = "true" in self.params["openpifpaf"]
+        self.verticalflip = "true" in self.params["verticalflip"]
+        self.horizontalflip = "true" in self.params["horizontalflip"]
         self.viewimage = "true" in self.params["viewimage"]
         #rgdb
         self.odepth = []
@@ -91,11 +93,11 @@ class SpecificWorker(GenericWorker):
         #camerargdbsimple
         self.ocdepth = []
         self.ocimage = []
-        cc = ColorRGB()
-        pp = PointXYZ()
         for i in range(self.width * self.height):
             self.odepth.append(0.)
+            cc = ColorRGB()
             self.ocolor.append(cc)
+            pp = PointXYZ()
             self.opoints.append(pp)
             self.oimgtype.append(0.)
             self.oimgtype.append(0.)
@@ -192,16 +194,24 @@ class SpecificWorker(GenericWorker):
         depthData = frames.get_depth_frame()
         self.depth = np.asanyarray(depthData.get_data())
         self.color = np.asanyarray(frames.get_color_frame().get_data())
+        self.openpifpafImage = np.asanyarray(frames.get_color_frame().get_data())
         self.points = np.asanyarray(self.pointcloud.calculate(depthData).get_vertices())
-
-        if self.openpifpaf:
+        if self.horizontalflip:
             self.color = cv2.flip(self.color, 0)
+            self.depth = cv2.flip(self.depth, 0)
+ #           self.points = cv2.flip(self.points, 0)
+        if self.verticalflip:
             self.color = cv2.flip(self.color, 1)
+            self.depth = cv2.flip(self.depth, 1)
+ #           self.points = cv2.flip(self.points, 1)
+        self.mutex.unlock()
 
+#image must be copied to work with openpifpaf
+        if self.openpifpaf:
             self.processImage(0.3)
             self.publishData()
 
-        self.mutex.unlock()
+        
         if self.viewimage:
             cv2.imshow("Color frame", self.color)
             cv2.waitKey(1)
@@ -264,10 +274,10 @@ class SpecificWorker(GenericWorker):
         dep.height = self.height
         for y in range(self.height):
             for x in range(self.width):
-                self.ocdepth[self.width * (self.height - 1 - y) + x] = self.points[self.width * y + (self.width - 1 - x)][2]
-                self.ocimage[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
-                self.ocimage[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
-                self.ocimage[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
+                self.ocdepth[self.width*y+x] = self.depth[y, x]
+                self.ocimage[(self.width*y+x)*3+0] = self.color[y, x, 2]
+                self.ocimage[(self.width*y+x)*3+1] = self.color[y, x, 1]
+                self.ocimage[(self.width*y+x)*3+2] = self.color[y, x, 0]
         im.image = self.ocimage
         dep.depth = self.ocdepth
         return (im, dep)
@@ -297,9 +307,9 @@ class SpecificWorker(GenericWorker):
         im.depth = 3
         for y in range(self.height):
             for x in range(self.width):
-                self.ocimage[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
-                self.ocimage[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
-                self.ocimage[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
+                self.ocimage[(self.width*y+x)*3+0] = self.color[y, x, 2]
+                self.ocimage[(self.width*y+x)*3+1] = self.color[y, x, 1]
+                self.ocimage[(self.width*y+x)*3+2] = self.color[y, x, 0]
         im.image = self.ocimage
         return im
 
@@ -311,10 +321,10 @@ class SpecificWorker(GenericWorker):
         locker = QMutexLocker(self.mutex)
         for y in range(self.height):
             for x in range(self.width):
-                self.odepth[self.width * (self.height - 1 - y) + x] = self.points[self.width * y + (self.width - 1 - x)][2]
-                self.oimgtype[(self.width*y+(639-x))*3+0] = self.color[y, x, 2]
-                self.oimgtype[(self.width*y+(639-x))*3+1] = self.color[y, x, 1]
-                self.oimgtype[(self.width*y+(639-x))*3+2] = self.color[y, x, 0]
+                self.odepth[self.width*y+x] = self.depth[y, x]
+                self.oimgtype[(self.width*y+x)*3+0] = self.color[y, x, 2]
+                self.oimgtype[(self.width*y+x)*3+1] = self.color[y, x, 1]
+                self.oimgtype[(self.width*y+x)*3+2] = self.color[y, x, 0]
         hState = {}
         bState = TBaseState()
 
@@ -366,9 +376,9 @@ class SpecificWorker(GenericWorker):
         locker = QMutexLocker(self.mutex)
         for y in range(self.height):
             for x in range(self.width):
-                self.ocolor(self.width*y+(639-x)).red = int(self.color[y, x, 2])
-                self.ocolor(self.width*y+(639-x)).green = int(self.color[y, x, 1])
-                self.ocolor(self.width*y+(639-x)).blue = int(self.color[y, x, 0])
+                self.ocolor[self.width*y+x].red = int(self.color[y, x, 2])
+                self.ocolor[self.width*y+x].green = int(self.color[y, x, 1])
+                self.ocolor[self.width*y+x].blue = int(self.color[y, x, 0])
 
         hState = {}
         bState = TBaseState()

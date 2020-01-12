@@ -1,12 +1,17 @@
 # Proxies for required interfaces
-RGBDProxy  = rgbd:tcp -h 10.253.247.234 -p 10096
-RGBD1Proxy = rgbd:tcp -h 10.253.247.234 -p 10096
+#RGBDProxy  = rgbd:tcp -h 10.253.247.234 -p 10096
+#RGBD1Proxy = rgbd:tcp -h 10.253.247.234 -p 10096
+RGBDProxy  = rgbd:tcp -p 10096
+RGBD1Proxy = rgbd:tcp -p 10096
 
-AprilTagsServerProxy = apriltagsserver:tcp -h 158.49.247.146 -p 12555
+#AprilTagsServerProxy = apriltagsserver:tcp -h 158.49.247.146 -p 12555
+AprilTagsServerProxy = apriltagsserver:tcp -p 12555
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10179
+
 
 CommonBehavior.Endpoints=tcp -p 10000
 
-InnerModelPath=../model.xml
+InnerModelPath=model.xml
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

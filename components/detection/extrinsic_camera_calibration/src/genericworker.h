@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C)2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -25,18 +25,21 @@
 
 #include <CommonBehavior.h>
 
-#include <GenericBase.h>
 #include <JointMotor.h>
+#include <GenericBase.h>
 #include <AprilTagsServer.h>
+#include <CameraRGBDSimple.h>
 #include <RGBD.h>
+
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompGenericBase;
 using namespace RoboCompJointMotor;
+using namespace RoboCompGenericBase;
 using namespace RoboCompAprilTagsServer;
+using namespace RoboCompCameraRGBDSimple;
 using namespace RoboCompRGBD;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
@@ -57,8 +60,8 @@ public:
 
 
 	AprilTagsServerPrx apriltagsserver_proxy;
+	CameraRGBDSimplePrx camerargbdsimple_proxy;
 	RGBDPrx rgbd_proxy;
-	RGBDPrx rgbd1_proxy;
 
 
 protected:

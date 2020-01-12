@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2019 by YOUR NAME HERE
+ *    Copyright (C) 2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -82,8 +82,8 @@
 #include "commonbehaviorI.h"
 
 
-#include <GenericBase.h>
 #include <JointMotor.h>
+#include <GenericBase.h>
 
 
 // User includes here
@@ -132,8 +132,8 @@ int ::extrinsic_camera_calibration::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	AprilTagsServerPrx apriltagsserver_proxy;
+	CameraRGBDSimplePrx camerargbdsimple_proxy;
 	RGBDPrx rgbd_proxy;
-	RGBDPrx rgbd1_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -158,6 +158,23 @@ int ::extrinsic_camera_calibration::run(int argc, char* argv[])
 
 	try
 	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraRGBDSimpleProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraRGBDSimpleProxy\n";
+		}
+		camerargbdsimple_proxy = CameraRGBDSimplePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy CameraRGBDSimple: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraRGBDSimpleProxy initialized Ok!");
+
+	mprx["CameraRGBDSimpleProxy"] = (::IceProxy::Ice::Object*)(&camerargbdsimple_proxy);//Remote server proxy creation example
+
+	try
+	{
 		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBDProxy", proxy, ""))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
@@ -172,23 +189,6 @@ int ::extrinsic_camera_calibration::run(int argc, char* argv[])
 	rInfo("RGBDProxy initialized Ok!");
 
 	mprx["RGBDProxy"] = (::IceProxy::Ice::Object*)(&rgbd_proxy);//Remote server proxy creation example
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "RGBD1Proxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy RGBDProxy\n";
-		}
-		rgbd1_proxy = RGBDPrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy RGBD1: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("RGBDProxy1 initialized Ok!");
-
-	mprx["RGBDProxy1"] = (::IceProxy::Ice::Object*)(&rgbd1_proxy);//Remote server proxy creation example
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread

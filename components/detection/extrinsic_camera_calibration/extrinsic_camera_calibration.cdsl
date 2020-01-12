@@ -1,3 +1,4 @@
+import "CameraRGBDSimple.idsl";
 import "RGBD.idsl";
 import "AprilTagsServer.idsl";
 
@@ -5,7 +6,7 @@ Component extrinsic_camera_calibration
 {
     Communications
     {
-        requires RGBD, RGBD, AprilTagsServer;
+        requires RGBD, CameraRGBDSimple, AprilTagsServer;
     };
 	language cpp;
 };

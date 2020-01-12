@@ -32,7 +32,7 @@ SET ( SOURCES
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior GenericBase JointMotor AprilTagsServer RGBD RGBD)
+ROBOCOMP_WRAP_ICE( CommonBehavior JointMotor GenericBase AprilTagsServer CameraRGBDSimple RGBD)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

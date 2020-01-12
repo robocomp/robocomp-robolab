@@ -54,8 +54,11 @@ public slots:
 	void initialize(int period);
 private:
 	std::shared_ptr<InnerModel> innerModel;
-    Image frame;
-    std::vector<CamDataStructure> camera_data;
+    // Image frame;
+    // std::vector<CamDataStructure> camera_data;
+    float fx,fy;
+    std::string name;
+    
     
 };
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C)2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -25,8 +25,8 @@ QObject()
 {
 
 	apriltagsserver_proxy = (*(AprilTagsServerPrx*)mprx["AprilTagsServerProxy"]);
+	camerargbdsimple_proxy = (*(CameraRGBDSimplePrx*)mprx["CameraRGBDSimpleProxy"]);
 	rgbd_proxy = (*(RGBDPrx*)mprx["RGBDProxy"]);
-	rgbd1_proxy = (*(RGBDPrx*)mprx["RGBDProxy1"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

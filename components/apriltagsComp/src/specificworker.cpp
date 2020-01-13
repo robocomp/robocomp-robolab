@@ -80,7 +80,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 					m_height = 480;
 				}
 			}
-			catch(std::exception e)
+			catch(std::exception &e)
 			{}
 		}
 		else if ( par.value == "CameraSimple")
@@ -101,13 +101,13 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 					m_height = 480;
 				}
 			}
-			catch(std::exception e)
+			catch(std::exception &e)
 			{ std::cout << e.what() << std::endl; }
 		}
 		else
 			qFatal("InputInterface");
 	}
-	catch(std::exception e)
+	catch(std::exception &e)
 	{
 		qFatal("Error reading config params");
 	}
@@ -128,7 +128,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else
 			m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 	}
-	catch(std::exception e) { qFatal("Error reading config params"); }
+	catch(std::exception &e) { qFatal("Error reading config params"); }
 
         try
         {
@@ -136,7 +136,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
             if (par.value == "True" || par.value == "true" || par.value == "1")
                 this->flip = true;
         }
-        catch(std::exception e) {
+        catch(std::exception &e) {
             qDebug("Error reading config param FlipImage. It's false.");
         }
 
@@ -145,14 +145,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("CameraName");
 		camera_name=par.value;
 	}
-	catch(std::exception e) { qFatal("Error reading config params"); }
+	catch(std::exception &e) { qFatal("Error reading config params"); }
 
 	try
 	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		innermodel_path=par.value;
 	}
-	catch(std::exception e) { qFatal("Error reading config params"); }
+	catch(std::exception &e) { qFatal("Error reading config params"); }
 
 	m_px = m_width/2;
 	m_py = m_height/2;
@@ -185,7 +185,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=0;i<=10; i++)
 			tagsSizeMap.insert( i, QString::fromStdString(par.value).toFloat());
 	}
-	catch(std::exception e) {  qFatal("Error reading config params");}
+	catch(std::exception &e) {  qFatal("Error reading config params");}
 
 	try
 	{
@@ -195,7 +195,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=11;i<=20; i++)
 			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
+	catch(std::exception &e) { std::cout << e.what() << std::endl;}
 
 	try
 	{
@@ -205,7 +205,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		for(int i=21;i<=100; i++)
 			tagsSizeMap.insert(i, QString::fromStdString(par.value).toFloat());
 	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
+	catch(std::exception &e) { std::cout << e.what() << std::endl;}
 
 
 	// Default value for IDs not defined before
@@ -216,7 +216,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		Q_ASSERT(QString::fromStdString(par.value).toFloat() > 0);
 		m_tagSize = QString::fromStdString(par.value).toFloat();
 	}
-	catch(std::exception e) { std::cout << e.what() << std::endl;}
+	catch(std::exception &e) { std::cout << e.what() << std::endl;}
 
 	return true;
 }

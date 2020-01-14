@@ -65,6 +65,6 @@ class SpecificWorker(GenericWorker):
 		#
 		im = TImage()
 		im.image = self.frameL.data
-		im.width, im.height, im.depth = self.frameL.shape
+		im.height, im.width, im.depth = self.frameL.shape
 		return im
 

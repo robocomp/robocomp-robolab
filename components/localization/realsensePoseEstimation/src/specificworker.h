@@ -36,30 +36,30 @@
 
 class SpecificWorker : public GenericWorker
 {
-Q_OBJECT
-public:
-	SpecificWorker(TuplePrx tprx);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	rs2::device get_device(const std::string& serial_number);
+	Q_OBJECT
+	public:
+		SpecificWorker(TuplePrx tprx);
+		~SpecificWorker();
+		bool setParams(RoboCompCommonBehavior::ParameterList params);
+		rs2::device get_device(const std::string& serial_number);
 
-	FullPose FullPoseEstimation_getFullPose();
-	void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
+		FullPose FullPoseEstimation_getFullPose();
+		void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
 
-public slots:
-	void compute();
-	void initialize(int period);
+	public slots:
+		void compute();
+		void initialize(int period);
 
-private:
-	std::string serial;
-	mutable std::mutex bufferMutex;
-	FullPose fullpose;
-	// Declare RealSense pipeline, encapsulating the actual device and sensors
-	rs2::pipeline pipe;
-	// Create a configuration for configuring the pipeline with a non default profile
-	rs2::config cfg;
-	rs2::context ctx;
-	RTMat initialPose;
+	private:
+		std::string serial;
+		mutable std::mutex bufferMutex;
+		FullPose fullpose;
+		// Declare RealSense pipeline, encapsulating the actual device and sensors
+		rs2::pipeline pipe;
+		// Create a configuration for configuring the pipeline with a non default profile
+		rs2::config cfg;
+		rs2::context ctx;
+		RTMat initialPose;
 };
 
 #endif

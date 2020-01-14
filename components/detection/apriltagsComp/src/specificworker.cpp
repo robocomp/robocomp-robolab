@@ -223,7 +223,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::initialize(int period)
 {
-	std::cout << "Initialize worker" << std::endl;
+	std::cout << "Initialize worker " << period << " ms" << std::endl;
 	this->Period = period;
 	timer.start(Period);
 

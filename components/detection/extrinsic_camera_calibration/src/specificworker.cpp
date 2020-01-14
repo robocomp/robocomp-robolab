@@ -56,8 +56,8 @@ void SpecificWorker::initialize(int period)
     fx = 545;  // entrance
     fy = 545;
     
-    fx = 382;  // entrance
-    fy = 266;
+    fx = 462;  // entrance
+    fy = 462;
     
     name = "0";
     this->Period = 200;
@@ -101,7 +101,8 @@ void SpecificWorker::compute()
     //tagsList = apriltagsserver_proxy->getAprilTags(frame, 384, fx, fy);
     try
     {
-        tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 350, fx, fy);
+        //tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 350, fx, fy);
+        tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 280, fx, fy);
     }
     catch(const Ice::Exception& e)
     {
@@ -129,7 +130,8 @@ void SpecificWorker::compute()
         QVec tr = innerModel->transformS6D(std::string("april_")+name, std::string("cam_")+name);
         innerModel->updateTransformValuesS(std::string("cam_")+name, tr(0), tr(1), tr(2), tr(3), tr(4), tr(5));
         //QVec tt = innerModel->transformS6D(std::string("april_")+name, std::string("cam_")+name);
-        qDebug() << "Camera coordinates in World: " <<  tr(0) << tr(1) << tr(2) << tr(3) << tr(4) << tr(5);
+        QVec ts = innerModel->transformS6D(std::string("world"), std::string("cam_")+name);
+        qDebug() << "Camera coordinates in World: " <<  ts(0) << ts(1) << ts(2) << ts(3) << ts(4) << ts(5);
         float d1 = QVec::vec3(tr(0), tr(1), tr(2)).norm2();
         qDebug() << "Dist from camera to World origin: " << d1;
     }

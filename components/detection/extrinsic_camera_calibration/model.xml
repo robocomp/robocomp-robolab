@@ -1,6 +1,6 @@
 <innerModel>
 	<transform id="world">
-        <transform id="april_in_world">
+        <transform id="april_in_world" tx="" tz="">
             <transform id="cam_0">
                 <transform id="april_raw_0">
                     <transform id="april_0" rx="-1.57079632679">
@@ -15,4 +15,10 @@
     </transform>
 </innerModel>
 <!-- CAMERA WINDOW = CAM 0 from the TAG: (3249.464844 1915.013306 -322.633087)  (1.318910 -1.212849 1.310650) -->
+
 <!-- CAMERA ENTRANCE CAM 0 from the TAG: (-3201.179688 1962.617188 25.884821)  (-1.225287 1.883841 1.259227) -->
+
+<!-- CAMERA WINDOW VREP -6.1543 1737.96 -3644.14 0.358331 0.00251919 0.00114369-->
+<!-- CAMERA FRIDGE VREP  -->
+<!-- CAMERA ENTRANCE VREP  -->
+

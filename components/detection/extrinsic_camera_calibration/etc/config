@@ -6,7 +6,7 @@ RGBD1Proxy = rgbd:tcp -p 10096
 
 #AprilTagsServerProxy = apriltagsserver:tcp -h 158.49.247.146 -p 12555
 AprilTagsServerProxy = apriltagsserver:tcp -p 12555
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10179
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10178
 
 
 CommonBehavior.Endpoints=tcp -p 10000

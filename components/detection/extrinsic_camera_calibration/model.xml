@@ -1,6 +1,6 @@
 <innerModel>
 	<transform id="world">
-        <transform id="april_in_world" tx="" tz="">
+        <transform id="april_in_world" tx="0" tz="0">
             <transform id="cam_0">
                 <transform id="april_raw_0">
                     <transform id="april_0" rx="-1.57079632679">

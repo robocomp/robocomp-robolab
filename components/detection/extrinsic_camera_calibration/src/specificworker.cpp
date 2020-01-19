@@ -56,7 +56,7 @@ void SpecificWorker::initialize(int period)
     fx = 545;  // entrance
     fy = 545;
     
-    fx = 462;  // entrance
+    fx = 462;  // VREP CAMERAS
     fy = 462;
     
     name = "0";
@@ -68,22 +68,22 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {    
+    qDebug() << "hola";
     RoboCompAprilTagsServer::tagsList tagsList;
     RoboCompCameraRGBDSimple::TImage simple;
     RoboCompRGBD::imgType rgbd;
+    RoboCompRGBD::depthType depth;
+    RoboCompJointMotor::MotorStateMap motor;
 
     //if(input = "SimpleCamera")
     //   april_frame = getSimpleCamera();
     //if(input = "RGBD")
     //    april_frame = getRGBD();
 
-    RoboCompRGBD::depthType depth;
-    RoboCompJointMotor::MotorStateMap motor;
-    simple.image.resize(640*480*3);
+    auto s = simple.width;
     try
     {
         camerargbdsimple_proxy->getImage(simple);
-        
     }
     catch(const Ice::Exception& e)
     {
@@ -101,8 +101,8 @@ void SpecificWorker::compute()
     
     RoboCompAprilTagsServer::Image april_frame;
     april_frame.frmt.modeImage=RoboCompAprilTagsServer::RGB888Packet;
-    april_frame.frmt.width=simple.height;
-    april_frame.frmt.height=simple.width;
+    april_frame.frmt.width=simple.width;
+    april_frame.frmt.height=simple.height;
     april_frame.frmt.size=simple.depth;
     april_frame.data.resize(april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
     april_frame.data = simple.image;
@@ -111,6 +111,7 @@ void SpecificWorker::compute()
     try
     {
         //tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 350, fx, fy);
+        // 280 is the part that occupies the black squeare
         tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 280, fx, fy);
     }
     catch(const Ice::Exception& e)
@@ -138,9 +139,10 @@ void SpecificWorker::compute()
         innerModel->updateTransformValuesS(std::string("april_raw_")+name, tagsList[0].tx, tagsList[0].ty, tagsList[0].tz, tagsList[0].rx, tagsList[0].ry, tagsList[0].rz);
         QVec tr = innerModel->transformS6D(std::string("april_")+name, std::string("cam_")+name);
         innerModel->updateTransformValuesS(std::string("cam_")+name, tr(0), tr(1), tr(2), tr(3), tr(4), tr(5));
-        //QVec tt = innerModel->transformS6D(std::string("april_")+name, std::string("cam_")+name);
+        QVec tt = innerModel->transformS6D(std::string("april_")+name, std::string("cam_")+name);
         QVec ts = innerModel->transformS6D(std::string("world"), std::string("cam_")+name);
-        qDebug() << "Camera coordinates in World: " <<  ts(0) << ts(1) << ts(2) << ts(3) << ts(4) << ts(5);
+        qDebug() << "tt: " <<  "tx=" << tt(0) << "ty=" << tt(1) << "tz=" << tt(2) << "rx=" << tt(3) << "ry=" << tt(4) << "rz=" << tt(5);
+        qDebug() << "Camera coordinates in World: " <<  "tx=" << ts(0) << "ty=" << ts(1) << "tz=" << ts(2) << "rx=" << ts(3) << "ry=" << ts(4) << "rz=" << ts(5);
         float d1 = QVec::vec3(tr(0), tr(1), tr(2)).norm2();
         qDebug() << "Dist from camera to World origin: " << d1;
     }

@@ -70,6 +70,15 @@ void SpecificWorker::compute()
 {    
     RoboCompAprilTagsServer::tagsList tagsList;
     RoboCompCameraRGBDSimple::TImage simple;
+    RoboCompRGBD::imgType rgbd;
+
+    //if(input = "SimpleCamera")
+    //   april_frame = getSimpleCamera();
+    //if(input = "RGBD")
+    //    april_frame = getRGBD();
+
+    RoboCompRGBD::depthType depth;
+    RoboCompJointMotor::MotorStateMap motor;
     simple.image.resize(640*480*3);
     try
     {

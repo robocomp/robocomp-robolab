@@ -41,6 +41,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		std::string innermodel_path = par.value;
 		innerModel = std::shared_ptr<InnerModel>(new InnerModel(innermodel_path));
+        camera_type = params.at("CameraType").value;
+
 	}
 	catch(const std::exception &e)
     {
@@ -68,45 +70,16 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {    
-    qDebug() << "hola";
-    RoboCompAprilTagsServer::tagsList tagsList;
-    RoboCompCameraRGBDSimple::TImage simple;
-    RoboCompRGBD::imgType rgbd;
-    RoboCompRGBD::depthType depth;
-    RoboCompJointMotor::MotorStateMap motor;
-
-    //if(input = "SimpleCamera")
-    //   april_frame = getSimpleCamera();
-    //if(input = "RGBD")
-    //    april_frame = getRGBD();
-
-    auto s = simple.width;
-    try
-    {
-        camerargbdsimple_proxy->getImage(simple);
-    }
-    catch(const Ice::Exception& e)
-    {
-        std::cerr << e.what() << '\n';
-        return;
-    }
-
-    cv::Mat frame_m(simple.width, simple.height, CV_8UC3);
-    cv::Mat frame(simple.width, simple.height, CV_8UC3);  
-
-    //qDebug() << " Read image: " << simple.width << simple.height << simple.depth;
-    memcpy(&frame_m.data[0], &(simple.image[0]), simple.width*simple.height*simple.depth);
-    cv::cvtColor(frame_m, frame_m, CV_BGR2RGB);
-    cv::flip(frame_m,frame_m, 0);  // estaba a 1 !!!!!!!!!
-    
+    qDebug() << "Initiating calibration";
     RoboCompAprilTagsServer::Image april_frame;
-    april_frame.frmt.modeImage=RoboCompAprilTagsServer::RGB888Packet;
-    april_frame.frmt.width=simple.width;
-    april_frame.frmt.height=simple.height;
-    april_frame.frmt.size=simple.depth;
-    april_frame.data.resize(april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
-    april_frame.data = simple.image;
-    //memcpy(&april_frame.data[0], &frame_m.data[0], april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
+    RoboCompAprilTagsServer::tagsList tagsList;
+   
+    if(camera_type == "CameraSimple")
+        april_frame = getSimpleCamera();
+
+    if(camera_type == "RGBD")
+        april_frame = getRGBD();
+
     //tagsList = apriltagsserver_proxy->getAprilTags(frame, 384, fx, fy);
     try
     {
@@ -119,8 +92,6 @@ void SpecificWorker::compute()
         std::cerr << e.what() << '\n';
     }
     
-    cv::line(frame_m,cv::Point(320,0),cv::Point(320,480),cv::Scalar(255,0,0),1);	
-    cv::line(frame_m,cv::Point(0,240),cv::Point(640,240),cv::Scalar(255,0,0),1);
     // for (int ir=0; ir<480; ir++)
     // {
     //     for (int ic=0; ic<640; ic++)
@@ -148,6 +119,76 @@ void SpecificWorker::compute()
     }
 }
 
+RoboCompAprilTagsServer::Image SpecificWorker::getSimpleCamera()
+{
+    RoboCompAprilTagsServer::Image april_frame;
+    RoboCompCameraRGBDSimple::TImage simple;
+    try
+    {
+        camerargbdsimple_proxy->getImage(simple);
+        qDebug() << __FUNCTION__ << " Read image: " << simple.width << simple.height << simple.depth;
+        april_frame.frmt.modeImage = RoboCompAprilTagsServer::RGB888Packet;
+        april_frame.frmt.width = simple.width;
+        april_frame.frmt.height = simple.height;
+        april_frame.frmt.size = simple.depth;
+        april_frame.data.resize(april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
+        april_frame.data = simple.image;
+
+        cv::Mat frame(simple.width, simple.height, CV_8UC3);
+        memcpy(&frame.data[0], &(simple.image[0]), simple.width*simple.height*simple.depth);
+        cv::cvtColor(frame, frame, CV_BGR2RGB);
+        cv::flip(frame,frame, 0);  // estaba a 1 !!!!!!!!!
+        cv::line(frame,cv::Point(320,0),cv::Point(320,480),cv::Scalar(255,0,0),1);	
+        cv::line(frame,cv::Point(0,240),cv::Point(640,240),cv::Scalar(255,0,0),1);
+        cv::imshow("SimpleCamera", frame);
+
+        return april_frame;
+    }
+    catch(const Ice::Exception& e)
+    {
+        std::cerr << e.what() << '\n';
+          return april_frame;
+    }
+}
+
+RoboCompAprilTagsServer::Image SpecificWorker::getRGBD()
+{
+    RoboCompRGBD::imgType image;
+    RoboCompRGBD::depthType i_depth;
+    RoboCompJointMotor::MotorStateMap hState; 
+    RoboCompGenericBase::TBaseState bState;
+    RoboCompAprilTagsServer::Image april_frame;
+    
+    try
+    {
+        const int width = 640;
+        const int height = 480;
+        const int depth = 3;
+        
+        rgbd_proxy->getData(image, i_depth, hState, bState);
+        april_frame.frmt.modeImage = RoboCompAprilTagsServer::RGB888Packet;
+        april_frame.frmt.width = 640;
+        april_frame.frmt.height = 480;
+        april_frame.frmt.size = 3;
+        april_frame.data.resize(april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
+        april_frame.data = image;
+
+        cv::Mat frame(height, width, CV_8UC3);
+        memcpy(&frame.data[0], &(image[0]), width*height*depth);
+        cv::cvtColor(frame, frame, CV_BGR2RGB);
+        //cv::flip(frame,frame, 0);  // estaba a 1 !!!!!!!!!
+        cv::line(frame,cv::Point(320,0),cv::Point(320,480),cv::Scalar(255,0,0),1);	
+        cv::line(frame,cv::Point(0,240),cv::Point(640,240),cv::Scalar(255,0,0),1);
+        cv::imshow("RGBD", frame);
+
+        return april_frame;
+    }
+    catch(const Ice::Exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return april_frame;
+    }
+}
 
 // void SpecificWorker::compute()
 // {

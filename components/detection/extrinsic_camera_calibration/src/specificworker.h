@@ -54,11 +54,14 @@ public slots:
 	void initialize(int period);
 private:
 	std::shared_ptr<InnerModel> innerModel;
+    std::string camera_type;
     // Image frame;
     // std::vector<CamDataStructure> camera_data;
     float fx,fy;
     std::string name;
-    
+    RoboCompAprilTagsServer::Image getSimpleCamera();
+    RoboCompAprilTagsServer::Image getRGBD();
+
     
 };
 

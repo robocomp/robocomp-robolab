@@ -132,16 +132,17 @@ RoboCompAprilTagsServer::Image SpecificWorker::getSimpleCamera()
         april_frame.frmt.height = simple.height;
         april_frame.frmt.size = simple.depth;
         april_frame.data.resize(april_frame.frmt.width*april_frame.frmt.height*april_frame.frmt.size);
-        april_frame.data = simple.image;
 
-        cv::Mat frame(simple.width, simple.height, CV_8UC3);
+        cv::Mat frame(simple.height, simple.width, CV_8UC3);
         memcpy(&frame.data[0], &(simple.image[0]), simple.width*simple.height*simple.depth);
         cv::cvtColor(frame, frame, CV_BGR2RGB);
         cv::flip(frame,frame, 0);  // estaba a 1 !!!!!!!!!
-        cv::line(frame,cv::Point(320,0),cv::Point(320,480),cv::Scalar(255,0,0),1);	
-        cv::line(frame,cv::Point(0,240),cv::Point(640,240),cv::Scalar(255,0,0),1);
+        //cv::line(frame,cv::Point(320,0),cv::Point(320,480),cv::Scalar(255,0,0),1);	
+        //cv::line(frame,cv::Point(0,240),cv::Point(640,240),cv::Scalar(255,0,0),1);
         cv::imshow("SimpleCamera", frame);
 
+        memcpy(&april_frame.data[0], &(frame.data[0]), simple.width*simple.height*simple.depth);
+        
         return april_frame;
     }
     catch(const Ice::Exception& e)

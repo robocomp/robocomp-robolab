@@ -42,6 +42,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		std::string innermodel_path = par.value;
 		innerModel = std::shared_ptr<InnerModel>(new InnerModel(innermodel_path));
         camera_type = params.at("CameraType").value;
+		fx = QString::fromStdString(params.at("focal_x").value).toInt();
+		fy = QString::fromStdString(params.at("focal_y").value).toInt();
+		tagsize = QString::fromStdString(params.at("tagsize").value).toInt();
 
 	}
 	catch(const std::exception &e)
@@ -55,12 +58,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-    fx = 545;  // entrance
-    fy = 545;
-    
-    fx = 462;  // VREP CAMERAS
-    fy = 462;
-    
     name = "0";
     this->Period = 200;
     timer.setSingleShot(true);
@@ -85,7 +82,7 @@ void SpecificWorker::compute()
     {
         //tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 350, fx, fy);
         // 280 is the part that occupies the black squeare
-        tagsList = apriltagsserver_proxy->getAprilTags(april_frame, 280, fx, fy);
+        tagsList = apriltagsserver_proxy->getAprilTags(april_frame, tagsize, fx, fy);
     }
     catch(const Ice::Exception& e)
     {
@@ -105,6 +102,7 @@ void SpecificWorker::compute()
         qDebug() << "TAG:";
         qDebug() << "   " << tagsList[0].tx << tagsList[0].ty << tagsList[0].tz;
         qDebug() << "   " << tagsList[0].rx << tagsList[0].ry << tagsList[0].rz;
+		qDebug() << "   " << tagsList[0].cx << tagsList[0].cy;
         qDebug() << "------------------------------------------";
 
         innerModel->updateTransformValuesS(std::string("april_raw_")+name, tagsList[0].tx, tagsList[0].ty, tagsList[0].tz, tagsList[0].rx, tagsList[0].ry, tagsList[0].rz);

@@ -13,9 +13,9 @@ device_serial=909522060513
 width=640
 height=480
 openpifpaf=false
-verticalflip=false
-horizontalflip=true
-viewimage=true
+verticalflip=true
+horizontalflip=false
+viewimage=false
 cameraid=1
 
 

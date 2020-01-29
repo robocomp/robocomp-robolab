@@ -93,6 +93,8 @@ class SpecificWorker(GenericWorker):
         #camerargdbsimple
         self.ocdepth = []
         self.ocimage = []
+        self.contFPS = 0
+        self.start =  time.time()
         for i in range(self.width * self.height):
             self.odepth.append(0.)
             cc = ColorRGB()
@@ -166,13 +168,19 @@ class SpecificWorker(GenericWorker):
             config.enable_device(self.params["device_serial"])
             config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
             config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
-
+           
             self.pointcloud = rs.pointcloud()
             self.pipeline = rs.pipeline()
-            self.pipeline.start(config)
+            cfg = self.pipeline.start(config)
+#            profile = cfg.get_stream(rs.stream.color) # Fetch stream profile for depth stream
+#            intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
+#            print (intr.fx, intr.fy)
+#            depth_scale = cfg.get_device().first_depth_sensor().get_depth_scale()
+#            print("Depth Scale is: " , depth_scale)
+#            sys.exit(-1)
         except Exception as e:
             print(e)
-            exit(-1)
+            sysexit(-1)
 
     def publishData(self):
         people = PeopleData()
@@ -186,7 +194,6 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        start = time.time()
         frames = self.pipeline.wait_for_frames()
         if not frames:
             return
@@ -206,6 +213,9 @@ class SpecificWorker(GenericWorker):
  #           self.points = cv2.flip(self.points, 1)
         self.mutex.unlock()
 
+        
+
+
 #image must be copied to work with openpifpaf
         if self.openpifpaf:
             self.processImage(0.3)
@@ -213,10 +223,15 @@ class SpecificWorker(GenericWorker):
 
         
         if self.viewimage:
-            cv2.imshow("Color frame", self.color)
+            cv2.imshow("Color_frame", self.color)
+            cv2.setMouseCallback("Color_frame", self.mousecallback)
             cv2.waitKey(1)
 
-        print("FPS:", 1 / (time.time() - start))
+        if time.time() - self.start > 1:
+                print("FPS:", self.contFPS)
+                self.start = time.time()
+                self.contFPS = 0
+        self.contFPS += 1
         return True
 
     def processImage(self, scale):
@@ -253,7 +268,7 @@ class SpecificWorker(GenericWorker):
                     if joint1.score > 0.5:
                         cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
                     if joint2.score > 0.5:
-                        cv2.circle(self.color, (joint2.i, joint1.j), 10, (0, 0, 255))
+                        cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
                     if joint1.score > 0.5 and joint2.score > 0.5:
                         cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
 
@@ -280,7 +295,7 @@ class SpecificWorker(GenericWorker):
                 self.ocimage[(self.width*y+x)*3+2] = self.color[y, x, 0]
         im.image = self.ocimage
         dep.depth = self.ocdepth
-        return (im, dep)
+        return im, dep
 
     #
     # getDepth
@@ -436,3 +451,16 @@ class SpecificWorker(GenericWorker):
         print('not implemented')
         sys.exit(0)
         pass
+
+
+    def mousecallback(self, event, x, y, flags, param):
+        # grab references to the global variables
+        global refPt, cropping
+        Z = self.depth[y,x]
+        X = (x-320)*Z/617
+        Y = (y-240)*Z/616
+        print("image",x, y,"point",X, Y, Z)
+        # if the left mouse button was clicked, record the starting
+        # (x, y) coordinates and indicate that cropping is being
+        # performed
+        

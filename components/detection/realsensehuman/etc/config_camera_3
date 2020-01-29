@@ -1,6 +1,6 @@
 # Endpoints for implemented interfaces66
-RGBD.Endpoints=tcp -p 10096
-CameraRGBDSimple.Endpoints=tcp -p 10178
+RGBD.Endpoints=tcp -p 10196
+CameraRGBDSimple.Endpoints=tcp -p 10180
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -14,9 +14,9 @@ device_serial=839112062698
 width=640
 height=480
 openpifpaf=false
-verticalflip=false
-horizontalflip=true
-viewimage=true
+verticalflip=true
+horizontalflip=false
+viewimage=false
 cameraid=3
 
 

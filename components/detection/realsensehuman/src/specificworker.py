@@ -135,7 +135,7 @@ class SpecificWorker(GenericWorker):
             profile_decoder = None
             instance_threshold = 0.05
             device = torch.device(type="cpu")
-            disable_cuda = False
+            disable_cuda = True
             scale = 1
             key_point_threshold = 0.05
             head_dropout = 0.0
@@ -182,16 +182,6 @@ class SpecificWorker(GenericWorker):
             print(e)
             sysexit(-1)
 
-    def publishData(self):
-        people = PeopleData()
-        people.cameraId = self.cameraid
-        people.timestamp = time.time()
-
-        try:
-            self.humancamerabody_proxy.newPeopleData(people)
-        except:
-            print("Error on camerabody data publication")
-
     @QtCore.Slot()
     def compute(self):
         frames = self.pipeline.wait_for_frames()
@@ -204,19 +194,16 @@ class SpecificWorker(GenericWorker):
         self.openpifpafImage = np.asanyarray(frames.get_color_frame().get_data())
         self.points = np.asanyarray(self.pointcloud.calculate(depthData).get_vertices())
         if self.horizontalflip:
-            self.color = cv2.flip(self.color, 0)
-            self.depth = cv2.flip(self.depth, 0)
- #           self.points = cv2.flip(self.points, 0)
-        if self.verticalflip:
             self.color = cv2.flip(self.color, 1)
             self.depth = cv2.flip(self.depth, 1)
+ #           self.points = cv2.flip(self.points, 0)
+        if self.verticalflip:
+            self.color = cv2.flip(self.color, 0)
+            self.depth = cv2.flip(self.depth, 0)
  #           self.points = cv2.flip(self.points, 1)
         self.mutex.unlock()
 
-        
 
-
-#image must be copied to work with openpifpaf
         if self.openpifpaf:
             self.processImage(0.3)
             self.publishData()
@@ -242,7 +229,6 @@ class SpecificWorker(GenericWorker):
         fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
         keypoint_sets, _ = self.processor.keypoint_sets(fields)
-
         self.peoplelist = []
         # create joint dictionary
         for id, p in enumerate(keypoint_sets):
@@ -250,27 +236,60 @@ class SpecificWorker(GenericWorker):
             person.id = id
             person.joints = dict()
             for pos, joint in enumerate(p):
-                keypoint = KeyPoint()
-                keypoint.i = int(joint[0] / scale)
-                keypoint.j = int(joint[1] / scale)
-                keypoint.score = float(joint[2])
-                keypoint.x = float(self.points[self.width * keypoint.j + keypoint.i][0])
-                keypoint.y = float(self.points[self.width * keypoint.j + keypoint.i][1])
-                keypoint.z = float(self.points[self.width * keypoint.j + keypoint.i][2])
-                person.joints[COCO_IDS[pos]] = keypoint
+                if float(joint[2]) > 0.5:
+                    keypoint = KeyPoint()
+                    keypoint.i = int(joint[0] / scale)
+                    keypoint.j = int(joint[1] / scale)
+                    keypoint.score = float(joint[2])
+                    
+                    ki = keypoint.i - 320
+                    kj = 240 - keypoint.j
+                    pdepth = float(self.getDepth(keypoint.i, keypoint.j))
+                    keypoint.z = pdepth   ## camara returns Z directly. If depth use equation
+                    keypoint.x = ki*keypoint.z/self.focal
+                    keypoint.y = kj*keypoint.z/self.focal
+                    person.joints[COCO_IDS[pos]] = keypoint
             self.peoplelist.append(person)
 
             # draw
             if self.viewimage:
                 for name1, name2 in SKELETON_CONNECTIONS:
-                    joint1 = person.joints[name1]
-                    joint2 = person.joints[name2]
-                    if joint1.score > 0.5:
-                        cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
-                    if joint2.score > 0.5:
-                        cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
-                    if joint1.score > 0.5 and joint2.score > 0.5:
-                        cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+                    try:
+                        joint1 = person.joints[name1]
+                        joint2 = person.joints[name2]
+                        if joint1.score > 0.5:
+                                cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
+                        if joint2.score > 0.5:
+                                cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
+                        if joint1.score > 0.5 and joint2.score > 0.5:
+                                cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+                    except:
+                        pass
+
+    #return median depth value
+    def getDepth(self, i,j):
+        OFFSET = 3
+        values = []
+        for xi in range(i-OFFSET,i+OFFSET):
+            for xj in range(j-OFFSET, j+OFFSET):
+                values.append(self.depth[xj, xi])
+        return np.median(values)  #to mm REAL
+
+######################################
+##### PUBLISHER
+######################################
+
+    def publishData(self):
+        people = PeopleData()
+        people.cameraId = self.cameraid
+        people.timestamp = time.time()
+        people.peoplelist = self.peoplelist
+#      print(people)
+        try:
+            self.humancamerabody_proxy.newPeopleData(people)
+        except:
+            print("Error on camerabody data publication")
+
 
     # =============== Methods for Component Implements ==================
     # ===================================================================

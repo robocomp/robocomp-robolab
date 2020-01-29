@@ -93,6 +93,16 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	
 	configGetString( "","CameraType", aux.value, "CameraSimple");
 	params["CameraType"] = aux;
+	
+	configGetString( "","focal_x", aux.value, "462");
+	params["focal_x"] = aux;
+	
+	configGetString( "","focal_y", aux.value, "462");
+	params["focal_y"] = aux;
+	
+	configGetString( "","tagsize", aux.value, "350");
+	params["tagsize"] = aux;
+	
 }
 
 //Check parameters and transform them to worker structure

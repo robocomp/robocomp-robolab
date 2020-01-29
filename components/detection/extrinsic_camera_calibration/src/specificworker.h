@@ -58,6 +58,7 @@ private:
     // Image frame;
     // std::vector<CamDataStructure> camera_data;
     float fx,fy;
+	float tagsize;
     std::string name;
     RoboCompAprilTagsServer::Image getSimpleCamera();
     RoboCompAprilTagsServer::Image getRGBD();

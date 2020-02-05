@@ -189,18 +189,15 @@ class SpecificWorker(GenericWorker):
             return
         self.mutex.lock()
         depthData = frames.get_depth_frame()
-        self.depth = np.asanyarray(depthData.get_data())
+        self.depth = np.asanyarray(depthData.get_data(), dtype=np.float32)
         self.color = np.asanyarray(frames.get_color_frame().get_data())
-        self.openpifpafImage = np.asanyarray(frames.get_color_frame().get_data())
-        self.points = np.asanyarray(self.pointcloud.calculate(depthData).get_vertices())
+
         if self.horizontalflip:
             self.color = cv2.flip(self.color, 1)
             self.depth = cv2.flip(self.depth, 1)
- #           self.points = cv2.flip(self.points, 0)
         if self.verticalflip:
             self.color = cv2.flip(self.color, 0)
             self.depth = cv2.flip(self.depth, 0)
- #           self.points = cv2.flip(self.points, 1)
         self.mutex.unlock()
 
 
@@ -306,14 +303,8 @@ class SpecificWorker(GenericWorker):
         dep = TDepth()
         dep.width = self.width
         dep.height = self.height
-        for y in range(self.height):
-            for x in range(self.width):
-                self.ocdepth[self.width*y+x] = self.depth[y, x]
-                self.ocimage[(self.width*y+x)*3+0] = self.color[y, x, 2]
-                self.ocimage[(self.width*y+x)*3+1] = self.color[y, x, 1]
-                self.ocimage[(self.width*y+x)*3+2] = self.color[y, x, 0]
-        im.image = self.ocimage
-        dep.depth = self.ocdepth
+        im.image = self.color
+        dep.depth = self.depth
         return im, dep
 
     #
@@ -324,10 +315,7 @@ class SpecificWorker(GenericWorker):
         dep = TDepth()
         dep.width = self.width
         dep.height = self.height
-        for y in range(self.height):
-            for x in range(self.width):
-                self.ocdepth[self.width * y + x] = self.depth[y, x]
-        dep.depth = self.ocdepth
+        dep.depth = self.depth
         return dep
 
     #
@@ -339,12 +327,7 @@ class SpecificWorker(GenericWorker):
         im.width = self.width
         im.height = self.height
         im.depth = 3
-        for y in range(self.height):
-            for x in range(self.width):
-                self.ocimage[(self.width*y+x)*3+0] = self.color[y, x, 2]
-                self.ocimage[(self.width*y+x)*3+1] = self.color[y, x, 1]
-                self.ocimage[(self.width*y+x)*3+2] = self.color[y, x, 0]
-        im.image = self.ocimage
+        im.image = self.color
         return im
 
     ### RGBD ###
@@ -353,29 +336,22 @@ class SpecificWorker(GenericWorker):
     #
     def RGBD_getData(self):
         locker = QMutexLocker(self.mutex)
-        for y in range(self.height):
-            for x in range(self.width):
-                self.odepth[self.width*y+x] = self.depth[y, x]
-                self.oimgtype[(self.width*y+x)*3+0] = self.color[y, x, 2]
-                self.oimgtype[(self.width*y+x)*3+1] = self.color[y, x, 1]
-                self.oimgtype[(self.width*y+x)*3+2] = self.color[y, x, 0]
+        im = self.color
+        dep.depth = self.depth
         hState = {}
         bState = TBaseState()
 
-        return (self.oimgtype, self.odepth, hState, bState)
+        return (im, dep, hState, bState)
 
     #
     # getDepth
     #
     def RGBD_getDepth(self):
         locker = QMutexLocker(self.mutex)
-        for y in range(self.height):
-            for x in range(self.width):
-                self.odepth[self.width * y + x] = self.depth[y, x]
-
+        dep.depth = self.depth
         hState = {}
         bState = TBaseState()
-        return (self.odepth, hState, bState)
+        return (dep, hState, bState)
 
     #
     # getDepthInIR

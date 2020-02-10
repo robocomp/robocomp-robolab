@@ -13,10 +13,11 @@ device_serial=909522060513
 width=640
 height=480
 openpifpaf=false
-verticalflip=true
-horizontalflip=false
+verticalflip=false
+horizontalflip=true
 viewimage=false
 cameraid=1
+publishimage=true
 depth_focal_x = 617
 depth_focal_y = 617
 color_focal_x = 617
@@ -27,5 +28,4 @@ Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.MessageSizeMax=20004800
-
 

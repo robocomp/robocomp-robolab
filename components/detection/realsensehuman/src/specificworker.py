@@ -100,6 +100,7 @@ class SpecificWorker(GenericWorker):
         return True
 
     def initialize(self):
+        print("Initialize")
         # openpifpaf configuration
         class Args:
             source = 0
@@ -176,7 +177,7 @@ class SpecificWorker(GenericWorker):
         if not frames:
             return
 
-        self.capturetime = time.now()
+        self.capturetime = time.time()
         depthData = frames.get_depth_frame()
         self.bdepth = np.asanyarray(depthData.get_data(), dtype=np.float32)
         self.bcolor = np.asanyarray(frames.get_color_frame().get_data())
@@ -224,11 +225,12 @@ class SpecificWorker(GenericWorker):
             
         
             try:
-                dep.alivetime = self.time - time.now()
-                im.alivetime = self.time - time.now()
+                dep.alivetime = (time.time() - self.capturetime)*1000
+                im.alivetime = (time.time() - self.capturetime)*1000
                 self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
-            except:
+            except Exception as e:
                 print("Error on camerabody data publication")
+                print(e)
 
         if time.time() - self.start > 1:
                 print("FPS:", self.contFPS)
@@ -329,8 +331,8 @@ class SpecificWorker(GenericWorker):
         dep.depth = self.adepth
         dep.focalx = self.depth_focal_x 
         dep.focaly = self.depth_focal_y
-        im.alivetime = self.time - time.now()
-        dep.alivetime = self.time - time.now()
+        im.alivetime = (time.time() - self.capturetime)*1000
+        dep.alivetime = (time.time() - self.capturetime)*1000
         return im, dep
 
     #
@@ -344,7 +346,7 @@ class SpecificWorker(GenericWorker):
         dep.depth = self.adepth
         dep.focalx = self.depth_focal_x 
         dep.focaly = self.depth_focal_y
-        dep.alivetime = self.time - time.now()
+        dep.alivetime = (time.time() - self.capturetime)*1000
         return dep
 
     #
@@ -359,7 +361,7 @@ class SpecificWorker(GenericWorker):
         im.focaly = self.color_focal_y
         im.depth = 3
         im.image = self.acolor
-        im.alivetime = self.time - time.now()
+        im.alivetime = (time.time() - self.capturetime)*1000
         return im
 
     ### RGBD ###

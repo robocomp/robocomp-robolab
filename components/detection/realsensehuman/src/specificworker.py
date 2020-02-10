@@ -209,6 +209,7 @@ class SpecificWorker(GenericWorker):
             
         if self.publishimage:
             im = TImage()
+            im.cameraID = self.cameraid
             im.width = self.width
             im.height = self.height
             im.focalx = self.color_focal_x 
@@ -217,6 +218,7 @@ class SpecificWorker(GenericWorker):
             im.image = self.acolor
             
             dep = TDepth()
+            dep.cameraID = self.cameraid
             dep.width = self.width
             dep.height = self.height
             dep.focalx = self.depth_focal_x 
@@ -318,6 +320,7 @@ class SpecificWorker(GenericWorker):
     def CameraRGBDSimple_getAll(self):
         #locker = QMutexLocker(self.mutex)
         im = TImage()
+        im.cameraID = self.cameraid
         im.width = self.width
         im.height = self.height
         im.depth = 3
@@ -326,6 +329,7 @@ class SpecificWorker(GenericWorker):
         im.image = self.acolor
         
         dep = TDepth()
+        dep.cameraID = self.cameraid
         dep.width = self.width
         dep.height = self.height
         dep.depth = self.adepth
@@ -341,6 +345,7 @@ class SpecificWorker(GenericWorker):
     def CameraRGBDSimple_getDepth(self):
         #locker = QMutexLocker(self.mutex)
         dep = TDepth()
+        dep.cameraID = self.cameraid
         dep.width = self.width
         dep.height = self.height
         dep.depth = self.adepth
@@ -355,6 +360,7 @@ class SpecificWorker(GenericWorker):
     def CameraRGBDSimple_getImage(self):
         #locker = QMutexLocker(self.mutex)
         im = TImage()
+        im.cameraID = self.cameraid
         im.width = self.width
         im.height = self.height
         im.focalx = self.color_focal_x 

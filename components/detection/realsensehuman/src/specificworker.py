@@ -62,8 +62,10 @@ class SpecificWorker(GenericWorker):
         self.width = 0
         self.height = 0
         self.cameraid = 0
-        self.depth = []
-        self.color = []
+        self.adepth = []
+        self.bdepth = []
+        self.acolor = []
+        self.bcolor = []
         self.points = []
         self.openpifpaf = False
         self.viewimage = False
@@ -85,29 +87,14 @@ class SpecificWorker(GenericWorker):
         self.verticalflip = "true" in self.params["verticalflip"]
         self.horizontalflip = "true" in self.params["horizontalflip"]
         self.viewimage = "true" in self.params["viewimage"]
-        #rgdb
-        self.odepth = []
-        self.ocolor = []
-        self.opoints = []
-        self.oimgtype = []
-        #camerargdbsimple
-        self.ocdepth = []
-        self.ocimage = []
+        self.publishimage = "true" in self.params["publishimage"]
+        self.depth_focal_x = int(self.params["depth_focal_x"])
+        self.depth_focal_y = int(self.params["depth_focal_y"])
+        self.color_focal_x = int(self.params["color_focal_x"])
+        self.color_focal_y = int(self.params["color_focal_y"] )                                
         self.contFPS = 0
         self.start =  time.time()
-        for i in range(self.width * self.height):
-            self.odepth.append(0.)
-            cc = ColorRGB()
-            self.ocolor.append(cc)
-            pp = PointXYZ()
-            self.opoints.append(pp)
-            self.oimgtype.append(0.)
-            self.oimgtype.append(0.)
-            self.oimgtype.append(0.)
-            self.ocdepth.append(0.)
-            self.ocimage.append(0.)
-            self.ocimage.append(0.)
-            self.ocimage.append(0.)
+        self.capturetime = time.time()
         self.initialize()
         self.timer.start(self.Period)
         return True
@@ -179,6 +166,7 @@ class SpecificWorker(GenericWorker):
 #            print("Depth Scale is: " , depth_scale)
 #            sys.exit(-1)
         except Exception as e:
+            print("Error initializing camera")
             print(e)
             sysexit(-1)
 
@@ -187,18 +175,25 @@ class SpecificWorker(GenericWorker):
         frames = self.pipeline.wait_for_frames()
         if not frames:
             return
-        self.mutex.lock()
+
+        self.capturetime = time.now()
         depthData = frames.get_depth_frame()
-        self.depth = np.asanyarray(depthData.get_data(), dtype=np.float32)
-        self.color = np.asanyarray(frames.get_color_frame().get_data())
+        self.bdepth = np.asanyarray(depthData.get_data(), dtype=np.float32)
+        self.bcolor = np.asanyarray(frames.get_color_frame().get_data())
 
         if self.horizontalflip:
-            self.color = cv2.flip(self.color, 1)
-            self.depth = cv2.flip(self.depth, 1)
+            self.bcolor = cv2.flip(self.bcolor, 1)
+            self.bdepth = cv2.flip(self.bdepth, 1)
         if self.verticalflip:
-            self.color = cv2.flip(self.color, 0)
-            self.depth = cv2.flip(self.depth, 0)
+            self.bcolor = cv2.flip(self.bcolor, 0)
+            self.bdepth = cv2.flip(self.bdepth, 0)
+
+        #SWAP
+        self.mutex.lock()
+        self.acolor , self.bcolor = self.bcolor, self.acolor
+        self.adepth , self.bdepth = self.bdepth, self.adepth
         self.mutex.unlock()
+
 
 
         if self.openpifpaf:
@@ -210,6 +205,30 @@ class SpecificWorker(GenericWorker):
             cv2.imshow("Color_frame", self.color)
             cv2.setMouseCallback("Color_frame", self.mousecallback)
             cv2.waitKey(1)
+            
+        if self.publishimage:
+            im = TImage()
+            im.width = self.width
+            im.height = self.height
+            im.focalx = self.color_focal_x 
+            im.focaly = self.color_focal_y
+            im.depth = 3
+            im.image = self.acolor
+            
+            dep = TDepth()
+            dep.width = self.width
+            dep.height = self.height
+            dep.focalx = self.depth_focal_x 
+            dep.focaly = self.depth_focal_y  
+            dep.depth = self.adepth
+            
+        
+            try:
+                dep.alivetime = self.time - time.now()
+                im.alivetime = self.time - time.now()
+                self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
+            except:
+                print("Error on camerabody data publication")
 
         if time.time() - self.start > 1:
                 print("FPS:", self.contFPS)
@@ -219,7 +238,7 @@ class SpecificWorker(GenericWorker):
         return True
 
     def processImage(self, scale):
-        image = cv2.resize(self.color, None, fx=scale, fy=scale)
+        image = cv2.resize(self.acolor, None, fx=scale, fy=scale)
         image_pil = PIL.Image.fromarray(image)
         processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
         processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
@@ -255,11 +274,11 @@ class SpecificWorker(GenericWorker):
                         joint1 = person.joints[name1]
                         joint2 = person.joints[name2]
                         if joint1.score > 0.5:
-                                cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
+                                cv2.circle(self.acolor, (joint1.i, joint1.j), 10, (0, 0, 255))
                         if joint2.score > 0.5:
-                                cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
+                                cv2.circle(self.acolor, (joint2.i, joint2.j), 10, (0, 0, 255))
                         if joint1.score > 0.5 and joint2.score > 0.5:
-                                cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+                                cv2.line(self.acolor, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
                     except:
                         pass
 
@@ -295,39 +314,52 @@ class SpecificWorker(GenericWorker):
     # getAll
     #
     def CameraRGBDSimple_getAll(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         im = TImage()
         im.width = self.width
         im.height = self.height
         im.depth = 3
+        im.focalx = self.color_focal_x 
+        im.focaly = self.color_focal_y
+        im.image = self.acolor
+        
         dep = TDepth()
         dep.width = self.width
         dep.height = self.height
-        im.image = self.color
-        dep.depth = self.depth
+        dep.depth = self.adepth
+        dep.focalx = self.depth_focal_x 
+        dep.focaly = self.depth_focal_y
+        im.alivetime = self.time - time.now()
+        dep.alivetime = self.time - time.now()
         return im, dep
 
     #
     # getDepth
     #
     def CameraRGBDSimple_getDepth(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         dep = TDepth()
         dep.width = self.width
         dep.height = self.height
-        dep.depth = self.depth
+        dep.depth = self.adepth
+        dep.focalx = self.depth_focal_x 
+        dep.focaly = self.depth_focal_y
+        dep.alivetime = self.time - time.now()
         return dep
 
     #
     # getImage
     #
     def CameraRGBDSimple_getImage(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         im = TImage()
         im.width = self.width
         im.height = self.height
+        im.focalx = self.color_focal_x 
+        im.focaly = self.color_focal_y
         im.depth = 3
-        im.image = self.color
+        im.image = self.acolor
+        im.alivetime = self.time - time.now()
         return im
 
     ### RGBD ###
@@ -335,20 +367,18 @@ class SpecificWorker(GenericWorker):
     # getData
     #
     def RGBD_getData(self):
-        locker = QMutexLocker(self.mutex)
-        im = self.color
-        dep.depth = self.depth
+        #locker = QMutexLocker(self.mutex)
         hState = {}
         bState = TBaseState()
 
-        return (im, dep, hState, bState)
+        return (self.acolor, self.adepth, hState, bState)
 
     #
     # getDepth
     #
     def RGBD_getDepth(self):
-        locker = QMutexLocker(self.mutex)
-        dep.depth = self.depth
+        #locker = QMutexLocker(self.mutex)
+        dep.depth = self.adepth
         hState = {}
         bState = TBaseState()
         return (dep, hState, bState)
@@ -357,7 +387,7 @@ class SpecificWorker(GenericWorker):
     # getDepthInIR
     #
     def RGBD_getDepthInIR(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         distanceMatrix = []
@@ -369,7 +399,7 @@ class SpecificWorker(GenericWorker):
     # getImage
     #
     def RGBD_getImage(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         color = []
@@ -383,22 +413,16 @@ class SpecificWorker(GenericWorker):
     # getRGB
     #
     def RGBD_getRGB(self):
-        locker = QMutexLocker(self.mutex)
-        for y in range(self.height):
-            for x in range(self.width):
-                self.ocolor[self.width*y+x].red = int(self.color[y, x, 2])
-                self.ocolor[self.width*y+x].green = int(self.color[y, x, 1])
-                self.ocolor[self.width*y+x].blue = int(self.color[y, x, 0])
-
+        #locker = QMutexLocker(self.mutex)
         hState = {}
         bState = TBaseState()
-        return (self.ocolor, hState, bState)
+        return (self.color, hState, bState)
 
     #
     # getRGBDParams
     #
     def RGBD_getRGBDParams(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         ret = TRGBDParams()
@@ -408,7 +432,7 @@ class SpecificWorker(GenericWorker):
     # getRegistration
     #
     def RGBD_getRegistration(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         ret = Registration()
@@ -430,7 +454,7 @@ class SpecificWorker(GenericWorker):
     # getXYZByteStream
     #
     def RGBD_getXYZByteStream(self):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         pointStream = []
@@ -442,7 +466,7 @@ class SpecificWorker(GenericWorker):
     # setRegistration
     #
     def RGBD_setRegistration(self, value):
-        locker = QMutexLocker(self.mutex)
+        #locker = QMutexLocker(self.mutex)
         print('not implemented')
         sys.exit(0)
         pass

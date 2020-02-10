@@ -17,6 +17,10 @@ verticalflip=true
 horizontalflip=false
 viewimage=false
 cameraid=1
+depth_focal_x = 617
+depth_focal_y = 617
+color_focal_x = 617
+color_focal_y = 617
 
 
 Ice.Warn.Connections=0

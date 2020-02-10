@@ -44,18 +44,30 @@ except:
 	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
-ice_JointMotor = False
+ice_GenericBase = False
 for p in icePaths:
-	if os.path.isfile(p+'/JointMotor.ice'):
+	if os.path.isfile(p+'/GenericBase.ice'):
 		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"JointMotor.ice"
+		wholeStr = preStr+"GenericBase.ice"
 		Ice.loadSlice(wholeStr)
-		ice_JointMotor = True
+		ice_GenericBase = True
 		break
-if not ice_JointMotor:
-	print('Couln\'t load JointMotor')
+if not ice_GenericBase:
+	print('Couln\'t load GenericBase')
 	sys.exit(-1)
-from RoboCompJointMotor import *
+from RoboCompGenericBase import *
+ice_CameraRGBDSimplePub = False
+for p in icePaths:
+	if os.path.isfile(p+'/CameraRGBDSimplePub.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraRGBDSimplePub.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraRGBDSimplePub = True
+		break
+if not ice_CameraRGBDSimplePub:
+	print('Couln\'t load CameraRGBDSimplePub')
+	sys.exit(-1)
+from RoboCompCameraRGBDSimplePub import *
 ice_CameraRGBDSimple = False
 for p in icePaths:
 	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
@@ -68,6 +80,18 @@ if not ice_CameraRGBDSimple:
 	print('Couln\'t load CameraRGBDSimple')
 	sys.exit(-1)
 from RoboCompCameraRGBDSimple import *
+ice_JointMotor = False
+for p in icePaths:
+	if os.path.isfile(p+'/JointMotor.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"JointMotor.ice"
+		Ice.loadSlice(wholeStr)
+		ice_JointMotor = True
+		break
+if not ice_JointMotor:
+	print('Couln\'t load JointMotor')
+	sys.exit(-1)
+from RoboCompJointMotor import *
 ice_HumanCameraBody = False
 for p in icePaths:
 	if os.path.isfile(p+'/HumanCameraBody.ice'):
@@ -92,18 +116,6 @@ if not ice_RGBD:
 	print('Couln\'t load RGBD')
 	sys.exit(-1)
 from RoboCompRGBD import *
-ice_GenericBase = False
-for p in icePaths:
-	if os.path.isfile(p+'/GenericBase.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"GenericBase.ice"
-		Ice.loadSlice(wholeStr)
-		ice_GenericBase = True
-		break
-if not ice_GenericBase:
-	print('Couln\'t load GenericBase')
-	sys.exit(-1)
-from RoboCompGenericBase import *
 
 
 from camerargbdsimpleI import *
@@ -118,6 +130,7 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
+		self.camerargbdsimplepub_proxy = mprx["CameraRGBDSimplePubPub"]
 		self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
 		

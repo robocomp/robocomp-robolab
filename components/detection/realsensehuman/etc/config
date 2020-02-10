@@ -18,6 +18,11 @@ viewimage=true
 cameraid=0
 verticalflip=true
 horizontalflip=true
+depth_focal_x = 617
+depth_focal_y = 617
+color_focal_x = 617
+color_focal_y = 617
+
 
 # astra1 = 909522060513
 # astra2 = 839112062698

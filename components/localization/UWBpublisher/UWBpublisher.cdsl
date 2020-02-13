@@ -1,0 +1,12 @@
+import "UWBSimple.idsl";
+
+Component UWBpublisher
+{
+    Communications
+    {
+        publishes UWBSimple;
+    };
+	language python;
+	statemachine "statemachine.smdsl";
+};
+

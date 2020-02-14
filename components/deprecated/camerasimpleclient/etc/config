@@ -1,0 +1,12 @@
+# Proxies for required interfaces
+CameraSimpleProxy = camerasimple:tcp -h robonuc1.local -p 10005
+
+Ice.MessageSizeMax = 2000000
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10
+
+

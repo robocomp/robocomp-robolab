@@ -1,0 +1,17 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
+  hokuyohandler.cpp
+  hokuyogenerichandler.cpp
+  generichandler.h
+)
+
+
+set(CMAKE_CXX_STANDARD 17)
+
+SET( SPECIFIC_LIBS -lc_urg -lc_urg_system -lc_urg_connection )
+
+SET (LIBS ${LIBS}  )

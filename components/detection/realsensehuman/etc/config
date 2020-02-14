@@ -1,0 +1,35 @@
+# Endpoints for implemented interfaces
+RGBD.Endpoints=tcp -p 10096
+CameraRGBDSimple.Endpoints=tcp -p 10178
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+#device_serial=844212071705
+device_serial=839112062698
+# window
+#device_serial=909522060513
+width=640
+height=480
+openpifpaf=true
+viewimage=true
+cameraid=0
+verticalflip=true
+horizontalflip=true
+depth_focal_x = 617
+depth_focal_y = 617
+color_focal_x = 617
+color_focal_y = 617
+
+
+# astra1 = 909522060513
+# astra2 = 839112062698
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+

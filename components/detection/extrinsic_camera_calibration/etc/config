@@ -1,0 +1,37 @@
+# Proxies for required interfaces
+#RGBDProxy  = rgbd:tcp -h 10.253.247.234 -p 10096
+#RGBD1Proxy = rgbd:tcp -h 10.253.247.234 -p 10096
+RGBDProxy  = rgbd:tcp -p 11098
+RGBDBusProxy = rgbd:tcp -p 10096
+
+#AprilTagsServerProxy = apriltagsserver:tcp -h 158.49.247.146 -p 12555
+AprilTagsServerProxy = apriltagsserver:tcp -p 12555
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h 10.253.247.154 -p 10178
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+CommonBehavior.Endpoints=tcp -p 12000
+
+InnerModelPath=model.xml
+CameraType=CameraSimple
+
+#RealSense
+focal_x=617
+focal_y=617
+tagsize=350
+
+# VREP 
+#focal_x = 462;  
+#focal_y = 462;
+#tagsize=350    
+
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+

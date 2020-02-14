@@ -1,0 +1,15 @@
+import "RGBD.idsl";
+import "CameraRGBDSimple.idsl";
+import "CameraRGBDSimplePub.idsl";
+import "HumanCameraBody.idsl";
+
+Component realsensehuman
+{
+	Communications
+	{
+		implements RGBD, CameraRGBDSimple;
+		publishes HumanCameraBody, CameraRGBDSimplePub;
+	};
+	language python;
+};
+

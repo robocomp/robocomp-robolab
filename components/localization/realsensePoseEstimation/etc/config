@@ -1,0 +1,15 @@
+CommonBehavior.Endpoints=tcp -p 13000
+# Endpoints for implemented interfaces
+FullPoseEstimation.Endpoints=tcp -p 10696
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+#serial number is a string, but in config file sould appear without quotes
+serial=905312110667
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

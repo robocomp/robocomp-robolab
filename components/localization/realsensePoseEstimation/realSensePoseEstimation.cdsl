@@ -1,0 +1,13 @@
+import "FullPoseEstimation.idsl";
+import "FullPoseEstimationPub.idsl";
+
+Component realSensePoseEstimation
+{
+    Communications
+    {
+        implements FullPoseEstimation;
+        publishes FullPoseEstimationPub;
+    };
+	language Cpp11;
+};
+

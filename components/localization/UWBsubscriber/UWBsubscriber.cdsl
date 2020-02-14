@@ -1,0 +1,11 @@
+import "UWBSimple.idsl";
+
+Component UWBsubscriber
+{
+    Communications
+    {
+        subscribesTo UWBSimple;
+    };
+    language python;
+    statemachine "statemachine.smdsl";
+};

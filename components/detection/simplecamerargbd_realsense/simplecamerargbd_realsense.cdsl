@@ -1,0 +1,13 @@
+import "HumanCameraBody.idsl";
+import "CameraRGBDSimple.idsl";
+
+Component SimpleCameraRGBDRealSense
+{
+	Communications
+	{
+		requires CameraRGBDSimple;
+		publishes HumanCameraBody;
+	};
+	language python;
+};
+

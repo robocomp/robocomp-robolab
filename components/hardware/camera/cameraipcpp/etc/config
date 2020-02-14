@@ -1,0 +1,17 @@
+CommonBehavior.Endpoints=tcp -p 10011
+
+
+# Endpoints for implemented interfaces
+CameraSimple.Endpoints=tcp -p 12299
+GetAprilTagsProxy = getapriltags:tcp -h localhost -p 12223
+
+Camera = http://10.253.247.43:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=admin&pwd=opticalflow
+
+
+InnerModelPath = innermodel.xml
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.ACM.Client=10
+Ice.ACM.Server=10

@@ -1,0 +1,25 @@
+# Endpoints for implemented interfaces66
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10179
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+device_serial=844212071705
+width=320
+height=240
+cuda=true
+openpifpaf=true
+viewimage=true
+cameraid=2
+
+# astra1 = 909522060513
+# astra2 = 839112062698
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+
+
+

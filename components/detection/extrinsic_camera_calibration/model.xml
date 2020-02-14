@@ -1,0 +1,24 @@
+<innerModel>
+	<transform id="world">
+        <transform id="april_in_world" tx="0" tz="0">
+            <transform id="cam_0">
+                <transform id="april_raw_0">
+                    <transform id="april_0" rx="-1.57079632679">
+                    </transform>
+                </transform>
+            </transform>
+            <transform id="world_camera_0" tx="3249"  ty="1915" tz="-322" rx="1.318910" ry="-1.212849" rz="1.310650" >
+            </transform>
+            <transform id="world_camera_1" tx="-3201" ty="1962" tz="25"   rx="-1.225287" ry="1.883841" rz="1.259227" >
+            </transform>
+        </transform>
+    </transform>
+</innerModel>
+<!-- CAMERA WINDOW = CAM 0 from the TAG: (3249.464844 1915.013306 -322.633087)  (1.318910 -1.212849 1.310650) -->
+
+<!-- CAMERA ENTRANCE CAM 0 from the TAG: (-3201.179688 1962.617188 25.884821)  (-1.225287 1.883841 1.259227) -->
+
+<!-- CAMERA WINDOW VREP -6.1543 1737.96 -3644.14 0.358331 0.00251919 0.00114369-->
+<!-- CAMERA FRIDGE VREP  -->
+<!-- CAMERA ENTRANCE VREP  -->
+

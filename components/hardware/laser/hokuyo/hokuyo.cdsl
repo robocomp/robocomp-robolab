@@ -1,0 +1,13 @@
+import "Laser.idsl";
+import "GenericBase.idsl";
+
+Component hokuyo
+{
+	Communications
+	{
+		implements Laser;
+		requires GenericBase;
+	};
+	language Cpp;
+};
+

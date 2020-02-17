@@ -18,7 +18,7 @@
 #
 
 import sys, os, Ice, traceback, curses
-from PySide import *
+from PySide2 import *
 from genericworker import *
 
 # get the curses screen window
@@ -38,10 +38,10 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
+	print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 if len(ROBOCOMP)<1:
-	print 'genericworker.py: ROBOCOMP environment variable not set! Exiting.'
+	print ('genericworker.py: ROBOCOMP environment variable not set! Exiting.')
 	sys.exit()
 
 
@@ -109,10 +109,10 @@ class SpecificWorker(GenericWorker):
                	elif key == ord('q'):
 		    curses.endwin()
 		    sys.exit() 
-            except Ice.Exception, e:
+            except Ice.Exception as e:
 		curses.endwin()
                 traceback.print_exc()
-                print e
+                print (e)
             return True
 
 

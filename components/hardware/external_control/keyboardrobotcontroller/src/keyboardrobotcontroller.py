@@ -55,7 +55,7 @@
 #
 #
 
-import sys, traceback, Ice, IceStorm, subprocess, threading, time, Queue, os, copy
+import sys, traceback, Ice, IceStorm, subprocess, threading, time,  os, copy
 
 # Ctrl+c handling
 import signal
@@ -133,7 +133,7 @@ if __name__ == '__main__':
 				print ('Cannot connect to the remote object (DifferentialRobot)', proxyString)
 				#traceback.print_exc()
 				status = 1
-		except Ice.Exception, e:
+		except Ice.Exception as e:
 			print (e)
 			print ('Cannot get DifferentialRobotProxy property.')
 			status = 1

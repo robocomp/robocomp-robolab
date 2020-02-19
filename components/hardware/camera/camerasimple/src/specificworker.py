@@ -20,7 +20,7 @@
 import sys, os, traceback, time
 import numpy as np
 import cv2
-from PySide import QtCore
+from PySide2 import QtCore
 from genericworker import *
 
 
@@ -49,22 +49,22 @@ class SpecificWorker(GenericWorker):
 		if retL:
 			rows,cols,depth =  self.frameL.shape
 		else:
-			print "No frame could be read"
+			print ("No frame could be read")
 
 
 		# Display the resulting frame
-		#cv2.imshow('frameL',self.frameL)
+		cv2.imshow('frameL',self.frameL)
 		return True
 
 	#
 	# SERVANTS ---------------------  getImage
 	#
-	def getImage(self):
+	def CameraSimple_getImage(self):
 		#
 		#implementCODE
 		#
 		im = TImage()
-		im.image = self.frameL.data
+		im.image = self.frameL
 		im.height, im.width, im.depth = self.frameL.shape
 		return im
 

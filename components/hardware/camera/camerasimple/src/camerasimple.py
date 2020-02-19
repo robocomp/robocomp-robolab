@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (C) 2017 by YOUR NAME HERE
+# Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -55,20 +55,19 @@
 #
 #
 
-import sys, traceback, IceStorm, subprocess, threading, time, Queue, os, copy
+import sys, traceback, IceStorm, time, os, copy
 
 # Ctrl+c handling
 import signal
 
-from PySide import QtGui, QtCore
+from PySide2 import QtCore
 
 from specificworker import *
 
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
-	def __init__(self, _handler, _communicator):
+	def __init__(self, _handler):
 		self.handler = _handler
-		self.communicator = _communicator
 	def getFreq(self, current = None):
 		self.handler.getFreq()
 	def setFreq(self, freq, current = None):
@@ -77,20 +76,22 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 		try:
 			return self.handler.timeAwake()
 		except:
-			print 'Problem getting timeAwake'
+			print('Problem getting timeAwake')
 	def killYourSelf(self, current = None):
 		self.handler.killYourSelf()
 	def getAttrList(self, current = None):
 		try:
-			return self.handler.getAttrList(self.communicator)
+			return self.handler.getAttrList()
 		except:
-			print 'Problem getting getAttrList'
+			print('Problem getting getAttrList')
 			traceback.print_exc()
 			status = 1
 			return
 
-
-
+#SIGNALS handler
+def sigint_handler(*args):
+	QtCore.QCoreApplication.quit()
+    
 if __name__ == '__main__':
 	app = QtCore.QCoreApplication(sys.argv)
 	params = copy.deepcopy(sys.argv)
@@ -105,25 +106,19 @@ if __name__ == '__main__':
 	parameters = {}
 	for i in ic.getProperties():
 		parameters[str(i)] = str(ic.getProperties().getProperty(i))
-
-	# Topic Manager
-	proxy = ic.getProperties().getProperty("TopicManager.Proxy")
-	obj = ic.stringToProxy(proxy)
-	try:
-		topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
-	except Ice.ConnectionRefusedException, e:
-		print 'Cannot connect to IceStorm! ('+proxy+')'
-		sys.exit(-1)
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
+	else:
+		print("Error getting required connections, check config file")
+		sys.exit(-1)
 
 	adapter = ic.createObjectAdapter('CameraSimple')
 	adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
 	adapter.activate()
 
 
-	signal.signal(signal.SIGINT, signal.SIG_DFL)
+	signal.signal(signal.SIGINT, sigint_handler)
 	app.exec_()
 
 	if ic:

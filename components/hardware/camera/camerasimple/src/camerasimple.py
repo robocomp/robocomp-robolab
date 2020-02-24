@@ -17,7 +17,7 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
+#    along with RoboComp. If not, see <http://www.gnu.org/licenses/>.
 #
 
 # \mainpage RoboComp::camerasimple
@@ -63,6 +63,18 @@ import signal
 from PySide2 import QtCore
 
 from specificworker import *
+
+try:
+	Ice.loadSlice("/opt/robocomp/interfaces/CommonBehavior.ice")
+	print("Interface","CommonBehavior","loaded from /opt/robocomp/interfaces")
+except:
+	try:
+		Ice.loadSlice(os.environ["ROBOCOMP"]+"/interfaces/CommonBehavior.ice")
+		print("Interface","CommonBehavior","loaded from "+os.environ["ROBOCOMP"]+"/interfaces")
+	except:
+		print('Couldn\'t load CommonBehavior interface')
+		sys.exit(-1)
+import RoboCompCommonBehavior
 
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):

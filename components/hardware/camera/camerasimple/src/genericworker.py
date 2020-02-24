@@ -16,47 +16,10 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
+#    along with RoboComp. If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
 from PySide2 import QtWidgets, QtCore
-
-ROBOCOMP = ''
-try:
-	ROBOCOMP = os.environ['ROBOCOMP']
-except KeyError:
-	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
-	ROBOCOMP = '/opt/robocomp'
-
-preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
-Ice.loadSlice(preStr+"CommonBehavior.ice")
-import RoboCompCommonBehavior
-
-additionalPathStr = ''
-icePaths = [ '/opt/robocomp/interfaces' ]
-try:
-	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
-	for p in SLICE_PATH:
-		icePaths.append(p)
-		additionalPathStr += ' -I' + p + ' '
-	icePaths.append('/opt/robocomp/interfaces')
-except:
-	print('SLICE_PATH environment variable was not exported. Using only the default paths')
-	pass
-
-ice_CameraSimple = False
-for p in icePaths:
-	if os.path.isfile(p+'/CameraSimple.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraSimple = True
-		break
-if not ice_CameraSimple:
-	print('Couln\'t load CameraSimple')
-	sys.exit(-1)
-from RoboCompCameraSimple import *
-
 
 from camerasimpleI import *
 
@@ -67,10 +30,6 @@ class GenericWorker(QtCore.QObject):
 
 	def __init__(self, mprx):
 		super(GenericWorker, self).__init__()
-
-
-
-		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
 		self.Period = 30
 		self.timer = QtCore.QTimer(self)

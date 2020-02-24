@@ -63,7 +63,7 @@ class SpecificWorker(GenericWorker):
 		#
 		#implementCODE
 		#
-		im = TImage()
+		im = RoboCompCameraSimple.TImage()
 		im.image = self.frameL
 		im.height, im.width, im.depth = self.frameL.shape
 		return im

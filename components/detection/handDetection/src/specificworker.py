@@ -116,7 +116,7 @@ class SpecificWorker(GenericWorker):
 
 		except Ice.Exception, e:
 			traceback.print_exc()
-			print e
+			print (e)
 			return False
 
 		if self.state == "add_new_hand":
@@ -220,8 +220,8 @@ class SpecificWorker(GenericWorker):
 				print("%d %d %d" % (int(new_hand.centerMass3D[0]), int(new_hand.centerMass3D[1]), int(new_hand.centerMass3D[2])))
 			except Exception as e:
 				new_hand.centerMass3D = [0,0,0]
-				print "no xyz center of mass"
-				print e
+				print ("no xyz center of mass")
+				print (e)
 			# print("%d %d"%(len(new_hand.centerMass),len(detected_hand.center_of_mass)))
 			new_hand.truthValue = detected_hand.truth_value
 			new_hand.detected = detected_hand.detected

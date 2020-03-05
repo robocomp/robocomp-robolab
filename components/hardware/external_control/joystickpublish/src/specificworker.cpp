@@ -168,6 +168,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 				data.axes[number].value = normalized_value;
 				qDebug() << "Axis:" << number << "Value:" << normalized_value;
 				sendEvent = true;
+				try {joystickadapter_pubproxy->sendData(data);} catch(const Ice::Exception &e){ std::cout << e << std::endl;}
 				break;
 			}
 		}

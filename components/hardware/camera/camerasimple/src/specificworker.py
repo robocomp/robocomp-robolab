@@ -17,54 +17,55 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, traceback, time
+import sys
+import os
+import traceback
+import time
 import numpy as np
 import cv2
 from PySide import QtCore
 from genericworker import *
 
 
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
-
 class SpecificWorker(GenericWorker):
-	def __init__(self, proxy_map):
-		super(SpecificWorker, self).__init__(proxy_map)
-		self.timer.timeout.connect(self.compute)
-		self.Period = 50
-		self.timer.start(self.Period)
+    def __init__(self, proxy_map):
+        super(SpecificWorker, self).__init__(proxy_map)
+        self.timer.timeout.connect(self.compute)
+        self.Period = 50
+        self.source = 0
+        self.timer.start(self.Period)
 
-	def setParams(self, params):
-		self.capL = cv2.VideoCapture(0)
-		return True
+    def setParams(self, params):
+        self.source = params["source"]
+        if self.source.isdigit():
+            self.source = int(self.source)
+        self.Period = int(params["period"])
+        self.display = "true" in params["display"]
 
-	@QtCore.Slot()
-	def compute(self):
-		# print 'SpecificWorker.compute...'
+        self.capL = cv2.VideoCapture(self.source)
+        return True
 
-		retL, self.frameL = self.capL.read()
-		if retL:
-			rows,cols,depth =  self.frameL.shape
-		else:
-			print "No frame could be read"
+    @QtCore.Slot()
+    def compute(self):
+        retL, self.frameL = self.capL.read()
+        if retL:
+            rows, cols, depth = self.frameL.shape
+        else:
+            print("No frame could be read")
 
+        # Display the resulting frame
+        if self.display:
+            cv2.imshow('frameL', self.frameL)
+        return True
 
-		# Display the resulting frame
-		#cv2.imshow('frameL',self.frameL)
-		return True
-
-	#
-	# SERVANTS ---------------------  getImage
-	#
-	def getImage(self):
-		#
-		#implementCODE
-		#
-		im = TImage()
-		im.image = self.frameL.data
-		im.height, im.width, im.depth = self.frameL.shape
-		return im
-
+    #
+    # SERVANTS ---------------------  getImage
+    #
+    def getImage(self):
+        #
+        # implementCODE
+        #
+        im = TImage()
+        im.image = self.frameL
+        im.height, im.width, im.depth = self.frameL.shape
+        return im

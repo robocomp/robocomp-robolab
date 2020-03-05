@@ -6,7 +6,7 @@ JoyStick.Endpoints=tcp -p 10002
 
 
 # Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 12238
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 11004
 
 # User config parameters
 # Example = value

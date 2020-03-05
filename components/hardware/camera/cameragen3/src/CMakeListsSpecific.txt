@@ -1,0 +1,25 @@
+FIND_PACKAGE(  gstreamer-1.0 )
+FIND_PACKAGE( gstreamer-app-1.0 )
+
+include_directories(  ${GLIB_INCLUDE_DIRS}  ${GST_APP_INCLUDE_DIRS} )
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  vision.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+set(CMAKE_CXX_STANDARD 17)
+
+
+ADD_DEFINITIONS ("-fmax-errors=5 -I /usr/include/glib-2.0 -I /usr/lib/x86_64-linux-gnu/glib-2.0/include -I /usr/include/gstreamer-1.0")
+
+
+SET (LIBS ${LIBS} gobject-2.0 gstreamer-1.0 glib-2.0 gstapp-1.0 ${GSTREAMER_LIBRARIES} ${GST_APP_LIBRARIES})

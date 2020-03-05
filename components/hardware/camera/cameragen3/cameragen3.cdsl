@@ -1,0 +1,12 @@
+import "CameraRGBDSimple.idsl";
+
+Component cameragen3
+{
+    Communications
+    {
+        implements CameraRGBDSimple;
+    };
+	language Cpp11;
+	statemachine "statemachine.smdsl";
+};
+

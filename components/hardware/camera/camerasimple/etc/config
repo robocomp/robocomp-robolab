@@ -5,6 +5,10 @@ CameraSimple.Endpoints=tcp -p 10005
 # This property is used by the clients to connect to IceStorm.
 # TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+#source = 0
+source = rtsp://192.168.1.10/color
+period = 10
+display = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

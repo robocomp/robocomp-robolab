@@ -28,7 +28,7 @@ CameraRGBDSimpleI::~CameraRGBDSimpleI()
 {
 }
 
-void CameraRGBDSimpleI::getAll( TImage  &im,  TDepth  &dep, const Ice::Current&)
+void CameraRGBDSimpleI::getAll( RoboCompCameraRGBDSimple::TImage  &im,  TDepth  &dep, const Ice::Current&)
 {
 	worker->CameraRGBDSimple_getAll(im, dep);
 }
@@ -38,7 +38,7 @@ void CameraRGBDSimpleI::getDepth( TDepth  &dep, const Ice::Current&)
 	worker->CameraRGBDSimple_getDepth(dep);
 }
 
-void CameraRGBDSimpleI::getImage( TImage  &im, const Ice::Current&)
+void CameraRGBDSimpleI::getImage(RoboCompCameraRGBDSimple::TImage  &im, const Ice::Current&)
 {
 	worker->CameraRGBDSimple_getImage(im);
 }

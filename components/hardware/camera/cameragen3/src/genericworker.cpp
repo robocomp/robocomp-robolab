@@ -44,6 +44,8 @@ QObject()
 	QObject::connect(&timer, SIGNAL(timeout()), this, SIGNAL(t_compute_to_compute()));
 
 //------------------
+	yoloserver_proxy = std::get<0>(tprx);
+	camerargbdsimpleyolopub_pubproxy = std::get<1>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

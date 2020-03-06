@@ -47,7 +47,7 @@ void SpecificWorker::initialize(int period)
 
 	vision.initialize();
 	vision.start();
-
+	
 	this->Period = period;
 	timer.start(33);
 	emit this->t_initialize_to_compute();
@@ -56,11 +56,35 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	//qDebug() << "ghola";
+	
 	auto [res, img] = vision.publish();
-	std::cout << "Size " << img.image.size() << std::endl;
-}
+	if(res)
+	{
+		//cv::Mat image(480, 640, CV_8UC3, &img.image[0]);
+		//cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
+		//cv::Mat imgdst(608, 608, CV_8UC3);
+		//cv::resize(image, imgdst, imgdst.size(), 0, 0, cv::INTER_LINEAR);
+		//cv::imshow("CameraGen3", imgdst);
 
+		try
+		{
+			//RoboCompYoloServer::TImage yimg{ imgdst.cols, imgdst.rows, 3};
+			RoboCompYoloServer::TImage yimg{img.width, img.height, img.depth};
+			yimg.image.resize(yimg.width*yimg.height*yimg.depth);
+			std::swap(yimg.image, img.image);
+			//yimg.image.resize(yimg.width*yimg.height*yimg.depth);
+			//memcpy(&yimg.image[0], imgdst.data, yimg.width*yimg.height*yimg.depth);
+			auto objects = yoloserver_proxy->processImage(yimg);
+			RoboCompCameraRGBDSimple::TDepth rgbdDepth;
+			camerargbdsimpleyolopub_pubproxy->pushRGBDYolo(img, rgbdDepth, objects);
+			qDebug() << "Objects " << objects.size();
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	}
+}
 
 void SpecificWorker::sm_compute()
 {
@@ -77,27 +101,4 @@ void SpecificWorker::sm_finalize()
 {
 	std::cout<<"Entered final state finalize"<<std::endl;
 }
-
-
-
-
-
-void SpecificWorker::CameraRGBDSimple_getAll(TImage &im, TDepth &dep)
-{
-//implementCODE
-
-}
-
-void SpecificWorker::CameraRGBDSimple_getDepth(TDepth &dep)
-{
-//implementCODE
-
-}
-
-void SpecificWorker::CameraRGBDSimple_getImage(TImage &im)
-{
-//implementCODE
-
-}
-
 

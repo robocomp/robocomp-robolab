@@ -1,11 +1,12 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
-
-# Endpoints for implemented interfaces
-CameraRGBDSimple.Endpoints=tcp -p 10097
+# Proxies for required interfaces
+YoloServerProxy = yoloserver:tcp -h localhost -p 11010
 
 Ice.MessageSizeMax=20004800
 
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 InnerModelPath = innermodel.xml
 

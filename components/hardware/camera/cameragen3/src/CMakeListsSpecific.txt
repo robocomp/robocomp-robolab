@@ -1,3 +1,5 @@
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
+
 FIND_PACKAGE(  gstreamer-1.0 )
 FIND_PACKAGE( gstreamer-app-1.0 )
 
@@ -18,8 +20,9 @@ SET ( HEADERS
 
 set(CMAKE_CXX_STANDARD 17)
 
+SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fmax-errors=5" )
 
-ADD_DEFINITIONS ("-fmax-errors=5 -I /usr/include/glib-2.0 -I /usr/lib/x86_64-linux-gnu/glib-2.0/include -I /usr/include/gstreamer-1.0")
+ADD_DEFINITIONS (-O3 -mavx2 -I /usr/include/glib-2.0 -I /usr/lib/x86_64-linux-gnu/glib-2.0/include -I /usr/include/gstreamer-1.0)
 
 
 SET (LIBS ${LIBS} gobject-2.0 gstreamer-1.0 glib-2.0 gstapp-1.0 ${GSTREAMER_LIBRARIES} ${GST_APP_LIBRARIES})

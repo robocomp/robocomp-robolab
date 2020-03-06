@@ -1,10 +1,12 @@
-import "CameraRGBDSimple.idsl";
+import "YoloServer.idsl";
+import "CameraRGBDSimpleYoloPub.idsl";
 
 Component cameragen3
 {
     Communications
     {
-        implements CameraRGBDSimple;
+        requires YoloServer;
+        publishes CameraRGBDSimpleYoloPub;
     };
 	language Cpp11;
 	statemachine "statemachine.smdsl";

@@ -30,6 +30,10 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include "vision.h"
+#include <opencv2/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+
 
 class SpecificWorker : public GenericWorker
 {
@@ -39,14 +43,11 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	void CameraRGBDSimple_getAll(TImage &im, TDepth &dep);
-	void CameraRGBDSimple_getDepth(TDepth &dep);
-	void CameraRGBDSimple_getImage(TImage &im);
-
 public slots:
 	void compute();
 	void initialize(int period);
-//Specification slot methods State Machine
+
+	//Specification slot methods State Machine
 	void sm_compute();
 	void sm_initialize();
 	void sm_finalize();

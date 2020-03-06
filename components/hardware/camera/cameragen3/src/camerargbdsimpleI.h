@@ -34,9 +34,9 @@ public:
 CameraRGBDSimpleI(GenericWorker *_worker);
 	~CameraRGBDSimpleI();
 
-	void getAll( TImage  &im,  TDepth  &dep, const Ice::Current&);
+	void getAll( RoboCompCameraRGBDSimple::TImage  &im,  TDepth  &dep, const Ice::Current&);
 	void getDepth( TDepth  &dep, const Ice::Current&);
-	void getImage( TImage  &im, const Ice::Current&);
+	void getImage( RoboCompCameraRGBDSimple::TImage  &im, const Ice::Current&);
 
 private:
 

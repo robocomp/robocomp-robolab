@@ -81,8 +81,8 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <camerargbdsimpleI.h>
 
+#include <CameraRGBDSimple.h>
 
 
 // User includes here
@@ -130,12 +130,64 @@ int ::cameragen3::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	CameraRGBDSimpleYoloPubPrxPtr camerargbdsimpleyolopub_pubproxy;
+	YoloServerPrxPtr yoloserver_proxy;
 
 	string proxy, tmp;
 	initialize();
 
 
-	tprx = std::tuple<>();
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "YoloServerProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy YoloServerProxy\n";
+		}
+		yoloserver_proxy = Ice::uncheckedCast<YoloServerPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy YoloServer: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("YoloServerProxy initialized Ok!");
+
+	IceStorm::TopicManagerPrxPtr topicManager;
+	try
+	{
+		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
+	std::shared_ptr<IceStorm::TopicPrx> camerargbdsimpleyolopub_topic;
+
+	while (!camerargbdsimpleyolopub_topic)
+	{
+		try
+		{
+			camerargbdsimpleyolopub_topic = topicManager->retrieve("CameraRGBDSimpleYoloPub");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving CameraRGBDSimpleYoloPub topic. \n";
+			try
+			{
+				camerargbdsimpleyolopub_topic = topicManager->create("CameraRGBDSimpleYoloPub");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the CameraRGBDSimpleYoloPub topic. It's possible that other component have created\n";
+			}
+		}
+	}
+
+	auto camerargbdsimpleyolopub_pub = camerargbdsimpleyolopub_topic->getPublisher()->ice_oneway();
+	camerargbdsimpleyolopub_pubproxy = Ice::uncheckedCast<CameraRGBDSimpleYoloPubPrx>(camerargbdsimpleyolopub_pub);
+
+	tprx = std::make_tuple(yoloserver_proxy,camerargbdsimpleyolopub_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
@@ -172,24 +224,6 @@ int ::cameragen3::run(int argc, char* argv[])
 
 		}
 
-
-
-		try
-		{
-			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "CameraRGBDSimple.Endpoints", tmp, ""))
-			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraRGBDSimple";
-			}
-			Ice::ObjectAdapterPtr adapterCameraRGBDSimple = communicator()->createObjectAdapterWithEndpoints("CameraRGBDSimple", tmp);
-			auto camerargbdsimple = std::make_shared<CameraRGBDSimpleI>(worker);
-			adapterCameraRGBDSimple->add(camerargbdsimple, Ice::stringToIdentity("camerargbdsimple"));
-			adapterCameraRGBDSimple->activate();
-			cout << "[" << PROGRAM_NAME << "]: CameraRGBDSimple adapter created in port " << tmp << endl;
-			}
-			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for CameraRGBDSimple\n";
-			}
 
 
 

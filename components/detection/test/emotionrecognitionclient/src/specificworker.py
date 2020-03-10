@@ -40,7 +40,7 @@ class SpecificWorker(GenericWorker):
 		# Get image from camera
 		data = self.camerasimple_proxy.getImage()
 		arr = np.fromstring(data.image, np.uint8)
-		frame = np.reshape(arr,(data.width, data.height, data.depth))
+		frame = np.reshape(arr,(data.height, data.width, data.depth))
 
 		# Get emotion list
 		emotionL = self.emotionrecognition_proxy.getEmotionList()

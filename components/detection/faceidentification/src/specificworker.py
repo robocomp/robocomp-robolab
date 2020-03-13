@@ -21,6 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import sys, os, traceback, time
+sys.path.append(os.path.join(os.getcwd(),"assets","src"))
+print(sys.path)
 
 from PySide import QtGui, QtCore
 from genericworker import *
@@ -30,8 +32,8 @@ import cv2
 from scipy.optimize import brentq
 from scipy import interpolate
 from sklearn import metrics
-from assets.src import facenet2 as facenet
-from assets.src import lfw
+import facenet2 as facenet
+#from assets.src import lfw
 import scipy.io
 from scipy import misc
 import operator

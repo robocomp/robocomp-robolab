@@ -18,6 +18,8 @@
 #
 
 import sys, os, traceback, time
+sys.path.append(os.path.join(os.getcwd(),"assets","src"))
+print(sys.path)
 import numpy as np
 import cv2
 import wx
@@ -25,7 +27,7 @@ from wx.lib import buttons
 from PIL import Image
 from PySide import QtGui, QtCore
 from genericworker import *
-from assets.src import face_detect as detector
+import face_detect as detector
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from threading import Thread
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
@@ -117,8 +119,8 @@ class SpecificWorker(GenericWorker):
 				w = faces[idx,2]
 				h = faces[idx,3]
 				im = TImage()
-				im.width = int(faces[idx,4].shape[0])
-				im.height = int(faces[idx,4].shape[1])
+				im.height = int(faces[idx,4].shape[0])
+				im.width = int(faces[idx,4].shape[1])
 				im.depth = int(faces[idx,4].shape[2])
 				im.image = faces[idx,4]
 				FaceName = self.faceidentification_proxy.getFaceLabels(im)
@@ -154,8 +156,8 @@ class SpecificWorker(GenericWorker):
 				else:
 					#### Adding image to the database
 					im = TImage()
-					im.width = int(faces[0,4].shape[0])
-					im.height = int(faces[0,4].shape[1])
+					im.height = int(faces[0,4].shape[0])
+					im.width = int(faces[0,4].shape[1])
 					im.depth = int(faces[0,4].shape[2])
 					im.image = faces[0,4]
 					status = self.faceidentification_proxy.addNewFace(im,self.window.label_add)
@@ -201,8 +203,8 @@ class SpecificWorker(GenericWorker):
 				self.window.filename = dlg.GetPath()
 				img = cv2.imread(self.window.filename)
 				im = TImage()
-				im.width = int(img.shape[0])
-				im.height = int(img.shape[1])
+				im.height = int(img.shape[0])
+				im.width = int(img.shape[1])
 				im.depth = int(img.shape[2])
 				im.image = img
 				status = self.faceidentification_proxy.addNewFace(im,self.window.label_add_captured)
@@ -242,7 +244,7 @@ class SpecificWorker(GenericWorker):
 		try:
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
-			frame = np.reshape(arr, (data.width, data.height, data.depth))
+			frame = np.reshape(arr, (data.height, data.width, data.depth))
 			### Getting bounding boxes across the faces using Harr cascade implementation
 			self.faces_detected = self.face_detection(frame, flag = 0)
 
@@ -253,8 +255,8 @@ class SpecificWorker(GenericWorker):
 				w = self.faces_detected[idx,2]
 				h = self.faces_detected[idx,3]
 				im = TImage()
-				im.width = int(self.faces_detected[idx,4].shape[0])
-				im.height = int(self.faces_detected[idx,4].shape[1])
+				im.height = int(self.faces_detected[idx,4].shape[0])
+				im.width = int(self.faces_detected[idx,4].shape[1])
 				im.depth = int(self.faces_detected[idx,4].shape[2])
 				im.image = self.faces_detected[idx,4]
 				FaceName = self.faceidentification_proxy.getFaceLabels(im)

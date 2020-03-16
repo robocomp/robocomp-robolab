@@ -842,7 +842,7 @@ class Hand(object):
             roi = roi_for_tracking.extract_from_frame(frame)
 
             if self._debug:
-                print roi_for_tracking
+                print (roi_for_tracking)
                 cv2.imshow("DEBUG: HandDetection_lib: _track_in_frame (frame_roied)", roi)
 
             # fi masked frame is only 1 channel

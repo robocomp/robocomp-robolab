@@ -23,7 +23,7 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 
 preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
@@ -39,7 +39,7 @@ try:
 		additionalPathStr += ' -I' + p + ' '
 	icePaths.append('/opt/robocomp/interfaces')
 except:
-	print ('SLICE_PATH environment variable was not exported. Using only the default paths')
+	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
 ice_HandDetection = False
@@ -51,7 +51,7 @@ for p in icePaths:
 		ice_HandDetection = True
 		break
 if not ice_HandDetection:
-	print ('Couldn\'t load HandDetection')
+	print('Couldn\'t load HandDetection')
 	sys.exit(-1)
 from RoboCompHandDetection import *
 ice_CameraSimple = False
@@ -63,7 +63,7 @@ for p in icePaths:
 		ice_CameraSimple = True
 		break
 if not ice_CameraSimple:
-	print ('Couln\'t load CameraSimple')
+	print('Couln\'t load CameraSimple')
 	sys.exit(-1)
 from RoboCompCameraSimple import *
 ice_RGBD = False
@@ -75,7 +75,7 @@ for p in icePaths:
 		ice_RGBD = True
 		break
 if not ice_RGBD:
-	print ('Couldn\'t load RGBD')
+	print('Couldn\'t load RGBD')
 	sys.exit(-1)
 from RoboCompRGBD import *
 ice_JointMotor = False
@@ -87,7 +87,7 @@ for p in icePaths:
 		ice_JointMotor = True
 		break
 if not ice_JointMotor:
-	print ('Couldn\'t load JointMotor')
+	print('Couldn\'t load JointMotor')
 	sys.exit(-1)
 from RoboCompJointMotor import *
 ice_GenericBase = False
@@ -99,7 +99,7 @@ for p in icePaths:
 		ice_GenericBase = True
 		break
 if not ice_GenericBase:
-	print ('Couln\'t load GenericBase')
+	print('Couln\'t load GenericBase')
 	sys.exit(-1)
 from RoboCompGenericBase import *
 
@@ -133,6 +133,6 @@ class GenericWorker(QtCore.QObject):
 	# @param per Period in ms
 	@QtCore.Slot(int)
 	def setPeriod(self, p):
-		print ("Period changed", p)
+		print("Period changed", p)
 		Period = p
 		timer.start(Period)

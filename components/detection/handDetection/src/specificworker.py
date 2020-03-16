@@ -114,9 +114,9 @@ class SpecificWorker(GenericWorker):
 				cv2.imshow("DEBUG: HandDetection: Specificworker: color", frame_to_show)
 
 
-		except Ice.Exception, e:
+		except Ice.Exception as e:
 			traceback.print_exc()
-			print (e)
+			print(e)
 			return False
 
 		if self.state == "add_new_hand":
@@ -160,7 +160,7 @@ class SpecificWorker(GenericWorker):
 
 				except Exception as e:
 					print("Problem getting points (XYZ) from rgbd")
-					print e
+					print(e)
 		self.calculate_fps(False)
 		# print "%s with %d of %d hands (Mode: %s, FPS: %d)" % (self.state, len(self.hand_detector.hands), self.expected_hands, self.hand_detector.mask_mode, self.fps)
 		return True
@@ -220,8 +220,8 @@ class SpecificWorker(GenericWorker):
 				print("%d %d %d" % (int(new_hand.centerMass3D[0]), int(new_hand.centerMass3D[1]), int(new_hand.centerMass3D[2])))
 			except Exception as e:
 				new_hand.centerMass3D = [0,0,0]
-				print ("no xyz center of mass")
-				print (e)
+				print("no xyz center of mass")
+				print(e)
 			# print("%d %d"%(len(new_hand.centerMass),len(detected_hand.center_of_mass)))
 			new_hand.truthValue = detected_hand.truth_value
 			new_hand.detected = detected_hand.detected

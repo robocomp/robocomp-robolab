@@ -31,6 +31,7 @@ from PySide import QtGui, QtCore
 from genericworker import *
 from face_alignment import FaceAligner
 import face_detector
+from tensorflow.compat.v1 import ConfigProto
 
 MODEL_FILE = 'assets/emotion_classifier.pb'
 IMAGE_SIZE = 128
@@ -50,7 +51,9 @@ class SpecificWorker(GenericWorker):
 		self.timer.start(self.Period)
 
 		# Create a tensorflow session
-		self.sess=tf.Session()
+		config = ConfigProto()
+		config.gpu_options.allow_growth = True
+		self.sess=tf.Session(config=config)
 
 		# Read the frozen graph from the model file
 		with gfile.FastGFile(MODEL_FILE,'rb') as f:
@@ -72,7 +75,7 @@ class SpecificWorker(GenericWorker):
 		try:
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
-			frame = np.reshape(arr, (data.width, data.height, data.depth))
+			frame = np.reshape(arr, (data.height, data.width, data.depth))
 			gray=cv2.cvtColor(frame,cv2.COLOR_RGB2GRAY )
 
 			# Detect faces

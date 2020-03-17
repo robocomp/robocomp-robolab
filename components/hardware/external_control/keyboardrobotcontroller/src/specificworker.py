@@ -209,8 +209,6 @@ class SpecificWorker(GenericWorker):
 				sys.exit() 
 		except Ice.Exception as e:
 			curses.endwin()
-			pygame.quit()
-			sys.exit()
 			traceback.print_exc()
 			print (e)
 		return True

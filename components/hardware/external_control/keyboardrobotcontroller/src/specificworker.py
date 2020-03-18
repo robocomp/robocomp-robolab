@@ -59,7 +59,6 @@ from RoboCompLaser import *
 
 class SpecificWorker(GenericWorker):
 
-
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
@@ -85,8 +84,7 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-
-        if pygame_flag :
+        if pygame_flag:
             result = self.pygame_compute()
         else :
             result = self.ncurses_compute()

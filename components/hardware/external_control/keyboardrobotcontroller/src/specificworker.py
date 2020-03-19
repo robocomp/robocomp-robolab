@@ -72,12 +72,19 @@ class SpecificWorker(GenericWorker):
             pygame.init()
             pygame.display.set_mode((1,1), pygame.NOFRAME)
             screen.addstr(0,0,'Connected to robot. Use arrows (or) ASWD to control direction, Shift to speed up, space bar to stop ans ''q'' to exit')
+            self.adv_command = 'STOP'
+            self.rot_command = 'STOP'
         else:
             screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
         screen.refresh()
 
         #tt1=input("max :")
         #tt2=input("min :")
+
+    def __del__(self):
+        curses.nocbreak()
+        curses.echo()
+        curses.endwin()
 
     def setParams(self, params):
         return True
@@ -113,15 +120,13 @@ class SpecificWorker(GenericWorker):
                 if event.key == pygame.K_UP or event.key == pygame.K_w:
                     if self.adv < self.tt1:
                         self.adv += 300
+                    self.adv_command = 'UP'
 
-                    screen.addstr(5, 0, 'UP: ' + '%.2f' % self.adv)
-                    screen.refresh()
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                     if self.adv > -1 * self.tt1:
                         self.adv -= 300
+                    self.adv_command = 'DOWN'
 
-                    screen.addstr(5, 0, 'DOWN: ' + '%.2f' % self.adv)
-                    screen.refresh()
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
                     if self.adv >= 0:
                         if self.rot < self.tt2:
@@ -129,9 +134,8 @@ class SpecificWorker(GenericWorker):
                     else:
                         if self.rot > -1 * self.tt2:
                             self.rot -= 0.25
+                    self.rot_command = "RIGHT"
 
-                    screen.addstr(6, 0, 'RIGHT: ' + '%.2f' % self.rot)
-                    screen.refresh()
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     if self.adv >= 0:
                         if self.rot > -1 * self.tt2:
@@ -139,47 +143,43 @@ class SpecificWorker(GenericWorker):
                     else:
                         if self.rot < self.tt2:
                             self.rot += 0.25
+                    self.rot_command = "LEFT"
 
-                    screen.addstr(6, 0, 'LEFT: ' + '%.2f' % self.rot)
-                    screen.refresh()
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                     self.adv *= 2
                     self.rot *= 1.7
 
-                    screen.addstr(5, 0, 'UP: ' + '%.2f' % self.adv)
-                    screen.addstr(6, 0, 'RIGHT: ' + '%.2f' % self.rot)
-                    screen.refresh()
                 if pygame.key.get_pressed()[K_SPACE]:
                     self.rot = 0
                     self.adv = 0
+                    self.adv_command = 'STOP'
+                    self.rot_command = 'STOP'
 
-                    screen.addstr(5, 0, 'STOP: ' + '%.2f' % self.adv)
-                    screen.addstr(6, 0, 'STOP: ' + '%.2f' % self.rot)
-                    screen.refresh()
                 if event.key == pygame.K_q:
                     pygame.quit()
                     sys.exit(0)
+                screen.addstr(5, 0, self.adv_command+': ' + '%.2f' % self.adv)
+                screen.clrtoeol()
+                screen.addstr(6, 0, self.rot_command+': ' + '%.2f' % self.rot)
+                screen.clrtoeol()
+                screen.refresh()
                 return True
-            elif event.type == KEYUP:
-                if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    # if self.adv < self.tt1:
+            if event.type == KEYUP:
+                if event.key == pygame.K_DOWN or event.key == pygame.K_UP or event.key == pygame.K_s or event.key == pygame.K_w:
                     self.adv = 0
-
-                if event.key == pygame.K_UP or event.key == pygame.K_w:
-                    # if self.adv > -1*self.tt1:
-                    self.adv = 0
-
-                if event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    self.adv_command = 'STOP'
+                if event.key == pygame.K_LEFT or pygame.K_RIGHT or event.key == pygame.K_d or event.key == pygame.K_a:
                     # if self.rot < self.tt2:
                     self.rot = 0
-
-                if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    # if self.rot > -1*self.tt2:
-                    self.rot = 0
-
+                    self.rot_command = 'STOP'
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                     self.adv /= 2
                     self.rot /= 1.7
+                screen.addstr(5, 0, self.adv_command + ': ' + '%.2f' % self.adv)
+                screen.clrtoeol()
+                screen.addstr(6, 0, self.rot_command + ': ' + '%.2f' % self.rot)
+                screen.clrtoeol()
+                screen.refresh()
                 return True
             else:
                 return False

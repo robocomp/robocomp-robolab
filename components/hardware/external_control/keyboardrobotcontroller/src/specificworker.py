@@ -20,7 +20,7 @@
 import sys, os, Ice, traceback, curses
 from PySide2 import *
 from genericworker import *
-try :
+try:
     import pygame
     from pygame.locals import *
     pygame_flag = True  # Flag for presence of pygame
@@ -74,6 +74,7 @@ class SpecificWorker(GenericWorker):
             screen.addstr(0,0,'Connected to robot. Use arrows (or) ASWD to control direction, Shift to speed up, space bar to stop ans ''q'' to exit')
         else:
             screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
+        screen.refresh()
 
         #tt1=input("max :")
         #tt2=input("min :")
@@ -157,7 +158,7 @@ class SpecificWorker(GenericWorker):
                     screen.refresh()
                 if event.key == pygame.K_q:
                     pygame.quit()
-                    return -1
+                    sys.exit(0)
                 return True
             elif event.type == KEYUP:
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
@@ -185,7 +186,7 @@ class SpecificWorker(GenericWorker):
 
 
 
-    def ncurse_compute(self):
+    def ncurses_compute(self):
         # control algorithm for absence of pygame
         key = screen.getch()
         if key == curses.KEY_UP:
@@ -194,7 +195,7 @@ class SpecificWorker(GenericWorker):
             else:
                 self.adv = self.adv + 20
             screen.addstr(5, 0, 'up: ' + '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
-            return 1
+            return True
 
         elif key == curses.KEY_DOWN:
             if self.adv < -1 * self.tt1:
@@ -202,7 +203,7 @@ class SpecificWorker(GenericWorker):
             else:
                 self.adv = self.adv - 20
             screen.addstr(5, 0, 'down: ' + '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
-            return 1
+            return True
 
         elif key == curses.KEY_LEFT:
             if self.rot < -1 * self.tt2:
@@ -210,7 +211,7 @@ class SpecificWorker(GenericWorker):
             else:
                 self.rot = self.rot - 0.1
             screen.addstr(5, 0, 'left: ' + '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
-            return 1
+            return True
 
         elif key == curses.KEY_RIGHT:
             if self.rot > self.tt2:
@@ -218,13 +219,13 @@ class SpecificWorker(GenericWorker):
             else:
                 self.rot = self.rot + 0.1
             screen.addstr(5, 0, 'right: ' + '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
-            return 1
+            return True
 
         elif key == ord(' '):
             self.rot = 0
             self.adv = 0
             screen.addstr(5, 0, 'stop: ' + '%.2f' % self.adv + ' : ' + '%.2f' % self.rot)
-            return 1
+            return True
 
         elif key == ord('q'):
             curses.endwin()

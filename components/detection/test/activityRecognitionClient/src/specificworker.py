@@ -101,7 +101,7 @@ class SpecificWorker(GenericWorker):
 				self.img_restored = np.reshape(arr, (self.camera_image.width, self.camera_image.height, self.camera_image.depth))
 			except Ice.Exception as e:
 				traceback.print_exc()
-				print e
+				print(e)
 
 		if self.pose_timer.isReady(now):
 			skeleton2d, skeleton3d = self.poseestimation_proxy.getSkeleton(

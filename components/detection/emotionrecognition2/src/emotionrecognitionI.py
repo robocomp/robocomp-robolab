@@ -62,7 +62,7 @@ for p in icePaths:
 		ice_EmotionRecognition = True
 		break
 if not ice_EmotionRecognition:
-	print 'Couldn\'t load EmotionRecognition'
+	print ('Couldn\'t load EmotionRecognition')
 	sys.exit(-1)
 from RoboCompEmotionRecognition import *
 

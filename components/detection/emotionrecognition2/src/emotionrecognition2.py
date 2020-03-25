@@ -114,7 +114,7 @@ if __name__ == '__main__':
 			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
 			mprx["CameraSimpleProxy"] = camerasimple_proxy
 		except Ice.Exception:
-			print 'Cannot connect to the remote object (CameraSimple)', proxyString
+			print ('Cannot connect to the remote object (CameraSimple)', proxyString)
 			#traceback.print_exc()
 			status = 1
 	except Ice.Exception as e:

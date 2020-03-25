@@ -268,9 +268,9 @@ class SpecificWorker(GenericWorker):
 
 			if (self.frames_stored != 0):
 				self.Add_camera_feed('invoke_event')
-		except Ice.Exception, e:
+		except Ice.Exception as e:
 			traceback.print_exc()
-			print e	
+			print(e)
 
 		cv2.waitKey(1)
 

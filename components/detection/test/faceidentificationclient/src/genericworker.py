@@ -23,7 +23,7 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
+	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 
 preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
@@ -39,7 +39,7 @@ try:
 		additionalPathStr += ' -I' + p + ' '
 	icePaths.append('/opt/robocomp/interfaces')
 except:
-	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
+	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
 ice_CameraSimple = False
@@ -51,7 +51,7 @@ for p in icePaths:
 		ice_CameraSimple = True
 		break
 if not ice_CameraSimple:
-	print 'Couln\'t load CameraSimple'
+	print('Couldn\'t load CameraSimple')
 	sys.exit(-1)
 from RoboCompCameraSimple import *
 ice_FaceIdentification = False
@@ -63,7 +63,7 @@ for p in icePaths:
 		ice_FaceIdentification = True
 		break
 if not ice_FaceIdentification:
-	print 'Couln\'t load FaceIdentification'
+	print('Couln\'t load FaceIdentification')
 	sys.exit(-1)
 from RoboCompFaceIdentification import *
 
@@ -96,6 +96,6 @@ class GenericWorker(QtCore.QObject):
 	# @param per Period in ms
 	@QtCore.Slot(int)
 	def setPeriod(self, p):
-		print "Period changed", p
+		print("Period changed", p)
 		Period = p
 		timer.start(Period)

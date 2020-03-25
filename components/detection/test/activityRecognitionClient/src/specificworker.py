@@ -99,7 +99,7 @@ class SpecificWorker(GenericWorker):
 				self.camera_image = self.camerasimple_proxy.getImage()
 				arr = np.fromstring(self.camera_image.image, np.uint8)
 				self.img_restored = np.reshape(arr, (self.camera_image.width, self.camera_image.height, self.camera_image.depth))
-			except Ice.Exception, e:
+			except Ice.Exception as e:
 				traceback.print_exc()
 				print e
 

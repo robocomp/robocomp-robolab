@@ -77,14 +77,14 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 		try:
 			return self.handler.timeAwake()
 		except:
-			print ('Problem getting timeAwake')
+			print('Problem getting timeAwake')
 	def killYourSelf(self, current = None):
 		self.handler.killYourSelf()
 	def getAttrList(self, current = None):
 		try:
 			return self.handler.getAttrList(self.communicator)
 		except:
-			print ('Problem getting getAttrList')
+			print('Problem getting getAttrList')
 			traceback.print_exc()
 			status = 1
 			return
@@ -114,12 +114,12 @@ if __name__ == '__main__':
 			camerasimple_proxy = CameraSimplePrx.checkedCast(basePrx)
 			mprx["CameraSimpleProxy"] = camerasimple_proxy
 		except Ice.Exception:
-			print 'Cannot connect to the remote object (CameraSimple)', proxyString
+			print('Cannot connect to the remote object (CameraSimple)', proxyString)
 			#traceback.print_exc()
 			status = 1
 	except Ice.Exception as e:
 		print(e)
-		print ('Cannot get CameraSimpleProxy property.')
+		print('Cannot get CameraSimpleProxy property.')
 		status = 1
 
 	if status == 0:

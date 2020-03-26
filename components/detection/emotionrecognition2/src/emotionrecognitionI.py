@@ -23,10 +23,10 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except:
-	print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 if len(ROBOCOMP)<1:
-	print ('ROBOCOMP environment variable not set! Exiting.')
+	print('ROBOCOMP environment variable not set! Exiting.')
 	sys.exit()
 
 additionalPathStr = ''
@@ -38,7 +38,7 @@ try:
 		icePaths.append(p)
 		additionalPathStr += ' -I' + p + ' '
 except:
-	print ('SLICE_PATH environment variable was not exported. Using only the default paths')
+	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
 ice_CameraSimple = False
@@ -50,7 +50,7 @@ for p in icePaths:
 		ice_CameraSimple = True
 		break
 if not ice_CameraSimple:
-	print ('Couldn\'t load CameraSimple')
+	print('Couldn\'t load CameraSimple')
 	sys.exit(-1)
 from RoboCompCameraSimple import *
 ice_EmotionRecognition = False
@@ -62,7 +62,7 @@ for p in icePaths:
 		ice_EmotionRecognition = True
 		break
 if not ice_EmotionRecognition:
-	print 'Couldn\'t load EmotionRecognition'
+	print('Couldn\'t load EmotionRecognition')
 	sys.exit(-1)
 from RoboCompEmotionRecognition import *
 

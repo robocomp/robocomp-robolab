@@ -71,7 +71,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print ('SpecificWorker.compute...')
+		print('SpecificWorker.compute...')
 		try:
 			data = self.camerasimple_proxy.getImage()
 			arr = np.fromstring(data.image, np.uint8)
@@ -131,7 +131,7 @@ class SpecificWorker(GenericWorker):
 
 		except Ice.Exception as e:
 			traceback.print_exc()
-			print (e)
+			print(e)
 
 		cv2.waitKey(1)
 		return True

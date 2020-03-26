@@ -35,7 +35,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
+		print('SpecificWorker.compute...')
 
 		# Get image from camera
 		data = self.camerasimple_proxy.getImage()
@@ -44,7 +44,7 @@ class SpecificWorker(GenericWorker):
 
 		# Get emotion list
 		emotionL = self.emotionrecognition_proxy.getEmotionList()
-		print emotionL
+		print(emotionL)
 
 		# Showing data on the frame
 		for emotionData in emotionL:

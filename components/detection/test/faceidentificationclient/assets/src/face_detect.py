@@ -72,6 +72,8 @@ def draw_bounding_box(img, gpu_memory):
 	img_original = img.copy()
 	for i, rectangle in enumerate (rectangles):
 		I = img_original[int(rectangle[1]):int(rectangle[3]), int(rectangle[0]):int(rectangle[2])]
+		if (I.shape[0] == 0 or I.shape[1] == 0):
+			continue
 		I = cv2.resize(I,(256,256))
 		point = points[i]
 		point[0], point[1] = getNewCoords(point[0], point[1],rectangles[i])

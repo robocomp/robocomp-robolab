@@ -19,7 +19,6 @@
 
 import sys, os, traceback, time
 sys.path.append(os.path.join(os.getcwd(),"assets","src"))
-print(sys.path)
 import numpy as np
 import cv2
 import wx
@@ -111,6 +110,10 @@ class SpecificWorker(GenericWorker):
 		if dlg.ShowModal() == wx.ID_OK:
 			self.window.filename = dlg.GetPath()
 			img = cv2.imread(self.window.filename)
+			aspect_ratio = float(img.shape[0])/float(img.shape[1])
+			window_height = 600
+			window_width = window_height/aspect_ratio
+			img = cv2.resize(img, (int(window_width), int(window_height)))
 			faces = self.face_detection(img, flag = 1)
 
 			for idx, face in enumerate(faces):
@@ -125,7 +128,7 @@ class SpecificWorker(GenericWorker):
 				im.image = faces[idx,4]
 				FaceName = self.faceidentification_proxy.getFaceLabels(im)
 				cv2.rectangle(img, (x,y), (x+w,y+h), (255,0,0),2)
-				cv2.putText(img, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
+				cv2.putText(img, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255) ,1 , cv2.LINE_AA)
 			img_path = '%sFace.png'%(self.save_path)	
 			cv2.imwrite(img_path, img)
 			msg = "Image with the bounding box saved at %s"%(img_path)
@@ -262,7 +265,7 @@ class SpecificWorker(GenericWorker):
 				FaceName = self.faceidentification_proxy.getFaceLabels(im)
 
 				cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0),2)
-				cv2.putText(frame, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255) ,2 , cv2.LINE_AA)
+				cv2.putText(frame, FaceName, (x,y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1 , cv2.LINE_AA)
 
 			cv2.imshow('Face', frame)	
 

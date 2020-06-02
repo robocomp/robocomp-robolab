@@ -1,5 +1,7 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 #
-# Copyright (C) 2017 by YOUR NAME HERE
+#    Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -20,7 +22,7 @@
 import sys, os, traceback, time
 import numpy as np
 import cv2
-from PySide2 import QtCore
+from PySide2.QtCore import qApp, QTimer
 from genericworker import *
 
 
@@ -31,40 +33,59 @@ from genericworker import *
 # import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
-	def __init__(self, proxy_map):
-		super(SpecificWorker, self).__init__(proxy_map)
-		self.timer.timeout.connect(self.compute)
-		self.Period = 50
-		self.timer.start(self.Period)
+    def __init__(self, proxy_map, startup_check=False):
+        super(SpecificWorker, self).__init__(proxy_map)
+        self.Period = 50
+        if startup_check:
+            self.startup_check()
+        else:
+            self.timer.timeout.connect(self.compute)
+            self.timer.start(self.Period)
 
-	def setParams(self, params):
-		self.capL = cv2.VideoCapture(0)
-		return True
+    def __del__(self):
+        print('SpecificWorker destructor')
 
-	@QtCore.Slot()
-	def compute(self):
-		# print 'SpecificWorker.compute...'
-
-		retL, self.frameL = self.capL.read()
-		if retL:
-			rows,cols,depth =  self.frameL.shape
-		else:
-			print ("No frame could be read")
+    def setParams(self, params):
+        self.capL = cv2.VideoCapture(0)
+        return True
 
 
-		# Display the resulting frame
-		cv2.imshow('frameL',self.frameL)
-		return True
+    @QtCore.Slot()
+    def compute(self):
+        # print 'SpecificWorker.compute...'
 
-	#
-	# SERVANTS ---------------------  getImage
-	#
-	def CameraSimple_getImage(self):
-		#
-		#implementCODE
-		#
-		im = RoboCompCameraSimple.TImage()
-		im.image = self.frameL
-		im.height, im.width, im.depth = self.frameL.shape
-		return im
+        retL, self.frameL = self.capL.read()
+        if retL:
+            rows,cols,depth =  self.frameL.shape
+        else:
+            print ("No frame could be read")
+
+
+        # Display the resulting frame
+        cv2.imshow('frameL',self.frameL)
+        return True
+
+    def startup_check(self):
+        QTimer.singleShot(200, qApp.quit)
+
+
+
+    # =============== Methods for Component Implements ==================
+    # ===================================================================
+
+    #
+    # getImage
+    #
+    def CameraSimple_getImage(self):
+        #
+        #implementCODE
+        #
+        im = RoboCompCameraSimple.TImage()
+        im.image = self.frameL
+        im.height, im.width, im.depth = self.frameL.shape
+        return im
+
+    # ===================================================================
+    # ===================================================================
+
 

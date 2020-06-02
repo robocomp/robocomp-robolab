@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (C) 2020 by YOUR NAME HERE
+#    Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -17,7 +17,7 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with RoboComp. If not, see <http://www.gnu.org/licenses/>.
+#    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 # \mainpage RoboComp::camerasimple
@@ -55,8 +55,14 @@
 #
 #
 
-import sys, traceback, IceStorm, time, os, copy
-
+import sys
+import traceback
+import IceStorm
+import time
+import os
+import copy
+import argparse
+from termcolor import colored
 # Ctrl+c handling
 import signal
 
@@ -64,78 +70,66 @@ from PySide2 import QtCore
 
 from specificworker import *
 
-try:
-	Ice.loadSlice("/opt/robocomp/interfaces/CommonBehavior.ice")
-	print("Interface","CommonBehavior","loaded from /opt/robocomp/interfaces")
-except:
-	try:
-		Ice.loadSlice(os.environ["ROBOCOMP"]+"/interfaces/CommonBehavior.ice")
-		print("Interface","CommonBehavior","loaded from "+os.environ["ROBOCOMP"]+"/interfaces")
-	except:
-		print('Couldn\'t load CommonBehavior interface')
-		sys.exit(-1)
-import RoboCompCommonBehavior
-
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
-	def __init__(self, _handler):
-		self.handler = _handler
-	def getFreq(self, current = None):
-		self.handler.getFreq()
-	def setFreq(self, freq, current = None):
-		self.handler.setFreq()
-	def timeAwake(self, current = None):
-		try:
-			return self.handler.timeAwake()
-		except:
-			print('Problem getting timeAwake')
-	def killYourSelf(self, current = None):
-		self.handler.killYourSelf()
-	def getAttrList(self, current = None):
-		try:
-			return self.handler.getAttrList()
-		except:
-			print('Problem getting getAttrList')
-			traceback.print_exc()
-			status = 1
-			return
+    def __init__(self, _handler):
+        self.handler = _handler
+    def getFreq(self, current = None):
+        self.handler.getFreq()
+    def setFreq(self, freq, current = None):
+        self.handler.setFreq()
+    def timeAwake(self, current = None):
+        try:
+            return self.handler.timeAwake()
+        except:
+            print('Problem getting timeAwake')
+    def killYourSelf(self, current = None):
+        self.handler.killYourSelf()
+    def getAttrList(self, current = None):
+        try:
+            return self.handler.getAttrList()
+        except:
+            print('Problem getting getAttrList')
+            traceback.print_exc()
+            status = 1
+            return
 
 #SIGNALS handler
 def sigint_handler(*args):
-	QtCore.QCoreApplication.quit()
+    QtCore.QCoreApplication.quit()
     
 if __name__ == '__main__':
-	app = QtCore.QCoreApplication(sys.argv)
-	params = copy.deepcopy(sys.argv)
-	if len(params) > 1:
-		if not params[1].startswith('--Ice.Config='):
-			params[1] = '--Ice.Config=' + params[1]
-	elif len(params) == 1:
-		params.append('--Ice.Config=config')
-	ic = Ice.initialize(params)
-	status = 0
-	mprx = {}
-	parameters = {}
-	for i in ic.getProperties():
-		parameters[str(i)] = str(ic.getProperties().getProperty(i))
-	if status == 0:
-		worker = SpecificWorker(mprx)
-		worker.setParams(parameters)
-	else:
-		print("Error getting required connections, check config file")
-		sys.exit(-1)
+    app = QtCore.QCoreApplication(sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
+    parser.add_argument('--startup-check', action='store_true')
 
-	adapter = ic.createObjectAdapter('CameraSimple')
-	adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
-	adapter.activate()
+    args = parser.parse_args()
 
+    ic = Ice.initialize(args.iceconfigfile)
+    status = 0
+    mprx = {}
+    parameters = {}
+    for i in ic.getProperties():
+        parameters[str(i)] = str(ic.getProperties().getProperty(i))
 
-	signal.signal(signal.SIGINT, sigint_handler)
-	app.exec_()
+    if status == 0:
+        worker = SpecificWorker(mprx, args.startup_check)
+        worker.setParams(parameters)
+    else:
+        print("Error getting required connections, check config file")
+        sys.exit(-1)
 
-	if ic:
-		try:
-			ic.destroy()
-		except:
-			traceback.print_exc()
-			status = 1
+    adapter = ic.createObjectAdapter('CameraSimple')
+    adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
+    adapter.activate()
+
+    signal.signal(signal.SIGINT, sigint_handler)
+    app.exec_()
+
+    if ic:
+        # try:
+        ic.destroy()
+        # except:
+        #     traceback.print_exc()
+        #     status = 1

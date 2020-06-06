@@ -5,7 +5,7 @@ Note: This component is still in development.
 After completion this component will serve two major purposes
 
 - It will act as testing and monitoring module for the complete `Hand Gesture Recognition Pipeline` which involves for components i.e `Camerasimple`, `HandGestureClient`, `HandGesture` and `HandKeypoint`
-- It will act as a Blackbox to interact with users or other components to obtain Hand Bounding Box, Keypoints or Recognized
+- It will act as a Blackbox to interact with users or other components to obtain Hand Bounding Box, Keypoints or Recognized Gesture
 
 
 ## Resolving dependencies

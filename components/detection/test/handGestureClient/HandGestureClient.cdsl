@@ -1,0 +1,13 @@
+import "CameraSimple.idsl";
+import "HandGestureClient.idsl";
+
+Component HandGestureClient
+{
+    Communications
+    {
+        requires CameraSimple;
+		implements HandGestureClient;
+    };
+    language Python;
+};
+

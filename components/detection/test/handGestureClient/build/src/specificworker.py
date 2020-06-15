@@ -21,9 +21,16 @@
 
 from genericworker import *
 import numpy as np
+import sys
+import os
 import cv2
+import datetime
+
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
+sys.path.append(os.path.join(os.getcwd(),"assets"))
+print(sys.path)
+import detection_rectangles
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
@@ -32,9 +39,13 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 20
+        self.Period = 50
         self.timer.start(self.Period)
-
+        self.im_width = 640
+        self.im_height = 360
+        self.detection_graph, self.sess = detection_rectangles.load_inference_graph()
+        self.start_time = datetime.datetime.now()
+        self.num_frames = 0
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -48,12 +59,10 @@ class SpecificWorker(GenericWorker):
         print('SpecificWorker.compute...')
         try:
             data = self.camerasimple_proxy.getImage()
-            arr = np.fromstring(data.image, np.uint8)
-            frame = np.reshape(arr, (data.height, data.width, data.depth))
-            cv2.imshow('Testing',frame)
+            self.HandGestureClient_getHandGesture(data)
             return True
         except:
-            print("Error taking camera feed")
+            print("Error taking camera feed. Make sure Camerasimple is up and running")
 
 
 
@@ -67,10 +76,36 @@ class SpecificWorker(GenericWorker):
         #
         # implementCODE
         #
+        try:
+            arr = np.fromstring(handImg.image, np.uint8)
+            frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, (self.im_width, self.im_height))
+            relative_boxes, scores, classes = detection_rectangles.detect_objects(frame, self.detection_graph, self.sess)
+            maxscore_idx = np.where(scores == scores.max())
+            required_box = relative_boxes[maxscore_idx][0]
+            print(required_box)
+            box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
+            hand_box = box_relative2absolute(required_box)
+            # cv2.imshow('Testing',frame)
+            (left, right, top, bottom) = hand_box
+            p1 = (int(left), int(top))
+            p2 = (int(right), int(bottom))
+            box_color = (204, 41, 0)
+            cv2.rectangle(frame, p1, p2, box_color, 3, 1)
+            self.num_frames+=1
+            elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
+            fps = self.num_frames / elapsed_time
+            print_text = "FPS : " + str(int(fps))
+            text_color = (0,0,0)
+            cv2.putText(frame, print_text, (20, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
+            cv2.imshow('Hand Gesture Client',cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        except Exception as e:
+            print(e)
+            print("Error processing input image")
         hand = HandType()
         return hand
 
     # ===================================================================
     # ===================================================================
-
-

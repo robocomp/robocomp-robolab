@@ -42,6 +42,8 @@ Ice.Trace.Protocol=0
 ```
 You must ensure the proxies' hostname and port number of `CameraSimpleProxy` match the endpoints in the config files of the corresponding interfaces
 
+After configuring, download hand detection models from [here](https://drive.google.com/file/d/1DNytkeURTOvz6HQPlhEctNQt8T92uxAL/view?usp=sharing), move it to the assets folder and unzip to get the models directory.
+
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 

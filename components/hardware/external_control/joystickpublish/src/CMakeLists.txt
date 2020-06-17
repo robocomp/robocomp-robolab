@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.11)
-PROJECT( JoystickPublish )
 
 
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
@@ -32,7 +31,8 @@ SET ( SOURCES
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior JoystickAdapter)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior JoystickAdapter)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior JoystickAdapter)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

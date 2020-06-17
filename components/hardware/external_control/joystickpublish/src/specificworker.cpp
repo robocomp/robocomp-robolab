@@ -16,17 +16,14 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
- #include "specificworker.h"
+#include "specificworker.h"
 
 /**
 * \brief Default constructor
 */
-
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {
-	sendEvent = false;
-	jtimer = new QTimer( );
+	this->startup_check_flag = startup_check;
 }
 
 /**
@@ -34,11 +31,6 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-
-}
-void SpecificWorker::compute( )
-{
-	
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -119,7 +111,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	active = true;
 	
 	return true;
-};
+}
 
 void SpecificWorker::sendJoystickEvent()
 {
@@ -204,3 +196,31 @@ float SpecificWorker::normalize(float X, float A, float B, float C, float D)
 	return (m * QVec::vec2(X,1))[0];
 	
 }
+
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	this->Period = period;
+	if(this->startup_check_flag)
+	{
+		this->startup_check();
+	}
+	else
+	{
+		timer.start(Period);
+	}
+}
+
+void SpecificWorker::compute()
+{
+	
+}
+
+int SpecificWorker::startup_check()
+{
+	std::cout << "Startup check" << std::endl;
+	QTimer::singleShot(200, qApp, SLOT(quit()));
+	return 0;
+}
+
+

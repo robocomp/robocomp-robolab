@@ -30,7 +30,6 @@ import datetime
 # sys.path.append('/opt/robocomp/lib')
 sys.path.append(os.path.join(os.getcwd(),"assets"))
 print(sys.path)
-import detection_rectangles
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
@@ -39,11 +38,36 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 50
+        self.Period = 20
         self.timer.start(self.Period)
-        self.im_width = 640 # Change to change image with while processing
-        self.im_height = 360 # Change to change height with while processing
-        self.detection_graph, self.sess = detection_rectangles.load_inference_graph()
+        self.method = 2
+        # Method = 1 for hand detection using SSD + MobileNet
+        # Method = 2 for hand detection using Mediapipe Deep Learning Models
+        if(self.method==1):
+            try:
+                global detection_ssd
+                import detection_ssd
+                self.im_width = 640 # Change to change image with while processing
+                self.im_height = 360 # Change to change height with while processing
+                self.detection_graph, self.sess = detection_ssd.load_inference_graph()
+            except:
+                print("Error Loading Model. Ensure that models are downloaded \
+                                            and placed in correct directory")
+        elif(self.method==2):
+            try:
+                global detection_mediapipe
+                import detection_mediapipe
+            except:
+                print("Error Loading Model. Ensure that models are downloaded \
+                            and placed in correct directory")
+
+
+        # Bounding Box display configurations
+        self.bbox_color = (204, 41, 0)
+        self.bbox_point_color = (204, 41, 0)
+        self.thickness = 2
+        self.fps_text_color = (0,0,0)
+        # storing program runtime and processed frames for calculating FPS
         self.start_time = datetime.datetime.now()
         self.num_frames = 0
 
@@ -59,10 +83,12 @@ class SpecificWorker(GenericWorker):
         print('SpecificWorker.compute...')
         try:
             data = self.camerasimple_proxy.getImage()
-            self.HandGestureClient_getHandGesture(data)
-            return True
         except:
             print("Error taking camera feed. Make sure Camerasimple is up and running")
+            return False
+        self.HandGestureClient_getHandGesture(data)
+        return True
+
 
 
 
@@ -81,52 +107,63 @@ class SpecificWorker(GenericWorker):
             arr = np.fromstring(handImg.image, np.uint8)
             frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            ## Resizing to required size
-            frame = cv2.resize(frame, (self.im_width, self.im_height))
 
-            ## Detecting boxes with hand in image
-            relative_boxes, scores, classes = detection_rectangles.detect_objects(frame, self.detection_graph, self.sess)
+            if(self.method==1):
+                ## Resizing to required size
+                frame = cv2.resize(frame, (self.im_width, self.im_height))
 
-            ## Currenty, only one hand with maximum score is considered
-            maxscore_idx = np.where(scores == scores.max())
-            required_box = relative_boxes[maxscore_idx][0]
-            print("Bounding Box Found")
+                ## Detecting boxes with hand in image
+                relative_boxes, scores, classes = detection_ssd.detect_objects(frame, self.detection_graph, self.sess)
 
-            box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
-            hand_box = box_relative2absolute(required_box)
+                ## Currenty, only one hand with maximum score is considered
+                maxscore_idx = np.where(scores == scores.max())
+                required_box = relative_boxes[maxscore_idx][0]
+                print("Bounding Box Found")
 
-            ## insert bounding box in image
-            (left, right, top, bottom) = hand_box
+                box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
+                hand_box = box_relative2absolute(required_box)
 
-            bbox = [
-                (int(left), int(bottom)),
-                (int(left), int(top)),
-                (int(right), int(top)),
-                (int(right), int(bottom)),
-            ]
+                ## insert bounding box in image
+                (left, right, top, bottom) = hand_box
 
-            bbox_color = (204, 41, 0)
-            bbox_point_color = (204, 41, 0)
-            thickness = 2
-            for pt in bbox:
-            	x, y = pt
-            	cv2.circle(frame, (int(x), int(y)), thickness*2, bbox_point_color, thickness)
-            for i in range(4):
-                x0, y0 = bbox[i]
-                x1, y1 = bbox[(i+1)%4]
-                cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), bbox_color, thickness)
+                bbox = [
+                    (int(left), int(bottom)),
+                    (int(left), int(top)),
+                    (int(right), int(top)),
+                    (int(right), int(bottom)),
+                ]
+            elif(self.method==2):
+                bbox = detection_mediapipe.hand_detector(frame)
+                if(bbox is None):
+                    print("No hand detected")
+            else:
+                print("Error! Please enter valid detection method number")
+                bbox = None
 
-            ## insert FPS in image
+            if(bbox is not None):
+                print('Bounding Box Coordinates are:')
+                print(bbox)
+                for pt in bbox:
+                	x, y = pt
+                	cv2.circle(frame, (int(x), int(y)), self.thickness*2,
+                                    self.bbox_point_color, self.thickness)
+                for i in range(4):
+                    x0, y0 = bbox[i]
+                    x1, y1 = bbox[(i+1)%4]
+                    cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)),
+                                        self.bbox_color, self.thickness)
+
+            # insert FPS in image
             self.num_frames+=1
             elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
             fps = self.num_frames / elapsed_time
             print_text = "FPS : " + str(int(fps))
-            text_color = (0,0,0)
             cv2.putText(frame, print_text, (20, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.fps_text_color, 2)
 
             ## Display image using OpenCV
             cv2.imshow('Hand Gesture Client',cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+
 
         except Exception as e:
             print(e)

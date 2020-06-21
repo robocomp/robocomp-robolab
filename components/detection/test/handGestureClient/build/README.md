@@ -42,7 +42,11 @@ Ice.Trace.Protocol=0
 ```
 You must ensure the proxies' hostname and port number of `CameraSimpleProxy` match the endpoints in the config files of the corresponding interfaces
 
-After configuring, download hand detection models from [here](https://drive.google.com/file/d/1DNytkeURTOvz6HQPlhEctNQt8T92uxAL/view?usp=sharing), move it to the assets folder and unzip to get the models directory.
+After configuring proxies, 
+
+For detection using SSD and MobileNet architecture download hand detection models from [here](https://drive.google.com/file/d/1DNytkeURTOvz6HQPlhEctNQt8T92uxAL/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 1** in `src/specificworker.py`
+
+For detection using mediapipe, download hand detection models from [here](https://drive.google.com/file/d/1-MmZL_AyreBU9d3kf3DQYrT7oDfBDEzB/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 2** in `src/specificworker.py`
 
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:

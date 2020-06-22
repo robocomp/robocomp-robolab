@@ -45,8 +45,12 @@ except:
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
 from RoboCompCameraSimple import *
+Ice.loadSlice("-I ./src/ --all ./src/HandGesture.ice")
+from RoboCompHandGesture import *
 Ice.loadSlice("-I ./src/ --all ./src/HandGestureClient.ice")
 from RoboCompHandGestureClient import *
+Ice.loadSlice("-I ./src/ --all ./src/HandKeypoint.ice")
+from RoboCompHandKeypoint import *
 
 from handgestureclientI import *
 
@@ -61,6 +65,8 @@ class GenericWorker(QtCore.QObject):
         super(GenericWorker, self).__init__()
 
         self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+        self.handgesture_proxy = mprx["HandGestureProxy"]
+        self.handkeypoint_proxy = mprx["HandKeypointProxy"]
 
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
         self.Period = 30

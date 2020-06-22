@@ -125,6 +125,40 @@ if __name__ == '__main__':
         print('Cannot get CameraSimpleProxy property.')
         status = 1
 
+
+    # Remote object connection for HandGesture
+    try:
+        proxyString = ic.getProperties().getProperty('HandGestureProxy')
+        try:
+            basePrx = ic.stringToProxy(proxyString)
+            handgesture_proxy = HandGesturePrx.uncheckedCast(basePrx)
+            mprx["HandGestureProxy"] = handgesture_proxy
+        except Ice.Exception:
+            print('Cannot connect to the remote object (HandGesture)', proxyString)
+            #traceback.print_exc()
+            status = 1
+    except Ice.Exception as e:
+        print(e)
+        print('Cannot get HandGestureProxy property.')
+        status = 1
+
+
+    # Remote object connection for HandKeypoint
+    try:
+        proxyString = ic.getProperties().getProperty('HandKeypointProxy')
+        try:
+            basePrx = ic.stringToProxy(proxyString)
+            handkeypoint_proxy = HandKeypointPrx.uncheckedCast(basePrx)
+            mprx["HandKeypointProxy"] = handkeypoint_proxy
+        except Ice.Exception:
+            print('Cannot connect to the remote object (HandKeypoint)', proxyString)
+            #traceback.print_exc()
+            status = 1
+    except Ice.Exception as e:
+        print(e)
+        print('Cannot get HandKeypointProxy property.')
+        status = 1
+
     if status == 0:
         worker = SpecificWorker(mprx)
         worker.setParams(parameters)

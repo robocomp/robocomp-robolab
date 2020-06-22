@@ -61,10 +61,8 @@ cp etc/config etc/config-run
 After editing the new config file we can run the component:
 
 ```
-cd src
 cmake .
 make
-cd ..
 python3 src/HandGestureClient.py etc/config-run
 ```
 Make sure that all other required components (Eg. `CameraSimple`) are up and running.

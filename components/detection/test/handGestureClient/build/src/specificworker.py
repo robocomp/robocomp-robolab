@@ -34,6 +34,7 @@ print(sys.path)
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
@@ -71,6 +72,7 @@ class SpecificWorker(GenericWorker):
         self.start_time = datetime.datetime.now()
         self.num_frames = 0
 
+
     def __del__(self):
         print('SpecificWorker destructor')
 
@@ -89,6 +91,7 @@ class SpecificWorker(GenericWorker):
         self.HandGestureClient_getHandGesture(data)
         return True
 
+        return True
 
 
 
@@ -170,6 +173,7 @@ class SpecificWorker(GenericWorker):
             print("Error processing input image")
         hand = HandType()
         return hand
+    # ===================================================================
+    # ===================================================================
 
-    # ===================================================================
-    # ===================================================================
+

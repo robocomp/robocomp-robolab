@@ -3,4 +3,4 @@ PROJECT(  HandGestureClient )
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraSimple HandGestureClient )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraSimple HandGesture HandGestureClient HandKeypoint )

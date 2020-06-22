@@ -79,7 +79,6 @@ class SpecificWorker(GenericWorker):
     def setParams(self, params):
         return True
 
-
     @QtCore.Slot()
     def compute(self):
         print('SpecificWorker.compute...')
@@ -88,12 +87,42 @@ class SpecificWorker(GenericWorker):
         except:
             print("Error taking camera feed. Make sure Camerasimple is up and running")
             return False
-        self.HandGestureClient_getHandGesture(data)
+
+        handData = self.HandGestureClient_getHandGesture(data)
+        self.display(data,handData)
         return True
 
-        return True
+    def display(self,handImg,handData):
+        arr = np.fromstring(handImg.image, np.uint8)
+        frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if(self.method==1):
+            frame = cv2.resize(frame, (self.im_width, self.im_height))
 
+        bbox = handData.boundingbox
+        if(bbox is not None):
+            print('Bounding Box Coordinates are:')
+            print(bbox)
+            for pt in bbox:
+            	x, y = pt
+            	cv2.circle(frame, (int(x), int(y)), self.thickness*2,
+                                self.bbox_point_color, self.thickness)
+            for i in range(4):
+                x0, y0 = bbox[i]
+                x1, y1 = bbox[(i+1)%4]
+                cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)),
+                                    self.bbox_color, self.thickness)
 
+        # insert FPS in image
+        self.num_frames+=1
+        elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
+        fps = self.num_frames / elapsed_time
+        print_text = "FPS : " + str(int(fps))
+        cv2.putText(frame, print_text, (20, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.fps_text_color, 2)
+
+        ## Display image using OpenCV
+        cv2.imshow('Hand Gesture Client',cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
     # =============== Methods for Component Implements ==================
     # ===================================================================
@@ -114,7 +143,7 @@ class SpecificWorker(GenericWorker):
             if(self.method==1):
                 ## Resizing to required size
                 frame = cv2.resize(frame, (self.im_width, self.im_height))
-
+                
                 ## Detecting boxes with hand in image
                 relative_boxes, scores, classes = detection_ssd.detect_objects(frame, self.detection_graph, self.sess)
 
@@ -143,37 +172,12 @@ class SpecificWorker(GenericWorker):
                 print("Error! Please enter valid detection method number")
                 bbox = None
 
-            if(bbox is not None):
-                print('Bounding Box Coordinates are:')
-                print(bbox)
-                for pt in bbox:
-                	x, y = pt
-                	cv2.circle(frame, (int(x), int(y)), self.thickness*2,
-                                    self.bbox_point_color, self.thickness)
-                for i in range(4):
-                    x0, y0 = bbox[i]
-                    x1, y1 = bbox[(i+1)%4]
-                    cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)),
-                                        self.bbox_color, self.thickness)
-
-            # insert FPS in image
-            self.num_frames+=1
-            elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
-            fps = self.num_frames / elapsed_time
-            print_text = "FPS : " + str(int(fps))
-            cv2.putText(frame, print_text, (20, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.fps_text_color, 2)
-
-            ## Display image using OpenCV
-            cv2.imshow('Hand Gesture Client',cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-
-
         except Exception as e:
+            bbox = None
             print(e)
             print("Error processing input image")
         hand = HandType()
+        hand.boundingbox = bbox
         return hand
     # ===================================================================
     # ===================================================================
-
-

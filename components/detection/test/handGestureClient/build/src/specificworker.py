@@ -48,8 +48,6 @@ class SpecificWorker(GenericWorker):
             try:
                 global detection_ssd
                 import detection_ssd
-                self.im_width = 640 # Change to change image with while processing
-                self.im_height = 360 # Change to change height with while processing
                 self.detection_graph, self.sess = detection_ssd.load_inference_graph()
             except:
                 print("Error Loading Model. Ensure that models are downloaded \
@@ -142,10 +140,11 @@ class SpecificWorker(GenericWorker):
 
             if(self.method==1):
                 ## Resizing to required size
-                frame = cv2.resize(frame, (self.im_width, self.im_height))
-                
+                self.im_width = handImg.width
+                self.im_height = handImg.height
                 ## Detecting boxes with hand in image
-                relative_boxes, scores, classes = detection_ssd.detect_objects(frame, self.detection_graph, self.sess)
+                relative_boxes, scores, classes = detection_ssd.detect_objects(
+                                        frame, self.detection_graph, self.sess)
 
                 ## Currenty, only one hand with maximum score is considered
                 maxscore_idx = np.where(scores == scores.max())

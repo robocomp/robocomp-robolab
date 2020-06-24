@@ -1,9 +1,9 @@
-# HandGesture
-Intro to component here
+# Hand Keypoint Component
 
+This Component is under development and not yet functional.
 
 ## Configuration parameters
-As any other component, *HandGesture* needs a configuration file to start. In
+As any other component, *HandKeypoint* needs a configuration file to start. In
 ```
 etc/config
 ```
@@ -16,7 +16,7 @@ EXAMPLE HERE
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
 ```
-cd <HandGesture's path> 
+cd <HandKeypoint's path> 
 ```
 ```
 cp etc/config config
@@ -25,5 +25,5 @@ cp etc/config config
 After editing the new config file we can run the component:
 
 ```
-bin/HandGesture config
+bin/HandKeypoint config
 ```

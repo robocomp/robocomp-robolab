@@ -110,3 +110,5 @@ components/astraRGBD/src/HumanTracker\.h
 components/faceidentification/assets/20180408-102900/*
 components/hardware/camera/astraRGBD/build/
 components/detection/apriltagsComp/build/
+components/detection/faceidentification/assets/20180408-102900/
+components/detection/faceidentification/data_embeddings.npy

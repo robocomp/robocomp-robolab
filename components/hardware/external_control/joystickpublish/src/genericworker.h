@@ -30,8 +30,6 @@
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-using namespace std;
-using namespace RoboCompJoystickAdapter;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
@@ -49,7 +47,7 @@ public:
 	QMutex *mutex;
 
 
-	JoystickAdapterPrx joystickadapter_pubproxy;
+	RoboCompJoystickAdapter::JoystickAdapterPrx joystickadapter_pubproxy;
 
 
 protected:

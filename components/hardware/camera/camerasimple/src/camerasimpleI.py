@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020 by YOUR NAME HERE
+#    Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -19,21 +19,37 @@
 
 import sys, os, Ice
 
+ROBOCOMP = ''
 try:
-	Ice.loadSlice('/opt/robocomp/interfaces/CameraSimple.ice')
-	print('Interface CameraSimple.ice loaded from /opt/robocomp/interfaces')
+    ROBOCOMP = os.environ['ROBOCOMP']
 except:
-	try:
-		Ice.loadSlice(os.environ['ROBOCOMP']+'/interfaces/CameraSimple.ice')
-		print('Interface CameraSimple loaded from '+os.environ['ROBOCOMP']+'/interfaces')
-	except:
-		print('Couldn\'t load CameraSimple.ice interface')
-		sys.exit(-1)
-import RoboCompCameraSimple
+    print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+    ROBOCOMP = '/opt/robocomp'
+if len(ROBOCOMP)<1:
+    raise RuntimeError('ROBOCOMP environment variable not set! Exiting.')
 
-class CameraSimpleI(RoboCompCameraSimple.CameraSimple):
-	def __init__(self, worker):
-		self.worker = worker
 
-	def getImage(self, c):
-		return self.worker.CameraSimple_getImage()
+additionalPathStr = ''
+icePaths = []
+try:
+    icePaths.append('/opt/robocomp/interfaces')
+    SLICE_PATH = os.environ['SLICE_PATH'].split(':')
+    for p in SLICE_PATH:
+        icePaths.append(p)
+        additionalPathStr += ' -I' + p + ' '
+except:
+    print('SLICE_PATH environment variable was not exported. Using only the default paths')
+    pass
+
+
+Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
+
+from RoboCompCameraSimple import *
+
+class CameraSimpleI(CameraSimple):
+    def __init__(self, worker):
+        self.worker = worker
+
+
+    def getImage(self, c):
+        return self.worker.CameraSimple_getImage()

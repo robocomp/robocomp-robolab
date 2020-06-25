@@ -16,26 +16,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
- #include "specificworker.h"
+#include "specificworker.h"
 
 /**
 * \brief Default constructor
 */
-
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {
-	sendEvent = false;
-	jtimer = new QTimer( );
+	this->startup_check_flag = startup_check;
 }
 
 /**
 * \brief Default destructor
 */
 SpecificWorker::~SpecificWorker()
-{
-
-}
+{ }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
@@ -84,45 +79,53 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	return true;
 };
 
+
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	
-	for (int i=0; i<joystickParams.numButtons; i++)
+	this->Period = period;
+	if(this->startup_check_flag)
 	{
-		RoboCompJoystickAdapter::ButtonParams bpar;
-		bpar.clicked = false;
-		data.buttons.push_back(bpar);
+		this->startup_check();
 	}
+	else
+	{
+		for (int i=0; i<joystickParams.numButtons; i++)
+		{
+			RoboCompJoystickAdapter::ButtonParams bpar;
+			bpar.clicked = false;
+			data.buttons.push_back(bpar);
+		}
 		//TODO: INITIALIZE JOYSTICK
 		
 		//~ // Set the base joystick axes initial data
 		//~ joy_axes.actualX = 0.;
 		//~ joy_axes.actualY = 0.;
 
-	joystick = new QJoyStick( QString::fromStdString(joystickParams.device) );
-	if ( joystick->openQJoy() )
-	{
-		joystick->start();
-		qDebug() << "JOYSTICK STARTED";
-		if (joystickParams.basicPeriod < 1)
-			joystickParams.basicPeriod = 1;
+		joystick = new QJoyStick( QString::fromStdString(joystickParams.device) );
+		if ( joystick->openQJoy() )
+		{
+			joystick->start();
+			qDebug() << "JOYSTICK STARTED";
+			if (joystickParams.basicPeriod < 1)
+				joystickParams.basicPeriod = 1;
+			timer.start(Period);
+		}
+		else
+		{
+			qDebug() << "FAILED TO START JOYSTICK";
+		}
+
+		// Connect signals
+		connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoystickEvent(int, int, int) ) );
+		connect( &timer, SIGNAL( timeout() ), this, SLOT( sendJoystickEvent() ) );
+		
+		//~ qWarning("[joystickUniversalComp]: New Joystick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", config.XMotionAxis, config.YMotionAxis);
+		//~ qWarning("[joystickUniversalComp]: Max advance speed: [%i], Max steering speed: [%f]",config.maxAdv,config.maxRot);
+
+		this->Period = 100;
 		timer.start(Period);
 	}
-	else
-	{
-		qDebug() << "FAILED TO START JOYSTICK";
-	}
-
-	// Connect signals
-	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoystickEvent(int, int, int) ) );
-	connect( &timer, SIGNAL( timeout() ), this, SLOT( sendJoystickEvent() ) );
-	
-	//~ qWarning("[joystickUniversalComp]: New Joystick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", config.XMotionAxis, config.YMotionAxis);
-	//~ qWarning("[joystickUniversalComp]: Max advance speed: [%i], Max steering speed: [%f]",config.maxAdv,config.maxRot);
-
-	this->Period = 100;
-	timer.start(Period);
 }
 
 void SpecificWorker::compute( )
@@ -217,3 +220,14 @@ float SpecificWorker::normalize(float X, float A, float B, float C, float D)
 	return (m * QVec::vec2(X,1))[0];
 	
 }
+
+
+
+int SpecificWorker::startup_check()
+{
+	std::cout << "Startup check" << std::endl;
+	QTimer::singleShot(200, qApp, SLOT(quit()));
+	return 0;
+}
+
+

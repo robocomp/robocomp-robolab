@@ -23,7 +23,7 @@
 GenericWorker::GenericWorker(MapPrx& mprx) : QObject()
 {
 
-	joystickadapter_pubproxy = (*(JoystickAdapterPrx*)mprx["JoystickAdapterPub"]);
+	joystickadapter_pubproxy = (*(RoboCompJoystickAdapter::JoystickAdapterPrx*)mprx["JoystickAdapterPub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

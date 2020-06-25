@@ -22,6 +22,7 @@
 #include <genericworker.h>
 #include <qjoystick/qjoystick.h>
 #include <qmat/QMatAll>
+#include <QHBoxLayout>
 
 #define CHECK_PERIOD 5000
 #define JOYSTICK_PRECISION 0.05
@@ -51,7 +52,7 @@ public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	void initialize(int){};
+	void initialize(int);
 
 public slots:
  	void compute(); 	

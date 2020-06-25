@@ -36,10 +36,6 @@ SpecificWorker::~SpecificWorker()
 {
 
 }
-void SpecificWorker::compute( )
-{
-	
-}
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
@@ -52,74 +48,89 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		joystickParams.device = params["joystickUniversal.Device"].value;
 		joystickParams.numAxes = QString::fromStdString(params["joystickUniversal.NumAxes"].value).toInt();
 		joystickParams.numButtons = QString::fromStdString(params["joystickUniversal.NumButtons"].value).toInt();
-		joystickParams.basicPeriod = QString::fromStdString(params["joystickUniversal.BasicPeriod"].value).toInt();
-	
-		for (int i=0; i<joystickParams.numAxes; i++)
-		{
-			std::string s= QString::number(i).toStdString();
-			RoboCompJoystickAdapter::AxisParams apar;
-			apar.name = params["joystickUniversal.Axis_" + s +".Name"].value;
-			if(params["joystickUniversal.VelocityAxis"].value == apar.name)
-			{
-				data.velAxisIndex = i;
-				qDebug() << "Setting vel index to:"+QString::number(data.velAxisIndex);
-			}
-			if(params["joystickUniversal.DirectionAxis"].value == apar.name)
-			{
-				data.dirAxisIndex = i;
-				qDebug() << "Setting dir index to:"+QString::number(data.dirAxisIndex);
-			}			
-			apar.value = 0;
-			data.axes.push_back(apar);
-				
-			axesParams aux;
-			aux.name = apar.name;
-			aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
-			aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
-			aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
-			qDebug() << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
-			joystickParams.axes[i] = aux;
-		}
-		for (int i=0; i<joystickParams.numButtons; i++)
-		{
-			RoboCompJoystickAdapter::ButtonParams bpar;
-			bpar.clicked = false;
-			data.buttons.push_back(bpar);
-		}
-			//TODO: INITIALIZE JOYSTICK
-			
-			//~ // Set the base joystick axes initial data
-			//~ joy_axes.actualX = 0.;
-			//~ joy_axes.actualY = 0.;
-
-		joystick = new QJoyStick( QString::fromStdString(joystickParams.device) );
-		if ( joystick->openQJoy() )
-		{
-			joystick->start();
-			qDebug() << "JOYSTICK STARTED";
-			if (joystickParams.basicPeriod < 1)
-				joystickParams.basicPeriod = 1;
-			timer.start(Period);
-		}
-		else
-		{
-			qDebug() << "FAILED TO START JOYSTICK";
-		}
-
-		// Connect signals
-		connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoystickEvent(int, int, int) ) );
-		connect( &timer, SIGNAL( timeout() ), this, SLOT( sendJoystickEvent() ) );
-		//~ qWarning("[joystickUniversalComp]: New Joystick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", config.XMotionAxis, config.YMotionAxis);
-		//~ qWarning("[joystickUniversalComp]: Max advance speed: [%i], Max steering speed: [%f]",config.maxAdv,config.maxRot);
+		joystickParams.basicPeriod = QString::fromStdString(params["joystickUniversal.BasicPeriod"].value).toInt();	
 	}
 	else
 	{
 		qDebug("Device has not change. No reconfiguration needed.");
 	}
+	for (int i=0; i<joystickParams.numAxes; i++)
+	{
+		std::string s= QString::number(i).toStdString();
+		RoboCompJoystickAdapter::AxisParams apar;
+		apar.name = params["joystickUniversal.Axis_" + s +".Name"].value;
+		if(params["joystickUniversal.VelocityAxis"].value == apar.name)
+		{
+			data.velAxisIndex = i;
+			qDebug() << "Setting vel index to:"+QString::number(data.velAxisIndex);
+		}
+		if(params["joystickUniversal.DirectionAxis"].value == apar.name)
+		{
+			data.dirAxisIndex = i;
+			qDebug() << "Setting dir index to:"+QString::number(data.dirAxisIndex);
+		}			
+		apar.value = 0;
+		data.axes.push_back(apar);
+			
+		axesParams aux;
+		aux.name = apar.name;
+		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
+		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
+		aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
+		qDebug() << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
+		joystickParams.axes[i] = aux;
+	}
 	active = true;
-	
 	return true;
 };
+
+void SpecificWorker::initialize(int period)
+{
+	std::cout << "Initialize worker" << std::endl;
+	
+	for (int i=0; i<joystickParams.numButtons; i++)
+	{
+		RoboCompJoystickAdapter::ButtonParams bpar;
+		bpar.clicked = false;
+		data.buttons.push_back(bpar);
+	}
+		//TODO: INITIALIZE JOYSTICK
+		
+		//~ // Set the base joystick axes initial data
+		//~ joy_axes.actualX = 0.;
+		//~ joy_axes.actualY = 0.;
+
+	joystick = new QJoyStick( QString::fromStdString(joystickParams.device) );
+	if ( joystick->openQJoy() )
+	{
+		joystick->start();
+		qDebug() << "JOYSTICK STARTED";
+		if (joystickParams.basicPeriod < 1)
+			joystickParams.basicPeriod = 1;
+		timer.start(Period);
+	}
+	else
+	{
+		qDebug() << "FAILED TO START JOYSTICK";
+	}
+
+	// Connect signals
+	connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoystickEvent(int, int, int) ) );
+	connect( &timer, SIGNAL( timeout() ), this, SLOT( sendJoystickEvent() ) );
+	
+	//~ qWarning("[joystickUniversalComp]: New Joystick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", config.XMotionAxis, config.YMotionAxis);
+	//~ qWarning("[joystickUniversalComp]: Max advance speed: [%i], Max steering speed: [%f]",config.maxAdv,config.maxRot);
+
+	this->Period = 100;
+	timer.start(Period);
+}
+
+void SpecificWorker::compute( )
+{
+	
+}
+
+////////////////////////////////////////////////////////////////////////777
 
 void SpecificWorker::sendJoystickEvent()
 {
@@ -168,6 +179,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 				data.axes[number].value = normalized_value;
 				qDebug() << "Axis:" << number << "Value:" << normalized_value;
 				sendEvent = true;
+				//sendJoystickEvent();
 				break;
 			}
 		}
@@ -182,6 +194,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 			data.buttons[number].clicked = (bool) value;
 			qDebug() << "Button "+QString::number(number)+": "+QString::number(data.buttons[number].clicked);
 			sendEvent = true;
+			//sendJoystickEvent();
 		}
 		break;
 		default:

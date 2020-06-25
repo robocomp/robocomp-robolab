@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -22,11 +22,10 @@
 #include "config.h"
 #include <stdint.h>
 #include <qlog/qlog.h>
-
-
 #include <CommonBehavior.h>
 
 #include <JoystickAdapter.h>
+
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
@@ -37,8 +36,7 @@ using namespace RoboCompJoystickAdapter;
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
-class GenericWorker :
-public QObject
+class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
@@ -55,6 +53,7 @@ public:
 
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -64,6 +63,7 @@ private:
 public slots:
 	virtual void compute() = 0;
 	virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

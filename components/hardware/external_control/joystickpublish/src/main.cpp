@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2019 by YOUR NAME HERE
+ *    Copyright (C) 2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -112,7 +112,11 @@ void ::JoystickPublish::initialize()
 
 int ::JoystickPublish::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
 
 
 	sigset_t sigs;
@@ -141,7 +145,7 @@ int ::JoystickPublish::run(int argc, char* argv[])
 	}
 	catch (const Ice::Exception &ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		cout << "[" << PROGRAM_NAME << "]: Exception: 'rcnode' not running: " << ex << endl;
 		return EXIT_FAILURE;
 	}
 	IceStorm::TopicPrx joystickadapter_topic;
@@ -163,6 +167,12 @@ int ::JoystickPublish::run(int argc, char* argv[])
 				// Another client created the topic.
 				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the JoystickAdapter topic. It's possible that other component have created\n";
 			}
+		}
+		catch(const IceUtil::NullHandleException&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+			"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -208,7 +218,6 @@ int ::JoystickPublish::run(int argc, char* argv[])
 
 
 
-
 		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
 
@@ -249,7 +258,7 @@ int main(int argc, char* argv[])
 	string arg;
 
 	// Set config file
-	std::string configFile = "config";
+	std::string configFile = "etc/config";
 	if (argc > 1)
 	{
 		std::string initIC("--Ice.Config=");

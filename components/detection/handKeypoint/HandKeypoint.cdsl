@@ -1,0 +1,10 @@
+import "HandKeypoint.idsl";
+
+Component HandKeypoint
+{
+    Communications
+    {
+        implements HandKeypoint;
+    };
+    language Python;
+};

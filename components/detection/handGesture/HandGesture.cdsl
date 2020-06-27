@@ -1,0 +1,10 @@
+import "HandGesture.idsl";
+
+Component HandGesture
+{
+    Communications
+    {
+        implements HandGesture;
+    };
+    language Python;
+};

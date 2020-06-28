@@ -8,6 +8,8 @@ This section assumes the user has already installed the RoboComp core library an
 
 For dependencies, please ensure that the dependencies are satisfied as mentioned on the github of [Darknet YOLO v4](https://github.com/alexeyab/darknet#requirements).
 
+Next download the Darknet Yolo v4 from the [following link](https://drive.google.com/file/d/1I0RU4PEMOUQ-rDlXw9cndGx958HztZUj/view?usp=sharing). Use this model only to avoid debugging and resolving path issues. Place the zip file in the folder `detection/objDetection` and extract there.
+
 After dependencies are installed build the Darknet Yolo model using following commands:
 
 ```
@@ -16,13 +18,6 @@ make
 ```
 
 Refer to the Makefile for the build specifications if required.
-
-Download the weights of the model from either of these 2 links and place them in the `detection/objDetection/assets` folder.
-
-[Link 1](https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT)
-
-[Link 2](https://drive.google.com/file/d/15Auu0OUHZvuhJahv2Bh-vPRoYcBPZLdn/view?usp=sharing)
-
 
 ## Configuration parameters
 As an example, `objDetection` component parameters are characterized in config file described below:

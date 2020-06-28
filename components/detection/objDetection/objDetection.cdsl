@@ -1,0 +1,10 @@
+import "CameraSimple.idsl";
+
+Component objDetection
+{
+	Communications
+	{
+		requires CameraSimple;
+	};
+	language python;
+};

@@ -1,6 +1,6 @@
-# Hand Keypoint Component
+# HandKeypoint
+Intro to component here
 
-This Component is under development and not yet functional.
 
 ## Configuration parameters
 As any other component, *HandKeypoint* needs a configuration file to start. In

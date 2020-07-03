@@ -5,7 +5,7 @@ HandGestureClient.Endpoints=tcp -p 10006
 # Proxies for required interfaces
 CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 HandGestureProxy = handgesture:tcp -h localhost -p 0
-HandKeypointProxy = handkeypoint:tcp -h localhost -p 0
+HandKeypointProxy = handkeypoint:tcp -h localhost -p 10007
 
 
 

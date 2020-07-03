@@ -25,6 +25,7 @@ import sys
 import os
 import cv2
 import datetime
+import copy
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -50,15 +51,13 @@ class SpecificWorker(GenericWorker):
                 import detection_ssd
                 self.detection_graph, self.sess = detection_ssd.load_inference_graph()
             except:
-                print("Error Loading Model. Ensure that models are downloaded \
-                                            and placed in correct directory")
+                print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
         elif(self.method==2):
             try:
                 global detection_mediapipe
                 import detection_mediapipe
             except:
-                print("Error Loading Model. Ensure that models are downloaded \
-                            and placed in correct directory")
+                print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
 
 
         # Bounding Box display configurations
@@ -101,10 +100,6 @@ class SpecificWorker(GenericWorker):
         if(bbox is not None):
             print('Bounding Box Coordinates are:')
             print(bbox)
-            for pt in bbox:
-            	x, y = pt
-            	cv2.circle(frame, (int(x), int(y)), self.thickness*2,
-                                self.bbox_point_color, self.thickness)
             for i in range(4):
                 x0, y0 = bbox[i]
                 x1, y1 = bbox[(i+1)%4]
@@ -136,6 +131,7 @@ class SpecificWorker(GenericWorker):
             ## Rearranging to form numpy matrix
             arr = np.fromstring(handImg.image, np.uint8)
             frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+            frame_cp = copy.deepcopy(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             if(self.method==1):
@@ -163,18 +159,31 @@ class SpecificWorker(GenericWorker):
                     (int(right), int(top)),
                     (int(right), int(bottom)),
                 ]
+
+                sendBbox = [left, right, top, bottom]
             elif(self.method==2):
                 bbox = detection_mediapipe.hand_detector(frame)
+                min_idx = np.amin(bbox,axis=0)
+                max_idx = np.amax(bbox, axis=0)
+                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
                 if(bbox is None):
                     print("No hand detected")
             else:
                 print("Error! Please enter valid detection method number")
                 bbox = None
 
+
         except Exception as e:
             bbox = None
             print(e)
             print("Error processing input image")
+
+        if bbox is not None:
+            sendHandImage = RoboCompHandKeypoint.TImage()
+            sendHandImage.image = frame_cp
+            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+            detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
+
         hand = HandType()
         hand.boundingbox = bbox
         return hand

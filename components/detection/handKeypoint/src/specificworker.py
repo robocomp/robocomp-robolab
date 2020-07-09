@@ -22,19 +22,48 @@
 from genericworker import *
 import numpy as np
 import cv2
+import faulthandler
+
+import detection_keypoints
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
+# faulthandler.enable(all_threads=True)
+## Change to path of Python it is not defualt
+try:
+    sys.path.append('/usr/local/python')
+    from openpose import pyopenpose as op
+except ImportError as e:
+    print("Error importing openpose. Check it's installation")
+    raise e
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 2000
+        self.Period = 20
         self.timer.start(self.Period)
 
+        ## Change to openpose installation path (Default considered to be HOME)
+        self.openpose_path = os.getenv("HOME") + '/openpose'
+        params = dict()
+        params["model_folder"] = self.openpose_path + "/models"
+        params["hand"] = True
+        params["hand_detector"] = 2
+        params["body"] = 0
+
+        try:
+            self.openpose_wrapper = op.WrapperPython()
+            self.openpose_wrapper.configure(params)
+            self.openpose_wrapper.start()
+        except:
+            print("Error creating python wrapper of openpose. Check installation")
+            sys.exit(-1)
+
+        print("Done")
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -67,7 +96,19 @@ class SpecificWorker(GenericWorker):
 
         return True
 
-
+    # Converts a hand bounding box into a OpenPose Rectangle
+    def box2oprectangle(self,box):
+        [left, right, top, bottom] = box
+        width = np.abs(right - left)
+        height = np.abs(top - bottom)
+        max_length = int(max(width,height))
+        center = (int(left + (width /2 )), int(bottom - (height/2)))
+        # Openpose hand detector needs the bounding box to be quite big , so we make it bigger
+        # Top point for rectangle
+        new_top = (int(center[0] - max_length / 1.3), int(center[1] - max_length /1.3))
+        max_length = int(max_length * 1.6)
+        hand_rectangle = op.Rectangle(new_top[0],new_top[1],max_length,max_length)
+        return hand_rectangle
 
     # =============== Methods for Component Implements ==================
     # ===================================================================
@@ -83,9 +124,26 @@ class SpecificWorker(GenericWorker):
         arr = np.fromstring(HandImage.image, np.uint8)
         frame = np.reshape(arr, (HandImage.height, HandImage.width, HandImage.depth))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         print(frame)
         print(box)
-        return None
+        box = np.array(box)
+        ## Creating openpose rectangle
+        hands_rectangles = [[self.box2oprectangle(box),op.Rectangle(0., 0., 0., 0.)]]
+
+        # Create new datum
+        datum = op.Datum()
+        datum.cvInputData = frame
+        datum.handRectangles = hands_rectangles
+        # Process and display image
+        opWrapper.emplaceAndPop([datum])
+
+        if datum.handKeypoints[0].shape == ():
+            # if there were no detections
+            hand_keypoints = [[],[]]
+        else:
+            hand_keypoints = datum.handKeypoints
+        return hand_keypoints
 
     # ===================================================================
     # ===================================================================

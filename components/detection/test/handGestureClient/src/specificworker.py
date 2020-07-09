@@ -35,7 +35,6 @@ print(sys.path)
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
-
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
@@ -68,7 +67,6 @@ class SpecificWorker(GenericWorker):
         # storing program runtime and processed frames for calculating FPS
         self.start_time = datetime.datetime.now()
         self.num_frames = 0
-
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -183,7 +181,8 @@ class SpecificWorker(GenericWorker):
             sendHandImage.image = frame_cp
             sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
             detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
-
+            print(detected_keypoints)
+        
         hand = HandType()
         hand.boundingbox = bbox
         return hand

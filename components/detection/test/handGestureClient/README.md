@@ -1,4 +1,4 @@
-# HandGestureClient
+# Hand Gesture Client Component
 
 Note: This component is still in development.
 
@@ -52,7 +52,7 @@ For detection using mediapipe, download hand detection models from [here](https:
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
 ```
-cd ~/robocomp/components/robocomp-robolab/components/detection/test/handGestureClient/build
+cd ~/robocomp/components/robocomp-robolab/components/detection/test/handGestureClient/
 ```
 ```
 cp etc/config etc/config-run
@@ -65,4 +65,4 @@ cmake .
 make
 python3 src/HandGestureClient.py etc/config-run
 ```
-Make sure that all other required components (Eg. `CameraSimple`) are up and running.
+Make sure that all other required components (`CameraSimple` and `HandKeypoint`) are up and running.

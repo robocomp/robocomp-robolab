@@ -136,13 +136,13 @@ class SpecificWorker(GenericWorker):
         datum.cvInputData = frame
         datum.handRectangles = hands_rectangles
         # Process and display image
-        opWrapper.emplaceAndPop([datum])
+        self.openpose_wrapper.emplaceAndPop([datum])
 
         if datum.handKeypoints[0].shape == ():
             # if there were no detections
-            hand_keypoints = [[],[]]
+            hand_keypoints = None
         else:
-            hand_keypoints = datum.handKeypoints
+            hand_keypoints = datum.handKeypoints[0]
         return hand_keypoints
 
     # ===================================================================

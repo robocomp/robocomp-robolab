@@ -62,6 +62,8 @@ class SpecificWorker(GenericWorker):
         # Bounding Box display configurations
         self.bbox_color = (204, 41, 0)
         self.bbox_point_color = (204, 41, 0)
+        self.keypoint_color = (0, 255, 0)
+        self.conn_color = (255, 0, 0)
         self.thickness = 2
         self.fps_text_color = (0,0,0)
         # storing program runtime and processed frames for calculating FPS
@@ -94,6 +96,7 @@ class SpecificWorker(GenericWorker):
         if(self.method==1):
             frame = cv2.resize(frame, (self.im_width, self.im_height))
 
+        ## Add Hand Bounding Box in image frame 
         bbox = handData.boundingbox
         if(bbox is not None):
             print('Bounding Box Coordinates are:')
@@ -103,6 +106,30 @@ class SpecificWorker(GenericWorker):
                 x1, y1 = bbox[(i+1)%4]
                 cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)),
                                     self.bbox_color, self.thickness)
+
+        ## Add detected keypoints in image frame
+
+        detected_keypoints = handData.keypoint
+
+        connections = [(0,1),(1,2),(2,3),(3,4),(0,5),
+                        (5,6),(6,7),(7,8),(0,9),(9,10),
+                        (10,11),(11,12),(0,13),(13,14),
+                        (14,15),(15,16),(0,17),(17,18),
+                        (18,19),(19,20)]
+
+        for point in detected_keypoints:
+            x = point[0]
+            y = point[1]
+            cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
+
+
+        for connection in connections:
+            x0 = detected_keypoints[connection[0]][0]
+            y0 = detected_keypoints[connection[0]][1]
+            x1 = detected_keypoints[connection[1]][0]
+            y1 = detected_keypoints[connection[1]][1]
+
+            cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
 
         # insert FPS in image
         self.num_frames+=1
@@ -176,15 +203,22 @@ class SpecificWorker(GenericWorker):
             print(e)
             print("Error processing input image")
 
+        detected_keypoints = None
         if bbox is not None:
+            ## Detecting Keypoint using Openpose (using HandKeypoint Component)
             sendHandImage = RoboCompHandKeypoint.TImage()
             sendHandImage.image = frame_cp
             sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
             detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
-            print(detected_keypoints)
+            if(detected_keypoints is None):
+                print("Keypoints not detected")
+            else:
+                print("Keypoint Detected")
+                print(detected_keypoints)
         
         hand = HandType()
         hand.boundingbox = bbox
+        hand.keypoint = detected_keypoints
         return hand
     # ===================================================================
     # ===================================================================

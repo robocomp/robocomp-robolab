@@ -24,7 +24,7 @@ import numpy as np
 import sys
 import os
 import cv2
-import datetime
+import time
 import copy
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -67,8 +67,7 @@ class SpecificWorker(GenericWorker):
         self.thickness = 2
         self.fps_text_color = (0,0,0)
         # storing program runtime and processed frames for calculating FPS
-        self.start_time = datetime.datetime.now()
-        self.num_frames = 0
+        self.start_time = 0
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -79,6 +78,7 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         print('SpecificWorker.compute...')
+        self.start_time = time.time()
         try:
             data = self.camerasimple_proxy.getImage()
         except:
@@ -90,6 +90,7 @@ class SpecificWorker(GenericWorker):
         return True
 
     def display(self,handImg,handData):
+        elapsed_time = time.time() - self.start_time
         arr = np.fromstring(handImg.image, np.uint8)
         frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -145,9 +146,7 @@ class SpecificWorker(GenericWorker):
             cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
 
         # insert FPS in image
-        self.num_frames+=1
-        elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
-        fps = self.num_frames / elapsed_time
+        fps = 1.0 / elapsed_time
         print_text = "FPS : " + str(int(fps))
         cv2.putText(frame, print_text, (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.fps_text_color, 2)

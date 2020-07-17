@@ -96,7 +96,7 @@ class SpecificWorker(GenericWorker):
         if(self.method==1):
             frame = cv2.resize(frame, (self.im_width, self.im_height))
 
-        ## Add Hand Bounding Box in image frame 
+        ## Add Hand Bounding Box in image frame
         bbox = handData.boundingbox
         if(bbox is not None):
             print('Bounding Box Coordinates are:')
@@ -110,12 +110,25 @@ class SpecificWorker(GenericWorker):
         ## Add detected keypoints in image frame
 
         detected_keypoints = handData.keypoint
+        connections = None
+        if(self.method==1):
+            connections = [
+                            (0,1),(1,2),(2,3),(3,4),(0,5),
+                            (5,6),(6,7),(7,8),(0,9),(9,10),
+                            (10,11),(11,12),(0,13),(13,14),
+                            (14,15),(15,16),(0,17),(17,18),
+                            (18,19),(19,20)
+                        ]
+        else:
+            connections = [
+                        (0,1),(1,2),(2,3),(3,4),
+                        (5,6),(6,7),(7,8),(9,10),
+                        (10,11),(11,12),(13,14),
+                        (14,15),(15,16),(17,18),(18,19),
+                        (19, 20),(0,5),(5,9),(9,13),
+                        (13,17),(0,17)
+                    ]
 
-        connections = [(0,1),(1,2),(2,3),(3,4),(0,5),
-                        (5,6),(6,7),(7,8),(0,9),(9,10),
-                        (10,11),(11,12),(0,13),(13,14),
-                        (14,15),(15,16),(0,17),(17,18),
-                        (18,19),(19,20)]
 
         for point in detected_keypoints:
             x = point[0]
@@ -158,7 +171,7 @@ class SpecificWorker(GenericWorker):
             frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
             frame_cp = copy.deepcopy(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+            detected_keypoints = None
             if(self.method==1):
                 ## Resizing to required size
                 self.im_width = handImg.width
@@ -187,7 +200,7 @@ class SpecificWorker(GenericWorker):
 
                 sendBbox = [left, right, top, bottom]
             elif(self.method==2):
-                bbox = detection_mediapipe.hand_detector(frame)
+                bbox, detected_keypoints = detection_mediapipe.hand_detector(frame)
                 min_idx = np.amin(bbox,axis=0)
                 max_idx = np.amax(bbox, axis=0)
                 sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
@@ -203,19 +216,19 @@ class SpecificWorker(GenericWorker):
             print(e)
             print("Error processing input image")
 
-        detected_keypoints = None
-        if bbox is not None:
-            ## Detecting Keypoint using Openpose (using HandKeypoint Component)
-            sendHandImage = RoboCompHandKeypoint.TImage()
-            sendHandImage.image = frame_cp
-            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
-            detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
-            if(detected_keypoints is None):
-                print("Keypoints not detected")
-            else:
-                print("Keypoint Detected")
-                print(detected_keypoints)
-        
+        if(self.method==1):
+            if(bbox is not None):
+                ## Detecting Keypoint using Openpose (using HandKeypoint Component)
+                sendHandImage = RoboCompHandKeypoint.TImage()
+                sendHandImage.image = frame_cp
+                sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+                detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
+                if(detected_keypoints is None):
+                    print("Keypoints not detected")
+                else:
+                    print("Keypoint Detected")
+                    print(detected_keypoints)
+
         hand = HandType()
         hand.boundingbox = bbox
         hand.keypoint = detected_keypoints

@@ -44,13 +44,13 @@ except:
     pass
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
-from RoboCompCameraSimple import *
+import RoboCompCameraSimple
 Ice.loadSlice("-I ./src/ --all ./src/HandGesture.ice")
-from RoboCompHandGesture import *
+import RoboCompHandGesture
 Ice.loadSlice("-I ./src/ --all ./src/HandGestureClient.ice")
-from RoboCompHandGestureClient import *
+import RoboCompHandGestureClient
 Ice.loadSlice("-I ./src/ --all ./src/HandKeypoint.ice")
-from RoboCompHandKeypoint import *
+import RoboCompHandKeypoint
 
 from handgestureclientI import *
 

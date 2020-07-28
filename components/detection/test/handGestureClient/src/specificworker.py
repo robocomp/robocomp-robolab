@@ -24,7 +24,8 @@ import numpy as np
 import sys
 import os
 import cv2
-import datetime
+import time
+import copy
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -33,7 +34,6 @@ print(sys.path)
 # import librobocomp_qmat
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
-
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
@@ -50,26 +50,24 @@ class SpecificWorker(GenericWorker):
                 import detection_ssd
                 self.detection_graph, self.sess = detection_ssd.load_inference_graph()
             except:
-                print("Error Loading Model. Ensure that models are downloaded \
-                                            and placed in correct directory")
+                print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
         elif(self.method==2):
             try:
                 global detection_mediapipe
                 import detection_mediapipe
             except:
-                print("Error Loading Model. Ensure that models are downloaded \
-                            and placed in correct directory")
+                print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
 
 
         # Bounding Box display configurations
         self.bbox_color = (204, 41, 0)
         self.bbox_point_color = (204, 41, 0)
+        self.keypoint_color = (0, 255, 0)
+        self.conn_color = (255, 0, 0)
         self.thickness = 2
         self.fps_text_color = (0,0,0)
         # storing program runtime and processed frames for calculating FPS
-        self.start_time = datetime.datetime.now()
-        self.num_frames = 0
-
+        self.start_time = 0
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -80,6 +78,7 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         print('SpecificWorker.compute...')
+        self.start_time = time.time()
         try:
             data = self.camerasimple_proxy.getImage()
         except:
@@ -91,30 +90,63 @@ class SpecificWorker(GenericWorker):
         return True
 
     def display(self,handImg,handData):
+        elapsed_time = time.time() - self.start_time
         arr = np.fromstring(handImg.image, np.uint8)
         frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if(self.method==1):
             frame = cv2.resize(frame, (self.im_width, self.im_height))
 
+        ## Add Hand Bounding Box in image frame
         bbox = handData.boundingbox
         if(bbox is not None):
             print('Bounding Box Coordinates are:')
             print(bbox)
-            for pt in bbox:
-            	x, y = pt
-            	cv2.circle(frame, (int(x), int(y)), self.thickness*2,
-                                self.bbox_point_color, self.thickness)
             for i in range(4):
                 x0, y0 = bbox[i]
                 x1, y1 = bbox[(i+1)%4]
                 cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)),
                                     self.bbox_color, self.thickness)
 
+        ## Add detected keypoints in image frame
+
+        detected_keypoints = handData.keypoint
+        connections = None
+        if(self.method==1):
+            connections = [
+                            (0,1),(1,2),(2,3),(3,4),(0,5),
+                            (5,6),(6,7),(7,8),(0,9),(9,10),
+                            (10,11),(11,12),(0,13),(13,14),
+                            (14,15),(15,16),(0,17),(17,18),
+                            (18,19),(19,20)
+                        ]
+        else:
+            connections = [
+                        (0,1),(1,2),(2,3),(3,4),
+                        (5,6),(6,7),(7,8),(9,10),
+                        (10,11),(11,12),(13,14),
+                        (14,15),(15,16),(17,18),(18,19),
+                        (19, 20),(0,5),(5,9),(9,13),
+                        (13,17),(0,17)
+                    ]
+
+
+        for point in detected_keypoints:
+            x = point[0]
+            y = point[1]
+            cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
+
+
+        for connection in connections:
+            x0 = detected_keypoints[connection[0]][0]
+            y0 = detected_keypoints[connection[0]][1]
+            x1 = detected_keypoints[connection[1]][0]
+            y1 = detected_keypoints[connection[1]][1]
+
+            cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
+
         # insert FPS in image
-        self.num_frames+=1
-        elapsed_time = (datetime.datetime.now() - self.start_time).total_seconds()
-        fps = self.num_frames / elapsed_time
+        fps = 1.0 / elapsed_time
         print_text = "FPS : " + str(int(fps))
         cv2.putText(frame, print_text, (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.fps_text_color, 2)
@@ -136,8 +168,9 @@ class SpecificWorker(GenericWorker):
             ## Rearranging to form numpy matrix
             arr = np.fromstring(handImg.image, np.uint8)
             frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+            frame_cp = copy.deepcopy(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+            detected_keypoints = None
             if(self.method==1):
                 ## Resizing to required size
                 self.im_width = handImg.width
@@ -163,20 +196,41 @@ class SpecificWorker(GenericWorker):
                     (int(right), int(top)),
                     (int(right), int(bottom)),
                 ]
+
+                sendBbox = [left, right, top, bottom]
             elif(self.method==2):
-                bbox = detection_mediapipe.hand_detector(frame)
+                bbox, detected_keypoints = detection_mediapipe.hand_detector(frame)
+                min_idx = np.amin(bbox,axis=0)
+                max_idx = np.amax(bbox, axis=0)
+                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
                 if(bbox is None):
                     print("No hand detected")
             else:
                 print("Error! Please enter valid detection method number")
                 bbox = None
 
+
         except Exception as e:
             bbox = None
             print(e)
             print("Error processing input image")
+
+        if(self.method==1):
+            if(bbox is not None):
+                ## Detecting Keypoint using Openpose (using HandKeypoint Component)
+                sendHandImage = RoboCompHandKeypoint.TImage()
+                sendHandImage.image = frame_cp
+                sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+                detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
+                if(detected_keypoints is None):
+                    print("Keypoints not detected")
+                else:
+                    print("Keypoint Detected")
+                    print(detected_keypoints)
+
         hand = HandType()
         hand.boundingbox = bbox
+        hand.keypoint = detected_keypoints
         return hand
     # ===================================================================
     # ===================================================================

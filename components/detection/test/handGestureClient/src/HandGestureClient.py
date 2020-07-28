@@ -114,7 +114,7 @@ if __name__ == '__main__':
         proxyString = ic.getProperties().getProperty('CameraSimpleProxy')
         try:
             basePrx = ic.stringToProxy(proxyString)
-            camerasimple_proxy = CameraSimplePrx.uncheckedCast(basePrx)
+            camerasimple_proxy = RoboCompCameraSimple.CameraSimplePrx.uncheckedCast(basePrx)
             mprx["CameraSimpleProxy"] = camerasimple_proxy
         except Ice.Exception:
             print('Cannot connect to the remote object (CameraSimple)', proxyString)
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         proxyString = ic.getProperties().getProperty('HandGestureProxy')
         try:
             basePrx = ic.stringToProxy(proxyString)
-            handgesture_proxy = HandGesturePrx.uncheckedCast(basePrx)
+            handgesture_proxy = RoboCompHandGesture.HandGesturePrx.uncheckedCast(basePrx)
             mprx["HandGestureProxy"] = handgesture_proxy
         except Ice.Exception:
             print('Cannot connect to the remote object (HandGesture)', proxyString)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         proxyString = ic.getProperties().getProperty('HandKeypointProxy')
         try:
             basePrx = ic.stringToProxy(proxyString)
-            handkeypoint_proxy = HandKeypointPrx.uncheckedCast(basePrx)
+            handkeypoint_proxy = RoboCompHandKeypoint.HandKeypointPrx.uncheckedCast(basePrx)
             mprx["HandKeypointProxy"] = handkeypoint_proxy
         except Ice.Exception:
             print('Cannot connect to the remote object (HandKeypoint)', proxyString)

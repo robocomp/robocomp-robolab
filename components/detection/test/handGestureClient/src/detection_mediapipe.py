@@ -14,11 +14,17 @@ PALM_MODEL_PATH = os.path.join(os.getcwd(),"assets","mediapipe_models",
 ANCHORS_PATH = os.path.join(os.getcwd(),"assets","mediapipe_models",
                                 "anchors.csv")
 
+JOINT_MODEL_PATH = os.path.join(os.getcwd(),"assets","mediapipe_models",
+                                "hand_keys.tflite")
 box_shift = 0.2
 box_enlarge = 1.3
 print("Mediapipe models loaded")
+
 interp_palm = tf.lite.Interpreter(PALM_MODEL_PATH)
 interp_palm.allocate_tensors()
+
+interp_joint = tf.lite.Interpreter(JOINT_MODEL_PATH)
+interp_joint.allocate_tensors()
 
 # reading the SSD anchors
 with open(ANCHORS_PATH, "r") as csv_f:
@@ -33,6 +39,8 @@ in_idx = input_details[0]['index']
 out_reg_idx = output_details[0]['index']
 out_clf_idx = output_details[1]['index']
 
+in_idx_joint = interp_joint.get_input_details()[0]['index']
+out_idx_joint = interp_joint.get_output_details()[0]['index']
 # 90° rotation matrix used to create the alignment trianlge
 R90 = np.r_[[[0,1],[-1,0]]]
 
@@ -71,6 +79,15 @@ def sigm(x):
 def pad1(x):
     return np.pad(x, ((0,0),(0,1)), constant_values=1, mode='constant')
 
+def predict_joints(img_norm):
+    interp_joint.set_tensor(
+        in_idx_joint, img_norm.reshape(1,256,256,3))
+    interp_joint.invoke()
+
+    joints = interp_joint.get_tensor(out_idx_joint)
+    # print(joints.shape)
+    # print(joints)
+    return joints.reshape(-1,2)
 
 def detect_hand(img_norm):
 
@@ -151,7 +168,7 @@ def hand_detector(img):
 
     source, keypoints = detect_hand(img_norm)
     if source is None:
-        return None
+        return None, None
 
     # calculating transformation from img_pad coords
     # to img_landmark coords (cropped hand image)
@@ -165,6 +182,7 @@ def hand_detector(img):
         im_normalize(img_pad), Mtr, (256,256)
     )
 
+    joints = predict_joints(img_landmark)
     # adding the [0,0,1] row to make the matrix square
     Mtr = pad1(Mtr.T).T
     Mtr[2,:2] = 0
@@ -174,5 +192,7 @@ def hand_detector(img):
     # projecting keypoints back into original image coordinate space
     box_orig = (target_box @ Minv.T)[:,:2]
     box_orig -= pad[::-1]
+    kp_orig = (pad1(joints) @ Minv.T)[:,:2]
+    kp_orig -= pad[::-1]
 
-    return box_orig
+    return box_orig, kp_orig

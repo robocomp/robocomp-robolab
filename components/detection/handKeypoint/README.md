@@ -1,6 +1,6 @@
 # HandKeypoint
 
-This component finds out coordinates of **Hand Keypoint** from the image feed. **getKeypoints** method takes image and bounding box of detected hand as input and returns a sequence of sequence consisting of 21 2D coordinates of the hand keypoints. These 21 keypoints consist of four keypoints for each finger and one for the wrist.
+This component finds out coordinates of **Hand Keypoints** from the image feed. **getKeypoints** method takes image and bounding box of detected hand as input and returns a sequence of sequence consisting of 21 2D coordinates of the hand keypoints. These 21 keypoints consist of four keypoints for each finger and one for the wrist.
 
 ## Resolving dependencies
 

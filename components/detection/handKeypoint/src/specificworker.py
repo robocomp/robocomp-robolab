@@ -22,7 +22,6 @@
 from genericworker import *
 import numpy as np
 import cv2
-import faulthandler
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -30,7 +29,6 @@ import faulthandler
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
-# faulthandler.enable(all_threads=True)
 ## Change to path of Python it is not defualt
 try:
     sys.path.append('/usr/local/python')

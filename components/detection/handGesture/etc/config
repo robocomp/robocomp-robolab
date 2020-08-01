@@ -1,5 +1,5 @@
 # Endpoints for implements interfaces
-HandGesture.Endpoints=tcp -p 0
+HandGesture.Endpoints=tcp -p 10004
 
 
 

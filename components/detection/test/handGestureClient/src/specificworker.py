@@ -111,39 +111,38 @@ class SpecificWorker(GenericWorker):
         ## Add detected keypoints in image frame
 
         detected_keypoints = handData.keypoint
-        connections = None
-        if(self.method==1):
-            connections = [
-                            (0,1),(1,2),(2,3),(3,4),(0,5),
-                            (5,6),(6,7),(7,8),(0,9),(9,10),
-                            (10,11),(11,12),(0,13),(13,14),
-                            (14,15),(15,16),(0,17),(17,18),
-                            (18,19),(19,20)
+        if(detected_keypoints is not None):
+            connections = None
+            if(self.method==1):
+                connections = [
+                                (0,1),(1,2),(2,3),(3,4),(0,5),
+                                (5,6),(6,7),(7,8),(0,9),(9,10),
+                                (10,11),(11,12),(0,13),(13,14),
+                                (14,15),(15,16),(0,17),(17,18),
+                                (18,19),(19,20)
+                            ]
+            else:
+                connections = [
+                            (0,1),(1,2),(2,3),(3,4),
+                            (5,6),(6,7),(7,8),(9,10),
+                            (10,11),(11,12),(13,14),
+                            (14,15),(15,16),(17,18),(18,19),
+                            (19, 20),(0,5),(5,9),(9,13),
+                            (13,17),(0,17)
                         ]
-        else:
-            connections = [
-                        (0,1),(1,2),(2,3),(3,4),
-                        (5,6),(6,7),(7,8),(9,10),
-                        (10,11),(11,12),(13,14),
-                        (14,15),(15,16),(17,18),(18,19),
-                        (19, 20),(0,5),(5,9),(9,13),
-                        (13,17),(0,17)
-                    ]
 
+            for point in detected_keypoints:
+                x = point[0]
+                y = point[1]
+                cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
 
-        for point in detected_keypoints:
-            x = point[0]
-            y = point[1]
-            cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
+            for connection in connections:
+                x0 = detected_keypoints[connection[0]][0]
+                y0 = detected_keypoints[connection[0]][1]
+                x1 = detected_keypoints[connection[1]][0]
+                y1 = detected_keypoints[connection[1]][1]
 
-
-        for connection in connections:
-            x0 = detected_keypoints[connection[0]][0]
-            y0 = detected_keypoints[connection[0]][1]
-            x1 = detected_keypoints[connection[1]][0]
-            y1 = detected_keypoints[connection[1]][1]
-
-            cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
+                cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
 
         # insert FPS in image
         fps = 1.0 / elapsed_time
@@ -200,10 +199,10 @@ class SpecificWorker(GenericWorker):
                 sendBbox = [left, right, top, bottom]
             elif(self.method==2):
                 bbox, detected_keypoints = detection_mediapipe.hand_detector(frame)
-                min_idx = np.amin(bbox,axis=0)
-                max_idx = np.amax(bbox, axis=0)
-                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
-                if(bbox is None):
+                if(bbox is not None):
+                    min_idx = np.amin(bbox,axis=0)
+                    max_idx = np.amax(bbox, axis=0)
+                    sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
                     print("No hand detected")
             else:
                 print("Error! Please enter valid detection method number")
@@ -215,18 +214,29 @@ class SpecificWorker(GenericWorker):
             print(e)
             print("Error processing input image")
 
-        if(self.method==1):
-            if(bbox is not None):
-                ## Detecting Keypoint using Openpose (using HandKeypoint Component)
-                sendHandImage = RoboCompHandKeypoint.TImage()
-                sendHandImage.image = frame_cp
-                sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
-                detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
-                if(detected_keypoints is None):
-                    print("Keypoints not detected")
-                else:
-                    print("Keypoint Detected")
-                    print(detected_keypoints)
+        if(self.method==1 and bbox is not None):
+            ## Detecting Keypoint using Openpose (using HandKeypoint Component)
+            sendHandImage = RoboCompHandKeypoint.TImage()
+            sendHandImage.image = frame_cp
+            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+            detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
+            if(detected_keypoints is None):
+                print("Keypoints not detected")
+            else:
+                print("Keypoint Detected")
+                print(detected_keypoints)
+
+        if(bbox is not None and detected_keypoints is not None):
+            sendHandImage = RoboCompHandGesture.TImage()
+            sendHandImage.image = frame_cp
+            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+            sendKeypoints = detected_keypoints
+            sendKeys = []
+            for key in detected_keypoints:
+                sendKeys.append(list(key))
+            print(sendKeys)
+            gesture = self.handgesture_proxy.getHandGesture(sendHandImage, sendKeys)
+            print(gesture)
 
         hand = HandType()
         hand.boundingbox = bbox

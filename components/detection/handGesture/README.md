@@ -1,6 +1,5 @@
-# Hand Gesture Component
-
-This Component is under development and not yet functional.
+# HandGesture
+Intro to component here
 
 
 ## Configuration parameters

@@ -20,7 +20,8 @@
 #
 
 from genericworker import *
-
+import numpy as np
+import cv2
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 # import librobocomp_qmat
@@ -74,11 +75,19 @@ class SpecificWorker(GenericWorker):
     #
     # getHandGesture
     #
-    def HandGesture_getHandGesture(self, keypoints):
+    def HandGesture_getHandGesture(self, handImg, keypoints):
         #
         # implementCODE
         #
+        print('Called')
+        arr = np.fromstring(handImg.image, np.uint8)
+        frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        print(frame)
+        keypoints = np.array(keypoints)
+        print(keypoints)
         gesture = str()
+        gesture = "A"
         return gesture
 
     # ===================================================================

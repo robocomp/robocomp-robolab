@@ -69,6 +69,21 @@ class SpecificWorker(GenericWorker):
         # storing program runtime and processed frames for calculating FPS
         self.start_time = 0
 
+        # Gesture Recognition Labels (ASL)
+        self.gesture_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", 
+                                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "del", "space"]
+
+        print("Please specify ASL alphabets set you want to classify from (Space Seperated). Press Enter to use all classes")
+
+        labels = input()
+        if(labels != ""):
+            self.gesture_labels = labels.split()
+
+        print("Detecting for following classes")
+        print(self.gesture_labels)
+
+        self.handgesture_proxy.setClasses(self.gesture_labels)
+
     def __del__(self):
         print('SpecificWorker destructor')
 
@@ -198,7 +213,7 @@ class SpecificWorker(GenericWorker):
 
                 sendBbox = [left, right, top, bottom]
             elif(self.method==2):
-                bbox, detected_keypoints = detection_mediapipe.hand_detector(frame)
+                bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
                 if(bbox is not None):
                     min_idx = np.amin(bbox,axis=0)
                     max_idx = np.amax(bbox, axis=0)
@@ -232,7 +247,7 @@ class SpecificWorker(GenericWorker):
             sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
             sendKeypoints = detected_keypoints
             sendKeys = []
-            for key in detected_keypoints:
+            for key in raw_keypoints:
                 sendKeys.append(list(key))
             print(sendKeys)
             gesture = self.handgesture_proxy.getHandGesture(sendHandImage, sendKeys)

@@ -195,4 +195,4 @@ def hand_detector(img):
     kp_orig = (pad1(joints) @ Minv.T)[:,:2]
     kp_orig -= pad[::-1]
 
-    return box_orig, kp_orig
+    return box_orig, kp_orig, joints

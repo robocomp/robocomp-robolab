@@ -21,13 +21,13 @@
 
 import numpy as np
 import cv2
+from os import path
 import random
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 import pickle
-from genericworker import *
 from genericworker import *
 
 sys.path.append(os.path.join(os.getcwd(),"assets"))
@@ -93,7 +93,7 @@ class SpecificWorker(GenericWorker):
         #
         # implementCODE
         #
-        if(self.gesture_labels == classes):
+        if(self.gesture_labels == classes and path.exists('./assets/gesture_model.pkl')):
             print('All ASL classes to be detected')
             print('Using pretrained model')
             pkl_filename = './assets/gesture_model.pkl'

@@ -28,6 +28,12 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 ```
 
+After configuring proxies, 
+
+Download pretrained model which detects hand gesture from set of all ASL alphabets from [here](https://drive.google.com/file/d/1ocBUyuf12k5COQ-2fOJEi-O8TQ_PcK-2/view?usp=sharing) and place it in the assets folder.
+
+Note: This model is for faster processing when all classes are to be detected. Component will work fine even if not used.
+
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 

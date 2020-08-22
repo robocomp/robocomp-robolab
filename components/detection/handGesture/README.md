@@ -1,4 +1,4 @@
-# HandGesture
+# HandGesture Component
 
 This component recognizes hand gesture from the image feed. It exposes **getHandGesture** method to the interface which takes image of hand, and it's hand pose (or *Hand Keypoints*) as input and outputs the recognized American Sign Language alphabet (non motion based only).
 
@@ -12,7 +12,7 @@ This section assumes the user has already installed the RoboComp core library an
 
 Before using the component, the user needs to install the necessary libraries:
 ```
-pip install numpy opencv-python
+pip install numpy opencv-python pickle scikit-learn
 ```
 
 ## Configuration parameters

@@ -1,0 +1,13 @@
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10096
+
+camera_name = Viriato_head_camera_front_sensor
+#camera_1_rgbd_sensor
+#camera_2_rgbd_sensor
+#camera_3_rgbd_sensor
+
+Ice.MessageSizeMax=20004800
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+

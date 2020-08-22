@@ -22,6 +22,7 @@
 #include <genericworker.h>
 #include <qjoystick/qjoystick.h>
 #include <qmat/QMatAll>
+#include <QHBoxLayout>
 
 #define CHECK_PERIOD 5000
 #define JOYSTICK_PRECISION 0.05
@@ -48,18 +49,19 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(MapPrx& mprx);
+	SpecificWorker(MapPrx& mprx, bool startup_check);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
-	void initialize(int){};
 
 public slots:
- 	void compute(); 	
+	void compute();
+	int startup_check();
+	void initialize(int period);
 	void receivedJoystickEvent(int value, int type, int number);
 	void sendJoystickEvent();
 	
 private:
-
+	bool startup_check_flag;
 	struct axesParams{
 		std::string name;
 		int minRange;

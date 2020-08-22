@@ -30,10 +30,6 @@ import copy
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 sys.path.append(os.path.join(os.getcwd(),"assets"))
-print(sys.path)
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
@@ -41,17 +37,17 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 20
         self.timer.start(self.Period)
-        self.method = 2
-        # Method = 1 for hand detection using SSD + MobileNet
-        # Method = 2 for hand detection using Mediapipe Deep Learning Models
-        if(self.method==1):
+        self.method = 'Mediapipe'
+        # Method = 'Mediapipe' for hand detection using Mediapipe Deep Learning Models
+        # Method = 'SSD' for hand detection using SSD + MobileNet
+        if(self.method=='SSD'):
             try:
                 global detection_ssd
                 import detection_ssd
                 self.detection_graph, self.sess = detection_ssd.load_inference_graph()
             except:
                 print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
-        elif(self.method==2):
+        elif(self.method=='Mediapipe'):
             try:
                 global detection_mediapipe
                 import detection_mediapipe
@@ -109,7 +105,7 @@ class SpecificWorker(GenericWorker):
         arr = np.fromstring(handImg.image, np.uint8)
         frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        if(self.method==1):
+        if(self.method=='SSD'):
             frame = cv2.resize(frame, (self.im_width, self.im_height))
 
         ## Add Hand Bounding Box in image frame
@@ -128,7 +124,7 @@ class SpecificWorker(GenericWorker):
         detected_keypoints = handData.keypoint
         if(detected_keypoints is not None):
             connections = None
-            if(self.method==1):
+            if(self.method=='SSD'):
                 connections = [
                                 (0,1),(1,2),(2,3),(3,4),(0,5),
                                 (5,6),(6,7),(7,8),(0,9),(9,10),
@@ -185,7 +181,7 @@ class SpecificWorker(GenericWorker):
             frame_cp = copy.deepcopy(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             detected_keypoints = None
-            if(self.method==1):
+            if(self.method=='SSD'):
                 ## Resizing to required size
                 self.im_width = handImg.width
                 self.im_height = handImg.height
@@ -212,7 +208,7 @@ class SpecificWorker(GenericWorker):
                 ]
 
                 sendBbox = [left, right, top, bottom]
-            elif(self.method==2):
+            elif(self.method=='Mediapipe'):
                 bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
                 if(bbox is not None):
                     min_idx = np.amin(bbox,axis=0)
@@ -229,7 +225,7 @@ class SpecificWorker(GenericWorker):
             print(e)
             print("Error processing input image")
 
-        if(self.method==1 and bbox is not None):
+        if(self.method=='SSD' and bbox is not None):
             ## Detecting Keypoint using Openpose (using HandKeypoint Component)
             sendHandImage = RoboCompHandKeypoint.TImage()
             sendHandImage.image = frame_cp
@@ -241,7 +237,7 @@ class SpecificWorker(GenericWorker):
                 print("Keypoint Detected")
                 print(detected_keypoints)
 
-        if(bbox is not None and detected_keypoints is not None):
+        if(self.method=='Mediapipe' and bbox is not None and detected_keypoints is not None):
             sendHandImage = RoboCompHandGesture.TImage()
             sendHandImage.image = frame_cp
             sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape

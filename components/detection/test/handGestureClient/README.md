@@ -44,9 +44,13 @@ You must ensure the proxies' hostname and port number of `CameraSimpleProxy` mat
 
 After configuring proxies, 
 
-For detection using SSD and MobileNet architecture download hand detection models from [here](https://drive.google.com/file/d/1DNytkeURTOvz6HQPlhEctNQt8T92uxAL/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 1** in `src/specificworker.py`
+For detection using mediapipe, download hand detection models from [here](https://drive.google.com/file/d/1kfcuH4ZiWsCY14wXPyZQH1gNPSLa15em/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 'Mediapipe'** in `src/specificworker.py`
 
-For detection using mediapipe, download hand detection models from [here](https://drive.google.com/file/d/1kfcuH4ZiWsCY14wXPyZQH1gNPSLa15em/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 2** in `src/specificworker.py`
+Optional:
+
+For detection using SSD and MobileNet architecture download hand detection models from [here](https://drive.google.com/file/d/1DNytkeURTOvz6HQPlhEctNQt8T92uxAL/view?usp=sharing), move it to the assets folder and unzip to get the models directory. Also, set **self.method = 'SSD'** in `src/specificworker.py`
+
+Note: This method is optional, by default mediapipe method should be used. Also, Hand Gesture Recognition may not work well with this method
 
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:

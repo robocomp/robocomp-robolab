@@ -51,8 +51,8 @@ class HandGestureI(HandGesture):
         self.worker = worker
 
 
-    def getHandGesture(self, handImg, keypoints, c):
-        return self.worker.HandGesture_getHandGesture(handImg, keypoints)
+    def getHandGesture(self, keypoints, c):
+        return self.worker.HandGesture_getHandGesture(keypoints)
 
     def setClasses(self, classes, c):
         return self.worker.HandGesture_setClasses(classes)

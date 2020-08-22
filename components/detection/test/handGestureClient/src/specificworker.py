@@ -54,6 +54,9 @@ class SpecificWorker(GenericWorker):
             except:
                 print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
 
+        #Gesture display configurations
+        self.nogesture_color = (204,0,0)
+        self.gesture_color = (0,0,255)
 
         # Bounding Box display configurations
         self.bbox_color = (204, 41, 0)
@@ -64,21 +67,21 @@ class SpecificWorker(GenericWorker):
         self.fps_text_color = (0,0,0)
         # storing program runtime and processed frames for calculating FPS
         self.start_time = 0
-
         # Gesture Recognition Labels (ASL)
         self.gesture_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", 
                                 "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "del", "space"]
 
         print("Please specify ASL alphabets set you want to classify from (Space Seperated). Press Enter to use all classes")
 
-        labels = input()
-        if(labels != ""):
-            self.gesture_labels = labels.split()
+        if(self.method == 'Mediapipe'):
+            labels = input()
+            if(labels != ""):
+                self.gesture_labels = labels.split()
 
-        print("Detecting for following classes")
-        print(self.gesture_labels)
+            print("Detecting for following classes")
+            print(self.gesture_labels)
 
-        self.handgesture_proxy.setClasses(self.gesture_labels)
+            self.handgesture_proxy.setClasses(self.gesture_labels)
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -155,7 +158,19 @@ class SpecificWorker(GenericWorker):
 
                 cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
 
-        # insert FPS in image
+        ## Add Recognised Gesture in frame
+        if(handData.gesture == "None"):
+            print_text = "No Hand Detected"
+            cv2.putText(frame, print_text, (320,50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.nogesture_color, 2)        
+        else:
+            x,y = bbox[0]
+            print_text = handData.gesture
+            cv2.putText(frame, print_text, (int(x),int(y)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, self.gesture_color, 2)              
+
+
+        ## insert FPS in frame
         fps = 1.0 / elapsed_time
         print_text = "FPS : " + str(int(fps))
         cv2.putText(frame, print_text, (20, 50),
@@ -174,56 +189,56 @@ class SpecificWorker(GenericWorker):
         #
         # implementCODE
         #
-        try:
-            ## Rearranging to form numpy matrix
-            arr = np.fromstring(handImg.image, np.uint8)
-            frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
-            frame_cp = copy.deepcopy(frame)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            detected_keypoints = None
-            if(self.method=='SSD'):
-                ## Resizing to required size
-                self.im_width = handImg.width
-                self.im_height = handImg.height
-                ## Detecting boxes with hand in image
-                relative_boxes, scores, classes = detection_ssd.detect_objects(
-                                        frame, self.detection_graph, self.sess)
+        # try:
+        ## Rearranging to form numpy matrix
+        arr = np.fromstring(handImg.image, np.uint8)
+        frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+        frame_cp = copy.deepcopy(frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        detected_keypoints = None
+        if(self.method=='SSD'):
+            ## Resizing to required size
+            self.im_width = handImg.width
+            self.im_height = handImg.height
+            ## Detecting boxes with hand in image
+            relative_boxes, scores, classes = detection_ssd.detect_objects(
+                                    frame, self.detection_graph, self.sess)
 
-                ## Currenty, only one hand with maximum score is considered
-                maxscore_idx = np.where(scores == scores.max())
-                required_box = relative_boxes[maxscore_idx][0]
-                print("Bounding Box Found")
+            ## Currenty, only one hand with maximum score is considered
+            maxscore_idx = np.where(scores == scores.max())
+            required_box = relative_boxes[maxscore_idx][0]
+            print("Bounding Box Found")
 
-                box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
-                hand_box = box_relative2absolute(required_box)
+            box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
+            hand_box = box_relative2absolute(required_box)
 
-                ## insert bounding box in image
-                (left, right, top, bottom) = hand_box
+            ## insert bounding box in image
+            (left, right, top, bottom) = hand_box
 
-                bbox = [
-                    (int(left), int(bottom)),
-                    (int(left), int(top)),
-                    (int(right), int(top)),
-                    (int(right), int(bottom)),
-                ]
+            bbox = [
+                (int(left), int(bottom)),
+                (int(left), int(top)),
+                (int(right), int(top)),
+                (int(right), int(bottom)),
+            ]
 
-                sendBbox = [left, right, top, bottom]
-            elif(self.method=='Mediapipe'):
-                bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
-                if(bbox is not None):
-                    min_idx = np.amin(bbox,axis=0)
-                    max_idx = np.amax(bbox, axis=0)
-                    sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
-                    print("No hand detected")
-            else:
-                print("Error! Please enter valid detection method number")
-                bbox = None
-
-
-        except Exception as e:
+            sendBbox = [left, right, top, bottom]
+        elif(self.method=='Mediapipe'):
+            bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
+            if(bbox is not None):
+                min_idx = np.amin(bbox,axis=0)
+                max_idx = np.amax(bbox, axis=0)
+                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
+                print("No hand detected")
+        else:
+            print("Error! Please enter valid detection method number")
             bbox = None
-            print(e)
-            print("Error processing input image")
+
+
+        # except Exception as e:
+        #     bbox = None
+        #     print(e)
+        #     print("Error processing input image")
 
         if(self.method=='SSD' and bbox is not None):
             ## Detecting Keypoint using Openpose (using HandKeypoint Component)
@@ -237,21 +252,23 @@ class SpecificWorker(GenericWorker):
                 print("Keypoint Detected")
                 print(detected_keypoints)
 
+        gesture = None
         if(self.method=='Mediapipe' and bbox is not None and detected_keypoints is not None):
-            sendHandImage = RoboCompHandGesture.TImage()
-            sendHandImage.image = frame_cp
-            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
             sendKeypoints = detected_keypoints
             sendKeys = []
             for key in raw_keypoints:
                 sendKeys.append(list(key))
             print(sendKeys)
-            gesture = self.handgesture_proxy.getHandGesture(sendHandImage, sendKeys)
+            gesture = self.handgesture_proxy.getHandGesture(sendKeys)
             print(gesture)
 
         hand = HandType()
         hand.boundingbox = bbox
         hand.keypoint = detected_keypoints
+        if(gesture is not None):
+            hand.gesture = gesture
+        else:
+            hand.gesture = "None"
         return hand
     # ===================================================================
     # ===================================================================

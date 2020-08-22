@@ -26,6 +26,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
+import pickle
+from genericworker import *
 from genericworker import *
 
 sys.path.append(os.path.join(os.getcwd(),"assets"))
@@ -43,17 +45,16 @@ class SpecificWorker(GenericWorker):
         self.timer.start(self.Period)
 
         ## ASL Alphabet Classes
-        self.gesture_labels = []
+        self.gesture_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", 
+                                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "del", "space"]
 
         ## Trained model
-
         self.model = None
 
     def __del__(self):
         print('SpecificWorker destructor')
 
     def setParams(self, params):
-
         return True
 
 
@@ -71,22 +72,19 @@ class SpecificWorker(GenericWorker):
     #
     # getHandGesture
     #
-    def HandGesture_getHandGesture(self, handImg, keypoints):
-
-        print('Called')
-        arr = np.fromstring(handImg.image, np.uint8)
-        frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        print(frame)
+    def HandGesture_getHandGesture(self, keypoints):
+        #
+        # implementCODE
+        #
         keypoints = np.array(keypoints)
         keypoints = np.reshape(keypoints,(1,-1))
-
+        print('Keypoint are:')
         print(keypoints)
         gesture = self.model.predict(keypoints)
-        # gesture = str()
-        # gesture = "A"
+        print('Detected Gesture is:')
         print(gesture[0])
-        return str(gesture)
+        return str(gesture[0])
+
 
     #
     # setClasses
@@ -95,89 +93,78 @@ class SpecificWorker(GenericWorker):
         #
         # implementCODE
         #
-        self.gesture_labels = classes
-        print('Classes Set, Now Training')
+        if(self.gesture_labels == classes):
+            print('All ASL classes to be detected')
+            print('Using pretrained model')
+            pkl_filename = './assets/gesture_model.pkl'
+            with open(pkl_filename, 'rb') as file:
+                self.model = pickle.load(file)
+        else:
+            self.gesture_labels = classes
+            print('Classes Set, Now Training')
 
-        with open('./assets/points.npy', 'rb') as f:
-            scankeys = np.load(f)
+            with open('./assets/points.npy', 'rb') as f:
+                scankeys = np.load(f)
 
-        with open('./assets/labels.npy', 'rb') as f2:
-            labels = np.load(f2)
-        
-        scankeys = np.reshape(scankeys, (-1,42))
+            with open('./assets/labels.npy', 'rb') as f2:
+                labels = np.load(f2)
+            
+            scankeys = np.reshape(scankeys, (-1,42))
 
-        keys = scankeys
-        # for k in scankeys:
-        #   normkey = []
-        #   for i in range(len(k)):
-        #       normkey.append(k[i]-k[i%2])
-        #   keys.append(normkey)
+            keys = scankeys
+            train_idx = []
+            test_idx = []
 
+            lab_set = self.gesture_labels
 
-        # print(labels)
-        # print(keys)
+            for ch in lab_set:
+                all_idx = []
+                for j in range(0,len(labels)):
+                    if(labels[j]==ch):
+                        all_idx.append(j)
 
-        train_idx = []
-        test_idx = []
+                random.shuffle(all_idx)
+                sz = len(all_idx)
 
-        lab_set = self.gesture_labels
+                train_sz = 0.75*sz
+                test_sz = sz - train_sz
 
-        for ch in lab_set:
-            all_idx = []
-            for j in range(0,len(labels)):
-                if(labels[j]==ch):
-                    all_idx.append(j)
+                k = 0
 
-            random.shuffle(all_idx)
-            sz = len(all_idx)
+                while(k<train_sz):
+                    train_idx.append(all_idx[k])
+                    k+=1
 
-            train_sz = 0.75*sz
-            test_sz = sz - train_sz
-
-            k = 0
-
-            while(k<train_sz):
-                train_idx.append(all_idx[k])
-                k+=1
-
-            while(k<sz):
-                test_idx.append(all_idx[k])
-                k+=1
+                while(k<sz):
+                    test_idx.append(all_idx[k])
+                    k+=1
 
 
-        train_keys, test_keys, train_labels, test_labels = [],[],[],[]
+            train_keys, test_keys, train_labels, test_labels = [],[],[],[]
 
 
-        for idx in train_idx:
-            train_keys.append(keys[idx])
-            train_labels.append(labels[idx])
+            for idx in train_idx:
+                train_keys.append(keys[idx])
+                train_labels.append(labels[idx])
 
-        for idx in test_idx:
-            test_keys.append(keys[idx])
-            test_labels.append(labels[idx])
+            for idx in test_idx:
+                test_keys.append(keys[idx])
+                test_labels.append(labels[idx])
 
-        # print(train_keys[0])
-        print(len(train_keys))
-        # # print(train_labels)
-        print(len(train_labels))
-        # # print(test_keys)
-        print(len(test_keys))
-        # # print(test_labels)
-        print(len(test_labels))
+            ## training linear SVM
+            self.model = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+            print("Model pipeline created")
+            self.model.fit(train_keys, train_labels)
+            print('Model Trained')
 
-        ## training linear SVM
-        self.model = make_pipeline(StandardScaler(), SVC(gamma='auto'))
-        print("Model pipeline created")
-        self.model.fit(train_keys, train_labels)
-        print('Model Trained')
-        # print(self.model.score(test_keys,test_labels))
+            ## Uncomment for checking accuracy
+            # print(self.model.score(test_keys,test_labels))
 
+            ## Uncomment for training using KNN
+            # neigh = KNeighborsClassifier(n_neighbors=10)
+            # neigh.fit(train_keys, train_labels)
+            # print(neigh.score(test_keys,test_labels))
 
-        # neigh = KNeighborsClassifier(n_neighbors=10)
-
-        # neigh.fit(train_keys, train_labels)
-
-        # print(neigh.score(test_keys,test_labels))
         return
 
     # ===================================================================

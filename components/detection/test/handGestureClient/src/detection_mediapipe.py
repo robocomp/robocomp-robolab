@@ -168,7 +168,7 @@ def hand_detector(img):
 
     source, keypoints = detect_hand(img_norm)
     if source is None:
-        return None, None
+        return None, None, None
 
     # calculating transformation from img_pad coords
     # to img_landmark coords (cropped hand image)

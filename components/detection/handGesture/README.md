@@ -2,6 +2,8 @@
 
 This component recognizes hand gesture from the image feed. It exposes **getHandGesture** method to the interface which takes image of hand, and it's hand pose (or *Hand Keypoints*) as input and outputs the recognized American Sign Language alphabet (non motion based only).
 
+User can also set the classes from which recognition will take place using the *setClasses* method which takes ASL alpahbets subset as input and train the model accordingly.
+
 *Hand Gesture Client* component can be used to conveniently visualize results of the component.
 
 ## Resolving dependencies

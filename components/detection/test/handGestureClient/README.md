@@ -1,11 +1,9 @@
 # Hand Gesture Client Component
 
-Note: This component is still in development.
+These component have various functions described below:
 
-After completion this component will serve two major purposes
-
-- It will act as testing and monitoring module for the complete `Hand Gesture Recognition Pipeline` which involves for components i.e `Camerasimple`, `HandGestureClient`, `HandGesture` and `HandKeypoint`
-- It will act as a Blackbox to interact with users or other components to obtain Hand Bounding Box, Keypoints or Recognized Gesture
+- It acts as testing and monitoring module for the complete `Hand Gesture Recognition Pipeline` which involves for components i.e `Camerasimple`, `HandGestureClient`, `HandGesture` and `HandKeypoint`
+- It acts as a Blackbox to interact with users or other components to obtain Hand Bounding Box, Keypoints or Recognized Gesture
 
 
 ## Resolving dependencies
@@ -70,3 +68,5 @@ make
 python3 src/HandGestureClient.py etc/config-run
 ```
 Make sure that all other required components (`CameraSimple` and `HandKeypoint`) are up and running.
+
+After running the component, you will be asked to enter set of ASL alphabets from which you want to get the gestures recognized.

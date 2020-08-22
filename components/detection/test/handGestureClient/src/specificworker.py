@@ -54,7 +54,7 @@ class SpecificWorker(GenericWorker):
             except:
                 print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
 
-        #Gesture display configurations
+        # Gesture display configurations
         self.nogesture_color = (204,0,0)
         self.gesture_color = (0,0,255)
 
@@ -71,7 +71,8 @@ class SpecificWorker(GenericWorker):
         self.gesture_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", 
                                 "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "del", "space"]
 
-        print("Please specify ASL alphabets set you want to classify from (Space Seperated). Press Enter to use all classes")
+
+        print("\n\nPlease specify ASL alphabets set you want to classify from (Space Seperated, Upper Case). Press Enter to use all classes")
 
         if(self.method == 'Mediapipe'):
             labels = input()

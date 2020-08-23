@@ -84,6 +84,8 @@ class SpecificWorker(GenericWorker):
 
             self.handgesture_proxy.setClasses(self.gesture_labels)
 
+        print('Component Started')
+        
     def __del__(self):
         print('SpecificWorker destructor')
 
@@ -92,7 +94,6 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print('SpecificWorker.compute...')
         self.start_time = time.time()
         try:
             data = self.camerasimple_proxy.getImage()
@@ -115,8 +116,6 @@ class SpecificWorker(GenericWorker):
         ## Add Hand Bounding Box in image frame
         bbox = handData.boundingbox
         if(bbox is not None):
-            print('Bounding Box Coordinates are:')
-            print(bbox)
             for i in range(4):
                 x0, y0 = bbox[i]
                 x1, y1 = bbox[(i+1)%4]
@@ -190,56 +189,58 @@ class SpecificWorker(GenericWorker):
         #
         # implementCODE
         #
-        # try:
-        ## Rearranging to form numpy matrix
-        arr = np.fromstring(handImg.image, np.uint8)
-        frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
-        frame_cp = copy.deepcopy(frame)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        detected_keypoints = None
-        if(self.method=='SSD'):
-            ## Resizing to required size
-            self.im_width = handImg.width
-            self.im_height = handImg.height
-            ## Detecting boxes with hand in image
-            relative_boxes, scores, classes = detection_ssd.detect_objects(
-                                    frame, self.detection_graph, self.sess)
+        try:
+            ## Rearranging to form numpy matrix
+            arr = np.fromstring(handImg.image, np.uint8)
+            frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
+            frame_cp = copy.deepcopy(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            detected_keypoints = None
+            if(self.method=='SSD'):
+                ## Resizing to required size
+                self.im_width = handImg.width
+                self.im_height = handImg.height
+                ## Detecting boxes with hand in image
+                relative_boxes, scores, classes = detection_ssd.detect_objects(
+                                        frame, self.detection_graph, self.sess)
 
-            ## Currenty, only one hand with maximum score is considered
-            maxscore_idx = np.where(scores == scores.max())
-            required_box = relative_boxes[maxscore_idx][0]
-            print("Bounding Box Found")
+                ## Currenty, only one hand with maximum score is considered
+                maxscore_idx = np.where(scores == scores.max())
+                required_box = relative_boxes[maxscore_idx][0]
+                print("Bounding Box Found")
 
-            box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
-            hand_box = box_relative2absolute(required_box)
+                box_relative2absolute = lambda box: (box[1] * self.im_width, box[3] * self.im_width, box[0] * self.im_height, box[2] * self.im_height)
+                hand_box = box_relative2absolute(required_box)
 
-            ## insert bounding box in image
-            (left, right, top, bottom) = hand_box
+                ## insert bounding box in image
+                (left, right, top, bottom) = hand_box
 
-            bbox = [
-                (int(left), int(bottom)),
-                (int(left), int(top)),
-                (int(right), int(top)),
-                (int(right), int(bottom)),
-            ]
+                bbox = [
+                    (int(left), int(bottom)),
+                    (int(left), int(top)),
+                    (int(right), int(top)),
+                    (int(right), int(bottom)),
+                ]
 
-            sendBbox = [left, right, top, bottom]
-        elif(self.method=='Mediapipe'):
-            bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
-            if(bbox is not None):
-                min_idx = np.amin(bbox,axis=0)
-                max_idx = np.amax(bbox, axis=0)
-                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
-                print("No hand detected")
-        else:
-            print("Error! Please enter valid detection method number")
+                sendBbox = [left, right, top, bottom]
+            elif(self.method=='Mediapipe'):
+                bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
+                if(bbox is not None):
+                    min_idx = np.amin(bbox,axis=0)
+                    max_idx = np.amax(bbox, axis=0)
+                    sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
+                    print('Hand Bounding Box and Keypoints detected')
+                else:
+                    print("No hand detected")
+            else:
+                print("Error! Please enter valid detection method number")
+                bbox = None
+
+
+        except Exception as e:
             bbox = None
-
-
-        # except Exception as e:
-        #     bbox = None
-        #     print(e)
-        #     print("Error processing input image")
+            print(e)
+            print("Error processing input image")
 
         if(self.method=='SSD' and bbox is not None):
             ## Detecting Keypoint using Openpose (using HandKeypoint Component)
@@ -251,7 +252,6 @@ class SpecificWorker(GenericWorker):
                 print("Keypoints not detected")
             else:
                 print("Keypoint Detected")
-                print(detected_keypoints)
 
         gesture = None
         if(self.method=='Mediapipe' and bbox is not None and detected_keypoints is not None):
@@ -259,9 +259,8 @@ class SpecificWorker(GenericWorker):
             sendKeys = []
             for key in raw_keypoints:
                 sendKeys.append(list(key))
-            print(sendKeys)
             gesture = self.handgesture_proxy.getHandGesture(sendKeys)
-            print(gesture)
+            print('Gesture Detected')
 
         hand = HandType()
         hand.boundingbox = bbox

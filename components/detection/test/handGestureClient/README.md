@@ -67,6 +67,6 @@ cmake .
 make
 python3 src/HandGestureClient.py etc/config-run
 ```
-Make sure that all other required components (`CameraSimple` and `HandKeypoint`) are up and running.
+Make sure that all other required components (`CameraSimple` and `HandGesture`) are up and running.
 
 After running the component, you will be asked to enter set of ASL alphabets from which you want to get the gestures recognized.

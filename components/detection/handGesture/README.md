@@ -12,8 +12,9 @@ This section assumes the user has already installed the RoboComp core library an
 
 Before using the component, the user needs to install the necessary libraries:
 ```
-pip install numpy opencv-python pickle scikit-learn
+pip install numpy opencv-python pickle scikit-learn==0.22.2.post1
 ```
+Note: Make sure your scikit-learn version is `0.22.2.post1`
 
 ## Configuration parameters
 As any other component, *HandGesture* needs a configuration file to start. In
@@ -53,3 +54,14 @@ cmake .
 make
 python3 src/HandGesture.py etc/config-run
 ```
+## About Dataset
+
+Dataset used for training model maps hand keypoints to gesture. It is created using [ASL Alphabet](https://www.kaggle.com/grassknoted/asl-alphabet?) dataset which is available publically. The dataset contains 87,000 images which are 200x200 pixels. Images of this dataset were passed through Keypoint Detection module to obtain keypoint to gesture mappings.
+
+In assets folder,
+- `points.npy` contains hand keypoints
+- `labels.npy` contains corresponding gestures
+
+## Saving trained model
+
+Trained model can be saved by setting `self.save_model=True`. Name and path of the saved file can also be changed by changing `self.model_name`. By default, model will not be saved.

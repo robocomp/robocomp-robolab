@@ -51,6 +51,11 @@ class SpecificWorker(GenericWorker):
         ## Trained model
         self.model = None
 
+        ## Save model flag
+        self.save_model = True
+        self.model_name = "./assets/asl_model.pkl"
+        print('Component Started')
+
     def __del__(self):
         print('SpecificWorker destructor')
 
@@ -60,7 +65,6 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print('SpecificWorker.compute...')
 
         return True
 
@@ -78,8 +82,6 @@ class SpecificWorker(GenericWorker):
         #
         keypoints = np.array(keypoints)
         keypoints = np.reshape(keypoints,(1,-1))
-        print('Keypoint are:')
-        print(keypoints)
         gesture = self.model.predict(keypoints)
         print('Detected Gesture is:')
         print(gesture[0])
@@ -160,10 +162,12 @@ class SpecificWorker(GenericWorker):
             ## Uncomment for checking accuracy
             # print(self.model.score(test_keys,test_labels))
 
-            ## Uncomment for training using KNN
-            # neigh = KNeighborsClassifier(n_neighbors=10)
-            # neigh.fit(train_keys, train_labels)
-            # print(neigh.score(test_keys,test_labels))
+            ## Save model?
+            if(self.save_model == True):
+                print('save_model=True, Saving model')
+                with open(self.model_name, 'wb') as file:
+                    pickle.dump(self.model, file)
+                print('Model Saved')
 
         return
 

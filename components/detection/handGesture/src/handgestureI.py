@@ -53,3 +53,6 @@ class HandGestureI(HandGesture):
 
     def getHandGesture(self, keypoints, c):
         return self.worker.HandGesture_getHandGesture(keypoints)
+
+    def setClasses(self, classes, c):
+        return self.worker.HandGesture_setClasses(classes)

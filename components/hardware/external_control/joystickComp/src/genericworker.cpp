@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2018 by YOUR NAME HERE
+ *    Copyright (C) 2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,10 +20,10 @@
 /**
 * \brief Default constructor
 */
-GenericWorker::GenericWorker(MapPrx& mprx) :
-QObject()
+GenericWorker::GenericWorker(MapPrx& mprx) : QObject()
 {
-	differentialrobot_proxy = (*(DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
+
+	differentialrobot_proxy = (*(RoboCompDifferentialRobot::DifferentialRobotPrx*)mprx["DifferentialRobotProxy"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
@@ -54,4 +54,3 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
-

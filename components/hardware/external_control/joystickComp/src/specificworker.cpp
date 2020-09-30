@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {}
 
 void SpecificWorker::initialize(int period)
@@ -148,13 +148,13 @@ void SpecificWorker::sendJoyStickEvent()
 // ICE pull methods
 /////////////////////////////////////////
 
-void SpecificWorker::JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_writeJoyStickBufferedData(const RoboCompJoyStick::JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	joystickBufferedData = gbd;
 }
 
-void SpecificWorker::JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_readJoyStickBufferedData(RoboCompJoyStick::JoyStickBufferedData &gbd)
 {
 	QMutexLocker locker(mutex);
 	gbd = joystickBufferedData;

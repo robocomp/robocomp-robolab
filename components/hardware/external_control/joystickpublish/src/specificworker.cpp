@@ -72,7 +72,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
 		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
 		aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
-		qDebug() << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
+		qDebug() << __FUNCTION__ << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
 		joystickParams.axes[i] = aux;
 	}
 	active = true;
@@ -129,9 +129,7 @@ void SpecificWorker::initialize(int period)
 }
 
 void SpecificWorker::compute( )
-{
-	
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////777
 

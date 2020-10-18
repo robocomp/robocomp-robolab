@@ -30,10 +30,6 @@ import copy
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
 sys.path.append(os.path.join(os.getcwd(),"assets"))
-print(sys.path)
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
@@ -41,23 +37,26 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 20
         self.timer.start(self.Period)
-        self.method = 2
-        # Method = 1 for hand detection using SSD + MobileNet
-        # Method = 2 for hand detection using Mediapipe Deep Learning Models
-        if(self.method==1):
+        self.method = 'Mediapipe'
+        # Method = 'Mediapipe' for hand detection using Mediapipe Deep Learning Models
+        # Method = 'SSD' for hand detection using SSD + MobileNet
+        if(self.method=='SSD'):
             try:
                 global detection_ssd
                 import detection_ssd
                 self.detection_graph, self.sess = detection_ssd.load_inference_graph()
             except:
                 print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
-        elif(self.method==2):
+        elif(self.method=='Mediapipe'):
             try:
                 global detection_mediapipe
                 import detection_mediapipe
             except:
                 print("Error Loading Model. Ensure that models are downloaded and placed in correct directory")
 
+        # Gesture display configurations
+        self.nogesture_color = (204,0,0)
+        self.gesture_color = (0,0,255)
 
         # Bounding Box display configurations
         self.bbox_color = (204, 41, 0)
@@ -68,7 +67,25 @@ class SpecificWorker(GenericWorker):
         self.fps_text_color = (0,0,0)
         # storing program runtime and processed frames for calculating FPS
         self.start_time = 0
+        # Gesture Recognition Labels (ASL)
+        self.gesture_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", 
+                                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "del", "space"]
 
+
+        print("\n\nPlease specify ASL alphabets set you want to classify from (Space Seperated, Upper Case). Press Enter to use all classes")
+
+        if(self.method == 'Mediapipe'):
+            labels = input()
+            if(labels != ""):
+                self.gesture_labels = labels.split()
+
+            print("Detecting for following classes")
+            print(self.gesture_labels)
+
+            self.handgesture_proxy.setClasses(self.gesture_labels)
+
+        print('Component Started')
+        
     def __del__(self):
         print('SpecificWorker destructor')
 
@@ -77,7 +94,6 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print('SpecificWorker.compute...')
         self.start_time = time.time()
         try:
             data = self.camerasimple_proxy.getImage()
@@ -94,14 +110,12 @@ class SpecificWorker(GenericWorker):
         arr = np.fromstring(handImg.image, np.uint8)
         frame = np.reshape(arr, (handImg.height, handImg.width, handImg.depth))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        if(self.method==1):
+        if(self.method=='SSD'):
             frame = cv2.resize(frame, (self.im_width, self.im_height))
 
         ## Add Hand Bounding Box in image frame
         bbox = handData.boundingbox
         if(bbox is not None):
-            print('Bounding Box Coordinates are:')
-            print(bbox)
             for i in range(4):
                 x0, y0 = bbox[i]
                 x1, y1 = bbox[(i+1)%4]
@@ -111,41 +125,52 @@ class SpecificWorker(GenericWorker):
         ## Add detected keypoints in image frame
 
         detected_keypoints = handData.keypoint
-        connections = None
-        if(self.method==1):
-            connections = [
-                            (0,1),(1,2),(2,3),(3,4),(0,5),
-                            (5,6),(6,7),(7,8),(0,9),(9,10),
-                            (10,11),(11,12),(0,13),(13,14),
-                            (14,15),(15,16),(0,17),(17,18),
-                            (18,19),(19,20)
+        if(detected_keypoints is not None):
+            connections = None
+            if(self.method=='SSD'):
+                connections = [
+                                (0,1),(1,2),(2,3),(3,4),(0,5),
+                                (5,6),(6,7),(7,8),(0,9),(9,10),
+                                (10,11),(11,12),(0,13),(13,14),
+                                (14,15),(15,16),(0,17),(17,18),
+                                (18,19),(19,20)
+                            ]
+            else:
+                connections = [
+                            (0,1),(1,2),(2,3),(3,4),
+                            (5,6),(6,7),(7,8),(9,10),
+                            (10,11),(11,12),(13,14),
+                            (14,15),(15,16),(17,18),(18,19),
+                            (19, 20),(0,5),(5,9),(9,13),
+                            (13,17),(0,17)
                         ]
+
+            for point in detected_keypoints:
+                x = point[0]
+                y = point[1]
+                cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
+
+            for connection in connections:
+                x0 = detected_keypoints[connection[0]][0]
+                y0 = detected_keypoints[connection[0]][1]
+                x1 = detected_keypoints[connection[1]][0]
+                y1 = detected_keypoints[connection[1]][1]
+
+                cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
+
+        ## Add Recognised Gesture in frame
+        if(handData.gesture == "None"):
+            print_text = "No Hand Detected"
+            cv2.putText(frame, print_text, (320,50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.nogesture_color, 2)        
         else:
-            connections = [
-                        (0,1),(1,2),(2,3),(3,4),
-                        (5,6),(6,7),(7,8),(9,10),
-                        (10,11),(11,12),(13,14),
-                        (14,15),(15,16),(17,18),(18,19),
-                        (19, 20),(0,5),(5,9),(9,13),
-                        (13,17),(0,17)
-                    ]
+            x,y = bbox[0]
+            print_text = handData.gesture
+            cv2.putText(frame, print_text, (int(x),int(y)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, self.gesture_color, 2)              
 
 
-        for point in detected_keypoints:
-            x = point[0]
-            y = point[1]
-            cv2.circle(frame, (int(x), int(y)), self.thickness*2, self.keypoint_color, self.thickness)
-
-
-        for connection in connections:
-            x0 = detected_keypoints[connection[0]][0]
-            y0 = detected_keypoints[connection[0]][1]
-            x1 = detected_keypoints[connection[1]][0]
-            y1 = detected_keypoints[connection[1]][1]
-
-            cv2.line(frame, (int(x0), int(y0)), (int(x1), int(y1)), self.conn_color, self.thickness)
-
-        # insert FPS in image
+        ## insert FPS in frame
         fps = 1.0 / elapsed_time
         print_text = "FPS : " + str(int(fps))
         cv2.putText(frame, print_text, (20, 50),
@@ -171,7 +196,7 @@ class SpecificWorker(GenericWorker):
             frame_cp = copy.deepcopy(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             detected_keypoints = None
-            if(self.method==1):
+            if(self.method=='SSD'):
                 ## Resizing to required size
                 self.im_width = handImg.width
                 self.im_height = handImg.height
@@ -198,12 +223,14 @@ class SpecificWorker(GenericWorker):
                 ]
 
                 sendBbox = [left, right, top, bottom]
-            elif(self.method==2):
-                bbox, detected_keypoints = detection_mediapipe.hand_detector(frame)
-                min_idx = np.amin(bbox,axis=0)
-                max_idx = np.amax(bbox, axis=0)
-                sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
-                if(bbox is None):
+            elif(self.method=='Mediapipe'):
+                bbox, detected_keypoints, raw_keypoints = detection_mediapipe.hand_detector(frame)
+                if(bbox is not None):
+                    min_idx = np.amin(bbox,axis=0)
+                    max_idx = np.amax(bbox, axis=0)
+                    sendBbox = [min_idx[0], max_idx[0], min_idx[1], max_idx[1]]
+                    print('Hand Bounding Box and Keypoints detected')
+                else:
                     print("No hand detected")
             else:
                 print("Error! Please enter valid detection method number")
@@ -215,22 +242,33 @@ class SpecificWorker(GenericWorker):
             print(e)
             print("Error processing input image")
 
-        if(self.method==1):
-            if(bbox is not None):
-                ## Detecting Keypoint using Openpose (using HandKeypoint Component)
-                sendHandImage = RoboCompHandKeypoint.TImage()
-                sendHandImage.image = frame_cp
-                sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
-                detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
-                if(detected_keypoints is None):
-                    print("Keypoints not detected")
-                else:
-                    print("Keypoint Detected")
-                    print(detected_keypoints)
+        if(self.method=='SSD' and bbox is not None):
+            ## Detecting Keypoint using Openpose (using HandKeypoint Component)
+            sendHandImage = RoboCompHandKeypoint.TImage()
+            sendHandImage.image = frame_cp
+            sendHandImage.height, sendHandImage.width, sendHandImage.depth = frame_cp.shape
+            detected_keypoints = self.handkeypoint_proxy.getKeypoints(sendHandImage, list(sendBbox))
+            if(detected_keypoints is None):
+                print("Keypoints not detected")
+            else:
+                print("Keypoint Detected")
+
+        gesture = None
+        if(self.method=='Mediapipe' and bbox is not None and detected_keypoints is not None):
+            sendKeypoints = detected_keypoints
+            sendKeys = []
+            for key in raw_keypoints:
+                sendKeys.append(list(key))
+            gesture = self.handgesture_proxy.getHandGesture(sendKeys)
+            print('Gesture Detected')
 
         hand = HandType()
         hand.boundingbox = bbox
         hand.keypoint = detected_keypoints
+        if(gesture is not None):
+            hand.gesture = gesture
+        else:
+            hand.gesture = "None"
         return hand
     # ===================================================================
     # ===================================================================

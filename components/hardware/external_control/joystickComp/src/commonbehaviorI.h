@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2020 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -28,7 +28,6 @@
 #include "genericworker.h"
 #include "genericmonitor.h"
 
-using namespace RoboCompCommonBehavior;
 /**
 	\class CommonBehaviorI <p>Servant for components common behaviors. This class implements the methods of the public interface of CommonBehavior.
 */
@@ -41,7 +40,7 @@ public:
 	void setPeriod(int period, const Ice::Current & = Ice::Current());
 	int timeAwake( const Ice::Current & = Ice::Current());
 	void killYourSelf( const Ice::Current & = Ice::Current());
-	ParameterList getParameterList( const Ice::Current & = Ice::Current());
+	RoboCompCommonBehavior::ParameterList getParameterList( const Ice::Current & = Ice::Current());
 	void setParameterList(const RoboCompCommonBehavior::ParameterList &l, const Ice::Current & = Ice::Current());
 	void reloadConfig( const Ice::Current& = Ice::Current());
 	RoboCompCommonBehavior::State getState(const Ice::Current& = Ice::Current());

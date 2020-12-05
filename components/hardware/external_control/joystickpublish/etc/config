@@ -9,12 +9,12 @@ InnerModelPath = innermodel.xml
 
 JoystickAdapter=JoystickAdapter
 joystickUniversal.Device = /dev/input/js0
-joystickUniversal.NumAxes = 5
-joystickUniversal.Axis_0 = rotate, -16, 16, false  #left-right movement
-joystickUniversal.Axis_1 = advance, -22, 22, true  #front-left movement
-joystickUniversal.Axis_2 = side, -16, 16, true  #front-left movement
-joystickUniversal.Axis_3 = pan, -1, 1, true
-joystickUniversal.Axis_4 = tilt, -1, 1, true
+joystickUniversal.NumAxes = 4
+joystickUniversal.Axis_0 = rotate, -1, 1, false  #left-right movement
+joystickUniversal.Axis_1 = advance, -700, 700, true  #front-left movement
+joystickUniversal.Axis_2 = tilt, -16, 16, true  #front-left movement
+joystickUniversal.Axis_3 = side, -700, 700, false  #front-left movement
+
 
 
 Ice.Warn.Connections=0

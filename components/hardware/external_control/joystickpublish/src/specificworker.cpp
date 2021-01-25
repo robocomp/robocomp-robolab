@@ -164,7 +164,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 	{
 		case  JOYSTICK_EVENT_TYPE_AXIS:
 		{
-			if(number >= joystickParams.numAxes)
+			if(number > joystickParams.numAxes)
 			{
 				qDebug() << "ERROR: Event received for not configured axes ( received "+QString::number(number)+", configured max index "+QString::number(joystickParams.numAxes-1)+")";
 				break;

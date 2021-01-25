@@ -1,0 +1,14 @@
+import "OmniRobot.idsl";
+import "Laser.idsl";
+import "JoystickAdapter.idsl";
+
+Component navigationOptimizer
+{
+    Communications
+    {
+        requires OmniRobot, Laser, JoystickAdapter;
+    };
+    language Cpp11;
+    gui Qt(QWidget);
+};
+

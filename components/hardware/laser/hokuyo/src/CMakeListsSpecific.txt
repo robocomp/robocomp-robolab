@@ -13,5 +13,5 @@ SET ( SOURCES
 set(CMAKE_CXX_STANDARD 17)
 
 SET( SPECIFIC_LIBS -lc_urg -lc_urg_system -lc_urg_connection )
-
+add_definitions(-g  -fmax-errors=5 )
 SET (LIBS ${LIBS}  )

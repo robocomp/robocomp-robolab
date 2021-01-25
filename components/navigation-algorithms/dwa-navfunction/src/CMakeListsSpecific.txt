@@ -1,0 +1,20 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  myscene.h
+  navigation.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+set(CMAKE_CXX_STANDARD 20)
+add_definitions(-g -march=native  -fmax-errors=5 -std=c++2a )
+SET (LIBS ${LIBS}  )
+
+

@@ -1,9 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 20002
 
-
 # Endpoints for implemented interfaces
 JoyStick.Endpoints=tcp -p 10002
-
 
 # Proxies for required interfaces
 DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
@@ -11,7 +9,7 @@ DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 # User config parameters
 # Example = value
 Joy.Device = /dev/input/js0
-Joy.XMotionAxis = 0
+Joy.XMotionAxis = 0 
 Joy.YMotionAxis = 1
 Joy.SampleRate = 10
 Joy.MaxSteering = 1.

@@ -46,7 +46,7 @@ HokuyoHandler::HokuyoHandler(RoboCompLaser::LaserConfData &config, RoboCompGener
 	}
 
 	laserDevice.setName(config.device.c_str());
-qDebug()<<"name"<<config.device.c_str();
+    qDebug()<<"name"<<config.device.c_str();
 	// Create the sampling timer
 	timer = new QTimer(this );
 	pm_timer = NULL;
@@ -90,8 +90,8 @@ bool HokuyoHandler::open()
 	// Open and initialize the device
 	if ( !laserDevice.open ( 1 /*QIODevice::ReadWrite*/ ) )
 	{
-		timer->start();
-		printf("[HokuyoHandler]: Failed to open: %s", laserDevice.name().toLatin1().data());
+        timer->start();
+		printf("[HokuyoHandler]: Failed to open: %s\n", laserDevice.name().toLatin1().data());
 		return false;
 	}
 	for (int i=0; i< 5; i++)

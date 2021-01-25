@@ -1,0 +1,38 @@
+CommonBehavior.Endpoints=tcp -p 14000
+
+# Proxies for required interfaces
+JoystickAdapterProxy = joystickadapter:tcp -h localhost -p 13100
+LaserProxy = laser:tcp -h localhost -p 10003
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+
+
+NavigationAgent.World = viriato_dwa_3objects.json
+NavigationAgent.InnerModel = simpleworldomni.xml
+
+NavigationAgent.MaxZSpeed = 300
+NavigationAgent.MaxXSpeed = 300
+NavigationAgent.MaxRotationSpeed = 0.6
+
+NavigationAgent.RobotXWidth = 375
+NavigationAgent.RobotZLong = 505
+NavigationAgent.RobotRadius = 500
+
+NavigationAgent.MinControllerPeriod = 100
+
+NavigationAgent.PlannerGraphPoints = 400
+NavigationAgent.PlannerGraphNeighbours = 20
+NavigationAgent.PlannerGraphMaxDistanceToSearch = 2500 #mm
+
+NavigationAgent.ExcludedObjectsInCollisionCheck = floor_plane,ladder_mesh
+NavigationAgent.MinimunDetectableRotation = 0.03
+NavigationAgent.MinimunDetectableTranslation = 7
+NavigationAgent.MinimumSafetyDistance = 100
+
+NavigationAgent.OuterRegionLeft = -2500
+NavigationAgent.OuterRegionRight = 2500
+NavigationAgent.OuterRegionBottom = -2500
+NavigationAgent.OuterRegionTop = 2500
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

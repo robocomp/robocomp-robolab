@@ -50,6 +50,11 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+        void NavigationOptimizer_abort();
+        RoboCompNavigationOptimizer::Params NavigationOptimizer_getParams();
+        RoboCompNavigationOptimizer::State NavigationOptimizer_getState();
+        bool NavigationOptimizer_gotoNewRandomPoint(RoboCompNavigationOptimizer::Params params);
+
         struct Dimensions
         {
             int TILE_SIZE = 100;

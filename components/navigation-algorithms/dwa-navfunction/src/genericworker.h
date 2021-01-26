@@ -33,6 +33,7 @@
 
 #include <GenericBase.h>
 #include <Laser.h>
+#include <NavigationOptimizer.h>
 #include <OmniRobot.h>
 
 
@@ -59,6 +60,10 @@ public:
 	RoboCompLaser::LaserPrxPtr laser_proxy;
 	RoboCompOmniRobot::OmniRobotPrxPtr omnirobot_proxy;
 
+	virtual void NavigationOptimizer_abort() = 0;
+	virtual RoboCompNavigationOptimizer::Params NavigationOptimizer_getParams() = 0;
+	virtual RoboCompNavigationOptimizer::State NavigationOptimizer_getState() = 0;
+	virtual bool NavigationOptimizer_gotoNewRandomPoint(RoboCompNavigationOptimizer::Params params) = 0;
 
 protected:
 

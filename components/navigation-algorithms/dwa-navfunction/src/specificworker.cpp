@@ -370,3 +370,34 @@ void SpecificWorker::draw_target(const RobotPose &robot_pose, QPointF t)
         QTimer::singleShot(200, qApp, SLOT(quit()));
         return 0;
     }
+
+////////////////////////// SERVANT ////////////////////////////////////////7
+void SpecificWorker::NavigationOptimizer_abort()
+{
+    stop_robot();
+}
+
+RoboCompNavigationOptimizer::Params SpecificWorker::NavigationOptimizer_getParams()
+{
+    RoboCompNavigationOptimizer::Params params;
+    return params;
+}
+
+RoboCompNavigationOptimizer::State SpecificWorker::NavigationOptimizer_getState()
+{
+    RoboCompNavigationOptimizer::State state;
+    return( state );
+}
+
+bool SpecificWorker::NavigationOptimizer_gotoNewRandomPoint( RoboCompNavigationOptimizer::Params params)
+
+{
+    // get random safe target
+
+    target_buffer.put(std::move(QPointF()), [r=robot_polygon_draw->pos()](auto &&t, auto &out)
+    {
+        out.pos = t;
+        out.ang  = -atan2(t.x() - r.x(), t.y() - r.y()); //target ang in the direction or line joining robot-target
+    });
+}
+

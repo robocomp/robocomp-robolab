@@ -1,5 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 14100
 
+NavigationOptimizer.Endpoints=tcp -p 13120
+
 # Proxies for required interfaces
 JoystickAdapterProxy = joystickadapter:tcp -h localhost -p 13100
 LaserProxy = laser:tcp -h localhost -p 10003

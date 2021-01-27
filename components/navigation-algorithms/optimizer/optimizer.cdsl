@@ -1,0 +1,12 @@
+import "NavigationOptimizer.idsl";
+
+Component optimizer
+{
+    Communications
+    {
+        requires NavigationOptimizer;
+    };
+    language python;
+    gui Qt(QMainWindow);
+};
+

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2020 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -93,7 +93,7 @@ private:
 	void initialize();
 	std::string prefix;
 	MapPrx mprx;
-	bool startup_check_flag;
+	bool startup_check_flag = false;
 
 public:
 	virtual int run(int, char*[]);
@@ -266,6 +266,10 @@ int main(int argc, char* argv[])
             if (arg.find(initIC.toStdString(), 0) == 0)
             {
                 configFile = QString::fromStdString(arg).remove(0, initIC.size());
+            }
+            else
+            {
+                configFile = QString::fromStdString(argv[1]);
             }
         }
 

@@ -41,10 +41,6 @@
 #include <myscene.h>
 #include <Eigen/Dense>
 
-#define USE_QTGUI
-#ifdef USE_QTGUI
-	#include "innerviewer.h"
-#endif
 
 
 class SpecificWorker : public GenericWorker
@@ -60,6 +56,12 @@ class SpecificWorker : public GenericWorker
         void compute();
         int startup_check();
         void initialize(int period);
+
+    protected:
+        void resizeEvent(QResizeEvent * event)
+        {
+            graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
+        }
 
     private:
         std::shared_ptr<InnerModel>innerModel;

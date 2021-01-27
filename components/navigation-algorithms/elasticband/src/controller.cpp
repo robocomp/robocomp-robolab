@@ -94,8 +94,8 @@ std::tuple<bool, float, float, float> Controller::update( const std::vector<QPoi
     sideVel = std::clamp(sideVel, -MAX_SIDE_SPEED, MAX_SIDE_SPEED);
     std::cout << "-------" << std::endl;
     std::cout << std::boolalpha << __FUNCTION__ << "Controller output " << advVel << " " << sideVel << " " << rotVel  << std::endl;
-    //return std::make_tuple(true, advVel, sideVel, rotVel);
-    return std::make_tuple(true, 0,0,0);
+    return std::make_tuple(true, advVel, sideVel, rotVel);
+    //return std::make_tuple(true, 0,0,0);
 
 }
 

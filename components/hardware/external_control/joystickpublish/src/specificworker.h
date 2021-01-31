@@ -62,19 +62,27 @@ public slots:
 	
 private:
 	bool startup_check_flag;
-	struct axesParams{
+	struct axesParams
+    {
 		std::string name;
+		int axis;
 		int minRange;
 		int maxRange;
 		bool inverted;
 	};
-	
+	struct buttonsParams
+    {
+	    std::string name;
+	    int step;
+	    int number;
+    };
 	struct joystickData{
 		std::string device;
 		int  numAxes;
 		int numButtons;
 		int basicPeriod;
-		axesParams axes[MAX_AXIS]; 
+		std::vector<axesParams> axes;
+		std::vector<buttonsParams> buttons;
 	};
 	
 	QTimer *jtimer; // Resend joy data to client

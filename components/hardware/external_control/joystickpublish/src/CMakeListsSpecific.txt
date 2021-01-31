@@ -12,6 +12,6 @@ SET ( HEADERS
   specificmonitor.h
     $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
 )
-
-ADD_DEFINITIONS( -std=c++11 )
+set(CMAKE_CXX_STANDARD 17)
+#ADD_DEFINITIONS( -std=c++11 )
 

@@ -53,28 +53,34 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	{
 		std::string s= QString::number(i).toStdString();
 		RoboCompJoystickAdapter::AxisParams apar;
-		apar.name = params["joystickUniversal.Axis_" + s +".Name"].value;
-		if(params["joystickUniversal.VelocityAxis"].value == apar.name)
-		{
-			data.velAxisIndex = i;
-			qDebug() << "Setting vel index to:"+QString::number(data.velAxisIndex);
-		}
-		if(params["joystickUniversal.DirectionAxis"].value == apar.name)
-		{
-			data.dirAxisIndex = i;
-			qDebug() << "Setting dir index to:"+QString::number(data.dirAxisIndex);
-		}			
+        apar.name = params["joystickUniversal.Axis_" + s +".Name"].value;
 		apar.value = 0;
 		data.axes.push_back(apar);
 			
 		axesParams aux;
 		aux.name = apar.name;
+        aux.axis = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Axis"].value).toInt();
 		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
 		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
 		aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
 		qDebug() << __FUNCTION__ << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
-		joystickParams.axes[i] = aux;
+		joystickParams.axes.push_back(aux);
 	}
+    for (int i=0; i<joystickParams.numButtons; i++)
+    {
+        std::string s= QString::number(i).toStdString();
+        RoboCompJoystickAdapter::ButtonParams apar;
+        apar.name = params["joystickUniversal.Button_" + s +".Name"].value;
+        apar.step = 0;
+        data.buttons.push_back(apar);
+
+        buttonsParams aux;
+        aux.name = apar.name;
+        aux.number = QString::fromStdString(params["joystickUniversal.Button_" + s +".Number"].value).toInt();
+        aux.step = QString::fromStdString(params["joystickUniversal.Button_" + s +".Step"].value).toInt();
+        qDebug() << __FUNCTION__ << "buttons" << QString::fromStdString(aux.name) << aux.number << aux.step;
+        joystickParams.buttons.push_back(aux);
+    }
 	active = true;
 	return true;
 };
@@ -90,18 +96,6 @@ void SpecificWorker::initialize(int period)
 	}
 	else
 	{
-		for (int i=0; i<joystickParams.numButtons; i++)
-		{
-			RoboCompJoystickAdapter::ButtonParams bpar;
-			bpar.clicked = false;
-			data.buttons.push_back(bpar);
-		}
-		//TODO: INITIALIZE JOYSTICK
-		
-		//~ // Set the base joystick axes initial data
-		//~ joy_axes.actualX = 0.;
-		//~ joy_axes.actualY = 0.;
-
 		joystick = new QJoyStick( QString::fromStdString(joystickParams.device) );
 		if ( joystick->openQJoy() )
 		{
@@ -160,53 +154,63 @@ void SpecificWorker::sendJoystickEvent()
 
 void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 {
-	switch( type)
+//    for(auto &ax : data.axes)
+//        ax.value = 0;
+//    for(auto &bu : data.buttons)
+//        bu.step = 0;
+
+    switch( type)
 	{
 		case  JOYSTICK_EVENT_TYPE_AXIS:
 		{
-			if(number > joystickParams.numAxes)
+		    if(auto r=std::find_if(joystickParams.axes.begin(), joystickParams.axes.end(), [number](axesParams &a)
+		                    { return (a.axis == number);}) ; r==joystickParams.axes.end())
 			{
-				qDebug() << "ERROR: Event received for not configured axes ( received "+QString::number(number)+", configured max index "+QString::number(joystickParams.numAxes-1)+")";
+				qDebug() << "ERROR: Event received for not configured axis:" << QString::number(number);
 				break;
 			}
-
-			//~ rDebug(QString::number(fabs(normalized_value - joystickParams.data.axes[number].value) > JOYSTICK_PRECISION ));
-			//~ rDebug("New value: "+QString::number(normalized_value)+", Old value: "+QString::number(joystickParams.data.axes[number].value)+", Diff: "+QString::number(fabs(normalized_value - joystickParams.data.axes[number].value)));
-			float normalized_value;
-			if(fabs(value) > JOYSTICK_CENTER)
-			{
-				normalized_value = normalize(value, -32000, 32000, joystickParams.axes[number].minRange, joystickParams.axes[number].maxRange);
-				if(joystickParams.axes[number].inverted )	normalized_value *= -1;
-				data.axes[number].value = normalized_value;
-				qDebug() << "Axis:" << number << "Value:" << normalized_value;
-				sendEvent = true;
-				//sendJoystickEvent();
-				break;
-			}
+		    else
+            {
+                auto axis = *r;
+                float normalized_value;
+                if (fabs(value) > JOYSTICK_CENTER)
+                {
+                    normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange);
+                    if (axis.inverted) normalized_value *= -1;
+                    if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
+                    {
+                        dr->value = normalized_value;
+                        qDebug() << "Axis:" << number << "Value:" << normalized_value;
+                        sendEvent = true;
+                    }
+                    break;
+                }
+            }
 		}
 		case JOYSTICK_EVENT_TYPE_BUTTON:
-		{
-			//rDebug("Received Button Event: "+QString::number(value)+", "+QString::number(type)+", "+QString::number(number));
-			if(number >= joystickParams.numButtons)
-			{
-				qDebug() << "ERROR: Event received for not configured button (received "+QString::number(number)+", configured max index "+QString::number(joystickParams.numButtons-1)+")";
-				break;
-			}
-			data.buttons[number].clicked = (bool) value;
-			qDebug() << "Button "+QString::number(number)+": "+QString::number(data.buttons[number].clicked);
-			sendEvent = true;
-			//sendJoystickEvent();
-		}
-		break;
+        {
+            if (auto r = std::find_if(joystickParams.buttons.begin(), joystickParams.buttons.end(), [number](auto &a) { return (a.number == number); }); r ==
+                                                                                                                                                         joystickParams.buttons.end())
+            {
+                qDebug() << "ERROR: Event received for not configured button: " << QString::number(number);
+                break;
+            } else
+            {
+                auto button = *r;
+                if (auto dr = std::find_if(data.buttons.begin(), data.buttons.end(), [button](auto &a) { return a.name == button.name; }); dr !=
+                                                                                                                                           data.buttons.end())
+                {
+                    dr->step = button.step;
+                    qDebug() << "Button " + QString::number(number) + ": " << value;
+                    sendEvent = true;
+                }
+            }
+            break;
+        }
 		default:
 			qDebug() << "Unknown joystick Event: "+QString::number(value)+", "+QString::number(type)+", "+QString::number(number);
 	}
 }
-
-// float SpecificWorker::normalize(float X, float A, float B, float C, float D)
-// {
-// 	return ((D-C)*(X-A)/(B-A))+C;
-// }
 
 float SpecificWorker::normalize(float X, float A, float B, float C, float D)
 {
@@ -216,11 +220,9 @@ float SpecificWorker::normalize(float X, float A, float B, float C, float D)
 
 	QMat m = QMat::afinTransformFromIntervals( intervals );
 	return (m * QVec::vec2(X,1))[0];
-	
 }
 
-
-
+////////////////////////////////////////////////////////777
 int SpecificWorker::startup_check()
 {
 	std::cout << "Startup check" << std::endl;

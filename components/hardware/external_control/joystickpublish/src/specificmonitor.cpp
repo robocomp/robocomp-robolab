@@ -96,11 +96,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	params["joystickUniversal.Device"] = aux;
 	
 	aux.editable = false;
-	configGetString( "","joystickUniversal.NumAxes", aux.value,"2");
+	configGetString( "","joystickUniversal.NumAxes", aux.value,"0");
 	params["joystickUniversal.NumAxes"] = aux;
 	
 	aux.editable = false;
-	configGetString( "","joystickUniversal.NumButtons", aux.value,"1");
+	configGetString( "","joystickUniversal.NumButtons", aux.value,"0");
 	params["joystickUniversal.NumButtons"] = aux;
 	
 	aux.editable = false;
@@ -127,37 +127,53 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		params["joystickUniversal.Axis_" + s] = aux;
 		rDebug("joystickUniversal.Axis_"+QString::fromStdString(s)+" = " + QString::fromStdString(params.at("joystickUniversal.Axis_" + s).value));
 		QStringList list = QString::fromStdString(aux.value).split(",");
-		if (list.size() != 4)	
-			qFatal("joystickUniversalComp::Monitor::readConfig(): ERROR reading axis. Only %d parameters for motor %d.", list.size(), i);
+		if (list.size() != 5)
+			qFatal("joystickUniversalComp::Monitor::readConfig(): ERROR reading axis. Only %d parameters allowed %d.", list.size(), i);
 		
 		aux.value=list[0].toStdString();
 		params["joystickUniversal.Axis_" + s +".Name"] = aux;
 		rDebug("joystickUniversal.Axis_" + s + ".Name = " + params.at("joystickUniversal.Axis_" + s +".Name").value);
-		aux.value=list[1].toStdString();
+        aux.value=list[1].toStdString();
+        params["joystickUniversal.Axis_" + s +".Axis"] = aux;
+        rDebug("joystickUniversal.Axis_" + s + ".Axis = " + params.at("joystickUniversal.Axis_" + s +".Axis").value);
+        aux.value=list[2].toStdString();
 		params["joystickUniversal.Axis_" + s +".MinRange"]= aux;
 		rDebug("joystickUniversal.Axis_"+s+".MinRange = "+ params["joystickUniversal.Axis_" + s +".MinRange"].value);
-		aux.value=list[2].toStdString();
+		aux.value=list[3].toStdString();
 		params["joystickUniversal.Axis_" + s +".MaxRange"]= aux;
 		rDebug("joystickUniversal.Axis_"+s+".MaxRange = "+ params["joystickUniversal.Axis_" + s +".MaxRange"].value);
-		aux.value=list[3].toStdString();
+		aux.value=list[4].toStdString();
 		params["joystickUniversal.Axis_" + s +".Inverted"]= aux;
 		rDebug("joystickUniversal.Axis_"+s+".Inverted = "+ params["joystickUniversal.Axis_" + s +".Inverted"].value);
 
 	}
+    for (int i=0; i < atoi(params.at("joystickUniversal.NumButtons").value.c_str()); i++)
+    {
+        aux.editable = false;
+        std::string s = QString::number(i).toStdString();
+        configGetString("", "joystickUniversal.Button_" + s, aux.value , "0");
+        params["joystickUniversal.Button_" + s] = aux;
+        rDebug("joystickUniversal.Button_"+QString::fromStdString(s)+" = " + QString::fromStdString(params.at("joystickUniversal.Button_" + s).value));
+        QStringList list = QString::fromStdString(aux.value).split(",");
+        if (list.size() != 3)
+            qFatal("joystickUniversalComp::Monitor::readConfig(): ERROR reading axis. Only %d params allowed %d.", list.size(), i);
+
+        aux.value=list[0].toStdString();
+        params["joystickUniversal.Button_" + s +".Name"] = aux;
+        rDebug("joystickUniversal.Button_" + s + ".Name = " + params.at("joystickUniversal.Button_" + s +".Name").value);
+        aux.value=list[1].toStdString();
+        params["joystickUniversal.Button_" + s +".Number"] = aux;
+        rDebug("joystickUniversal.Button_" + s + ".Number = " + params.at("joystickUniversal.Button_" + s +".Number").value);
+        aux.value=list[2].toStdString();
+        params["joystickUniversal.Button_" + s +".Step"]= aux;
+        rDebug("joystickUniversal.Button_"+s+".Step = "+ params["joystickUniversal.Button_" + s +".Step"].value);
+    }
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker
 bool SpecificMonitor::checkParams(RoboCompCommonBehavior::ParameterList l)
 {
 	bool correct = true;
-	//Check parameters
-	//Example
-// 	    if(l["DRobot.Handler"].value != "Robex" and l["DRobot.Handler"].value != "Gazebo" and l["DRobot.Handler"].value != "Player")
-// 		    correct = false;
-	
-	//copy parameters
-// 	if(correct)
-// 		config_params = l;
 	return correct;
 }
 

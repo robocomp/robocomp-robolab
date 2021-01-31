@@ -65,9 +65,7 @@ std::tuple<bool, float, float, float> Controller::update( const std::vector<QPoi
     QLineF robot_to_nose(robot, robot_nose);
     float angle = -rewrapAngleRestricted(qDegreesToRadians(robot_to_nose.angleTo(QLineF(robot_nose, points[1])))); // WATCH SIGN
     if(angle >= 0)
-        rotVel = std::clamp(angle, 0.f, MAX_ROT_SPEED);
-    else
-        rotVel = std::clamp(angle, -MAX_ROT_SPEED, 0.f);
+        rotVel = std::clamp(angle, -MAX_ROT_SPEED, MAX_ROT_SPEED);
 //        if(euc_dist_to_target < 5*FINAL_DISTANCE_TO_TARGET)
 //            rotVel = 0.f;
 //        if( fabs(rotVel) < 0.01) rotVel = 0.f;

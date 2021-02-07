@@ -154,10 +154,10 @@ void SpecificWorker::sendJoystickEvent()
 
 void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 {
-    for(auto &ax : data.axes)
-        ax.value = 0;
-    for(auto &bu : data.buttons)
-        bu.step = 0;
+    //for(auto &ax : data.axes)
+    //    ax.value = 0;
+    //for(auto &bu : data.buttons)
+    //    bu.step = 0;
 
     switch( type)
 	{

@@ -5,7 +5,8 @@ JoyStick.Endpoints=tcp -p 15002
 CommonBehavior.Endpoints=tcp -p 25002
 
 # Remote servers proxies example
-OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
+OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
+#OmniRobotProxy = omnirobot:tcp -h robonuc1.local -p 12238
 
 # User config parameters
 # Example = value

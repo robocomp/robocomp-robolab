@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2006-2010 by RoboLab - University of Extremadura
+ *    Copyright (C) 2021 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -61,7 +61,7 @@ void CommonBehaviorI::killYourSelf( const Ice::Current&)
 * \brief Return components parameters
 * @return  AttrList Configuration parameters list
 */
-ParameterList CommonBehaviorI::getParameterList( const Ice::Current&) 
+RoboCompCommonBehavior::ParameterList CommonBehaviorI::getParameterList( const Ice::Current&)
 { 
 	return monitor->getParameterList();
 }
@@ -69,8 +69,8 @@ ParameterList CommonBehaviorI::getParameterList( const Ice::Current&)
 * \brief Change configurations parameters to worker
 * @param l Configuration parameters list
 */
-void CommonBehaviorI::setParameterList(RoboCompCommonBehavior::ParameterList l, const Ice::Current&) 
-{ 
+void CommonBehaviorI::setParameterList( RoboCompCommonBehavior::ParameterList l, const Ice::Current&)
+{
 	monitor->setParameterList(l);
 }
 void CommonBehaviorI::reloadConfig( const Ice::Current&)

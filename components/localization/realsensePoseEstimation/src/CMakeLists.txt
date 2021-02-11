@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.11)
-PROJECT( realSensePoseEstimation )
 
 
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
@@ -29,13 +28,15 @@ SET ( SOURCES
 )
 
 
+
 ADD_DEFINITIONS ("-DICE_CPP11_MAPPING")
 FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior FullPoseEstimation FullPoseEstimation FullPoseEstimationPub)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior FullPoseEstimation FullPoseEstimationPub)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior FullPoseEstimation FullPoseEstimationPub)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

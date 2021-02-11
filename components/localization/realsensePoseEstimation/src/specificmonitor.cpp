@@ -91,6 +91,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString( "","serial", aux.value, "");
 	params["serial"] = aux;
 
+	configGetString( "","print", aux.value, "false");
+    params["print"] = aux;
 }
 
 //Check parameters and transform them to worker structure

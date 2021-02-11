@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,8 +20,7 @@
 /**
 * \brief Default constructor
 */
-GenericWorker::GenericWorker(TuplePrx tprx) :
-QObject()
+GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
 
 	fullposeestimationpub_pubproxy = std::get<0>(tprx);
@@ -55,4 +54,3 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
-

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -83,23 +83,18 @@
 
 #include <fullposeestimationI.h>
 
-#include <FullPoseEstimation.h>
 
 
-// User includes here
-
-// Namespaces
-using namespace std;
-using namespace RoboCompCommonBehavior;
 
 class realSensePoseEstimation : public RoboComp::Application
 {
 public:
-	realSensePoseEstimation (QString prfx) { prefix = prfx.toStdString(); }
+	realSensePoseEstimation (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
 	TuplePrx tprx;
+	bool startup_check_flag = false;
 
 public:
 	virtual int run(int, char*[]);
@@ -114,7 +109,11 @@ void ::realSensePoseEstimation::initialize()
 
 int ::realSensePoseEstimation::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
 
 
 	sigset_t sigs;
@@ -131,7 +130,7 @@ int ::realSensePoseEstimation::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
+	RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
 
 	string proxy, tmp;
 	initialize();
@@ -139,11 +138,11 @@ int ::realSensePoseEstimation::run(int argc, char* argv[])
 	IceStorm::TopicManagerPrxPtr topicManager;
 	try
 	{
-		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
+		topicManager = topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
 	}
 	catch (const Ice::Exception &ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		cout << "[" << PROGRAM_NAME << "]: Exception: 'rcnode' not running: " << ex << endl;
 		return EXIT_FAILURE;
 	}
 	std::shared_ptr<IceStorm::TopicPrx> fullposeestimationpub_topic;
@@ -166,13 +165,20 @@ int ::realSensePoseEstimation::run(int argc, char* argv[])
 				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the FullPoseEstimationPub topic. It's possible that other component have created\n";
 			}
 		}
+		catch(const IceUtil::NullHandleException&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+			"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+			return EXIT_FAILURE;
+		}
 	}
 
 	auto fullposeestimationpub_pub = fullposeestimationpub_topic->getPublisher()->ice_oneway();
-	fullposeestimationpub_pubproxy = Ice::uncheckedCast<FullPoseEstimationPubPrx>(fullposeestimationpub_pub);
+	fullposeestimationpub_pubproxy = Ice::uncheckedCast<RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrx
+	        >(fullposeestimationpub_pub);
 
 	tprx = std::make_tuple(fullposeestimationpub_pubproxy);
-	SpecificWorker *worker = new SpecificWorker(tprx);
+	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
@@ -222,11 +228,10 @@ int ::realSensePoseEstimation::run(int argc, char* argv[])
 			adapterFullPoseEstimation->add(fullposeestimation, Ice::stringToIdentity("fullposeestimation"));
 			adapterFullPoseEstimation->activate();
 			cout << "[" << PROGRAM_NAME << "]: FullPoseEstimation adapter created in port " << tmp << endl;
-			}
-			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for FullPoseEstimation\n";
-			}
-
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for FullPoseEstimation\n";
+		}
 
 
 		// Server adapter creation and publication
@@ -269,36 +274,53 @@ int main(int argc, char* argv[])
 	string arg;
 
 	// Set config file
-	std::string configFile = "config";
+	QString configFile("etc/config");
+	bool startup_check_flag = false;
+	QString prefix("");
 	if (argc > 1)
 	{
-		std::string initIC("--Ice.Config=");
-		size_t pos = std::string(argv[1]).find(initIC);
-		if (pos == 0)
+	    QString initIC = QString("--Ice.Config=");
+	    for (int i = 1; i < argc; ++i)
 		{
-			configFile = std::string(argv[1]+initIC.size());
-		}
-		else
-		{
-			configFile = std::string(argv[1]);
-		}
-	}
+		    arg = argv[i];
+            if (arg.find(initIC.toStdString(), 0) == 0)
+            {
+                configFile = QString::fromStdString(arg).remove(0, initIC.size());
+            }
+            else
+            {
+                configFile = QString::fromStdString(argv[1]);
+            }
+        }
 
-	// Search in argument list for --prefix= argument (if exist)
-	QString prefix("");
-	QString prfx = QString("--prefix=");
-	for (int i = 2; i < argc; ++i)
-	{
-		arg = argv[i];
-		if (arg.find(prfx.toStdString(), 0) == 0)
-		{
-			prefix = QString::fromStdString(arg).remove(0, prfx.size());
-			if (prefix.size()>0)
-				prefix += QString(".");
-			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
-		}
-	}
-	::realSensePoseEstimation app(prefix);
+        // Search in argument list for --prefix= argument (if exist)
+        QString prfx = QString("--prefix=");
+        for (int i = 2; i < argc; ++i)
+        {
+            arg = argv[i];
+            if (arg.find(prfx.toStdString(), 0) == 0)
+            {
+                prefix = QString::fromStdString(arg).remove(0, prfx.size());
+                if (prefix.size()>0)
+                    prefix += QString(".");
+                printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+            }
+        }
 
-	return app.main(argc, argv, configFile.c_str());
+        // Search in argument list for --test argument (if exist)
+        QString startup = QString("--startup-check");
+		for (int i = 0; i < argc; ++i)
+		{
+			arg = argv[i];
+			if (arg.find(startup.toStdString(), 0) == 0)
+			{
+				startup_check_flag = true;
+				cout << "Startup check = True"<< endl;
+			}
+		}
+
+	}
+	::realSensePoseEstimation app(prefix, startup_check_flag);
+
+	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }

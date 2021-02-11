@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
 	initialPose.set(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 }
@@ -37,13 +37,15 @@ SpecificWorker::~SpecificWorker()
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 	serial = params["serial"].value;
+	print_output = (params["print"].value == "true") or (params["print"].value == "True");
 	return true;
 }
 
 //workaround => using serial value not working on actual api version
 rs2::device SpecificWorker::get_device(const std::string& serial_number) {
     rs2::context ctx;
-    while (true) {
+    while (true)
+    {
         for (auto&& dev : ctx.query_devices())
             if (std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)) == serial_number)
                 return dev;
@@ -77,7 +79,8 @@ void SpecificWorker::compute()
 	// Cast the frame to pose_frame and get its data
 	auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
 	// Print the x, y, z values of the translation, relative to initial position
-	std::cout << "\r" << "Device Position: " << std::setprecision(3) 
+	if(print_output)
+	          std::cout << "\r" << "Device Position: " << std::setprecision(3)
 			  << std::fixed << pose_data.translation.x << " " 
 			  << pose_data.translation.y << " " 
 			  << pose_data.translation.z << " (meters)" << " " 
@@ -86,15 +89,13 @@ void SpecificWorker::compute()
 			  << pose_data.rotation.z << " "
 			  << pose_data.rotation.w << " (quat)";
 
-	// Move the robot
 	const auto &tr = pose_data.translation;
 	const auto &rot = pose_data.rotation;
 	RMat::Quaternion q(rot.x,rot.y,rot.z,rot.w);
 	QVec angles = q.toAngles();
 		
-	RTMat cam(angles.x(), -angles.y(), angles.z(),
-			  tr.x*1000, tr.y*1000, -tr.z*1000);
-	std::cout << "X "<<tr.x<<std::endl;
+	RTMat cam(angles.x(), -angles.y(), angles.z(),tr.x*1000, tr.y*1000, -tr.z*1000);
+	//std::cout << "X "<<tr.x<<std::endl;
 	RTMat pose = initialPose * cam;
 	QVec angles2 = pose.extractAnglesR();
 	std::lock_guard<std::mutex> lock(bufferMutex);
@@ -107,17 +108,12 @@ void SpecificWorker::compute()
 
 	//publish
 	try
-	{
-		fullposeestimationpub_pubproxy->newFullPose(fullpose);
-	}catch(const Ice::Exception& ex)
-	{
-		std::cout << "Exception publishing pose: "<<ex << std::endl;
-	}
-	
+	{ fullposeestimationpub_pubproxy->newFullPose(fullpose); }
+	catch(const Ice::Exception& ex)
+	{ std::cout << "Exception publishing pose: "<<ex << std::endl;	}
 }
 
-
-FullPose SpecificWorker::FullPoseEstimation_getFullPose()
+RoboCompFullPoseEstimation::FullPose SpecificWorker::FullPoseEstimation_getFullPose()
 {
 	std::lock_guard<std::mutex> lock(bufferMutex);
 	return fullpose;

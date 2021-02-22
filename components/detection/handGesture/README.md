@@ -12,7 +12,7 @@ This section assumes the user has already installed the RoboComp core library an
 
 Before using the component, the user needs to install the necessary libraries:
 ```
-pip install numpy opencv-python pickle scikit-learn==0.22.2.post1
+pip install numpy opencv-python pickle-mixin scikit-learn==0.22.2.post1
 ```
 Note: Make sure your scikit-learn version is `0.22.2.post1`
 
@@ -41,7 +41,7 @@ Note: This model is for faster processing when all classes are to be detected. C
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
 ```
-cd robocomp-robolab/components/detection/handKeypoint/
+cd robocomp-robolab/components/detection/handGesture/
 ```
 ```
 cp etc/config etc/config-run

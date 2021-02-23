@@ -41,6 +41,6 @@ cp etc/config etc/config-run
 
 After editing the new config file we can run the component:
 ```
-python src/camerasimple.py --Ice.Config=etc/config-run
+python3 src/camerasimple.py --iceconfigfile=etc/config-run
 ```
 ## Known issues

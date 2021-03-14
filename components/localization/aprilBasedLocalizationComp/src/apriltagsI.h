@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,9 +19,6 @@
 #ifndef APRILTAGS_H
 #define APRILTAGS_H
 
-// QT includes
-#include <QtCore/QObject>
-
 // Ice includes
 #include <Ice/Ice.h>
 #include <AprilTags.h>
@@ -29,23 +26,19 @@
 #include <config.h>
 #include "genericworker.h"
 
-using namespace RoboCompAprilTags;
 
-class AprilTagsI : public QObject , public virtual RoboCompAprilTags::AprilTags
+class AprilTagsI : public virtual RoboCompAprilTags::AprilTags
 {
-Q_OBJECT
 public:
-	AprilTagsI( GenericWorker *_worker, QObject *parent = 0 );
+	AprilTagsI(GenericWorker *_worker);
 	~AprilTagsI();
-	
-	void newAprilTag(const tagsList  &tags, const Ice::Current&);
 
-	QMutex *mutex;
+	void newAprilTag(const RoboCompAprilTags::tagsList &tags, const Ice::Current&);
+	void newAprilTagAndPose(const RoboCompAprilTags::tagsList &tags, const RoboCompGenericBase::TBaseState &bState, const RoboCompJointMotor::MotorStateMap &hState, const Ice::Current&);
+
 private:
 
 	GenericWorker *worker;
-public slots:
-
 
 };
 

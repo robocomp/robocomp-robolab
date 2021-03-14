@@ -174,8 +174,7 @@ int ::realSensePoseEstimation::run(int argc, char* argv[])
 	}
 
 	auto fullposeestimationpub_pub = fullposeestimationpub_topic->getPublisher()->ice_oneway();
-	fullposeestimationpub_pubproxy = Ice::uncheckedCast<RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrx
-	        >(fullposeestimationpub_pub);
+	fullposeestimationpub_pubproxy = Ice::uncheckedCast<RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrx>(fullposeestimationpub_pub);
 
 	tprx = std::make_tuple(fullposeestimationpub_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);

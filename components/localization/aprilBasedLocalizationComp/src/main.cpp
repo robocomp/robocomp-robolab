@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,6 +59,8 @@
  * ...
  *
  */
+#include <signal.h>
+
 // QT includes
 #include <QtCore>
 #include <QtGui>
@@ -69,6 +71,7 @@
 #include <Ice/Application.h>
 
 #include <rapplication/rapplication.h>
+#include <sigwatch/sigwatch.h>
 #include <qlog/qlog.h>
 
 #include "config.h"
@@ -80,54 +83,72 @@
 
 #include <apriltagsI.h>
 
-#include <AprilTags.h>
-#include <AprilBasedLocalization.h>
-
-
-// User includes here
-
-// Namespaces
-using namespace std;
-using namespace RoboCompCommonBehavior;
-
-using namespace RoboCompAprilTags;
-using namespace RoboCompAprilBasedLocalization;
+#include <GenericBase.h>
+#include <JointMotor.h>
 
 
 
 class AprilBasedLocalizationComp : public RoboComp::Application
 {
 public:
-	AprilBasedLocalizationComp (QString prfx) { prefix = prfx.toStdString(); }
+	AprilBasedLocalizationComp (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
 	MapPrx mprx;
+	bool startup_check_flag = false;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void AprilBasedLocalizationComp::initialize()
+void ::AprilBasedLocalizationComp::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int AprilBasedLocalizationComp::run(int argc, char* argv[])
+int ::AprilBasedLocalizationComp::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
+
+
+	sigset_t sigs;
+	sigemptyset(&sigs);
+	sigaddset(&sigs, SIGHUP);
+	sigaddset(&sigs, SIGINT);
+	sigaddset(&sigs, SIGTERM);
+	sigprocmask(SIG_UNBLOCK, &sigs, 0);
+
+	UnixSignalWatcher sigwatch;
+	sigwatch.watchForSignal(SIGINT);
+	sigwatch.watchForSignal(SIGTERM);
+	QObject::connect(&sigwatch, SIGNAL(unixSignal(int)), &a, SLOT(quit()));
+
 	int status=EXIT_SUCCESS;
 
-	AprilBasedLocalizationPrx aprilbasedlocalization_proxy;
+	RoboCompAprilBasedLocalization::AprilBasedLocalizationPrx aprilbasedlocalization_pubproxy;
 
 	string proxy, tmp;
 	initialize();
 
-IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
-
+	IceStorm::TopicManagerPrx topicManager;
+	try
+	{
+		topicManager = IceStorm::TopicManagerPrx::checkedCast(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: 'rcnode' not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
 	IceStorm::TopicPrx aprilbasedlocalization_topic;
+
 	while (!aprilbasedlocalization_topic)
 	{
 		try
@@ -136,86 +157,136 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		}
 		catch (const IceStorm::NoSuchTopic&)
 		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving AprilBasedLocalization topic. \n";
 			try
 			{
 				aprilbasedlocalization_topic = topicManager->create("AprilBasedLocalization");
 			}
 			catch (const IceStorm::TopicExists&){
 				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the AprilBasedLocalization topic. It's possible that other component have created\n";
 			}
 		}
+		catch(const IceUtil::NullHandleException&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+			"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+			return EXIT_FAILURE;
+		}
 	}
+
 	Ice::ObjectPrx aprilbasedlocalization_pub = aprilbasedlocalization_topic->getPublisher()->ice_oneway();
-	AprilBasedLocalizationPrx aprilbasedlocalization = AprilBasedLocalizationPrx::uncheckedCast(aprilbasedlocalization_pub);
-	mprx["AprilBasedLocalizationPub"] = (::IceProxy::Ice::Object*)(&aprilbasedlocalization);
+	aprilbasedlocalization_pubproxy = RoboCompAprilBasedLocalization::AprilBasedLocalizationPrx::uncheckedCast(aprilbasedlocalization_pub);
+	mprx["AprilBasedLocalizationPub"] = (::IceProxy::Ice::Object*)(&aprilbasedlocalization_pubproxy);
 
-
-
-	GenericWorker *worker = new SpecificWorker(mprx);
+	SpecificWorker *worker = new SpecificWorker(mprx, startup_check_flag);
 	//Monitor thread
-	GenericMonitor *monitor = new SpecificMonitor(worker,communicator());
+	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 	monitor->start();
 
 	if ( !monitor->isRunning() )
 		return status;
+
+	while (!monitor->ready)
+	{
+		usleep(10000);
+	}
+
 	try
 	{
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
-		}
-		Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-		CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor );
-		adapterCommonBehavior->add(commonbehaviorI, communicator()->stringToIdentity("commonbehavior"));
-		adapterCommonBehavior->activate();
-
-
-
-
-
-
-		// Server adapter creation and publication
-		if (not GenericMonitor::configGetString(communicator(), prefix, "AprilTagsTopic.Endpoints", tmp, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy AprilTagsProxy";
-		}
-		Ice::ObjectAdapterPtr AprilTags_adapter = communicator()->createObjectAdapterWithEndpoints("apriltags", tmp);
-		AprilTagsPtr apriltagsI_ = new AprilTagsI(worker);
-		Ice::ObjectPrx apriltags = AprilTags_adapter->addWithUUID(apriltagsI_)->ice_oneway();
-		IceStorm::TopicPrx apriltags_topic;
-		if(!apriltags_topic){
 		try {
-			apriltags_topic = topicManager->create("AprilTags");
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
+			}
+			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
+			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
+			adapterCommonBehavior->activate();
 		}
-		catch (const IceStorm::TopicExists&) {
-		//Another client created the topic
-		try{
-			apriltags_topic = topicManager->retrieve("AprilTags");
+		catch(const Ice::Exception& ex)
+		{
+			status = EXIT_FAILURE;
+
+			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
+			cout << ex;
+
+		}
+
+
+
+		// Server adapter creation and publication
+		IceStorm::TopicPrx apriltags_topic;
+		Ice::ObjectPrx apriltags;
+		try
+		{
+			if (not GenericMonitor::configGetString(communicator(), prefix, "AprilTagsTopic.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy AprilTagsProxy";
+			}
+			Ice::ObjectAdapterPtr AprilTags_adapter = communicator()->createObjectAdapterWithEndpoints("apriltags", tmp);
+			RoboCompAprilTags::AprilTagsPtr apriltagsI_ =  new AprilTagsI(worker);
+			Ice::ObjectPrx apriltags = AprilTags_adapter->addWithUUID(apriltagsI_)->ice_oneway();
+			if(!apriltags_topic)
+			{
+				try {
+					apriltags_topic = topicManager->create("AprilTags");
+				}
+				catch (const IceStorm::TopicExists&) {
+					//Another client created the topic
+					try{
+						cout << "[" << PROGRAM_NAME << "]: Probably other client already opened the topic. Trying to connect.\n";
+						apriltags_topic = topicManager->retrieve("AprilTags");
+					}
+					catch(const IceStorm::NoSuchTopic&)
+					{
+						cout << "[" << PROGRAM_NAME << "]: Topic doesn't exists and couldn't be created.\n";
+						//Error. Topic does not exist
+					}
+				}
+				catch(const IceUtil::NullHandleException&)
+				{
+					cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+					"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+					return EXIT_FAILURE;
+				}
+				IceStorm::QoS qos;
+				apriltags_topic->subscribeAndGetPublisher(qos, apriltags);
+			}
+			AprilTags_adapter->activate();
 		}
 		catch(const IceStorm::NoSuchTopic&)
 		{
+			cout << "[" << PROGRAM_NAME << "]: Error creating AprilTags topic.\n";
 			//Error. Topic does not exist
-			}
 		}
-		IceStorm::QoS qos;
-		apriltags_topic->subscribeAndGetPublisher(qos, apriltags);
-		}
-		AprilTags_adapter->activate();
+
 
 		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
 
-#ifdef USE_QTGUI
-		//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
-		a.setQuitOnLastWindowClosed( true );
-#endif
+		#ifdef USE_QTGUI
+			//ignoreInterrupt(); // Uncomment if you want the component to ignore console SIGINT signal (ctrl+c).
+			a.setQuitOnLastWindowClosed( true );
+		#endif
 		// Run QT Application Event Loop
 		a.exec();
+
+		try
+		{
+			std::cout << "Unsubscribing topic: apriltags " <<std::endl;
+			apriltags_topic->unsubscribe( apriltags );
+		}
+		catch(const Ice::Exception& ex)
+		{
+			std::cout << "ERROR Unsubscribing topic: apriltags " << ex.what()<<std::endl;
+		}
+
+
 		status = EXIT_SUCCESS;
 	}
 	catch(const Ice::Exception& ex)
@@ -225,12 +296,16 @@ IceStorm::TopicManagerPrx topicManager = IceStorm::TopicManagerPrx::checkedCast(
 		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
 		cout << ex;
 
-#ifdef USE_QTGUI
+	}
+	#ifdef USE_QTGUI
 		a.quit();
-#endif
-		monitor->exit(0);
-}
+	#endif
 
+	status = EXIT_SUCCESS;
+	monitor->terminate();
+	monitor->wait();
+	delete worker;
+	delete monitor;
 	return status;
 }
 
@@ -239,37 +314,53 @@ int main(int argc, char* argv[])
 	string arg;
 
 	// Set config file
-	std::string configFile = "config";
+	QString configFile("etc/config");
+	bool startup_check_flag = false;
+	QString prefix("");
 	if (argc > 1)
 	{
-		std::string initIC("--Ice.Config=");
-		size_t pos = std::string(argv[1]).find(initIC);
-		if (pos == 0)
+	    QString initIC = QString("--Ice.Config=");
+	    for (int i = 1; i < argc; ++i)
 		{
-			configFile = std::string(argv[1]+initIC.size());
-		}
-		else
-		{
-			configFile = std::string(argv[1]);
-		}
-	}
+		    arg = argv[i];
+            if (arg.find(initIC.toStdString(), 0) == 0)
+            {
+                configFile = QString::fromStdString(arg).remove(0, initIC.size());
+            }
+            else
+            {
+                configFile = QString::fromStdString(argv[1]);
+            }
+        }
 
-	// Search in argument list for --prefix= argument (if exist)
-	QString prefix("");
-	QString prfx = QString("--prefix=");
-	for (int i = 2; i < argc; ++i)
-	{
-		arg = argv[i];
-		if (arg.find(prfx.toStdString(), 0) == 0)
-		{
-			prefix = QString::fromStdString(arg).remove(0, prfx.size());
-			if (prefix.size()>0)
-				prefix += QString(".");
-			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
-		}
-	}
-	AprilBasedLocalizationComp app(prefix);
+        // Search in argument list for --prefix= argument (if exist)
+        QString prfx = QString("--prefix=");
+        for (int i = 2; i < argc; ++i)
+        {
+            arg = argv[i];
+            if (arg.find(prfx.toStdString(), 0) == 0)
+            {
+                prefix = QString::fromStdString(arg).remove(0, prfx.size());
+                if (prefix.size()>0)
+                    prefix += QString(".");
+                printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
+            }
+        }
 
-	return app.main(argc, argv, configFile.c_str());
+        // Search in argument list for --test argument (if exist)
+        QString startup = QString("--startup-check");
+		for (int i = 0; i < argc; ++i)
+		{
+			arg = argv[i];
+			if (arg.find(startup.toStdString(), 0) == 0)
+			{
+				startup_check_flag = true;
+				cout << "Startup check = True"<< endl;
+			}
+		}
+
+	}
+	::AprilBasedLocalizationComp app(prefix, startup_check_flag);
+
+	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }
-

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,32 +20,24 @@
 #define GENERICWORKER_H
 
 #include "config.h"
-#include <QtGui>
 #include <stdint.h>
 #include <qlog/qlog.h>
-
-
 #include <CommonBehavior.h>
+
 #include <AprilBasedLocalization.h>
 #include <AprilTags.h>
-
+#include <GenericBase.h>
+#include <JointMotor.h>
 
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
+
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
-using namespace std;
 
-using namespace AprilBasedLocalization;
-using namespace RoboCompAprilTags;
-
-
-
-
-class GenericWorker : 
-public QObject
+class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
@@ -53,22 +45,28 @@ public:
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
-	
+
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
-	
 
-	AprilBasedLocalizationPrx aprilbasedlocalization_proxy;
 
-	virtual void newAprilTag(const tagsList &tags) = 0;
+	RoboCompAprilBasedLocalization::AprilBasedLocalizationPrx aprilbasedlocalization_pubproxy;
 
+	virtual void AprilTags_newAprilTag (const RoboCompAprilTags::tagsList &tags) = 0;
+	virtual void AprilTags_newAprilTagAndPose (const RoboCompAprilTags::tagsList &tags, const RoboCompGenericBase::TBaseState &bState, const RoboCompJointMotor::MotorStateMap &hState) = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
+private:
+
+
 public slots:
 	virtual void compute() = 0;
+	virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };

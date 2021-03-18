@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,16 +26,15 @@
 #include <config.h>
 #include "genericworker.h"
 
-using namespace RoboCompJoyStick;
 
 class JoyStickI : public virtual RoboCompJoyStick::JoyStick
 {
 public:
-JoyStickI(GenericWorker *_worker);
+	JoyStickI(GenericWorker *_worker);
 	~JoyStickI();
 
-	void writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&);
-	void readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&);
+	void readJoyStickBufferedData(RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current&);
+	void writeJoyStickBufferedData(const RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current&);
 
 private:
 

@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.11)
-PROJECT( joystickomni )
 
 
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
@@ -33,7 +32,8 @@ SET ( SOURCES
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_WRAP_ICE( CommonBehavior GenericBase JoyStick OmniRobot)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior GenericBase JoyStick OmniRobot)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior GenericBase JoyStick OmniRobot)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

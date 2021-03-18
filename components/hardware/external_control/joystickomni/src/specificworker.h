@@ -63,12 +63,12 @@ private:
 	bool buttonPressed;
 	bool sendSpeed;
 public:
-	SpecificWorker(MapPrx& mprx);
+	SpecificWorker(MapPrx& mprx,bool startup_check=false);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	bool open();
-	void JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd);
-	void JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd);
+	void JoyStick_writeJoyStickBufferedData(const RoboCompJoyStick::JoyStickBufferedData &gbd);
+	void JoyStick_readJoyStickBufferedData(RoboCompJoyStick::JoyStickBufferedData &gbd);
 
 public slots:
 	void compute();

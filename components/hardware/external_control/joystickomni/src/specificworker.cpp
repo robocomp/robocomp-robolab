@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {
 	mutex = new QMutex(QMutex::Recursive);
 	buttonPressed = false;
@@ -199,13 +199,13 @@ void SpecificWorker::sendJoyStickEvent()
 }
 
 
-void SpecificWorker::JoyStick_writeJoyStickBufferedData(const JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_writeJoyStickBufferedData(const RoboCompJoyStick::JoyStickBufferedData &gbd)
 {
 	joystickBufferedData = gbd;
 	
 }
 
-void SpecificWorker::JoyStick_readJoyStickBufferedData(JoyStickBufferedData &gbd)
+void SpecificWorker::JoyStick_readJoyStickBufferedData(RoboCompJoyStick::JoyStickBufferedData &gbd)
 {
 	gbd = joystickBufferedData;
 }

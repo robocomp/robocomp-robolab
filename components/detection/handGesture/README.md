@@ -41,7 +41,7 @@ Note: This model is for faster processing when all classes are to be detected. C
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
 ```
-cd robocomp-robolab/components/detection/handKeypoint/
+cd robocomp-robolab/components/detection/handGesture/
 ```
 ```
 cp etc/config etc/config-run

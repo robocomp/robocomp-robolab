@@ -25,6 +25,10 @@ Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 ```
+After configuring proxies, 
+
+For detection using Transfer Learning, download depth estimation models from [here](https://drive.google.com/file/d/1bhw0S6IFo3xjyGYsrTuHZlfS5hWnjyhG/view?usp=sharing), move it to the assets folder. Also, set **self.method = 'TL'** in `src/specificworker.py`
+
 
 ## Starting the component
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:

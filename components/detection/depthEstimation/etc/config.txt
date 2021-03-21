@@ -1,0 +1,10 @@
+# Endpoints for implements interfaces
+DepthEstimation.Endpoints=tcp -p 10100
+
+
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

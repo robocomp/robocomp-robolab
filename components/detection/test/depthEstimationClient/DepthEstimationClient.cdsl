@@ -1,0 +1,13 @@
+import "CameraSimple.idsl";
+import "DepthEstimationClient.idsl";
+import "DepthEstimation.idsl";
+
+Component DepthEstimationClient
+{
+    Communications
+    {
+        requires CameraSimple, DepthEstimation;
+		implements DepthEstimationClient;
+    };
+    language Python;
+};

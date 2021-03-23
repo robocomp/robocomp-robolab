@@ -1,0 +1,13 @@
+# Endpoints for implements interfaces
+DepthEstimationClient.Endpoints=tcp -p 10200
+
+
+# Proxies for required interfaces
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
+DepthEstimationProxy = depthestimation:tcp -h localhost -p 10100
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.Trace.Network=2

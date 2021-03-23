@@ -1,0 +1,10 @@
+import "DepthEstimation.idsl";
+
+Component DepthEstimation
+{
+    Communications
+    {
+        implements DepthEstimation;
+    };
+    language Python;
+};

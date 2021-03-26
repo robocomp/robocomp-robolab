@@ -5,18 +5,17 @@ JoyStick.Endpoints=tcp -p 15002
 CommonBehavior.Endpoints=tcp -p 25002
 
 # Remote servers proxies example
-OmniRobotProxy = omnirobot:tcp -h localhost -p 10004
-
+OmniRobotProxy = omnirobot:tcp -p  10004
 # User config parameters
 # Example = value
-Joy.Device = /dev/input/js0
-Joy.XMotionAxis = 0
+Joy.Device = /dev/input/js1
+Joy.ZMotionAxis = 0
 Joy.YMotionAxis = 1
-Joy.ZMotionAxis = 2
+Joy.XMotionAxis = 4
 Joy.SampleRate = 5
-Joy.MaxSteering = 0.3
-Joy.MaxAdvanceX = 200
-Joy.MaxAdvanceZ = 200
+Joy.MaxSteering =  2
+Joy.MaxAdvanceX = 400
+Joy.MaxAdvanceZ = 400
 
 # Component properties
 #

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -20,11 +20,10 @@
 /**
 * \brief Default constructor
 */
-GenericWorker::GenericWorker(MapPrx& mprx) :
-QObject()
+GenericWorker::GenericWorker(MapPrx& mprx) : QObject()
 {
 
-	omnirobot_proxy = (*(OmniRobotPrx*)mprx["OmniRobotProxy"]);
+	omnirobot_proxy = (*(RoboCompOmniRobot::OmniRobotPrx*)mprx["OmniRobotProxy"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 
@@ -55,4 +54,3 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
-

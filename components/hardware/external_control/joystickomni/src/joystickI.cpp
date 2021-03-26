@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -28,13 +28,14 @@ JoyStickI::~JoyStickI()
 {
 }
 
-void JoyStickI::writeJoyStickBufferedData(const JoyStickBufferedData  &gbd, const Ice::Current&)
-{
-	worker->JoyStick_writeJoyStickBufferedData(gbd);
-}
 
-void JoyStickI::readJoyStickBufferedData( JoyStickBufferedData  &gbd, const Ice::Current&)
+void JoyStickI::readJoyStickBufferedData(RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current&)
 {
 	worker->JoyStick_readJoyStickBufferedData(gbd);
+}
+
+void JoyStickI::writeJoyStickBufferedData(const RoboCompJoyStick::JoyStickBufferedData &gbd, const Ice::Current&)
+{
+	worker->JoyStick_writeJoyStickBufferedData(gbd);
 }
 

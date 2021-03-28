@@ -28,7 +28,7 @@
 #
 # \section interface_sec Interface
 #
-# Descroption of the interface provided...
+# Description of the interface provided...
 #
 # \section install_sec Installation
 #

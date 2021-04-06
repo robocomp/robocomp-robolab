@@ -201,7 +201,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                                                                                                                                            data.buttons.end())
                 {
                     dr->step = button.step;
-                    qDebug() << "Button " + QString::number(number) + ": " << value;
+                    qDebug() << "Button " + QString::number(number) + ": " << value << "name: " + QString::fromStdString(button.name);
                     sendEvent = true;
                 }
             }

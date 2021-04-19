@@ -39,47 +39,33 @@ curses.cbreak()
 # map arrow keys to special values
 screen.keypad(True)
  
-ROBOCOMP = ''
-
-try:
-    ROBOCOMP = os.environ['ROBOCOMP']
-except:
-    print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
-    ROBOCOMP = '/opt/robocomp'
-if len(ROBOCOMP)<1:
-    print ('genericworker.py: ROBOCOMP environment variable not set! Exiting.')
-    sys.exit()
-
-
-preStr = "-I"+ROBOCOMP+"/interfaces/ --all "+ROBOCOMP+"/interfaces/"
-Ice.loadSlice(preStr+"DifferentialRobot.ice")
-from RoboCompDifferentialRobot import *
-Ice.loadSlice(preStr+"Laser.ice")
-from RoboCompLaser import *
 
 class SpecificWorker(GenericWorker):
 
-    def __init__(self, proxy_map):
+    def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
         self.Period = 1
-        self.timer.start(self.Period)
-        self.adv = 0
-        self.rot = 0
-        self.tt1 = 2000
-        self.tt2 = 2
-        if pygame_flag:
-            pygame.init()
-            pygame.display.set_mode((1,1), pygame.NOFRAME)
-            screen.addstr(0,0,'Connected to robot. Use arrows (or) ASWD to control direction, Shift to speed up, space bar to stop ans ''q'' to exit')
-            self.adv_command = 'STOP'
-            self.rot_command = 'STOP'
+        if startup_check:
+            self.startup_check()
         else:
-            screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
-        screen.refresh()
+            self.timer.start(self.Period)
+            self.adv = 0
+            self.rot = 0
+            self.tt1 = 2000
+            self.tt2 = 2
+            if pygame_flag:
+                pygame.init()
+                pygame.display.set_mode((1,1), pygame.NOFRAME)
+                screen.addstr(0,0,'Connected to robot. Use arrows (or) ASWD to control direction, Shift to speed up, space bar to stop ans ''q'' to exit')
+                self.adv_command = 'STOP'
+                self.rot_command = 'STOP'
+            else:
+                screen.addstr(0,0,'Connected to robot. Use arrows to control speed, space bar to stop ans ''q'' to exit')
+            screen.refresh()
 
-        #tt1=input("max :")
-        #tt2=input("min :")
+            #tt1=input("max :")
+            #tt2=input("min :")
 
     def __del__(self):
         curses.nocbreak()
@@ -108,6 +94,9 @@ class SpecificWorker(GenericWorker):
                     sys.exit()
                 print(e)
         return True
+
+    def startup_check(self):
+        QTimer.singleShot(200, QApplication.instance().quit)
 
     def pygame_compute(self):
         # control algorithm for presence of pygame
@@ -234,4 +223,17 @@ class SpecificWorker(GenericWorker):
         return 0
 
 
+    ######################
+    # From the RoboCompDifferentialRobot you can call this methods:
+    # self.differentialrobot_proxy.correctOdometer(...)
+    # self.differentialrobot_proxy.getBasePose(...)
+    # self.differentialrobot_proxy.getBaseState(...)
+    # self.differentialrobot_proxy.resetOdometer(...)
+    # self.differentialrobot_proxy.setOdometer(...)
+    # self.differentialrobot_proxy.setOdometerPose(...)
+    # self.differentialrobot_proxy.setSpeedBase(...)
+    # self.differentialrobot_proxy.stopBase(...)
 
+    ######################
+    # From the RoboCompDifferentialRobot you can use this types:
+    # RoboCompDifferentialRobot.TMechParams

@@ -127,7 +127,7 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		params["joystickUniversal.Axis_" + s] = aux;
 		rDebug("joystickUniversal.Axis_"+QString::fromStdString(s)+" = " + QString::fromStdString(params.at("joystickUniversal.Axis_" + s).value));
 		QStringList list = QString::fromStdString(aux.value).split(",");
-		if (list.size() != 5)
+		if (list.size() != 6)
 			qFatal("joystickUniversalComp::Monitor::readConfig(): ERROR reading axis. Only %d parameters allowed %d.", list.size(), i);
 		
 		aux.value=list[0].toStdString();
@@ -145,6 +145,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 		aux.value=list[4].toStdString();
 		params["joystickUniversal.Axis_" + s +".Inverted"]= aux;
 		rDebug("joystickUniversal.Axis_"+s+".Inverted = "+ params["joystickUniversal.Axis_" + s +".Inverted"].value);
+        aux.value=list[5].toStdString();
+		params["joystickUniversal.Axis_" + s +".DeadZone"]= aux;
+		rDebug("joystickUniversal.Axis_"+s+".DeadZone = "+ params["joystickUniversal.Axis_" + s +".DeadZone"].value);
 
 	}
     for (int i=0; i < atoi(params.at("joystickUniversal.NumButtons").value.c_str()); i++)

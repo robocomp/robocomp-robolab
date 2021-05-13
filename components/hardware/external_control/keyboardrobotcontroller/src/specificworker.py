@@ -1,5 +1,7 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 #
-# Copyright (C) 2015 by YOUR NAME HERE
+#    Copyright (C) 2021 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -17,9 +19,19 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, Ice, traceback, curses
-from PySide2 import *
+import curses
+import traceback
+
+from PySide2.QtCore import QTimer
+from PySide2.QtWidgets import QApplication
+
 from genericworker import *
+
+# If RoboComp was compiled with Python bindings you can use InnerModel in Python
+sys.path.append('/opt/robocomp/lib')
+# import librobocomp_qmat
+# import librobocomp_osgviewer
+# import librobocomp_innermodel
 
 try:
     import pygame
@@ -45,6 +57,8 @@ class SpecificWorker(GenericWorker):
         # map arrow keys to special values
         self.screen.keypad(True)
         self.Period = 1
+        self.adv_command = 'STOP'
+        self.rot_command = 'STOP'
         if startup_check:
             self.startup_check()
         else:
@@ -74,7 +88,7 @@ class SpecificWorker(GenericWorker):
         pass
         # self.end_run()
 
-    def end_run(self):
+    def end_run(self, final_string):
         print("Ending...")
         try:
             if pygame_flag:
@@ -84,6 +98,7 @@ class SpecificWorker(GenericWorker):
                 curses.endwin()
                 curses.echo()
                 curses.nocbreak()
+            print(final_string)
             self.timer.stop()
             QtCore.QCoreApplication.instance().quit()
         except TypeError:
@@ -105,7 +120,7 @@ class SpecificWorker(GenericWorker):
             except Ice.Exception as e:
                 traceback.print_exc()
                 print(e)
-                self.end_run()
+                self.end_run("Could not connect to any differential robot proxy. Is the component or RCIS started?")
         return True
 
     def startup_check(self):
@@ -119,7 +134,7 @@ class SpecificWorker(GenericWorker):
             self.screen.clrtoeol()
             self.screen.addstr(2, 0, f'pygame compute {pygame.event.event_name(event.type)}')
             if event.type == QUIT:
-                self.end_run()
+                self.end_run("Terminado")
 
             if event.type == KEYDOWN:
                 self.screen.addstr(3, 0, f'Key: {pygame.key.name(event.key)}')
@@ -162,7 +177,7 @@ class SpecificWorker(GenericWorker):
                     self.rot_command = 'STOP'
 
                 if event.key == pygame.K_q or event.key == ord('q'):
-                    self.end_run()
+                    self.end_run("Terminado")
                 self.screen.addstr(5, 0, self.adv_command + ': ' + '%.2f' % self.adv)
                 self.screen.clrtoeol()
                 self.screen.addstr(6, 0, self.rot_command + ': ' + '%.2f' % self.rot)
@@ -235,7 +250,7 @@ class SpecificWorker(GenericWorker):
             return True
 
         elif key == ord('q'):
-            self.end_run()
+            self.end_run("Terminado")
         return 0
 
     ######################

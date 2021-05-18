@@ -14,7 +14,8 @@ SET ( HEADERS
     $ENV{ROBOCOMP}/classes/qjoystick/qjoystick.h
 )
 
+
 set(CMAKE_CXX_STANDARD 17)
-#set(SPECIFIC_LIBS Robocomp::qmat)
+set(SPECIFIC_LIBS Robocomp::qmat)
 #ADD_DEFINITIONS( -std=c++11 )
 

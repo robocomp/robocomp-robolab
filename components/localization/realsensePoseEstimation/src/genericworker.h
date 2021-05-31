@@ -50,7 +50,8 @@ public:
 
 	RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
 
-	virtual RoboCompFullPoseEstimation::FullPose FullPoseEstimation_getFullPose() = 0;
+	virtual RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimation_getFullPoseEuler() = 0;
+	virtual RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix() = 0;
 	virtual void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz) = 0;
 
 protected:

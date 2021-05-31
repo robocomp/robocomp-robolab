@@ -9,11 +9,11 @@ InnerModelPath = innermodel.xml
 JoystickAdapter=JoystickAdapter
 joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 5 
-joystickUniversal.Axis_0 = rotate, -1, 1, true  #left-right movement
-joystickUniversal.Axis_1 = advance, -1, 1, true  #front-left movement
-joystickUniversal.Axis_2 = gripper, -1, 1, true  #front-left movement
-joystickUniversal.Axis_3 = side, -1, 1, false  #front-left movement
-joystickUniversal.Axis_4 = tilt, -1, 1, false  #front-left movement
+joystickUniversal.Axis_0 = rotate, 0, -1, 1, true  #left-right movement
+joystickUniversal.Axis_1 = advance, 1, -1, 1, true  #front-left movement
+joystickUniversal.Axis_2 = gripper, 2, -1, 1, true  #front-left movement
+joystickUniversal.Axis_3 = side, 3, -1, 1, false  #front-left movement
+joystickUniversal.Axis_4 = tilt, 7, -1, 1, false  #front-left movement
 
 
 

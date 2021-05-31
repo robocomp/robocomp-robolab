@@ -29,9 +29,14 @@ FullPoseEstimationI::~FullPoseEstimationI()
 }
 
 
-RoboCompFullPoseEstimation::FullPose FullPoseEstimationI::getFullPose(const Ice::Current&)
+RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimationI::getFullPoseEuler(const Ice::Current&)
 {
-	return worker->FullPoseEstimation_getFullPose();
+	return worker->FullPoseEstimation_getFullPoseEuler();
+}
+
+RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimationI::getFullPoseMatrix(const Ice::Current&)
+{
+	return worker->FullPoseEstimation_getFullPoseMatrix();
 }
 
 void FullPoseEstimationI::setInitialPose(float x, float y, float z, float rx, float ry, float rz, const Ice::Current&)

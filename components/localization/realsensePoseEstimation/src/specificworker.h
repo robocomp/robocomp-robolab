@@ -38,12 +38,12 @@ class SpecificWorker : public GenericWorker
 {
 	Q_OBJECT
 	public:
-		SpecificWorker(TuplePrx tprx, bool startup_check);
+	    SpecificWorker(TuplePrx tprx, bool startup_check);
 		~SpecificWorker();
 		bool setParams(RoboCompCommonBehavior::ParameterList params);
 		rs2::device get_device(const std::string& serial_number);
-
-		RoboCompFullPoseEstimation::FullPose FullPoseEstimation_getFullPose();
+        RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix(){ return RoboCompFullPoseEstimation::FullPoseMatrix();};
+		RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimation_getFullPoseEuler();
 		void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
 
 public slots:
@@ -54,7 +54,7 @@ public slots:
 		std::string serial;
 		bool print_output = false;
 		mutable std::mutex bufferMutex;
-		RoboCompFullPoseEstimation::FullPose fullpose;
+		RoboCompFullPoseEstimation::FullPoseEuler fullpose;
 		// Declare RealSense pipeline, encapsulating the actual device and sensors
 		rs2::pipeline pipe;
 		// Create a configuration for configuring the pipeline with a non default profile

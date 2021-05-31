@@ -63,6 +63,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
 		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
 		aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
+		aux.dead_zone = QString::fromStdString(params["joystickUniversal.Axis_" + s +".DeadZone"].value).toFloat();
 		qDebug() << __FUNCTION__ << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
 		joystickParams.axes.push_back(aux);
 	}
@@ -175,7 +176,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 float normalized_value;
                 if (fabs(value) > JOYSTICK_CENTER)
                 {
-                    normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange);
+                    normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
                     if (axis.inverted) normalized_value *= -1;
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
                     {
@@ -212,14 +213,15 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 	}
 }
 
-float SpecificWorker::normalize(float X, float A, float B, float C, float D)
+// X value, min X value, max X value, min Y value, max y value, dead_zone in Y domain
+float SpecificWorker::normalize(float X, float A, float B, float C, float D, float dead_zone)
 {
 	QList<QPair<QPointF,QPointF> > intervals;
-	intervals.append(QPair<QPointF,QPointF>(QPointF(A,B),QPointF(C,D))); 
-	//qDebug() << __FUNCTION__ << intervals << "X" << X;
-
+	intervals.append(QPair<QPointF,QPointF>(QPointF(A,B),QPointF(C,D)));
 	QMat m = QMat::afinTransformFromIntervals( intervals );
-	return (m * QVec::vec2(X,1))[0];
+	auto res = (m * QVec::vec2(X,1))[0];
+	if(res < dead_zone and res > -dead_zone) res = 0;
+	return res;
 }
 
 ////////////////////////////////////////////////////////777

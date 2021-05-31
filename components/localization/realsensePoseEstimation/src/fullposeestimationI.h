@@ -33,7 +33,8 @@ public:
 	FullPoseEstimationI(GenericWorker *_worker);
 	~FullPoseEstimationI();
 
-	RoboCompFullPoseEstimation::FullPose getFullPose(const Ice::Current&);
+	RoboCompFullPoseEstimation::FullPoseEuler getFullPoseEuler(const Ice::Current&);
+	RoboCompFullPoseEstimation::FullPoseMatrix getFullPoseMatrix(const Ice::Current&);
 	void setInitialPose(float x, float y, float z, float rx, float ry, float rz, const Ice::Current&);
 
 private:

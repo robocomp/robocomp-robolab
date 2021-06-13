@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2015 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,10 +18,9 @@
  */
 #include "apriltagsI.h"
 
-AprilTagsI::AprilTagsI(GenericWorker *_worker, QObject *parent) : QObject(parent)
+AprilTagsI::AprilTagsI(GenericWorker *_worker)
 {
 	worker = _worker;
-	mutex = worker->mutex;       // Shared worker mutex
 }
 
 
@@ -29,13 +28,14 @@ AprilTagsI::~AprilTagsI()
 {
 }
 
-void AprilTagsI::newAprilTag(const tagsList  &tags, const Ice::Current&)
+
+void AprilTagsI::newAprilTag(const RoboCompAprilTags::tagsList &tags, const Ice::Current&)
 {
-	worker->newAprilTag(tags);
+	worker->AprilTags_newAprilTag(tags);
 }
 
-
-
-
-
+void AprilTagsI::newAprilTagAndPose(const RoboCompAprilTags::tagsList &tags, const RoboCompGenericBase::TBaseState &bState, const RoboCompJointMotor::MotorStateMap &hState, const Ice::Current&)
+{
+	worker->AprilTags_newAprilTagAndPose(tags, bState, hState);
+}
 

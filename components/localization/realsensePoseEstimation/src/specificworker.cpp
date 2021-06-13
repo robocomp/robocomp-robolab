@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check): GenericWorker(tprx)
 {
 	initialPose.set(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 }
@@ -63,8 +63,9 @@ void SpecificWorker::initialize(int period)
 		cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
 		// Start pipeline with chosen configuration
 		pipe.start(cfg);
-	}catch(...)
+	}catch(const std::exception& e)
 	{
+	    std::cout << e.what() << std::endl;
 		qFatal("Unable to open device, please check config file");
 	}
 	this->Period = 20;
@@ -113,7 +114,7 @@ void SpecificWorker::compute()
 	{ std::cout << "Exception publishing pose: "<<ex << std::endl;	}
 }
 
-RoboCompFullPoseEstimation::FullPose SpecificWorker::FullPoseEstimation_getFullPose()
+RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_getFullPoseEuler()
 {
 	std::lock_guard<std::mutex> lock(bufferMutex);
 	return fullpose;

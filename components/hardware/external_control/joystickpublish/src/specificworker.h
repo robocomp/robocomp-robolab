@@ -69,6 +69,7 @@ private:
 		int minRange;
 		int maxRange;
 		bool inverted;
+        float dead_zone;
 	};
 	struct buttonsParams
     {
@@ -91,7 +92,7 @@ private:
 	QJoyStick *joystick;
 	bool sendEvent;
 	bool active;
-	float normalize(float X, float A, float B, float C, float D);
+	float normalize(float X, float A, float B, float C, float D, float dead_zone);
 	joystickData joystickParams;
 };
 

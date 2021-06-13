@@ -2,15 +2,15 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -h 158.49.247.155 -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 InnerModelPath = innermodel.xml
 
 
 JoystickAdapter=JoystickAdapter
-joystickUniversal.Device = /dev/input/js1
+joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 4
-joystickUniversal.Axis_0 = rotate, 0, -10, 10, true  # degrees per second
+joystickUniversal.Axis_0 = rotate, 0, -10, 10, false  # degrees per second
 joystickUniversal.Axis_1 = advance, 1, -1000, 1000,  true  # mm por segundo
 joystickUniversal.Axis_2 = tilt, 2, -16, 16, true  #front-left movement
 joystickUniversal.Axis_3 = side, 3, -700, 700, false  #front-left movement

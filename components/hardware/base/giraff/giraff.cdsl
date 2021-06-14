@@ -1,0 +1,11 @@
+import "DifferentialRobot.idsl";
+
+Component giraff
+{
+    Communications
+    {
+        implements DifferentialRobot;
+    };
+    language Cpp11;
+};
+

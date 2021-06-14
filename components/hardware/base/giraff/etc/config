@@ -1,7 +1,7 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 111010
 
 # Endpoints for implements interfaces
-DifferentialRobot.Endpoints=tcp -p 0
+DifferentialRobot.Endpoints=tcp -p 1004
 
 
 
@@ -10,4 +10,4 @@ InnerModelPath = innermodel.xml
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
-Ice.MessageSizeMax=20004800
+

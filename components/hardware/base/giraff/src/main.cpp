@@ -81,6 +81,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <batterystatusI.h>
 #include <differentialrobotI.h>
 
 #include <GenericBase.h>
@@ -172,6 +173,24 @@ int ::giraff::run(int argc, char* argv[])
 
 		}
 
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "BatteryStatus.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy BatteryStatus";
+			}
+			Ice::ObjectAdapterPtr adapterBatteryStatus = communicator()->createObjectAdapterWithEndpoints("BatteryStatus", tmp);
+			auto batterystatus = std::make_shared<BatteryStatusI>(worker);
+			adapterBatteryStatus->add(batterystatus, Ice::stringToIdentity("batterystatus"));
+			adapterBatteryStatus->activate();
+			cout << "[" << PROGRAM_NAME << "]: BatteryStatus adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for BatteryStatus\n";
+		}
 
 
 		try

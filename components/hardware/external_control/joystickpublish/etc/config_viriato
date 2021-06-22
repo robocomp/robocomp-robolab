@@ -11,6 +11,7 @@ JoystickAdapter=JoystickAdapter
 joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 6
                           #name  axis min  max  inverted, dead_zone
+
 joystickUniversal.Axis_0 = rotate, 0, -1, 1, false, 0.05
 joystickUniversal.Axis_1 = advance, 1, -400, 400, true, 100
 joystickUniversal.Axis_2 = gripper, 2, -10, 10, true, 100

@@ -1,10 +1,11 @@
 import "DifferentialRobot.idsl";
+import "BatteryStatus.idsl";
 
 Component giraff
 {
     Communications
     {
-        implements DifferentialRobot;
+        implements DifferentialRobot, BatteryStatus;
     };
     language Cpp11;
 };

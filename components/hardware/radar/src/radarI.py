@@ -33,6 +33,9 @@ Ice.loadSlice("-I ./src/ --all ./src/Radar.ice")
 
 from RoboCompRadar import *
 
+a = RadarData()
+
+
 class RadarI(Radar):
     def __init__(self, worker):
         self.worker = worker

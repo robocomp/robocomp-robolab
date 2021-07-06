@@ -1,5 +1,5 @@
 # Endpoints for implements interfaces
-Radar.Endpoints=tcp -p 0
+Radar.Endpoints=tcp -p 11234
 
 
 

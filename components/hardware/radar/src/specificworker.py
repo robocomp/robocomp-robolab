@@ -21,6 +21,10 @@
 
 from rich.console import Console
 from genericworker import *
+import time
+import serial
+from RoboCompRadar import *
+
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -35,7 +39,20 @@ console = Console(highlight=False)
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 2000
+        self.Period = 2
+        self.distance=0.0
+
+        self.ser = serial.Serial(
+            port='/dev/ttyACM0',
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+            timeout=1
+        )
+        for i in range(5):
+            print(self.ser.readline())
+
         if startup_check:
             self.startup_check()
         else:
@@ -56,22 +73,10 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print('SpecificWorker.compute...')
-        pass
-        # computeCODE
-        # try:
-        #   self.differentialrobot_proxy.setSpeedBase(100, 0)
-        # except Ice.Exception as e:
-        #   traceback.print_exc()
-        #   print(e)
-
-        # The API of python-innermodel is not exactly the same as the C++ version
-        # self.innermodel.updateTransformValues('head_rot_tilt_pose', 0, 0, 0, 1.3, 0, 0)
-        # z = librobocomp_qmat.QVec(3,0)
-        # r = self.innermodel.transform('rgbd', z, 'laser')
-        # r.printvector('d')
-        # print(r[0], r[1], r[2])
-
+        stringDistance =self.ser.readline().decode(encoding="utf-8")
+        if len(stringDistance)>0:
+            self.distance = float(stringDistance)
+            print("x",type(self.distance),self.distance)
         return True
 
     def startup_check(self):
@@ -88,10 +93,8 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getData method from Radar interface
     #
     def Radar_getData(self):
-        ret = RoboCompRadar.RadarData()
-        #
-        # write your CODE here
-        #
+        ret = RadarData()
+        ret.distance=self.distance
         return ret
     # ===================================================================
     # ===================================================================

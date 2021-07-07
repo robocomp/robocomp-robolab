@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,17 +26,16 @@
 #include <config.h>
 #include "genericworker.h"
 
-using namespace RoboCompLaser;
 
 class LaserI : public virtual RoboCompLaser::Laser
 {
 public:
-LaserI(GenericWorker *_worker);
+	LaserI(GenericWorker *_worker);
 	~LaserI();
 
-	TLaserData getLaserData(const Ice::Current&);
-	LaserConfData getLaserConfData(const Ice::Current&);
-	TLaserData getLaserAndBStateData( RoboCompGenericBase::TBaseState  &bState, const Ice::Current&);
+	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&);
+	RoboCompLaser::LaserConfData getLaserConfData(const Ice::Current&);
+	RoboCompLaser::TLaserData getLaserData(const Ice::Current&);
 
 private:
 

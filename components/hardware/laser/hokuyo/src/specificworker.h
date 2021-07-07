@@ -39,13 +39,13 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(MapPrx& mprx);
+	SpecificWorker(MapPrx& mprx, bool startup_check);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	TLaserData Laser_getLaserData();
-	LaserConfData Laser_getLaserConfData();
-	TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
+	RoboCompLaser::TLaserData Laser_getLaserData();
+	RoboCompLaser::LaserConfData Laser_getLaserConfData();
+	RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
 
 public slots:
 	void compute();

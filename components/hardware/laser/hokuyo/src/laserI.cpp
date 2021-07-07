@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -28,18 +28,19 @@ LaserI::~LaserI()
 {
 }
 
-TLaserData LaserI::getLaserData(const Ice::Current&)
+
+RoboCompLaser::TLaserData LaserI::getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&)
 {
-	return worker->Laser_getLaserData();
+	return worker->Laser_getLaserAndBStateData(bState);
 }
 
-LaserConfData LaserI::getLaserConfData(const Ice::Current&)
+RoboCompLaser::LaserConfData LaserI::getLaserConfData(const Ice::Current&)
 {
 	return worker->Laser_getLaserConfData();
 }
 
-TLaserData LaserI::getLaserAndBStateData( RoboCompGenericBase::TBaseState  &bState, const Ice::Current&)
+RoboCompLaser::TLaserData LaserI::getLaserData(const Ice::Current&)
 {
-	return worker->Laser_getLaserAndBStateData(bState);
+	return worker->Laser_getLaserData();
 }
 

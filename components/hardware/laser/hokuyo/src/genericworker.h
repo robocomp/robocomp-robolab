@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -22,24 +22,20 @@
 #include "config.h"
 #include <stdint.h>
 #include <qlog/qlog.h>
-
 #include <CommonBehavior.h>
 
 #include <GenericBase.h>
 #include <Laser.h>
 
+
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-using namespace std;
-using namespace RoboCompGenericBase;
-using namespace RoboCompLaser;
 
 typedef map <string,::IceProxy::Ice::Object*> MapPrx;
 
 
-class GenericWorker :
-public QObject
+class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
@@ -52,11 +48,11 @@ public:
 	QMutex *mutex;
 
 
-	GenericBasePrx genericbase_proxy;
+	RoboCompGenericBase::GenericBasePrx genericbase_proxy;
 
-	virtual TLaserData Laser_getLaserData() = 0;
-	virtual LaserConfData Laser_getLaserConfData() = 0;
-	virtual TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
+	virtual RoboCompLaser::LaserConfData Laser_getLaserConfData() = 0;
+	virtual RoboCompLaser::TLaserData Laser_getLaserData() = 0;
 
 protected:
 
@@ -68,7 +64,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-    virtual void initialize(int period) = 0;
+	virtual void initialize(int period) = 0;
 	
 signals:
 	void kill();

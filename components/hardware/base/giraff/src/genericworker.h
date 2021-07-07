@@ -24,22 +24,23 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
+#include <BatteryStatus.h>
+#include <DifferentialRobot.h>
 #include <GenericBase.h>
-#include <Laser.h>
 
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
+using TuplePrx = std::tuple<>;
 
 
 class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx);
+	GenericWorker(TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
@@ -48,11 +49,16 @@ public:
 	QMutex *mutex;
 
 
-	RoboCompGenericBase::GenericBasePrx genericbase_proxy;
 
-	virtual RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState) = 0;
-	virtual RoboCompLaser::LaserConfData Laser_getLaserConfData() = 0;
-	virtual RoboCompLaser::TLaserData Laser_getLaserData() = 0;
+	virtual RoboCompBatteryStatus::TBattery BatteryStatus_getBatteryState() = 0;
+	virtual void DifferentialRobot_correctOdometer(int x, int z, float alpha) = 0;
+	virtual void DifferentialRobot_getBasePose(int &x, int &z, float &alpha) = 0;
+	virtual void DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state) = 0;
+	virtual void DifferentialRobot_resetOdometer() = 0;
+	virtual void DifferentialRobot_setOdometer(RoboCompGenericBase::TBaseState state) = 0;
+	virtual void DifferentialRobot_setOdometerPose(int x, int z, float alpha) = 0;
+	virtual void DifferentialRobot_setSpeedBase(float adv, float rot) = 0;
+	virtual void DifferentialRobot_stopBase() = 0;
 
 protected:
 

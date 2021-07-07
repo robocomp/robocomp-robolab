@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
+SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {
 
 }
@@ -99,17 +99,17 @@ void SpecificWorker::compute()
 }
 
 
-TLaserData SpecificWorker::Laser_getLaserData()
+RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserData()
 {
 	return lh->getNewData();
 }
 
-LaserConfData SpecificWorker::Laser_getLaserConfData()
+RoboCompLaser::LaserConfData SpecificWorker::Laser_getLaserConfData()
 {
 	return laserConf;
 }
 
-TLaserData SpecificWorker::Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
+RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
 {
 	bState = lh->getBaseState();
 	return lh->getNewData();

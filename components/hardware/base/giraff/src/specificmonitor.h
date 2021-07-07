@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,31 +16,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "laserI.h"
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-LaserI::LaserI(GenericWorker *_worker)
+#include "genericmonitor.h"
+
+/**
+       \brief
+       @author authorname
+*/
+class SpecificMonitor : public GenericMonitor
 {
-	worker = _worker;
-}
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+	
+	bool ready;
+};
 
-
-LaserI::~LaserI()
-{
-}
-
-
-RoboCompLaser::TLaserData LaserI::getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&)
-{
-	return worker->Laser_getLaserAndBStateData(bState);
-}
-
-RoboCompLaser::LaserConfData LaserI::getLaserConfData(const Ice::Current&)
-{
-	return worker->Laser_getLaserConfData();
-}
-
-RoboCompLaser::TLaserData LaserI::getLaserData(const Ice::Current&)
-{
-	return worker->Laser_getLaserData();
-}
-
+#endif // GENERICMONITOR_H

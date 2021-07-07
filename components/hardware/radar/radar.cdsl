@@ -1,0 +1,12 @@
+import "Radar.idsl";
+
+Component radar
+{
+    Communications
+    {
+        implements Radar;
+    };
+    language python;
+    gui Qt(QWidget);
+};
+

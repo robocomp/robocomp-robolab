@@ -16,26 +16,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LASER_H
-#define LASER_H
+#ifndef DIFFERENTIALROBOT_H
+#define DIFFERENTIALROBOT_H
 
 // Ice includes
 #include <Ice/Ice.h>
-#include <Laser.h>
+#include <DifferentialRobot.h>
 
 #include <config.h>
 #include "genericworker.h"
 
 
-class LaserI : public virtual RoboCompLaser::Laser
+class DifferentialRobotI : public virtual RoboCompDifferentialRobot::DifferentialRobot
 {
 public:
-	LaserI(GenericWorker *_worker);
-	~LaserI();
+	DifferentialRobotI(GenericWorker *_worker);
+	~DifferentialRobotI();
 
-	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&);
-	RoboCompLaser::LaserConfData getLaserConfData(const Ice::Current&);
-	RoboCompLaser::TLaserData getLaserData(const Ice::Current&);
+	void correctOdometer(int x, int z, float alpha, const Ice::Current&);
+	void getBasePose(int &x, int &z, float &alpha, const Ice::Current&);
+	void getBaseState(RoboCompGenericBase::TBaseState &state, const Ice::Current&);
+	void resetOdometer(const Ice::Current&);
+	void setOdometer(RoboCompGenericBase::TBaseState state, const Ice::Current&);
+	void setOdometerPose(int x, int z, float alpha, const Ice::Current&);
+	void setSpeedBase(float adv, float rot, const Ice::Current&);
+	void stopBase(const Ice::Current&);
 
 private:
 

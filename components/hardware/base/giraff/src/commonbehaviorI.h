@@ -41,7 +41,7 @@ public:
 	int timeAwake( const Ice::Current & = Ice::Current());
 	void killYourSelf( const Ice::Current & = Ice::Current());
 	RoboCompCommonBehavior::ParameterList getParameterList( const Ice::Current & = Ice::Current());
-	void setParameterList(const RoboCompCommonBehavior::ParameterList &l, const Ice::Current & = Ice::Current());
+	void setParameterList( RoboCompCommonBehavior::ParameterList l, const Ice::Current & = Ice::Current());
 	void reloadConfig( const Ice::Current& = Ice::Current());
 	RoboCompCommonBehavior::State getState(const Ice::Current& = Ice::Current());
 

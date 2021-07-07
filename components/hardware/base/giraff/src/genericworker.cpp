@@ -16,31 +16,40 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "laserI.h"
-
-LaserI::LaserI(GenericWorker *_worker)
+#include "genericworker.h"
+/**
+* \brief Default constructor
+*/
+GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
-	worker = _worker;
+
+
+	mutex = new QMutex(QMutex::Recursive);
+
+	Period = BASIC_PERIOD;
+	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+
 }
 
-
-LaserI::~LaserI()
+/**
+* \brief Default destructor
+*/
+GenericWorker::~GenericWorker()
 {
+
 }
-
-
-RoboCompLaser::TLaserData LaserI::getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&)
+void GenericWorker::killYourSelf()
 {
-	return worker->Laser_getLaserAndBStateData(bState);
+	rDebug("Killing myself");
+	emit kill();
 }
-
-RoboCompLaser::LaserConfData LaserI::getLaserConfData(const Ice::Current&)
+/**
+* \brief Change compute period
+* @param per Period in ms
+*/
+void GenericWorker::setPeriod(int p)
 {
-	return worker->Laser_getLaserConfData();
+	rDebug("Period changed"+QString::number(p));
+	Period = p;
+	timer.start(Period);
 }
-
-RoboCompLaser::TLaserData LaserI::getLaserData(const Ice::Current&)
-{
-	return worker->Laser_getLaserData();
-}
-

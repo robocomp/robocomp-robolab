@@ -5,7 +5,7 @@
 #define USE_QTGUI
 
 
-#define PROGRAM_NAME    "hokuyo"
-#define SERVER_FULL_NAME   "RoboComp hokuyo:: hokuyo"
+#define PROGRAM_NAME    "giraff"
+#define SERVER_FULL_NAME   "RoboComp giraff:: giraff"
 
 #endif

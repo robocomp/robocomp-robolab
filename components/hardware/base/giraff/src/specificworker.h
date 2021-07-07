@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2016 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,8 +18,8 @@
  */
 
 /**
-       \brief
-       @author authorname
+	\brief
+	@author authorname
 */
 
 
@@ -27,35 +27,35 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
-#include <constants.h>
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-#include <generichandler.h>
-#include <hokuyogenerichandler.h>
-#include <hokuyohandler.h>
-
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(MapPrx& mprx, bool startup_check);
+	SpecificWorker(TuplePrx tprx, bool startup_check);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	RoboCompLaser::TLaserData Laser_getLaserData();
-	RoboCompLaser::LaserConfData Laser_getLaserConfData();
-	RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
+	void DifferentialRobot_correctOdometer(int x, int z, float alpha);
+	void DifferentialRobot_getBasePose(int &x, int &z, float &alpha);
+	void DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state);
+	void DifferentialRobot_resetOdometer();
+	void DifferentialRobot_setOdometer(RoboCompGenericBase::TBaseState state);
+	void DifferentialRobot_setOdometerPose(int x, int z, float alpha);
+	void DifferentialRobot_setSpeedBase(float adv, float rot);
+	void DifferentialRobot_stopBase();
+
 
 public slots:
 	void compute();
-	void initialize(int period);    
-
+	int startup_check();
+	void initialize(int period);
 private:
-	std::shared_ptr<InnerModel> innerModel;
-	GenericLaserHandler *lh;
-	RoboCompLaser::LaserConfData laserConf;
+	std::shared_ptr < InnerModel > innerModel;
+	bool startup_check_flag;
+
 };
 
 #endif
-

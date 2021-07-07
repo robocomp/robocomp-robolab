@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::hokuyo
+/** \mainpage RoboComp::giraff
  *
  * \section intro_sec Introduction
  *
- * The hokuyo component...
+ * The giraff component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd hokuyo
+ * cd giraff
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/hokuyo --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/giraff --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,33 +81,35 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <laserI.h>
+#include <batterystatusI.h>
+#include <differentialrobotI.h>
+
+#include <GenericBase.h>
 
 
 
-
-class hokuyo : public RoboComp::Application
+class giraff : public RoboComp::Application
 {
 public:
-	hokuyo (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
+	giraff (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
-	MapPrx mprx;
+	TuplePrx tprx;
 	bool startup_check_flag = false;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void ::hokuyo::initialize()
+void ::giraff::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::hokuyo::run(int argc, char* argv[])
+int ::giraff::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -130,29 +132,12 @@ int ::hokuyo::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	RoboCompGenericBase::GenericBasePrx genericbase_proxy;
 
 	string proxy, tmp;
 	initialize();
 
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "GenericBaseProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GenericBaseProxy\n";
-		}
-		genericbase_proxy = RoboCompGenericBase::GenericBasePrx::uncheckedCast( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy GenericBase: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("GenericBaseProxy initialized Ok!");
-
-	mprx["GenericBaseProxy"] = (::IceProxy::Ice::Object*)(&genericbase_proxy);//Remote server proxy creation example
-
-	SpecificWorker *worker = new SpecificWorker(mprx, startup_check_flag);
+	tprx = std::tuple<>();
+	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
@@ -175,7 +160,7 @@ int ::hokuyo::run(int argc, char* argv[])
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 			}
 			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			auto commonbehaviorI = std::make_shared<CommonBehaviorI>(monitor);
 			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 			adapterCommonBehavior->activate();
 		}
@@ -193,18 +178,36 @@ int ::hokuyo::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "BatteryStatus.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy BatteryStatus";
 			}
-			Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
-			LaserI *laser = new LaserI(worker);
-			adapterLaser->add(laser, Ice::stringToIdentity("laser"));
-			adapterLaser->activate();
-			cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr adapterBatteryStatus = communicator()->createObjectAdapterWithEndpoints("BatteryStatus", tmp);
+			auto batterystatus = std::make_shared<BatteryStatusI>(worker);
+			adapterBatteryStatus->add(batterystatus, Ice::stringToIdentity("batterystatus"));
+			adapterBatteryStatus->activate();
+			cout << "[" << PROGRAM_NAME << "]: BatteryStatus adapter created in port " << tmp << endl;
 		}
 		catch (const IceStorm::TopicExists&){
-			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Laser\n";
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for BatteryStatus\n";
+		}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobot.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobot";
+			}
+			Ice::ObjectAdapterPtr adapterDifferentialRobot = communicator()->createObjectAdapterWithEndpoints("DifferentialRobot", tmp);
+			auto differentialrobot = std::make_shared<DifferentialRobotI>(worker);
+			adapterDifferentialRobot->add(differentialrobot, Ice::stringToIdentity("differentialrobot"));
+			adapterDifferentialRobot->activate();
+			cout << "[" << PROGRAM_NAME << "]: DifferentialRobot adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for DifferentialRobot\n";
 		}
 
 
@@ -286,7 +289,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::hokuyo app(prefix, startup_check_flag);
+	::giraff app(prefix, startup_check_flag);
 
 	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }

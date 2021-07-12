@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+import "CameraRGBDSimplePub.idsl";
+
+Component realsense_camera
+{
+	Communications
+	{
+		implements CameraRGBDSimple;
+		publishes CameraRGBDSimplePub;
+	};
+	language Cpp11;
+};
+

@@ -96,6 +96,9 @@ private:
             { }
     };
 
+    // Declare depth colorizer for pretty visualization of depth data
+    rs2::colorizer color_map;
+
     std::vector<filter_options> filters;
     rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
     rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing

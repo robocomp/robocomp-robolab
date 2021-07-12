@@ -38,6 +38,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
     display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
+    std::cout << "display_rgb " << display_depth << " display_depth " << display_rgb << std::endl;
     return true;
 }
 
@@ -66,19 +67,13 @@ void SpecificWorker::initialize(int period)
 
 	this->Period = period;
 	if(this->startup_check_flag)
-	{
 		this->startup_check();
-	}
 	else
-	{
 		timer.start(Period);
-	}
-
 }
 
 void SpecificWorker::compute()
 {
-
     rs2::frameset data = pipe.wait_for_frames();
     depth = data.get_depth_frame(); // Find and colorize the depth data
 
@@ -94,6 +89,19 @@ void SpecificWorker::compute()
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
     }
+    if (display_depth)
+    {
+        rs2::frame depth_color = depth.apply_filter(color_map);
+
+        // Query frame size (width and height)
+        const int w = depth.as<rs2::video_frame>().get_width();
+        const int h = depth.as<rs2::video_frame>().get_height();
+
+        cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
+        cv::imshow("DEPTH image", frame_depth);
+        cv::waitKey(1);
+    }
+
 }
 
 int SpecificWorker::startup_check()

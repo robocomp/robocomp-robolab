@@ -51,13 +51,24 @@ void SpecificWorker::initialize(int period)
         cfg.enable_device(serial);
         cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
         cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
-        //pipe(ctx);
-        pipe.start(cfg);
+        profile = pipe.start(cfg);
+
+        // Each depth camera might have different units for depth pixels, so we get it here
+        // Using the pipeline's profile, we can retrieve the device that the pipeline uses
+        depth_scale = get_depth_scale(profile.get_device());
+
+        // Create a rs2::align object.
+        align_to_rgb = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).stream_type();
+        align = std::make_unique<rs2::align>(align_to_rgb);
+
+        // Define a variable for controlling the distance to clip
+        float depth_clipping_distance = 10000.f;
+
         cam_intr = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
         depth_intr = pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
 
-        filters.emplace_back("Decimate", dec_filter);
-        //filters.emplace_back(disparity_filter_name, depth_to_disparity);
+        // filters.emplace_back("Decimate", dec_filter);
+        // filters.emplace_back(disparity_filter_name, depth_to_disparity);
         filters.emplace_back("Spatial", spat_filter);
         filters.emplace_back("Temporal", temp_filter);
         filters.emplace_back("HFilling", holef_filter);
@@ -74,28 +85,36 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    rs2::frameset data = pipe.wait_for_frames();
-    depth = data.get_depth_frame(); // Find and colorize the depth data
+    rs2::frameset frameset = pipe.wait_for_frames();
+
+    //Get processed aligned frame
+    auto processed = align->process(frameset);
+
+    // Trying to get both rgb and aligned depth frames
+    rgb_frame = processed.first(align_to_rgb);
+    depth_frame = processed.get_depth_frame();
+
+    //If one of them is unavailable, continue iteration
+    if (not depth_frame or not rgb_frame)
+        return;
 
     for (auto &&filter : filters)
         if (filter.is_enabled)
-            depth = filter.filter.process(depth);
-
-    rgb = data.get_color_frame(); // Find the color data
+            depth_frame = filter.filter.process(depth_frame);
 
     if (display_rgb)
     {
-        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb.get_data(), cv::Mat::AUTO_STEP);
+        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame.get_data(), cv::Mat::AUTO_STEP);
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
     }
     if (display_depth)
     {
-        rs2::frame depth_color = depth.apply_filter(color_map);
+        rs2::frame depth_color = depth_frame.apply_filter(color_map);
 
         // Query frame size (width and height)
-        const int w = depth.as<rs2::video_frame>().get_width();
-        const int h = depth.as<rs2::video_frame>().get_height();
+        const int w = depth_frame.as<rs2::video_frame>().get_width();
+        const int h = depth_frame.as<rs2::video_frame>().get_height();
 
         cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
         cv::imshow("DEPTH image", frame_depth);
@@ -104,6 +123,19 @@ void SpecificWorker::compute()
 
 }
 
+float SpecificWorker::get_depth_scale(rs2::device dev)
+{
+    // Go over the device's sensors
+    for (rs2::sensor& sensor : dev.query_sensors())
+    {
+        // Check if the sensor if a depth sensor
+        if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>())
+            return dpt.get_depth_scale();
+    }
+    throw std::runtime_error("Device does not have a depth sensor");
+}
+
+//////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
 	std::cout << "Startup check" << std::endl;
@@ -113,23 +145,39 @@ int SpecificWorker::startup_check()
 
 RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
 {
-//implementCODE
-
+//    RoboCompCameraRGBDSimple::TRGBD rgbd;
+//    auto rgb = rgb_frame.as<rs2::video_frame>();
+//    int width = rgb.get_width();
+//    int height = rgb.get_height();
+//    int rgb_bpp = rgb.get_bytes_per_pixel();
+//    const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
+//    uint8_t* p_rgb_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(rgb_frame.get_data()));
+//    int k = 0;
+//    for (int y = 0; y < height; y++)
+//    {
+//        auto depth_pixel_index = y * width;
+//        for (int x = 0; x < width; x++, ++depth_pixel_index)
+//        {
+//            // Get the depth value of the current pixel
+//            rgbd.depth.depth[k] = depth_scale * p_depth_frame[depth_pixel_index];
+//
+//            // Calculate the offset in rgb frame's buffer to current pixel
+//            auto offset = depth_pixel_index * rgb_bpp;
+//            rgbd.image.image[k] = p_rgb_frame[offset];
+//            k++;
+//        }
+//    }
 }
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
-//implementCODE
 
 }
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
-//implementCODE
 
 }
-
-
 
 /**************************************/
 // From the RoboCompCameraRGBDSimplePub you can publish calling this methods:

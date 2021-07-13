@@ -99,6 +99,7 @@ private:
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
 
+    // filters
     std::vector<filter_options> filters;
     rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
     rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing
@@ -109,8 +110,15 @@ private:
     const std::string disparity_filter_name = "Disparity";
 
     rs2::pipeline  pipe;
-    rs2::frame rgb;
-    rs2::frame depth;
+    rs2::frame rgb_frame, depth_frame;
+
+    std::unique_ptr<rs2::align> align;
+    rs2::pipeline_profile profile;
+    rs2_stream align_to_rgb;
+    float depth_scale;
+
+    float get_depth_scale(rs2::device dev);
+
 };
 
 #endif

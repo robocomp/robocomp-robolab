@@ -21,6 +21,8 @@
 
 from rich.console import Console
 from genericworker import *
+from .inference.ONNXAndTensorInference import PoseDetectionONNXTensorRT, PoseDetectionONNX
+from RoboCompPoseBasedGestureRecognition import *
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -35,41 +37,26 @@ console = Console(highlight=False)
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
+        self.timer.timeout.connect(self.compute)
         self.Period = 2000
-        if startup_check:
-            self.startup_check()
-        else:
-            pass
+        self.timer.start(self.Period)
+        #
+        # if torch.cuda.is_available():
+        # 	self.device = 'cuda:0'
+        # else:
+        # 	self,device = 'cpu'
+        self.weight = ""
 
-    def __del__(self):
-        console.print('SpecificWorker destructor')
+        # select inference model: pure pytorch, onnx, tensorrt
+        self.estimator = PoseDetectionONNXTensorRT(self.weight)
+
 
     def setParams(self, params):
-        # try:
-        #	self.innermodel = InnerModel(params["InnerModelPath"])
-        # except:
-        #	traceback.print_exc()
-        #	print("Error reading config params")
         return True
 
-
-
+    @QtCore.Slot()
     def compute(self):
         print('SpecificWorker.compute...')
-        while True: pass
-        # computeCODE
-        # try:
-        #   self.differentialrobot_proxy.setSpeedBase(100, 0)
-        # except Ice.Exception as e:
-        #   traceback.print_exc()
-        #   print(e)
-
-        # The API of python-innermodel is not exactly the same as the C++ version
-        # self.innermodel.updateTransformValues('head_rot_tilt_pose', 0, 0, 0, 1.3, 0, 0)
-        # z = librobocomp_qmat.QVec(3,0)
-        # r = self.innermodel.transform('rgbd', z, 'laser')
-        # r.printvector('d')
-        # print(r[0], r[1], r[2])
 
         return True
 
@@ -86,11 +73,15 @@ class SpecificWorker(GenericWorker):
     #
     # IMPLEMENTATION of getBodyAndHand method from PoseBasedGestureRecognition interface
     #
-    def PoseBasedGestureRecognition_getBodyAndHand(self, input):
-        ret = RoboCompPoseBasedGestureRecognition.GestureResult()
+    def PoseBasedGestureRecognition_getGesture(self, input):
+        ret = GestureResult()
         #
         # write your CODE here
         #
+        gestureProb, gestureIndex = self.estimator(input)
+        ret.gestureProb = gestureProb
+        ret.gestureIndex = gestureIndex
+
         return ret
     # ===================================================================
     # ===================================================================

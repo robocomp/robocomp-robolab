@@ -58,6 +58,7 @@
 import argparse
 # Ctrl+c handling
 import signal
+import sys, traceback, IceStorm, subprocess, threading, time, os, copy
 
 from rich.console import Console
 console = Console()
@@ -67,10 +68,10 @@ from specificworker import *
 
 #SIGNALS handler
 def sigint_handler(*args):
-    exit()
-
+    QtCore.QCoreApplication.quit()
 
 if __name__ == '__main__':
+    app = QtCore.QCoreApplication(sys.argv)
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
@@ -85,6 +86,12 @@ if __name__ == '__main__':
         print("Error getting required connections, check config file")
         sys.exit(-1)
 
+    # link ice with worker
     interface_manager.set_default_hanlder(worker)
     signal.signal(signal.SIGINT, sigint_handler)
+
+    # start no GUI application
+    app.exec_()
+
+    # free mem for inference
     interface_manager.destroy()

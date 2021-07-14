@@ -38,5 +38,5 @@ class PoseBasedGestureRecognitionI(PoseBasedGestureRecognition):
         self.worker = worker
 
 
-    def getBodyAndHand(self, input, c):
-        return self.worker.PoseBasedGestureRecognition_getBodyAndHand(input)
+    def getGesture(self, input, c):
+        return self.worker.PoseBasedGestureRecognition_getGesture(input)

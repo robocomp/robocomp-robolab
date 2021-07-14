@@ -57,7 +57,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
+	this->Period = 50;
 	if(this->startup_check_flag)
 	{
 		this->startup_check();

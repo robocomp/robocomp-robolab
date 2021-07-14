@@ -118,7 +118,9 @@ private:
     float depth_scale;
 
     float get_depth_scale(rs2::device dev);
-
+    RoboCompCameraRGBDSimple::TRGBD create_trgbd();
+    mutable std::mutex swap_mutex;
+    RoboCompCameraRGBDSimple::TRGBD rgbd;
 };
 
 #endif

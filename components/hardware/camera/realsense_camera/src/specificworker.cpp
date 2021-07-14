@@ -102,6 +102,8 @@ void SpecificWorker::compute()
         if (filter.is_enabled)
             depth_frame = filter.filter.process(depth_frame);
 
+    rgbd = create_trgbd();
+
     if (display_rgb)
     {
         cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame.get_data(), cv::Mat::AUTO_STEP);
@@ -135,6 +137,56 @@ float SpecificWorker::get_depth_scale(rs2::device dev)
     throw std::runtime_error("Device does not have a depth sensor");
 }
 
+RoboCompCameraRGBDSimple::TRGBD SpecificWorker::create_trgbd()
+{
+    RoboCompCameraRGBDSimple::TRGBD rgbd;
+    auto rgb = rgb_frame.as<rs2::video_frame>();
+    int width = rgb.get_width();
+    int height = rgb.get_height();
+    int rgb_bpp = rgb.get_bytes_per_pixel();
+    rgbd.image.image.resize(width*height*rgb_bpp);
+    rgbd.image.depth = rgb_bpp;
+    rgbd.image.width = width;
+    rgbd.image.height = height;
+    rgbd.image.cameraID = 0;
+    rgbd.image.focalx = cam_intr.fx;
+    rgbd.image.focaly = cam_intr.fy;
+    rgbd.image.alivetime = 0;
+
+    rgbd.depth.depth.resize(width*height*4);
+    rgbd.depth.width = width;
+    rgbd.depth.height = height;
+    rgbd.depth.cameraID = 0;
+    rgbd.depth.focalx = depth_intr.fx;
+    rgbd.depth.focaly = depth_intr.fy;
+    rgbd.depth.alivetime = 0;
+
+    const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
+    uint8_t* p_rgb_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(rgb_frame.get_data()));
+    int k=0;
+    for (int y = 0; y < height; y++)
+    {
+        auto depth_pixel_index = y * width;
+        for (int x = 0; x < width; x++, ++depth_pixel_index)
+        {
+            // Get the depth value of the current pixel
+            const float real_depth = depth_scale * p_depth_frame[depth_pixel_index];
+            const std::uint8_t *d = reinterpret_cast<uint8_t const *>(&real_depth);
+            rgbd.depth.depth[k] = d[0];
+            rgbd.depth.depth[k+1] = d[1];
+            rgbd.depth.depth[k+2] = d[2];
+            rgbd.depth.depth[k+3] = d[3];
+            k += 4;
+            // Calculate the offset in rgb frame's buffer to current pixel
+            auto offset = depth_pixel_index * rgb_bpp;
+            rgbd.image.image[offset] = p_rgb_frame[offset];
+            rgbd.image.image[offset+1] = p_rgb_frame[offset+1];
+            rgbd.image.image[offset+2] = p_rgb_frame[offset+2];
+        }
+    }
+    const std::lock_guard<std::mutex> lg(swap_mutex);
+    return rgbd;
+}
 //////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
@@ -142,31 +194,11 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
-
+////////////////////////////////////////////////////////////////////////////
 RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
 {
-//    RoboCompCameraRGBDSimple::TRGBD rgbd;
-//    auto rgb = rgb_frame.as<rs2::video_frame>();
-//    int width = rgb.get_width();
-//    int height = rgb.get_height();
-//    int rgb_bpp = rgb.get_bytes_per_pixel();
-//    const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
-//    uint8_t* p_rgb_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(rgb_frame.get_data()));
-//    int k = 0;
-//    for (int y = 0; y < height; y++)
-//    {
-//        auto depth_pixel_index = y * width;
-//        for (int x = 0; x < width; x++, ++depth_pixel_index)
-//        {
-//            // Get the depth value of the current pixel
-//            rgbd.depth.depth[k] = depth_scale * p_depth_frame[depth_pixel_index];
-//
-//            // Calculate the offset in rgb frame's buffer to current pixel
-//            auto offset = depth_pixel_index * rgb_bpp;
-//            rgbd.image.image[k] = p_rgb_frame[offset];
-//            k++;
-//        }
-//    }
+    const std::lock_guard<std::mutex> lg(swap_mutex);
+    return rgbd;
 }
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)

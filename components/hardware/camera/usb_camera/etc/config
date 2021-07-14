@@ -1,0 +1,9 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Endpoints for implements interfaces
+CameraSimple.Endpoints=tcp -p 10096
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

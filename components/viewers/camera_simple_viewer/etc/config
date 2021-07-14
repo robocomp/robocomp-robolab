@@ -1,7 +1,7 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 11010
 
 # Proxies for required interfaces
-CameraSimpleProxy = camerasimple:tcp -h localhost -p 11060
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10096 
 
 
 

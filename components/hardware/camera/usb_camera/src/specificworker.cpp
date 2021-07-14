@@ -59,7 +59,9 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    capture >> frame;
+    my_mutex.lock();
+        capture >> frame;
+    my_mutex.unlock();
     cv::imshow("USB Camera", frame);
     cv::waitKey(2); // waits to display frame
 }
@@ -67,10 +69,14 @@ void SpecificWorker::compute()
 
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
-
-
+    std::lock_guard<std::mutex> lg(my_mutex);
+    RoboCompCameraSimple::TImage res;
+    res.depth = 3;
+    res.height = frame.rows;
+    res.width = frame.cols;
+    res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    return res;
 }
-
 
 ///////////////////////////////////////////////////////////////////77
 int SpecificWorker::startup_check()

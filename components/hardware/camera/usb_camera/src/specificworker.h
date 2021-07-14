@@ -49,6 +49,7 @@ public slots:
 
 private:
 	bool startup_check_flag;
+	std::mutex my_mutex;
 
 	cv::VideoCapture capture;
 	cv::Mat frame;

@@ -50,11 +50,6 @@ void SpecificWorker::initialize(int period)
         cfg.enable_device(serial);
         cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
         profile = pipe.start(cfg);
-
-        // Each depth camera might have different units for depth pixels, so we get it here
-        // Using the pipeline's profile, we can retrieve the device that the pipeline uses
-        depth_scale = get_depth_scale(profile.get_device());
-
         depth_intr = pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
 
         rs2_error** error;
@@ -85,12 +80,14 @@ void SpecificWorker::compute()
     if (not depth_frame)
         return;
 
-    bool revert_disparity = false;
     for (auto &&filter : filters)
-            depth_frame = filter.filter.process(depth_frame);
+        depth_frame = filter.filter.process(depth_frame);
 
     auto points = pointcloud.calculate(depth_frame);
-    auto ldata = compute_laser(points);
+
+    my_mutex.lock();
+        ldata = compute_laser(points);
+    my_mutex.unlock();
 
     if (true)
     {
@@ -105,27 +102,7 @@ void SpecificWorker::compute()
         cv::waitKey(1);
     }
 
-    cv::Mat laser_img(cv::Size(400, 400), CV_8UC3);
-    laser_img = cv::Scalar(255,255,255);
-    float scale = 100;
-    float x = ldata.front().dist * sin(ldata.front().angle) * scale + 200;
-    float y = 400 - ldata.front().dist * cos(ldata.front().angle) * scale;
-    cv::line(laser_img, cv::Point{200,400}, cv::Point(x,y), cv::Scalar(0,200,0));
-    for(auto &&l : iter::sliding_window(ldata, 2))
-    {
-        float x1 = l[0].dist * sin(l[0].angle) * scale + 200;
-        float y1 = 400 - l[0].dist * cos(l[0].angle) * scale;
-        float x2 = l[1].dist * sin(l[1].angle) * scale + 200;
-        float y2 = 400 - l[1].dist * cos(l[1].angle) * scale;
-        cv::line(laser_img, cv::Point{x1,y1}, cv::Point(x2,y2), cv::Scalar(0,200,0));
-    }
-    x = ldata.back().dist * sin(ldata.back().angle) * scale + 200;
-    y = 400 - ldata.back().dist * cos(ldata.back().angle) * scale;
-    cv::line(laser_img, cv::Point(x,y), cv::Point(200,400), cv::Scalar(0,200,0));
-
-    cv::imshow("Laser", laser_img);
-    cv::waitKey(2);
-
+    draw_laser(ldata);
     fps.print("FPS: ");
 }
 
@@ -134,7 +111,8 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const rs2::points &point
     const int MAX_LASER_BINS = 100;
     const float TOTAL_HOR_ANGLE = 1.04;  // rads para 60º
     using Point = std::tuple<float, float, float>;
-    auto cmp = [](Point a, Point b) {
+    auto cmp = [](Point a, Point b)
+    {
         auto &[ax, ay, az] = a;
         auto &[bx, by, bz] = b;
         return (ax * ax + ay * ay + az * az) < (bx * bx + by * by + bz * bz);
@@ -142,13 +120,22 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const rs2::points &point
     std::vector<std::set<Point, decltype(cmp) >> hor_bins(MAX_LASER_BINS);
 
     const rs2::vertex *vertices = points.get_vertices();
+    float coseno = cos(-M_PI / 7.0);
+    float seno = sin(-M_PI / 7.0);
+    //coseno = 1; seno = 0;
+    float h_offset = 0;
     for (size_t i = 0; i < points.size(); i++)
     {
         if(vertices[i].z >= 0.1)
         {
-            float xv = vertices[i].x;
+//          float xv = vertices[i].x;
+//          float yv = vertices[i].y;
+//          float zv = vertices[i].z;
+
+            float xv = coseno * vertices[i].x - seno * vertices[i].z + h_offset;
+            float zv = seno * vertices[i].x + coseno * vertices[i].z;
             float yv = vertices[i].y;
-            float zv = vertices[i].z;
+
             if (fabs(yv) < 0.2)
             {
                 float hor_angle = atan2(xv, zv);
@@ -177,18 +164,29 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const rs2::points &point
     return ldata;
 }
 
-float SpecificWorker::get_depth_scale(rs2::device dev)
+void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
-    // Go over the device's sensors
-    for (rs2::sensor& sensor : dev.query_sensors())
+    cv::Mat laser_img(cv::Size(400, 400), CV_8UC3);
+    laser_img = cv::Scalar(255,255,255);
+    float scale = 100;
+    float x = ldata.front().dist * sin(ldata.front().angle) * scale + 200;
+    float y = 400 - ldata.front().dist * cos(ldata.front().angle) * scale;
+    cv::line(laser_img, cv::Point{200,400}, cv::Point(x,y), cv::Scalar(0,200,0));
+    for(auto &&l : iter::sliding_window(ldata, 2))
     {
-        // Check if the sensor if a depth sensor
-        if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>())
-            return dpt.get_depth_scale();
+        int x1 = l[0].dist * sin(l[0].angle) * scale + 200;
+        int y1 = 400 - l[0].dist * cos(l[0].angle) * scale;
+        int x2 = l[1].dist * sin(l[1].angle) * scale + 200;
+        int y2 = 400 - l[1].dist * cos(l[1].angle) * scale;
+        cv::line(laser_img, cv::Point{x1,y1}, cv::Point(x2,y2), cv::Scalar(0,200,0));
     }
-    throw std::runtime_error("Device does not have a depth sensor");
-}
+    x = ldata.back().dist * sin(ldata.back().angle) * scale + 200;
+    y = 400 - ldata.back().dist * cos(ldata.back().angle) * scale;
+    cv::line(laser_img, cv::Point(x,y), cv::Point(200,400), cv::Scalar(0,200,0));
 
+    cv::imshow("Laser", laser_img);
+    cv::waitKey(2);
+}
 ///////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
@@ -200,20 +198,18 @@ int SpecificWorker::startup_check()
 ////////////////////////////////////////////////////////////////////////////////
 RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
 {
-
-
+    qWarning() << __FUNCTION__ << "Not implemented";
 }
 
 RoboCompLaser::LaserConfData SpecificWorker::Laser_getLaserConfData()
 {
-//implementCODE
-
+    qWarning() << __FUNCTION__ << "Not implemented";
 }
 
 RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserData()
 {
-//implementCODE
-
+    std::lock_guard<std::mutex> lg(my_mutex);
+    return ldata;
 }
 
 

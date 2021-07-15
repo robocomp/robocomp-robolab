@@ -104,23 +104,18 @@ private:
     rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing
     rs2::temporal_filter temp_filter;
     rs2::hole_filling_filter holef_filter;
-    rs2::disparity_transform depth_to_disparity;
-    rs2::disparity_transform disparity_to_depth;
-    const std::string disparity_filter_name = "Disparity";
-
     rs2::pipeline  pipe;
-
-    std::unique_ptr<rs2::align> align;
     rs2::pipeline_profile profile;
-    rs2_stream align_to_rgb;
     rs2::pointcloud pointcloud;
 
-    float depth_scale;
+    RoboCompLaser::TLaserData ldata;
 
-    float get_depth_scale(rs2::device dev);
     FPSCounter fps;
 
     RoboCompLaser::TLaserData compute_laser(const rs2::points &points);
+    void draw_laser(const RoboCompLaser::TLaserData &ldata);
+
+    std::mutex my_mutex;
 };
 
 #endif

@@ -1,5 +1,5 @@
 # Endpoints for implements interfaces
-BodyHandJointsDetector.Endpoints=tcp -p 0
+BodyHandJointsDetector.Endpoints=tcp -p 11000
 
 
 

@@ -25,7 +25,7 @@ class HandPoseDetector:
             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
         # return results.multi_hand_landmarks[0],results.multi_handedness[0]
-        return image, results.multi_hand_landmarks
+        return image, results
 
     def __delete__(self):
         self.hands.close()

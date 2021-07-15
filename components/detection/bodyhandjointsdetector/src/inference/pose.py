@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import torch
 from .constant import *
 try:
     from pose_extractor import extract_poses
@@ -79,7 +78,7 @@ class Pose:
 
     def parser_pose(self, paf, heatmap):
         # get pose list ([keypoints x 3], and prob)
-        self.poses_list, self.poses_prob = parse_poses((paf, heatmap), self.image_scale)
+        self.poses_list, self.poses_prob = parse_poses((paf, heatmap))
         self.hand_window = []
         self.head_window = []
         # get the best pose to index 0
@@ -88,6 +87,29 @@ class Pose:
 
             # get the hand and head window 0
             self.get_hand_head_window()
+
+    def postprocess_pose(self, hand_pose):
+        # normalize position of hand -> 0 -> 1
+        best_body_pose = np.array(self.poses_list[0], np.float)[:,:2] / FIX_SIZE
+
+        left_hand = None
+        right_hand = None
+
+        # TODO: post process for join index here.
+        if hand_pose is not None and hand_pose.multi_hand_landmarks:
+            for i,hand in enumerate(hand_pose.multi_hand_landmarks):
+                if hand_pose.multi_handedness[i] == "Left":
+                    left_hand = np.array([[pose.x, pose.y]for pose in hand.landmark], np.float)
+                elif hand_pose.multi_handedness[i] == "Right":
+                    right_hand = np.array([[[pose.x, pose.y]for pose in hand.landmark]], np.float)
+
+        if left_hand is None:
+            left_hand = np.zeros((21,2))
+        if right_hand is None:
+            right_hand = np.zeros((21,2))
+
+        return np.concatenate(best_body_pose, left_hand, right_hand, axis = 0)
+
 
     def get_best_pose(self):
         # get only the biggest pose of image

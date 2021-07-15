@@ -23,6 +23,7 @@ from rich.console import Console
 from genericworker import *
 from RoboCompBodyHandJointsDetector import *
 from .inference.ONNXAndTensorInference import BodyDetectorONNXInference, BodyDetectorONNXTensorRTInference
+import numpy as np
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -49,7 +50,6 @@ class SpecificWorker(GenericWorker):
 
         # init TensorRT inference model.
         # self.estimator = BodyDetectorONNXTensorRTInference(self.weight)
-        # self.estimator = BodyDetectorONNXTensorRTInference(self.weight)
 
     def __del__(self):
         console.print('SpecificWorker destructor')
@@ -66,24 +66,21 @@ class SpecificWorker(GenericWorker):
         time.sleep(0.2)
         exit()
 
-
-
     # =============== Methods for Component Implements ==================
     # ===================================================================
 
     #
     # IMPLEMENTATION of getBodyAndHand method from BodyHandJointsDetector interface
     #
-    def BodyHandJointsDetector_getBodyAndHand(self, image):
-        full_body = TFullBody()
-        # TODO: parsing image.
-        body_skeleton, hand_skeleton = self.estimator(image)
+    def BodyHandJointsDetector_getBodyAndHand(self, init_data):
+        # parsing image.
+        arr = np.fromstring(init_data.image, np.uint8)
+        frame = np.reshape(arr, (init_data.height, init_data.width, init_data.depth))
 
-        # TODO: parsing output, full body points -> decrease the complex of output structure.
-        full_body.body = body_skeleton
-        full_body.hand = ListHands(hand_skeleton)
+        body = self.estimator(frame)
 
-        return full_body
+
+        return ListFullBody(body)
     # ===================================================================
     # ===================================================================
 

@@ -42,7 +42,7 @@ class BodyDetectorONNXInference:
         if hand_images is not None:
             _, hand_skeleton = self.hand_model(hand_images)
 
-        return self.pose_parser.poses_list, hand_skeleton
+        return self.pose_parser.postprocess_pose(hand_skeleton)
 
 
 class BodyDetectorONNXTensorRTInference:
@@ -72,7 +72,7 @@ class BodyDetectorONNXTensorRTInference:
         if hand_images is not None:
             _, hand_skeleton = self.hand_model(hand_images)
 
-        return self.pose_parser.poses_list, hand_skeleton
+        return self.pose_parser.postprocess_pose(hand_skeleton)
 
 
 

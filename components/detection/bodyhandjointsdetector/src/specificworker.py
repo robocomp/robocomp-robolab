@@ -79,7 +79,6 @@ class SpecificWorker(GenericWorker):
 
         body = self.estimator(frame)
 
-
         return ListFullBody(body)
     # ===================================================================
     # ===================================================================
@@ -88,8 +87,6 @@ class SpecificWorker(GenericWorker):
     ######################
     # From the RoboCompBodyHandJointsDetector you can use this types:
     # RoboCompBodyHandJointsDetector.TImage
-    # RoboCompBodyHandJointsDetector.THand
     # RoboCompBodyHandJointsDetector.TBody
-    # RoboCompBodyHandJointsDetector.TFullBody
 
 

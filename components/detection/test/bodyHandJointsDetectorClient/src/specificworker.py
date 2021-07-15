@@ -59,8 +59,7 @@ class SpecificWorker(GenericWorker):
         self.timer.start(self.Period)
         # self.visualizer = Visualizer()
         self.cam_timer = Timer(fps=30)
-        self.pose_timer = Timer(fps=10)
-        self.inference_timer = Timer(fps=10)
+        self.pose_timer = Timer(fps=20)
         self.print_timer = Timer(fps=0.5)
 
     def __del__(self):
@@ -85,13 +84,12 @@ class SpecificWorker(GenericWorker):
                 print(e)
 
         if self.pose_timer.isReady(now):
-            body, hand = self.bodyhandjointsdetector_proxy.getBodyAndHand(
-                self.img_restored.data, [self.camera_image.width, self.camera_image.height, self.camera_image.depth])
+            list_body = self.bodyhandjointsdetector_proxy.getBodyAndHand(self.camera_image)
 
-            self.body, self.hand = self.postProcess(body, hand)
 
         # TODO visual
         # if cam_ready:
+        #     best_body = list_body[0]
         #     self.visualizer.add_img(self.img_restored)
         #     if self.skeleton2d is not None:
         #         self.visualizer.add_point_2d(self.body, (255, 0, 0))
@@ -114,9 +112,7 @@ class SpecificWorker(GenericWorker):
     ######################
     # From the RoboCompBodyHandJointsDetector you can use this types:
     # RoboCompBodyHandJointsDetector.TImage
-    # RoboCompBodyHandJointsDetector.THand
     # RoboCompBodyHandJointsDetector.TBody
-    # RoboCompBodyHandJointsDetector.TFullBody
 
     ######################
     # From the RoboCompCameraSimple you can call this methods:

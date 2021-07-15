@@ -35,14 +35,29 @@ import RoboCompCommonBehavior
 
 
 
-class GenericWorker():
-
+class GenericWorker(QtCore.QObject):
+    kill = QtCore.Signal()
 
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
         self.bodyhandjointsdetector_proxy = mprx["BodyHandJointsDetectorProxy"]
         self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+        self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
+        self.Period = 30
+        self.timer = QtCore.QTimer(self)
+
+    @QtCore.Slot()
+    def killYourSelf(self):
+        self.kill.emit()
+
+    # \brief Change compute period
+    # @param per Period in ms
+    @QtCore.Slot(int)
+    def setPeriod(self, p):
+        print("Period changed", p)
+        Period = p
+        self.timer.start(Period)
 
 
 

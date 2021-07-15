@@ -19,7 +19,6 @@
 
 /**
 	\brief
-     RealSense D435 stereo camera RGBD server
 	@author authorname
 */
 
@@ -34,6 +33,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cppitertools/enumerate.hpp>
 #include <opencv2/opencv.hpp>
+#include <fps/fps.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -43,9 +43,9 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	RoboCompCameraRGBDSimple::TRGBD CameraRGBDSimple_getAll(std::string camera);
-	RoboCompCameraRGBDSimple::TDepth CameraRGBDSimple_getDepth(std::string camera);
-	RoboCompCameraRGBDSimple::TImage CameraRGBDSimple_getImage(std::string camera);
+	RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
+	RoboCompLaser::LaserConfData Laser_getLaserConfData();
+	RoboCompLaser::TLaserData Laser_getLaserData();
 
 public slots:
 	void compute();
@@ -55,7 +55,7 @@ public slots:
 private:
 	bool startup_check_flag;
 
-	// camera
+    // camera
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     std::string serial;
     bool display_rgb = false;
@@ -75,18 +75,18 @@ private:
             std::atomic_bool is_enabled;                               //A boolean controlled by the user that determines whether to apply the filter or not
 
             filter_options( const std::string name, rs2::filter &flt) :
-                            filter_name(name),
-                            filter(flt),
-                            is_enabled(true)
+                    filter_name(name),
+                    filter(flt),
+                    is_enabled(true)
             {
                 const std::array<rs2_option, 5> possible_filter_options =
-                {
-                        RS2_OPTION_FILTER_MAGNITUDE,
-                        RS2_OPTION_FILTER_SMOOTH_ALPHA,
-                        RS2_OPTION_MIN_DISTANCE,
-                        RS2_OPTION_MAX_DISTANCE,
-                        RS2_OPTION_FILTER_SMOOTH_DELTA
-                };
+                        {
+                                RS2_OPTION_FILTER_MAGNITUDE,
+                                RS2_OPTION_FILTER_SMOOTH_ALPHA,
+                                RS2_OPTION_MIN_DISTANCE,
+                                RS2_OPTION_MAX_DISTANCE,
+                                RS2_OPTION_FILTER_SMOOTH_DELTA
+                        };
             }
             filter_options(filter_options&& other) :
                     filter_name(std::move(other.filter_name)),
@@ -109,17 +109,18 @@ private:
     const std::string disparity_filter_name = "Disparity";
 
     rs2::pipeline  pipe;
-    rs2::frame rgb_frame, depth_frame;
 
     std::unique_ptr<rs2::align> align;
     rs2::pipeline_profile profile;
     rs2_stream align_to_rgb;
+    rs2::pointcloud pointcloud;
+
     float depth_scale;
 
     float get_depth_scale(rs2::device dev);
-    RoboCompCameraRGBDSimple::TRGBD create_trgbd();
-    mutable std::mutex swap_mutex;
-    RoboCompCameraRGBDSimple::TRGBD rgbd;
+    FPSCounter fps;
+
+    RoboCompLaser::TLaserData compute_laser(const rs2::points &points);
 };
 
 #endif

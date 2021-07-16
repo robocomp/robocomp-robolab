@@ -36,37 +36,21 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//	THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
-
-
-
-
-
-
 	return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
+
+    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(50);
+
 	this->Period = 50;
 	if(this->startup_check_flag)
-	{
 		this->startup_check();
-	}
 	else
-	{
 		timer.start(Period);
-	}
-
 }
 
 void SpecificWorker::compute()
@@ -74,18 +58,12 @@ void SpecificWorker::compute()
 	try
 	{
 		auto image = this->camerasimple_proxy->getImage();
-
-		cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+        cv::Mat frame = cv::imdecode(image.image, cv::IMREAD_UNCHANGED);
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
 	}
 	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
-	
-	
-	
+	{ std::cerr << e.what() << '\n'; }
 }
 
 int SpecificWorker::startup_check()
@@ -94,8 +72,6 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
-
-
 
 
 /**************************************/

@@ -60,6 +60,13 @@ private:
 
     FPSCounter fps;
 
+    struct PARAMS
+    {
+        std::string device = "/dev/video0";
+        bool display = false;
+    };
+    PARAMS pars;
+
 };
 
 #endif

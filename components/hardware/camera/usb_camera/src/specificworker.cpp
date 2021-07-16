@@ -36,15 +36,22 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-
-	return true;
+    try
+    {
+        pars.device  = params.at("device").value;
+        pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
+        std::cout << "Params: device" << pars.device << " display " << pars.display << std::endl;
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what() << " Error reading config params" << std::endl;};
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	if( auto success = capture.open("/dev/video0"); success != true)
+	if( auto success = capture.open(pars.device); success != true)
     {
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
@@ -63,25 +70,33 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
-        qInfo() << frame.total() * frame.elemSize();
         cv::imencode(".jpg", frame, buffer, compression_params);
-        qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
     my_mutex.unlock();
-    cv::imshow("USB Camera", frame);
-    cv::waitKey(2); // waits to display frame
 
-    fps.print("FPS:");
+    if(pars.display)
+    {
+        cv::imshow("USB Camera", frame);
+        cv::waitKey(2); // waits to display frame
+    }
+
+    fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
+    //fps.print("");
+
 }
 /////////////////////////////////////////////////////////////////////
 
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
+    qInfo() << __FUNCTION__ << "hola";
     std::lock_guard<std::mutex> lg(my_mutex);
     RoboCompCameraSimple::TImage res;
     res.depth = 3;
     res.height = frame.rows;
     res.width = frame.cols;
-    res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    // res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    res.image = buffer;
+
+    // res.compress = true;
     return res;
 }
 

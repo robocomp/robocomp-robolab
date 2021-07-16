@@ -49,6 +49,8 @@ void SpecificWorker::initialize(int period)
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
     }
+    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(50);
 
 	this->Period = 50;
 	if(this->startup_check_flag)
@@ -61,9 +63,14 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
+        qInfo() << frame.total() * frame.elemSize();
+        cv::imencode(".jpg", frame, buffer, compression_params);
+        qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
     my_mutex.unlock();
     cv::imshow("USB Camera", frame);
     cv::waitKey(2); // waits to display frame
+
+    fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
 

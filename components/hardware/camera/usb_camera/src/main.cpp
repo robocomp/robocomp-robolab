@@ -152,9 +152,11 @@ int ::usb_camera::run(int argc, char* argv[])
 
 	try
 	{
-		try {
+		try
+		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, ""))
+			{
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 			}
 			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
@@ -170,7 +172,6 @@ int ::usb_camera::run(int argc, char* argv[])
 			cout << ex;
 
 		}
-
 
 
 		try

@@ -11,6 +11,9 @@ SET ( HEADERS
 )
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
+set(CMAKE_CXX_STANDARD 20)
+
+add_definitions(-g -march=native  -fmax-errors=5 )
 
 
 SET (LIBS ${LIBS}  )

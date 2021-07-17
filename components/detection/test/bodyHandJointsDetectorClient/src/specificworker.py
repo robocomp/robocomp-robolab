@@ -23,7 +23,9 @@ from rich.console import Console
 from genericworker import *
 from RoboCompBodyHandJointsDetector import *
 import traceback
+import cv2
 import numpy as np
+from image_utils import draw_pose
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -57,10 +59,10 @@ class SpecificWorker(GenericWorker):
         self.timer.timeout.connect(self.compute)
         self.Period = 2000
         self.timer.start(self.Period)
-        # self.visualizer = Visualizer()
         self.cam_timer = Timer(fps=30)
-        self.pose_timer = Timer(fps=20)
+        self.pose_timer = Timer(fps=30)
         self.print_timer = Timer(fps=0.5)
+        self.capL = cv2.VideoCapture(0)
 
     def __del__(self):
         console.print('SpecificWorker destructor')
@@ -73,27 +75,24 @@ class SpecificWorker(GenericWorker):
         now = current_milli_time()
         cam_ready = self.cam_timer.isReady(now)
         if cam_ready:
-            try:
-                self.camera_image = self.camerasimple_proxy.getImage()
-                arr = np.fromstring(self.camera_image.image, np.uint8)
-                self.img_restored = np.reshape(arr, (self.camera_image.width,
-                                                     self.camera_image.height,
-                                                     self.camera_image.depth))
-            except Ice.Exception as e:
-                traceback.print_exc()
-                print(e)
+            retL, self.frameL = self.capL.read()
 
         if self.pose_timer.isReady(now):
-            list_body = self.bodyhandjointsdetector_proxy.getBodyAndHand(self.camera_image)
+            start_time = time.time()
+            input = TImage()
+            input.image = self.frameL
+            input.height, input.width, input.depth = self.frameL.shape
+            list_body = self.bodyhandjointsdetector_proxy.getBodyAndHand(input)
+            print("inference time %0.4f"%((time.time() - start_time)/1000))
 
 
         # TODO visual
-        # if cam_ready:
-        #     best_body = list_body[0]
-        #     self.visualizer.add_img(self.img_restored)
-        #     if self.skeleton2d is not None:
-        #         self.visualizer.add_point_2d(self.body, (255, 0, 0))
-        #     self.visualizer.show_all_imgs(pause=False)
+        if cam_ready:
+            best_body = np.array(list_body[0].keyPoints)
+            best_body = np.reshape(best_body, (61,2))
+            draw_pose(self.frameL, best_body)
+            cv2.imshow("visual", self.frameL)
+
 
         return True
 

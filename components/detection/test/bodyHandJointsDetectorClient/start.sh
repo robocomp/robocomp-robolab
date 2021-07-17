@@ -5,15 +5,15 @@ if [ -z "$ROBOCOMP" ]; then
   exit;
 fi
 
-COMPONENTS=$ROBOCOMP/components/robocomp-robolab/components
+COMPONENTS=/home/trung/work/robocomp_example/robocomp-robolab/components
 
 runPythonComponent() {
-  comp=$COMPONENTS/$1
+  comp=$COMPONENTS/$1/$2
   config_path=$comp/etc/config
-  python2 $comp/src/$1.py --Ice.Config=$config_path
+  python $comp/src/$2.py $config_path
 }
 
-runPythonComponent camerasimple & \
+runPythonComponent hardware/camera camerasimple & \
 sleep 3 && \
-runPythonComponent BodyHandJointsDetector & \
-sleep 10 && echo "===============activityRecognition=================" && \
+runPythonComponent detection BodyHandJointsDetector & \
+sleep 10 && echo "===============activityRecognition================="

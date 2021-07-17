@@ -63,7 +63,7 @@ class SpecificWorker(GenericWorker):
 
 
         # Display the resulting frame
-        cv2.imshow('frameL',self.frameL)
+        # cv2.imshow('frameL',self.frameL)
         return True
 
     def startup_check(self):

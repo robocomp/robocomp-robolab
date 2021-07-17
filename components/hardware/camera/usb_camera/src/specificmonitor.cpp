@@ -94,6 +94,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","display", aux.value, "false");
     params["display"] = aux;
 
+    configGetString( "","compressed", aux.value, "false");
+    params["compressed"] = aux;
 }
 
 //Check parameters and transform them to worker structure

@@ -64,6 +64,7 @@ private:
     {
         std::string device = "/dev/video0";
         bool display = false;
+        bool compressed = false;
     };
     PARAMS pars;
 

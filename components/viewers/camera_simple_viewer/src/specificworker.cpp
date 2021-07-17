@@ -58,7 +58,11 @@ void SpecificWorker::compute()
 	try
 	{
 		auto image = this->camerasimple_proxy->getImage();
-        cv::Mat frame = cv::imdecode(image.image, cv::IMREAD_UNCHANGED);
+		cv::Mat frame;
+		if(image.compressed)
+            frame = cv::imdecode(image.image, cv::IMREAD_UNCHANGED);
+		else
+            frame = cv::Mat(image.width, image.height, CV_8UC3, &image.image[0]);
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
 	}

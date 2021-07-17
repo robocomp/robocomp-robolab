@@ -5,6 +5,7 @@ CameraSimple.Endpoints=tcp -p 10096 -z
 
 device = /dev/video0
 display = true
+compressed = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

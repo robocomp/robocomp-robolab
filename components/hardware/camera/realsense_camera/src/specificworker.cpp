@@ -203,12 +203,14 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
-
+    const std::lock_guard<std::mutex> lg(swap_mutex);
+    return rgbd.depth;
 }
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
-
+    const std::lock_guard<std::mutex> lg(swap_mutex);
+    return rgbd.image;
 }
 
 /**************************************/

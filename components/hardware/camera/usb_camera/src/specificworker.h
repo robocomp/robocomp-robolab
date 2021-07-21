@@ -31,6 +31,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include <fps/fps.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -53,6 +54,19 @@ private:
 
 	cv::VideoCapture capture;
 	cv::Mat frame;
+
+    vector<int> compression_params;
+    vector<uchar> buffer;
+
+    FPSCounter fps;
+
+    struct PARAMS
+    {
+        std::string device = "/dev/video0";
+        bool display = false;
+        bool compressed = false;
+    };
+    PARAMS pars;
 
 };
 

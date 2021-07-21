@@ -36,19 +36,29 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-
-	return true;
+    try
+    {
+        pars.device  = params.at("device").value;
+        pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
+        pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << std::endl;
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what() << " Error reading config params" << std::endl;};
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	if( auto success = capture.open("/dev/video0"); success != true)
+	if( auto success = capture.open(pars.device); success != true)
     {
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
     }
+    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(50);
 
 	this->Period = 50;
 	if(this->startup_check_flag)
@@ -61,20 +71,35 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
+        if(pars.compressed)
+            cv::imencode(".jpg", frame, buffer, compression_params);
     my_mutex.unlock();
-    cv::imshow("USB Camera", frame);
-    cv::waitKey(2); // waits to display frame
+
+    if(pars.display)
+    {
+        cv::imshow("USB Camera", frame);
+        cv::waitKey(2); // waits to display frame
+    }
+
+    fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
+    //fps.print("");
+
 }
 /////////////////////////////////////////////////////////////////////
 
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
+    qInfo() << __FUNCTION__ << "hola";
     std::lock_guard<std::mutex> lg(my_mutex);
     RoboCompCameraSimple::TImage res;
-    res.depth = 3;
+    res.depth = frame.channels();
     res.height = frame.rows;
     res.width = frame.cols;
-    res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    res.compressed = pars.compressed;
+    if(res.compressed)
+        res.image = buffer;
+    else
+        res.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
     return res;
 }
 

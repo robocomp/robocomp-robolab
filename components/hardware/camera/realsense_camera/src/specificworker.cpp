@@ -72,6 +72,7 @@ void SpecificWorker::initialize(int period)
         filters.emplace_back("Spatial", spat_filter);
         filters.emplace_back("Temporal", temp_filter);
         filters.emplace_back("HFilling", holef_filter);
+        
     }
     catch(std::exception &e)
     { std::cout<<e.what()<<std::endl; }
@@ -160,6 +161,7 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::create_trgbd()
     rgbd.depth.focalx = depth_intr.fx;
     rgbd.depth.focaly = depth_intr.fy;
     rgbd.depth.alivetime = 0;
+    rgbd.depth.depthFactor = depth_scale;
 
     const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
     uint8_t* p_rgb_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(rgb_frame.get_data()));

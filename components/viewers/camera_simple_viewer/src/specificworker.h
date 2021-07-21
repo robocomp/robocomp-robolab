@@ -47,10 +47,13 @@ public slots:
 	void compute();
 	int startup_check();
 	void initialize(int period);
+
 private:
 	std::shared_ptr < InnerModel > innerModel;
 	bool startup_check_flag;
 
+    vector<int> compression_params;
+    vector<uchar> buffer;
 };
 
 #endif

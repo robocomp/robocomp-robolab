@@ -36,15 +36,27 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-
-	return true;
+    try
+    {
+        pars.device  = params.at("device").value;
+        pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
+        pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << std::endl;
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what() << " Error reading config params" << std::endl;};
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+<<<<<<< HEAD
 	if( auto success = capture.open("/dev/video2"); success != true)
+=======
+	if( auto success = capture.open(pars.device); success != true)
+>>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
     {
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
@@ -63,6 +75,7 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
+<<<<<<< HEAD
         //qInfo() << frame.total() * frame.elemSize();
         cv::imencode(".jpg", frame, buffer, compression_params);
         //qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
@@ -73,20 +86,44 @@ void SpecificWorker::compute()
     //cv::waitKey(2); // waits to display frame
 
     //fps.print("FPS:");
+=======
+        if(pars.compressed)
+            cv::imencode(".jpg", frame, buffer, compression_params);
+    my_mutex.unlock();
+
+    if(pars.display)
+    {
+        cv::imshow("USB Camera", frame);
+        cv::waitKey(2); // waits to display frame
+    }
+
+    fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
+    //fps.print("");
+
+>>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
 }
 /////////////////////////////////////////////////////////////////////
 
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
+    qInfo() << __FUNCTION__ << "hola";
     std::lock_guard<std::mutex> lg(my_mutex);
     RoboCompCameraSimple::TImage res;
-    res.depth = 3;
+    res.depth = frame.channels();
     res.height = frame.rows;
     res.width = frame.cols;
+<<<<<<< HEAD
     res.compressed=true;
     //res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
     res.image.assign(buffer.begin(), buffer.end());
     //copy(buffer.begin(),buffer.end(),res.image.begin());
+=======
+    res.compressed = pars.compressed;
+    if(res.compressed)
+        res.image = buffer;
+    else
+        res.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
+>>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
     return res;
 }
 

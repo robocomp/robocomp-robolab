@@ -1,11 +1,19 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 12096
 
 # Endpoints for implements interfaces
+<<<<<<< HEAD
 CameraSimple.Endpoints=tcp -p 10195
 
 
 
 InnerModelPath = innermodel.xml
+=======
+CameraSimple.Endpoints=tcp -p 10096 -z
+
+device = /dev/video0
+display = true
+compressed = true
+>>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

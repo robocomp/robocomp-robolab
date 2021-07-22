@@ -44,7 +44,7 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	if( auto success = capture.open("/dev/video0"); success != true)
+	if( auto success = capture.open("/dev/video2"); success != true)
     {
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
@@ -63,14 +63,16 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
-        qInfo() << frame.total() * frame.elemSize();
+        //qInfo() << frame.total() * frame.elemSize();
         cv::imencode(".jpg", frame, buffer, compression_params);
-        qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
+        //qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
     my_mutex.unlock();
-    cv::imshow("USB Camera", frame);
-    cv::waitKey(2); // waits to display frame
+    //cv::imshow("USB Camera", frame);
+    //cv::Mat dest=cv::imdecode(buffer, -1);
+   // cv::imshow("USB Camera comprimido", dest);
+    //cv::waitKey(2); // waits to display frame
 
-    fps.print("FPS:");
+    //fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -81,7 +83,10 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
     res.depth = 3;
     res.height = frame.rows;
     res.width = frame.cols;
-    res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    res.compressed=true;
+    //res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
+    res.image.assign(buffer.begin(), buffer.end());
+    //copy(buffer.begin(),buffer.end(),res.image.begin());
     return res;
 }
 

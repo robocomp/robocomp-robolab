@@ -1,5 +1,6 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2021 by Alejandro Torrejon Harto
+ *    Date: 26/07/2021
  *
  *    This file is part of RoboComp
  *
@@ -24,7 +25,6 @@
 * \brief Default constructor
 */
 
-const char* PORT={"/dev/ttyACM0"};
 //////////////////////////////Open port/////////////////////////////////////////
 std::unique_ptr<RealSenseID::FaceAuthenticator> CreateAuthenticator(const char* port)
 {
@@ -53,11 +53,21 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+    RealSenseFaceID_stopPreview();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	return true;
+	try
+    {
+        pars.device  = params.at("device").value;
+        pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
+        pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << std::endl;
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what() << " Error reading config params" << std::endl;};
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
@@ -66,10 +76,13 @@ void SpecificWorker::initialize(int period)
 
     RealSenseID::PreviewConfig config;
     this->preview = std::make_unique<RealSenseID::Preview>(config);
-    this->preview_callback = std::make_unique<PreviewRender>();
+    this->preview_callback = std::make_unique<PreviewRender>(&my_mutex); 
 
+    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION); 
+    compression_params.push_back(3); 
+    RealSenseFaceID_startPreview(); 
 
-	this->Period = period;
+    this->Period = 1000; 
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -83,8 +96,32 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	;
-	
+ 
+
+if (false){
+    RoboCompRealSenseFaceID::UserDataList usersList; 
+    usersList=RealSenseFaceID_authenticate(); 
+    //¿Hay usuarios?
+    if (!usersList.empty()){ 
+        RoboCompRealSenseFaceID::UserData user=usersList.at(0); 
+        std::cout<<user.userAuthenticated<<std::endl; 
+        try { 
+            auto image = CameraSimple_getImage(); 
+            if (image.compressed){ 
+                cv::Mat frameCompr=cv::imdecode(image.image, -1); 
+                cv::imshow(user.userAuthenticated, frameCompr); 
+            } 
+            else{ 
+                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP); 
+                cv::imshow(user.userAuthenticated, frame); 
+            } 
+            cv::waitKey(1); 
+            } 
+        catch(const std::exception& e) 
+        { 
+            std::cerr << e.what() << '\n'; 
+        } 
+    } }
 }
 
 int SpecificWorker::startup_check()
@@ -97,42 +134,68 @@ int SpecificWorker::startup_check()
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
     RoboCompCameraSimple::TImage frame;
-    PreviewRender preview;
-    preview=*preview_callback;
-    frame.width =preview.frame.width;
-    frame.height =preview.frame.height;
-    frame.depth=3;
-    for (int i =0;i<preview.frame.size;i++){
-        frame.image.emplace_back(preview.frame.buffer[i]);
-    }
+
+    if(preview_callback->frame.buffer != NULL) 
+        {
+        cv::Mat matResize;
+        frame.depth=3; 
+        frame.compressed=pars.compressed;
+        my_mutex.lock();
+            cv::Mat auxMat(preview_callback->frame.height, preview_callback->frame.width, CV_8UC3, preview_callback->frame.buffer);
+            cv::resize(auxMat,matResize,cv::Size(352,640));
+            if(pars.display){   
+                cv::imshow("F455", matResize);
+                //cv::waitKey(1);
+            }
+            
+            frame.height = matResize.rows;
+            frame.width = matResize.cols;
+        my_mutex.unlock();
+        if (frame.compressed){  
+            cv::imencode(".png",matResize , buffer, compression_params);
+            qInfo() << "raw: " << auxMat.total() * auxMat.elemSize() << "compressed: " << buffer.size() << " Ratio:" << auxMat.total() * auxMat.elemSize()/buffer.size(); 
+            frame.image.assign(buffer.begin(), buffer.end());   
+        }
+        else {
+            frame.image.assign(matResize.data, matResize.data + (matResize.total() * matResize.elemSize()));
+        } 
+        
+    } 
+    else{ 
+        frame.width =0; 
+        frame.height =0; 
+        frame.depth=0; 
+        frame.compressed=false; 
+        qInfo()<<"Sin imagen";
+    } 
     return frame;
-}
+} 
 
 RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_authenticate()
 {
-//implementCODE
 	RoboCompRealSenseFaceID::UserDataList dataList;
     RoboCompRealSenseFaceID::UserData data;
-	auto authenticator = CreateAuthenticator(PORT);
+	auto authenticator = CreateAuthenticator(pars.device.c_str());
     MyAuthClbk auth_clbk;
     auto status = authenticator->Authenticate(auth_clbk);
 	if (status != RealSenseID::Status::Ok)
     {
         std::cout << "Status: " << status << std::endl << std::endl;
     }
-	data.userAuthenticated=auth_clbk.userAuthenticated;
-    dataList.emplace_back(data);
+    if (auth_clbk.userAuthenticated!="Unknown"){
+        data.userAuthenticated=auth_clbk.userAuthenticated;
+        dataList.emplace_back(data);
+    } 
 	return dataList;
 }
 
 bool SpecificWorker::RealSenseFaceID_enroll(std::string user)
 {
-//implementCODE
 
     if (user.size()>RealSenseID::FaceAuthenticator::MAX_USERID_LENGTH){
         return false;
     }
-	auto authenticator = CreateAuthenticator(PORT);
+	auto authenticator = CreateAuthenticator(pars.device.c_str());
     MyEnrollClbk enroll_clbk;
     
     auto status = authenticator->Enroll(enroll_clbk, user.c_str());
@@ -152,7 +215,7 @@ bool SpecificWorker::RealSenseFaceID_enroll(std::string user)
 
 bool SpecificWorker::RealSenseFaceID_eraseAll()
 {
-	auto authenticator = CreateAuthenticator(PORT);
+	auto authenticator = CreateAuthenticator(pars.device.c_str());
     auto auth_status = authenticator->RemoveAll();
     std::cout << "Final status:" << auth_status << std::endl << std::endl;
     if (auth_status != RealSenseID::Status::Ok)
@@ -164,7 +227,7 @@ bool SpecificWorker::RealSenseFaceID_eraseAll()
 
 bool SpecificWorker::RealSenseFaceID_eraseUser(std::string user)
 {
-	auto authenticator = CreateAuthenticator(PORT);
+	auto authenticator = CreateAuthenticator(pars.device.c_str());
     auto auth_status = authenticator->RemoveUser(user.c_str());
     std::cout << "Final status:" << auth_status << std::endl << std::endl;
     if (auth_status != RealSenseID::Status::Ok)
@@ -179,7 +242,7 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_getQueryUs
 {
 	RoboCompRealSenseFaceID::UserDataList dataList;
     RoboCompRealSenseFaceID::UserData data;
- 	auto authenticator = CreateAuthenticator(PORT);
+ 	auto authenticator = CreateAuthenticator(pars.device.c_str());
 
     unsigned int number_of_users = 0;
     auto status = authenticator->QueryNumberOfUsers(number_of_users);
@@ -237,9 +300,7 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_getQueryUs
 
 bool SpecificWorker::RealSenseFaceID_startPreview()
 {
-//implementCODEs
     return this->preview->StartPreview(*preview_callback);
-
 }
 
 
@@ -247,9 +308,7 @@ bool SpecificWorker::RealSenseFaceID_startPreview()
 
 bool SpecificWorker::RealSenseFaceID_stopPreview()
 {
-//implementCODE
     return this->preview->StopPreview();
-
 }
 
 /**************************************/

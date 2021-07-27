@@ -8,8 +8,7 @@ from .constant import *
 
 def preprocess_tensor(image):
     x_data = image.astype('f')
-    x_data /= 255
-    x_data -= 0.5
+    x_data = (x_data/255) * 2 -1
     x_data = x_data.transpose(3, 0, 1, 2)
     x_data = x_data[None,:,:,:,:] # 1 x 3 x n x h x w
     return x_data
@@ -23,10 +22,15 @@ class ImageBasedRecognitionONNXInference:
     def __call__(self, images):
         batch_image = []
         # preprocess image
-        height, width, _ = images[0].shape # get shape from an image.
-        for img in images:
-            batch_image.append(self.preprocess(img)[None,:,:,:])
+        num_frames, height, width, channels = images.shape # get shape from an image.
+        for i in range(num_frames):
+            if i < MAX_FRAMES:
+                batch_image.append(self.preprocess(images[i])[None,:,:,:])
         image = np.concatenate(batch_image, axis= 0)
+
+        if num_frames < MAX_FRAMES:
+            image = np.concatenate([image, np.zeros([MAX_FRAMES - num_frames, height, width, channels])], axis=0)
+
         image = preprocess_tensor(image)
 
         # inference sequence of image

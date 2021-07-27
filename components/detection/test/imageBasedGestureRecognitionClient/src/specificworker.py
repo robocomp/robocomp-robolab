@@ -62,6 +62,9 @@ class SpecificWorker(GenericWorker):
         self.inference_timer = Timer(fps=10)
         self.print_timer = Timer(fps=0.5)
 
+        self.max_num_images = 64
+        self.list_frames = []
+
     def __del__(self):
         console.print('SpecificWorker destructor')
 
@@ -72,19 +75,16 @@ class SpecificWorker(GenericWorker):
         now = current_milli_time()
         cam_ready = self.cam_timer.isReady(now)
         if cam_ready:
-            try:
-                self.camera_image = self.camerasimple_proxy.getImage()
-                arr = np.fromstring(self.camera_image.image, np.uint8)
-                self.img_restored = np.reshape(arr, (
-                    self.camera_image.width, self.camera_image.height, self.camera_image.depth))
-            except Ice.Exception as e:
-                traceback.print_exc()
-                print(e)
+            retL, self.frameL = self.capL.read()
+            self.list_frames.append(self.frameL)
 
-        if self.inference_timer.isReady(now):
-            #TODO: preprocess to TVideo type
-            labels, probs = self.imagebasedgesturerecognition_proxy.getGesture(
-                self.img_restored.data, [self.camera_image.width, self.camera_image.height, self.camera_image.depth])
+        if self.inference_timer.isReady(now) and len(self.list_frames) > self.max_num_images:
+            input = TVideo()
+            input.image = np.stack(self.list_frames, axis=0)
+            input.height, input.width, input.depth = self.list_frames[0].shape
+            input.numFrames = len(self.list_frames)
+
+            labels, probs = self.imagebasedgesturerecognition_proxy.getGesture(input)
 
             print(labels)
 

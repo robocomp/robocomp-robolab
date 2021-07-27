@@ -22,8 +22,10 @@
 from rich.console import Console
 from genericworker import *
 from RoboCompImageBasedGestureRecognition import *
+import numpy as np
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
+
 
 from .inference.ONNXAndTensorInference import ImageBasedRecognitionONNXInference, ImageBasedRecognitionONNXInference
 
@@ -71,10 +73,12 @@ class SpecificWorker(GenericWorker):
     #
     # IMPLEMENTATION of getGesture method from ImageBasedGestureRecognition interface
     #
-    def ImageBasedGestureRecognition_getGesture(self, video):
+    def ImageBasedGestureRecognition_getGesture(self, init_data):
         ret = GestureResult()
+        arr = np.fromstring(init_data.image, np.uint8)
+        videos = np.reshape(arr, (init_data.num_frames, init_data.height, init_data.width, init_data.depth))
         # TODO: preprocess TVIDEO input data
-        gestureProb, gestureIndex = self.estimator(video)
+        gestureProb, gestureIndex = self.estimator(videos)
         ret.gestureProb = gestureProb
         ret.gestureIndex = gestureIndex
 

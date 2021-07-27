@@ -24,8 +24,9 @@ from rich.console import Console
 from genericworker import *
 from interfaces import ListFullBody, Points
 from RoboCompBodyHandJointsDetector import *
-# from inference.ONNXAndTensorInference import BodyDetectorONNXInference, BodyDetectorONNXTensorRTInference
-from inference.ONNXAndTensorInference import BodyDetectorONNXInference
+from inference.onnx_inference import PoseDetectionONNX
+# from inference.onnx_with_tensorrt import PoseDetectionONNXTensorRT
+from inference.ONNXAndTensorInference import BodyDetectorOpticalFlow
 import numpy as np
 import cv2
 
@@ -50,7 +51,7 @@ class SpecificWorker(GenericWorker):
         self.weight = "src/_model/bodypose_light.onnx"
 
         # init ONNX inference model.
-        self.estimator = BodyDetectorONNXInference(self.weight)
+        self.estimator = BodyDetectorOpticalFlow(PoseDetectionONNX(self.weight), is_optical_flow=True)
 
         # init TensorRT inference model.
         # self.estimator = BodyDetectorONNXTensorRTInference(self.weight)
@@ -81,18 +82,22 @@ class SpecificWorker(GenericWorker):
         # time to output it to the user
         inference_start_time = time.time()
         arr = np.fromstring(init_data.image, np.uint8)
-        frame = np.reshape(arr, (init_data.height, init_data.width, init_data.depth))
+        frame = np.reshape(arr, (init_data.num_images, init_data.height, init_data.width, init_data.depth))
 
-        body = self.estimator(frame)
-        body = body.flatten()
+        bodies = self.estimator(frame, init_data.num_images)
 
-        result = TBody()
-        result.score = 1.0
-        result.keyPoints = Points(body.tolist())
+        result = []
+        for ele in bodies:
+            tem_tbody = TBody()
+            tem_tbody.score = 1.0
+            tem_tbody.keyPoints = Points(ele.flatten().tolist())
+            result.append(tem_tbody)
+            
         # Output inference time
         print("inference time: {} ms".format(
             int(round((time.time() - inference_start_time) * 1000))))
-        return ListFullBody([result])
+
+        return ListFullBody(result)
     # ===================================================================
     # ===================================================================
 

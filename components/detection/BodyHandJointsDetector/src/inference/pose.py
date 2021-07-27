@@ -13,6 +13,8 @@ def get_root_relative_poses(inference_results):
 
     upsample_ratio = 4
     found_poses = extract_poses(heatmap[0:-1], paf_map, upsample_ratio)[0]
+    found_poses[:,0:-1:3] /= upsample_ratio
+    found_poses[:,1:-1:3] /= upsample_ratio
 
     poses_2d = []
     num_kpt_panoptic = 19
@@ -53,8 +55,8 @@ def parse_poses(inference_results):
         pose_2d_scaled = np.ones((num_kpt, 3), dtype=np.float32) * -1  # +1 for pose confidence
         for kpt_id in range(num_kpt):
             if pose_2d[kpt_id * 3] != -1:
-                pose_2d_scaled[kpt_id,0] = int(pose_2d[kpt_id * 3] / 0.5)
-                pose_2d_scaled[kpt_id, 1] = int(pose_2d[kpt_id * 3 + 1] / 0.5)
+                pose_2d_scaled[kpt_id,0] = int(pose_2d[kpt_id * 3] / 0.125)
+                pose_2d_scaled[kpt_id, 1] = int(pose_2d[kpt_id * 3 + 1] / 0.125)
                 pose_2d_scaled[kpt_id , 2] = pose_2d[kpt_id * 3 + 2]
         poses_2d_scaled.append(pose_2d_scaled)
         poses_prop.append(pose_2d[-1])
@@ -90,6 +92,7 @@ class Pose:
 
     def postprocess_pose(self, hand_pose, ratio, pad):
         # normalize position of hand -> 0 -> 1
+        is_none_body = False
         left_hand = None
         right_hand = None
         if len(self.poses_list) > 0:
@@ -106,6 +109,7 @@ class Pose:
                         right_hand = np.array([[[pose.x, pose.y]for pose in hand.landmark]], np.float)
         else:
             best_body_pose = np.zeros((19,2))
+            is_none_body = True
 
         if left_hand is None:
             left_hand = np.zeros((21,2))
@@ -118,7 +122,7 @@ class Pose:
         result[zero,0] = 0
         result = result * ratio
 
-        return result
+        return result, is_none_body
 
     def get_best_pose(self):
         # get only the biggest pose of image

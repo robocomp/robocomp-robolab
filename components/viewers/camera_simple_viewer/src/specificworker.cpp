@@ -42,11 +42,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-
-    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(50);
-
-	this->Period = 50;
+	this->Period = 66;
+	std::cout <<"Period compute(ms): "<<this->Period<< " Frequency compute(Hz): " << (1.0/this->Period*1000)<<std::endl;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
@@ -57,17 +54,23 @@ void SpecificWorker::compute()
 {
 	try
 	{
+		
 		auto image = this->camerasimple_proxy->getImage();
-		cv::Mat frame;
-		if(image.compressed)
-            frame = cv::imdecode(image.image, cv::IMREAD_UNCHANGED);
-		else
-            frame = cv::Mat(image.width, image.height, CV_8UC3, &image.image[0]);
-        cv::imshow("RGB image", frame);
+		qInfo()<<image.width<<"x"<< image.height<<" Size: "<<image.image.size();
+		if (image.compressed){
+			cv::Mat frameCompr=cv::imdecode(image.image, -1);
+			cv::imshow("RGB image", frameCompr);
+		}
+		else{
+			cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+			cv::imshow("RGB image", frame);
+		}
         cv::waitKey(1);
 	}
 	catch(const std::exception& e)
-	{ std::cerr << e.what() << '\n'; }
+	{
+		std::cerr << e.what() << '\n';
+	}
 }
 
 int SpecificWorker::startup_check()

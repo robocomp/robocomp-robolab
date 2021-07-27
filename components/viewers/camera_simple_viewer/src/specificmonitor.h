@@ -21,7 +21,6 @@
 
 #include "genericmonitor.h"
 
-
 /**
        \brief
        @author authorname

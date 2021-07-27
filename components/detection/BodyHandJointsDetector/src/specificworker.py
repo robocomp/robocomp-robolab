@@ -92,7 +92,7 @@ class SpecificWorker(GenericWorker):
             tem_tbody.score = 1.0
             tem_tbody.keyPoints = Points(ele.flatten().tolist())
             result.append(tem_tbody)
-            
+
         # Output inference time
         print("inference time: {} ms".format(
             int(round((time.time() - inference_start_time) * 1000))))

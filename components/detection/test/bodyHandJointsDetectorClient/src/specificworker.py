@@ -64,6 +64,9 @@ class SpecificWorker(GenericWorker):
         self.print_timer = Timer(fps=0.5)
         self.capL = cv2.VideoCapture(0)
 
+        self.max_num_images = 40
+        self.list_frames = []
+
     def __del__(self):
         console.print('SpecificWorker destructor')
 
@@ -74,24 +77,30 @@ class SpecificWorker(GenericWorker):
     def compute(self):
         now = current_milli_time()
         cam_ready = self.cam_timer.isReady(now)
+
         if cam_ready:
             retL, self.frameL = self.capL.read()
+            self.list_frames.append(self.frameL)
 
-        if self.pose_timer.isReady(now):
+        if self.pose_timer.isReady(now) and len(self.list_frames) > self.max_num_images:
             start_time = time.time()
             input = TImage()
-            input.image = self.frameL
-            input.height, input.width, input.depth = self.frameL.shape
+            input.image = np.stack(self.list_frames, axis = 0)
+            input.height, input.width, input.depth = self.list_frames[0].shape
+            input.num_images = len(self.list_frames)
+            self.list_frames = []
+
             list_body = self.bodyhandjointsdetector_proxy.getBodyAndHand(input)
             print("inference time %0.4f"%((time.time() - start_time)/1000))
 
 
-        # TODO visual
-        if cam_ready:
-            best_body = np.array(list_body[0].keyPoints)
-            best_body = np.reshape(best_body, (61,2))
-            draw_pose(self.frameL, best_body)
-            cv2.imshow("visual", self.frameL)
+            # visualize
+            if cam_ready:
+                for ele in list_body:
+                    best_body = np.array(ele[0].keyPoints)
+                    best_body = np.reshape(best_body, (61,2))
+                    draw_pose(self.frameL, best_body)
+                    cv2.imshow("visual", self.frameL)
 
 
         return True

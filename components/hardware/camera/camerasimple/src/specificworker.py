@@ -22,8 +22,8 @@
 import sys, os, traceback, time
 import numpy as np
 import cv2
-from PySide2.QtCore import QTimer
-#from PySide2 import qApp
+from PySide2.QtCore import qApp, QTimer
+
 from genericworker import *
 
 

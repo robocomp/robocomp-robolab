@@ -90,7 +90,6 @@ class SpecificWorker(GenericWorker):
             output = self.imagebasedgesturerecognition_proxy.getGesture(input)
 
             print(output.gestureIndex)
-            print(output.gestureProb)
 
         return True
 

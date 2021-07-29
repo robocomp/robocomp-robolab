@@ -36,10 +36,10 @@ class ImageBasedRecognitionONNXInference:
 
         # inference sequence of image
         perframe_logits = self.model(image) # 1 X 64 X 100
-        perframe_logits = perframe_logits.reshape((7, self.num_class))
+        perframe_logits = perframe_logits.reshape((self.num_class, 7))
 
         # get top 5
-        predictions = np.max(perframe_logits, axis=0)
+        predictions = np.max(perframe_logits, axis=1)
         out_label = np.argsort(predictions)
         out_prob = np.sort(predictions)
 

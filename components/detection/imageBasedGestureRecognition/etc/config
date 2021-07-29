@@ -1,5 +1,5 @@
 # Endpoints for implements interfaces
-ImageBasedGestureRecognition.Endpoints=tcp -p 0
+ImageBasedGestureRecognition.Endpoints=tcp -p 11001
 
 
 

@@ -6,7 +6,7 @@ import time
 
 import sys, os
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
-import common
+from . import common
 
 TRT_LOGGER = trt.Logger()
 
@@ -37,7 +37,7 @@ def get_engine(onnx_file_path, engine_file_path=""):
                         print (parser.get_error(error))
                     return None
             # The actual yolov3.onnx is generated with batch size 64. Reshape input to batch size 1
-            network.get_input(0).shape = [1, 3, 320, 320]
+            network.get_input(0).shape = [1, 3, 64, 224, 224] # TODO: fix this thing
             print('Completed parsing of ONNX file')
             print('Building an engine from file {}; this may take a while...'.format(onnx_file_path))
             engine = builder.build_engine(network, config)
@@ -77,23 +77,16 @@ class PoseDetectionONNXTensorRT:
         # init image to input location.
         np.copyto(self.inputs[0].host, input.ravel())
 
-        # When infering on single image, we measure inference
-        # time to output it to the user
-        # inference_start_time = time.time()
-
         # Fetch output from the model
-        [heatmaps,pafs] = common.do_inference_v2(self.context,
+        [probs] = common.do_inference_v2(self.context,
                                                   bindings=self.bindings,
                                                   inputs=self.inputs,
                                                   outputs=self.outputs,
                                                   stream=self.stream)
 
-        # Output inference time
-        # print("TensorRT inference time: {} ms".format(
-        #     int(round((time.time() - inference_start_time) * 1000))))
 
         # And return results
-        return pafs, heatmaps
+        return probs
 
     def close_tensorrt(self):
         pass

@@ -25,6 +25,7 @@ from RoboCompImageBasedGestureRecognition import *
 import traceback
 import numpy as np
 import time
+import cv2
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -55,12 +56,13 @@ current_milli_time = lambda: int(round(time.time() * 1000))
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 2000
+        self.timer.timeout.connect(self.compute)
+        self.Period = 30
         self.timer.start(self.Period)
         # self.visualizer = Visualizer()
         self.cam_timer = Timer(fps=30)
         self.inference_timer = Timer(fps=10)
-        self.print_timer = Timer(fps=0.5)
+        self.capL = cv2.VideoCapture(0)
 
         self.max_num_images = 64
         self.list_frames = []
@@ -71,6 +73,7 @@ class SpecificWorker(GenericWorker):
     def setParams(self, params):
         return True
 
+    @QtCore.Slot()
     def compute(self):
         now = current_milli_time()
         cam_ready = self.cam_timer.isReady(now)
@@ -78,15 +81,16 @@ class SpecificWorker(GenericWorker):
             retL, self.frameL = self.capL.read()
             self.list_frames.append(self.frameL)
 
-        if self.inference_timer.isReady(now) and len(self.list_frames) > self.max_num_images:
+        if self.inference_timer.isReady(now) and len(self.list_frames) >= self.max_num_images:
             input = TVideo()
-            input.image = np.stack(self.list_frames, axis=0)
+            input.images = np.stack(self.list_frames, axis=0)
             input.height, input.width, input.depth = self.list_frames[0].shape
             input.numFrames = len(self.list_frames)
+            self.list_frames = []
+            output = self.imagebasedgesturerecognition_proxy.getGesture(input)
 
-            labels, probs = self.imagebasedgesturerecognition_proxy.getGesture(input)
-
-            print(labels)
+            print(output.gestureIndex)
+            print(output.gestureProb)
 
         return True
 

@@ -98,7 +98,7 @@ class Pose:
         min_w = np.min(skeleton[:,0])
         min_w_rect_img = min(w_list)
         index = int(min_w / min_w_rect_img)
-        
+
         if index >= len(self.hand_window_origin):
             index = len(self.hand_window_origin) - 1
 

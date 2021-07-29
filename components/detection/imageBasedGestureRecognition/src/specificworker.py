@@ -27,7 +27,7 @@ sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
 
-from .inference.ONNXAndTensorInference import ImageBasedRecognitionONNXInference, ImageBasedRecognitionONNXInference
+from inference.ONNXAndTensorInference import ImageBasedRecognitionONNXInference, ImageBasedRecognitionONNXInference
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # import librobocomp_qmat
@@ -37,24 +37,13 @@ from .inference.ONNXAndTensorInference import ImageBasedRecognitionONNXInference
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
-        super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 2000
-
-        self.timer.start(self.Period)
-        #
-        # if torch.cuda.is_available():
-        # 	self.device = 'cuda:0'
-        # else:
-        # 	self,device = 'cpu'
-        self.weight = ""
+        self.weight = "src/_model/i3d_100.onnx"
 
         # select inference model: pure pytorch, onnx, tensorrt
         self.estimator = ImageBasedRecognitionONNXInference(self.weight)
 
     def setParams(self, params):
         return True
-
-
 
     def compute(self):
         print('SpecificWorker.compute...')
@@ -75,8 +64,8 @@ class SpecificWorker(GenericWorker):
     #
     def ImageBasedGestureRecognition_getGesture(self, init_data):
         ret = GestureResult()
-        arr = np.fromstring(init_data.image, np.uint8)
-        videos = np.reshape(arr, (init_data.num_frames, init_data.height, init_data.width, init_data.depth))
+        arr = np.fromstring(init_data.images, np.uint8)
+        videos = np.reshape(arr, (init_data.numFrames, init_data.height, init_data.width, init_data.depth))
         # TODO: preprocess TVIDEO input data
         gestureProb, gestureIndex = self.estimator(videos)
         ret.gestureProb = gestureProb

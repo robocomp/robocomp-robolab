@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import cv2
 from .custom_augmentation import InferenceTransformation
 from .onnx_inference import PoseDetectionONNX
 from .onnx_with_tensorrt import PoseDetectionONNXTensorRT
@@ -10,14 +11,13 @@ def preprocess_tensor(image):
     x_data = image.astype('f')
     x_data = (x_data/255) * 2 -1
     x_data = x_data.transpose(3, 0, 1, 2)
-    x_data = x_data[None,:,:,:,:] # 1 x 3 x n x h x w
     return x_data
 
 
 class ImageBasedRecognitionONNXInference:
-    def __init__(self, pretrained_weight):
-        self.preprocess = InferenceTransformation(FIX_SIZE, FIX_SIZE)
+    def __init__(self, pretrained_weight, num_class = 100):
         self.model = PoseDetectionONNX(pretrained_weight)
+        self.num_class = num_class
 
     def __call__(self, images):
         batch_image = []
@@ -25,7 +25,8 @@ class ImageBasedRecognitionONNXInference:
         num_frames, height, width, channels = images.shape # get shape from an image.
         for i in range(num_frames):
             if i < MAX_FRAMES:
-                batch_image.append(self.preprocess(images[i])[None,:,:,:])
+                temp_image = cv2.resize(images[i], (FIX_SIZE, FIX_SIZE))
+                batch_image.append(temp_image[None,:,:,:])
         image = np.concatenate(batch_image, axis= 0)
 
         if num_frames < MAX_FRAMES:
@@ -35,14 +36,14 @@ class ImageBasedRecognitionONNXInference:
 
         # inference sequence of image
         perframe_logits = self.model(image) # 1 X 64 X 100
-        perframe_logits = perframe_logits.reshape((1, len(images), self.num_class))
+        perframe_logits = perframe_logits.reshape((7, self.num_class))
 
         # get top 5
-        predictions = np.max(perframe_logits, axis=0)[0]
+        predictions = np.max(perframe_logits, axis=0)
         out_label = np.argsort(predictions)
         out_prob = np.sort(predictions)
 
-        return out_prob[:5],out_label[:5]
+        return out_prob[:5].tolist(),out_label[:5].tolist()
 
 
 class ImageBasedRecognitionONNXTensorRTInference:

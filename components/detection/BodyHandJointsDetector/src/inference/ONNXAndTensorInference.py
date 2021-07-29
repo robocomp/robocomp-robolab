@@ -103,9 +103,9 @@ class BodyDetectorOpticalFlow:
         for i in range(num_images):
             origin_image = videos[i]
             height, width, _ = origin_image.shape
-            ratio_scale = height / FIX_SIZE
-            add_width = (FIX_SIZE - int(FIX_SIZE * width / height)) // 2
-            process_image = self.preprocess(origin_image)
+            h_ratio = height / FIX_SIZE
+            w_ratio = width / FIX_SIZE
+            process_image = cv2.resize(origin_image, (FIX_SIZE, FIX_SIZE))
 
             if self.is_optical_flow and 0 < count < 4 and current_poses is not None:
                 visible_mask = current_poses[:, 2] > 0
@@ -129,12 +129,12 @@ class BodyDetectorOpticalFlow:
                 # parse paf and heatmap, and hand skeleton
                 self.pose_parser.parser_pose(paf, heatmap)
 
-            hand_images = self.pose_parser.get_hand_head_images(origin_image, ratio_scale, add_width)
+
+            hand_images, w_list, h_list = self.pose_parser.get_hand_head_images(process_image)
             hand_skeleton = None
             if hand_images is not None:
                 _, hand_skeleton = self.hand_model(hand_images)
-
-            parsed_pose, is_none = self.pose_parser.postprocess_pose(hand_skeleton, ratio_scale, add_width)
+            parsed_pose, is_none = self.pose_parser.postprocess_pose(hand_skeleton, w_list, w_ratio, h_ratio, hand_images)
             if not is_none:
                 current_poses = parsed_pose
                 visible_poses.append(parsed_pose)

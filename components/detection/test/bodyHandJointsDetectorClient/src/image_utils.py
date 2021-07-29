@@ -14,7 +14,7 @@ body_edges = np.array(
 
 def draw_pose(img, points):
     # draw only body pose
-    points = points[:19,:]
+    # points = points[:19,:]
     for edge in body_edges:
         if (points[edge[0],0] >10 and points[edge[0],1] > 10) and \
                 (points[edge[1],0] > 10 and points[edge[1],1] >= 10):
@@ -24,4 +24,7 @@ def draw_pose(img, points):
 
     for ind in range(points.shape[0]):
         if points[ind,0] != 0 and points[ind,1] != 0:
-            cv2.circle(img, (int(points[ind,0]), int(points[ind,1])), 2, (0, 255, 255), -1, cv2.LINE_AA)
+            if ind < 19:
+                cv2.circle(img, (int(points[ind,0]), int(points[ind,1])), 2, (0, 255, 255), -1, cv2.LINE_AA)
+            else:
+                cv2.circle(img, (int(points[ind, 0]), int(points[ind, 1])), 4, (0, 0, 255), -1, cv2.LINE_AA)

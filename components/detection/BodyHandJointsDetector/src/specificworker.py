@@ -43,10 +43,10 @@ console = Console(highlight=False)
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.timer.timeout.connect(self.compute)
-        self.Period = 2000
-        self.timer.start(self.Period)
-        print(os.getcwd())
+        # self.timer.timeout.connect(self.compute)
+        # self.Period = 2000
+        # self.timer.start(self.Period)
+
         #TODO: get weight from proxy here
         self.weight = "src/_model/bodypose_light.onnx"
 
@@ -82,9 +82,9 @@ class SpecificWorker(GenericWorker):
         # time to output it to the user
         inference_start_time = time.time()
         arr = np.fromstring(init_data.image, np.uint8)
-        frame = np.reshape(arr, (init_data.num_images, init_data.height, init_data.width, init_data.depth))
+        frame = np.reshape(arr, (init_data.numImages, init_data.height, init_data.width, init_data.depth))
 
-        bodies = self.estimator(frame, init_data.num_images)
+        bodies = self.estimator(frame, init_data.numImages)
 
         result = []
         for ele in bodies:
@@ -93,9 +93,6 @@ class SpecificWorker(GenericWorker):
             tem_tbody.keyPoints = Points(ele.flatten().tolist())
             result.append(tem_tbody)
 
-        # Output inference time
-        print("inference time: {} ms".format(
-            int(round((time.time() - inference_start_time) * 1000))))
 
         return ListFullBody(result)
     # ===================================================================

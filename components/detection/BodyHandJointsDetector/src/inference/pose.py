@@ -73,7 +73,10 @@ class Pose:
         self.poses_list = []
         self.poses_prob = []
         self.hand_window = []
+        self.hand_window_origin = []
+        self.hand_type = []
         self.head_window = []
+
 
         # get best only
         self.base_on_prob = base_on_prob
@@ -83,14 +86,28 @@ class Pose:
         self.poses_list, self.poses_prob = parse_poses((paf, heatmap))
         self.hand_window = []
         self.head_window = []
+        self.hand_type = []
         # get the best pose to index 0
         if len(self.poses_list) > 0:
             self.get_best_pose()
 
             # get the hand and head window 0
-            self.get_hand_head_window()
+            self.get_hand_head_window(1)
 
-    def postprocess_pose(self, hand_pose, ratio, pad):
+    def convert_hand_position(self, w_list, skeleton):
+        min_w = np.min(skeleton[:,0])
+        min_w_rect_img = min(w_list)
+        index = int(min_w / min_w_rect_img)
+        
+        if index >= len(self.hand_window_origin):
+            index = len(self.hand_window_origin) - 1
+
+        skeleton[:,0] += self.hand_window_origin[index][1] - (index * min_w_rect_img)
+        skeleton[:,1] += self.hand_window_origin[index][0]
+        return skeleton, self.hand_type[index]
+
+
+    def postprocess_pose(self, hand_pose, w_list, w_ratio, h_ratio, hand_imgs):
         # normalize position of hand -> 0 -> 1
         is_none_body = False
         left_hand = None
@@ -102,11 +119,16 @@ class Pose:
 
             # TODO: post process for join index here.
             if hand_pose is not None and hand_pose.multi_hand_landmarks:
+                h , w, _ = hand_imgs.shape
                 for i,hand in enumerate(hand_pose.multi_hand_landmarks):
-                    if hand_pose.multi_handedness[i] == "Left":
-                        left_hand = np.array([[pose.x, pose.y]for pose in hand.landmark], np.float)
-                    elif hand_pose.multi_handedness[i] == "Right":
-                        right_hand = np.array([[[pose.x, pose.y]for pose in hand.landmark]], np.float)
+                    position = np.array([[pose.x*w, pose.y*h]for pose in hand.landmark], np.float)
+                    position, type = self.convert_hand_position(w_list, position)
+
+                    if type == 'l':
+                        left_hand = position
+                    elif type == 'r':
+                        right_hand = position
+
         else:
             best_body_pose = np.zeros((19,2))
             is_none_body = True
@@ -117,10 +139,10 @@ class Pose:
             right_hand = np.zeros((21,2))
 
         result = np.concatenate([best_body_pose, left_hand, right_hand], axis = 0)
-        result[:,0] = result[:,0] - (pad+1)
         zero = result[:,0] < 0
         result[zero,0] = 0
-        result = result * ratio
+        result[:,0] = result[:,0] * w_ratio
+        result[:,1] = result[:,1] * h_ratio
 
         return result, is_none_body
 
@@ -140,59 +162,63 @@ class Pose:
                     max_index = pose_id
             self.poses_list[0], self.poses_list[max_index] = self.poses_list[max_index], self.poses_list[0]
 
-    def get_hand_head_window(self):
-        for pose_id in range(len(self.poses_list)):
+    def get_hand_head_window(self, num_pose):
+
+        for pose_id in range(len(self.poses_list[:num_pose])):
             current_pose = self.poses_list[pose_id]
-            max_x, min_x = np.max(current_pose[:, 1]), np.min(current_pose[:, 1])
-            max_y, min_y = np.max(current_pose[:, 0]), np.min(current_pose[:, 0])
-            size_hand = max((max_x - min_x), (max_y - min_y))
-            size_hand = size_hand // 8
 
             was_found = current_pose[:, 2] > 0
 
             handtuple = []
             # get hand position
             if was_found[4] and was_found[5]:
-                l_h = current_pose[5, 0:2] + (current_pose[5, 0:2] - current_pose[4, 0:2]) / 3
+                l_h = current_pose[5, 0:2] + (current_pose[5, 0:2] - current_pose[4, 0:2]) / 2
                 handtuple.append(((
-                                      int(l_h[0] - size_hand / 2),
-                                      int(l_h[1] - size_hand / 2)
+                                      int(l_h[0] - 60),
+                                      int(l_h[1] - 60)
                                   ),
                                   (
-                                      int(l_h[0] + size_hand / 2),
-                                      int(l_h[1] + size_hand / 2)
+                                      int(l_h[0] + 60),
+                                      int(l_h[1] + 60)
                                   )
                                 ))
+                self.hand_type.append("l")
 
             if was_found[10] and was_found[11]:
-                r_h = current_pose[11, 0:2] + (current_pose[11, 0:2] - current_pose[10, 0:2]) / 3
+                r_h = current_pose[11, 0:2] + (current_pose[11, 0:2] - current_pose[10, 0:2]) / 2
                 handtuple.append(((
-                                      int(r_h[0] - size_hand / 2),
-                                      int(r_h[1] - size_hand / 2)
+                                      int(r_h[0] - 60),
+                                      int(r_h[1] - 60)
                                   ),
                                   (
-                                      int(r_h[0] + size_hand / 2),
-                                      int(r_h[1] + size_hand / 2)
+                                      int(r_h[0] + 60),
+                                      int(r_h[1] + 60)
                                   )))
-            self.hand_window.append(handtuple)
+                self.hand_type.append("r")
+            if len(handtuple) > 0:
+                self.hand_window.append(handtuple)
 
-    def get_hand_head_images(self, origin_image, ratio, pad):
+    def get_hand_head_images(self, origin_image):
         hand_img = []
-        w,h = 0,0
+        self.hand_window_origin = []
+        w_list,h_list = [],[]
         if len(self.hand_window) >0:
+            # just get from 1 body pose
             for window in self.hand_window[0]:
-                temp_img = origin_image[int(window[0][1]*ratio):int(window[1][1]*ratio),
-                                int(max(window[0][0]-pad,0)*ratio): int(max(window[1][0]-pad,0)*ratio)]
-
-                if len(hand_img) ==0:
-                    w,h, _ = temp_img.shape
-                else:
-                    w_t,h_t, _ = temp_img.shape
-                    if w_t != w:
-                        temp_img = temp_img[:w,:h]
+                temp_img = origin_image[int(window[0][1]):int(window[1][1]),
+                                int(window[0][0]): int(window[1][0])]
+                self.hand_window_origin.append((int(window[0][1]),int(window[0][0])))
+                w,h, _ = temp_img.shape
+                w_list.append(w)
+                h_list.append(h)
                 hand_img.append(temp_img)
         if len(hand_img) == 0:
-            return None
+            return None, None, None
         else:
+            min_w = min(w_list)
+            min_h = min(h_list)
+            for i in range(len(hand_img)):
+                hand_img[i] = hand_img[i][:min_w,:min_h]
             img_sum = cv2.hconcat(hand_img)
-            return img_sum
+
+            return img_sum, w_list, h_list

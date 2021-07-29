@@ -16,6 +16,7 @@ module RoboCompBodyHandJointsDetector
         int width;
         int height;
         int depth;
+        int numImages;
         ImgType image;
     };
 

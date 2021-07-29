@@ -26,6 +26,7 @@ import traceback
 import cv2
 import numpy as np
 from image_utils import draw_pose
+import time
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -57,14 +58,14 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 2000
+        self.Period = 30
         self.timer.start(self.Period)
         self.cam_timer = Timer(fps=30)
         self.pose_timer = Timer(fps=30)
         self.print_timer = Timer(fps=0.5)
         self.capL = cv2.VideoCapture(0)
 
-        self.max_num_images = 40
+        self.max_num_images = 1
         self.list_frames = []
 
     def __del__(self):
@@ -87,20 +88,21 @@ class SpecificWorker(GenericWorker):
             input = TImage()
             input.image = np.stack(self.list_frames, axis = 0)
             input.height, input.width, input.depth = self.list_frames[0].shape
-            input.num_images = len(self.list_frames)
+            input.numImages = len(self.list_frames)
+            store_frames = self.list_frames
             self.list_frames = []
 
             list_body = self.bodyhandjointsdetector_proxy.getBodyAndHand(input)
-            print("inference time %0.4f"%((time.time() - start_time)/1000))
 
 
             # visualize
             if cam_ready:
-                for ele in list_body:
-                    best_body = np.array(ele[0].keyPoints)
+                for i,ele in enumerate(list_body):
+                    best_body = np.array(ele.keyPoints)
                     best_body = np.reshape(best_body, (61,2))
-                    draw_pose(self.frameL, best_body)
-                    cv2.imshow("visual", self.frameL)
+                    draw_pose(store_frames[i], best_body)
+                    cv2.imshow("visual", store_frames[i])
+                store_frames = []
 
 
         return True

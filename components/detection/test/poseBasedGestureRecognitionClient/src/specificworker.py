@@ -55,6 +55,19 @@ class Timer:
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 
+def parsing_pose(pose):
+    hands = pose[19:]
+
+    center_points = np.zeros([1,2])
+    if pose[6,0] != 0 and pose[6,1] and pose[12:0] !=0 and pose[12:1] != 0:
+        center_points = (pose[6] + pose[12]) /2
+
+    right_hand = pose[3:6,:]
+    left_hand = pose[9:6,:]
+
+    return np.concatenate([pose[0:2], right_hand, left_hand, center_points, hands])
+
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
@@ -98,10 +111,11 @@ class SpecificWorker(GenericWorker):
             # visualize
             if cam_ready:
                 input_poses = []
+
                 for i,ele in enumerate(list_body):
                     temp_pose = poseComp.Pose()
                     temp_pose.score = ele.score
-                    temp_pose.keyPoints = ele.keyPoints # TODO: post Process poses here.
+                    temp_pose.keyPoints = parsing_pose(np.reshape(ele.keyPoints, (61, 2)))
                     input_poses.append(temp_pose)
 
                 output = self.imagebasedgesturerecognition_proxy.getGesture(poseComp.Pose(input_poses))

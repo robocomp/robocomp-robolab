@@ -30,7 +30,7 @@ class ImageBasedRecognitionONNXInference:
         image = np.concatenate(batch_image, axis= 0)
 
         if num_frames < MAX_FRAMES:
-            image = np.concatenate([image, np.zeros([MAX_FRAMES - num_frames, height, width, channels])], axis=0)
+            image = np.concatenate([image, np.zeros([MAX_FRAMES - num_frames, FIX_SIZE, FIX_SIZE, channels])], axis=0)
 
         image = preprocess_tensor(image)
 
@@ -40,8 +40,8 @@ class ImageBasedRecognitionONNXInference:
 
         # get top 5
         predictions = np.max(perframe_logits, axis=1)
-        out_label = np.argsort(predictions)
-        out_prob = np.sort(predictions)
+        out_label = np.argsort(predictions)[::-1]
+        out_prob = np.sort(predictions)[::-1]
 
         return out_prob[:5].tolist(),out_label[:5].tolist()
 

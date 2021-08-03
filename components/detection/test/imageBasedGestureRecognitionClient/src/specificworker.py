@@ -26,15 +26,11 @@ import traceback
 import numpy as np
 import time
 import cv2
+import pickle as pkl
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
-
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
 
 class Timer:
     def __init__(self, fps):
@@ -67,6 +63,8 @@ class SpecificWorker(GenericWorker):
         self.max_num_images = 64
         self.list_frames = []
 
+        self.wlasl_class = pkl.load( open("src/wlasl_name.pkl", "rb" ) )
+
     def __del__(self):
         console.print('SpecificWorker destructor')
 
@@ -79,17 +77,29 @@ class SpecificWorker(GenericWorker):
         cam_ready = self.cam_timer.isReady(now)
         if cam_ready:
             retL, self.frameL = self.capL.read()
-            self.list_frames.append(self.frameL)
+            if self.frameL is not None:
+                cv2.imshow("visual", self.frameL)
+                self.list_frames.append(self.frameL)
 
         if self.inference_timer.isReady(now) and len(self.list_frames) >= self.max_num_images:
             input = TVideo()
+
             input.images = np.stack(self.list_frames, axis=0)
             input.height, input.width, input.depth = self.list_frames[0].shape
             input.numFrames = len(self.list_frames)
-            self.list_frames = []
+
+            self.list_frames = self.list_frames[len(self.list_frames)//2:]
             output = self.imagebasedgesturerecognition_proxy.getGesture(input)
 
-            print(output.gestureIndex)
+            if output.gestureProb[0] > 0.25:
+                print("top 5 actions")
+                action = []
+                for ele in output.gestureIndex:
+                    action.append(self.wlasl_class[int(ele)])
+                print(action)
+                print(output.gestureProb)
+            else:
+                print("nothing")
 
         return True
 

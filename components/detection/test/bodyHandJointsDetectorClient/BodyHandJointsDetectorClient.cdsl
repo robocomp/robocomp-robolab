@@ -1,11 +1,10 @@
 import "BodyHandJointsDetector.idsl";
-import "CameraSimple.idsl";
 
 Component BodyHandJointDetectorClient
 {
 	Communications
 	{
-		requires BodyHandJointsDetector, CameraSimple;
+		requires BodyHandJointsDetector,
 	};
 	language python;
 };

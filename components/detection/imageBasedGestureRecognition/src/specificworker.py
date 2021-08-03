@@ -37,7 +37,7 @@ from inference.ONNXAndTensorInference import ImageBasedRecognitionONNXInference,
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
-        self.weight = "src/_model/i3d_100.onnx"
+        self.weight = "src/_model/i3d_100_logit.onnx"
 
         # select inference model: pure pytorch, onnx, tensorrt
         self.estimator = ImageBasedRecognitionONNXInference(self.weight)

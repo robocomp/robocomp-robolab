@@ -42,7 +42,6 @@ class GenericWorker(QtCore.QObject):
         super(GenericWorker, self).__init__()
 
         self.bodyhandjointsdetector_proxy = mprx["BodyHandJointsDetectorProxy"]
-        self.camerasimple_proxy = mprx["CameraSimpleProxy"]
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
         self.Period = 30
         self.timer = QtCore.QTimer(self)

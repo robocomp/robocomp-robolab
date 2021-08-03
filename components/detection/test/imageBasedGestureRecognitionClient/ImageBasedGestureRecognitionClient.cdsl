@@ -1,11 +1,10 @@
 import "ImageBasedGestureRecognition.idsl";
-import "CameraSimple.idsl";
 
 Component ImageBasedGestureRecognitionClient
 {
 	Communications
 	{
-		requires ImageBasedGestureRecognition, CameraSimple;
+		requires ImageBasedGestureRecognition;
 	};
 	language python;
 };

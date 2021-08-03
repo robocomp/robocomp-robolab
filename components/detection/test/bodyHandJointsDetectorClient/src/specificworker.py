@@ -81,7 +81,8 @@ class SpecificWorker(GenericWorker):
 
         if cam_ready:
             retL, self.frameL = self.capL.read()
-            self.list_frames.append(self.frameL)
+            if self.frameL is not None:
+                self.list_frames.append(self.frameL)
 
         if self.pose_timer.isReady(now) and len(self.list_frames) > self.max_num_images:
             start_time = time.time()

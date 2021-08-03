@@ -36,7 +36,7 @@ from inference.ONNXAndTensorInference import PoseBasedRecognitionONNXInference
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.weight = "src/_model/poseTGN_100.onnx"
+        self.weight = "src/_model/poseTGN_100_logit.onnx"
 
         # select inference model: pure pytorch, onnx, tensorrt
         self.estimator = PoseBasedRecognitionONNXInference(self.weight)

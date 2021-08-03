@@ -8,29 +8,9 @@ from rich.console import Console, Text
 console = Console()
 
 
-Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
-import RoboCompCameraSimple
 Ice.loadSlice("-I ./src/ --all ./src/ImageBasedGestureRecognition.ice")
 import RoboCompImageBasedGestureRecognition
 
-class ImgType(list):
-    def __init__(self, iterable=list()):
-        super(ImgType, self).__init__(iterable)
-
-    def append(self, item):
-        assert isinstance(item, byte)
-        super(ImgType, self).append(item)
-
-    def extend(self, iterable):
-        for item in iterable:
-            assert isinstance(item, byte)
-        super(ImgType, self).extend(iterable)
-
-    def insert(self, index, item):
-        assert isinstance(item, byte)
-        super(ImgType, self).insert(index, item)
-
-setattr(RoboCompCameraSimple, "ImgType", ImgType)
 class ImgType(list):
     def __init__(self, iterable=list()):
         super(ImgType, self).__init__(iterable)
@@ -125,8 +105,6 @@ class Requires:
         self.ice_connector = ice_connector
         self.mprx={}
 
-        self.CameraSimple = self.create_proxy("CameraSimpleProxy", RoboCompCameraSimple.CameraSimplePrx)
-
         self.ImageBasedGestureRecognition = self.create_proxy("ImageBasedGestureRecognitionProxy", RoboCompImageBasedGestureRecognition.ImageBasedGestureRecognitionPrx)
 
     def get_proxies_map(self):
@@ -142,7 +120,7 @@ class Requires:
                 self.mprx[property_name] = proxy
                 return True, proxy
             except Ice.Exception:
-                print('Cannot connect to the remote object (CameraSimple)', proxy_string)
+                print('Cannot connect to the remote object (Image based)', proxy_string)
                 # traceback.print_exc()
                 return False, None
         except Ice.Exception as e:

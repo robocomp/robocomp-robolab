@@ -108,8 +108,6 @@ class SpecificWorker(GenericWorker):
 
                 print(output.gestureIndex)
 
-
-
         return True
 
     def startup_check(self):

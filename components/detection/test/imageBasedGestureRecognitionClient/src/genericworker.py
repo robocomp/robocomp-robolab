@@ -39,7 +39,6 @@ class GenericWorker(QtCore.QObject):
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
-        self.camerasimple_proxy = mprx["CameraSimpleProxy"]
         self.imagebasedgesturerecognition_proxy = mprx["ImageBasedGestureRecognitionProxy"]
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
         self.Period = 30

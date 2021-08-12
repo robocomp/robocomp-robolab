@@ -1,6 +1,5 @@
 # Proxies for required interfaces
 BodyHandJointsDetectorProxy = bodyhandjointsdetector:tcp -h localhost -p 11000
-CameraSimpleProxy = camerasimple:tcp -h localhost -p 10005
 
 
 

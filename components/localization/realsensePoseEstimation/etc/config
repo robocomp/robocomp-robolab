@@ -2,16 +2,47 @@ CommonBehavior.Endpoints=tcp -p 13000
 # Endpoints for implemented interfaces
 FullPoseEstimation.Endpoints=tcp -p 10696
 
+# Proxies for required interfaces
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+GenericBaseProxy = genericbase:tcp -h localhost -p 0
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
+origen_rx=0.0
+origen_ry=0.0
+origen_rz=0.0
+origen_tx=0.0
+origen_ty=0.0
+origen_tz=0.0
 
-#serial number is a string, but in config file sould appear without quotes
-#serial=905312110667
-serial=925122110807
-print=false
+num_cameras=2
+
+#serial number is a string, but in config file should appear without quotes
+
+device_serial_0=121222110830
+name_0=camera_side
+rx_0=0.0
+ry_0=90.0
+rz_0=0.0
+tx_0=0.0
+ty_0=1.0
+tz_0=0.0
+
+device_serial_1=121222110343
+name_1=camera_back
+rx_1=0.0
+ry_1=180.0
+rz_1=0.0
+tx_1=0.0
+ty_1=1.0
+tz_1=0.0
+
+print=true
+
+InnerModelPath = innermodel.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

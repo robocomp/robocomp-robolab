@@ -109,8 +109,8 @@ class SpecificWorker(GenericWorker):
                 if action[0] not in self.classes:
                     self.classes[action[0]] = 1
                 else:
-                    self.classes[action[0]] +=1 
-
+                    self.classes[action[0]] +=1
+                print(self.classes)
             else:
                 print("nothing")
                 self.last_class = ""

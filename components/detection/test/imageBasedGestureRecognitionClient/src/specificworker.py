@@ -65,6 +65,10 @@ class SpecificWorker(GenericWorker):
 
         self.wlasl_class = pkl.load( open("src/wlasl_name.pkl", "rb" ) )
 
+        self.last_class = ""
+        self.font = cv2.FONT_HERSHEY_SIMPLEX
+        self.classes = {}
+
     def __del__(self):
         console.print('SpecificWorker destructor')
 
@@ -78,6 +82,8 @@ class SpecificWorker(GenericWorker):
         if cam_ready:
             retL, self.frameL = self.capL.read()
             if self.frameL is not None:
+                if self.last_class != "":
+                    cv2.putText(self.frameL, self.last_class, (20,20), self.font, 10, (0,0,0), 2)
                 cv2.imshow("visual", self.frameL)
                 self.list_frames.append(self.frameL)
 
@@ -98,8 +104,16 @@ class SpecificWorker(GenericWorker):
                     action.append(self.wlasl_class[int(ele)])
                 print(action)
                 print(output.gestureProb)
+                self.last_class = action[0]
+
+                if action[0] not in self.classes:
+                    self.classes[action[0]] = 1
+                else:
+                    self.classes[action[0]] +=1 
+
             else:
                 print("nothing")
+                self.last_class = ""
 
         return True
 

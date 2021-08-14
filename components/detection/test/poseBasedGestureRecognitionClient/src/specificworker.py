@@ -28,6 +28,7 @@ import cv2
 import numpy as np
 from image_utils import draw_pose
 import time
+import pickle as pkl
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -81,6 +82,11 @@ class SpecificWorker(GenericWorker):
 
         self.max_num_images = 1
         self.list_frames = []
+        self.wlasl_class = pkl.load(open("src/wlasl_name.pkl", "rb"))
+
+        self.last_class = ""
+        self.font = cv2.FONT_HERSHEY_SIMPLEX
+        self.classes = {}
 
     def __del__(self):
         console.print('SpecificWorker destructor')
@@ -95,7 +101,11 @@ class SpecificWorker(GenericWorker):
 
         if cam_ready:
             retL, self.frameL = self.capL.read()
-            self.list_frames.append(self.frameL)
+            if self.frameL is not None:
+                if self.last_class != "":
+                    cv2.putText(self.frameL, self.last_class, (20, 20), self.font, 10, (0, 0, 0), 2)
+                cv2.imshow("visual", self.frameL)
+                self.list_frames.append(self.frameL)
 
         if self.pose_timer.isReady(now) and len(self.list_frames) > self.max_num_images:
             start_time = time.time()
@@ -119,8 +129,20 @@ class SpecificWorker(GenericWorker):
                     input_poses.append(temp_pose)
 
                 output = self.imagebasedgesturerecognition_proxy.getGesture(poseComp.Pose(input_poses))
+                action = []
+                for ele in output.gestureIndex:
+                    action.append(self.wlasl_class[int(ele)])
+                print(action)
+                self.last_class = action[0]
 
-                print(output.gestureIndex)
+                if action[0] not in self.classes:
+                    self.classes[action[0]] = 1
+                else:
+                    self.classes[action[0]] += 1
+                print(self.classes)
+            else:
+                print("nothing")
+                self.last_class = ""
 
         return True
 

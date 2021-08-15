@@ -1,0 +1,11 @@
+import "BodyHandJointsDetector.idsl";
+
+Component BodyHandJointDetectorClient
+{
+	Communications
+	{
+		requires BodyHandJointsDetector,
+	};
+	language python;
+};
+

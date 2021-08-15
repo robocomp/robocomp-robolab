@@ -1,0 +1,12 @@
+import "BodyHandJointsDetector.idsl";
+import "PoseBasedGestureRecognition.idsl";
+
+Component PoseBasedGestureRecognitionClient
+{
+	Communications
+	{
+		requires PoseBasedGestureRecognition, BodyHandJointsDetector;
+	};
+	language python;
+};
+

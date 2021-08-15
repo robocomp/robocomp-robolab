@@ -1,0 +1,11 @@
+import "ImageBasedGestureRecognition.idsl";
+
+Component ImageBasedGestureRecognitionClient
+{
+	Communications
+	{
+		requires ImageBasedGestureRecognition;
+	};
+	language python;
+};
+

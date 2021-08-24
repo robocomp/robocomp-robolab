@@ -21,22 +21,24 @@ num_cameras=2
 #serial number is a string, but in config file should appear without quotes
 
 device_serial_0=121222110830
+#device_serial_0=925122110807
 name_0=camera_side
 rx_0=0.0
-ry_0=90.0
+ry_0=0.0
 rz_0=0.0
 tx_0=0.0
-ty_0=1.0
-tz_0=0.0
+ty_0=0.0
+tz_0=1.0
 
 device_serial_1=121222110343
+#device_serial_1=925122110585
 name_1=camera_back
 rx_1=0.0
-ry_1=180.0
-rz_1=0.0
+ry_1=0.0
+rz_1=90.0
 tx_1=0.0
-ty_1=1.0
-tz_1=0.0
+ty_1=0.0
+tz_1=1.0
 
 print=true
 

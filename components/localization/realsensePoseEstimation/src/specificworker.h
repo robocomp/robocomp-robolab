@@ -73,7 +73,6 @@ public slots:
             Eigen::Affine3f origen_camera;   //Matrix de ejes de la camara respecto al origen
             Eigen::Affine3f origen_world;   //3
             euler_angle rot_init_angles;
-            euler_angle angles;              //4
             unsigned int mapper_confidence;     //5
             unsigned int tracker_confidence;    //6
             rs2::wheel_odometer* odometer;
@@ -81,7 +80,7 @@ public slots:
 
 		bool print_output = false;
 		int num_cameras;
-        std::map<string, PARAMS> cameras_dict{};
+        std::map<string, PARAMS> cameras_dict;
         mutable std::mutex bufferMutex;
         Eigen::Affine3f origen_robot;   //Matrix de ejes de la robot respecto al origen
 

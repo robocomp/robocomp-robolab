@@ -53,9 +53,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	ty = std::stof(params["origen_ty"].value);
 	tz = std::stof(params["origen_tz"].value);
 
-	FullPoseEstimation_setInitialPose(tx,ty,tz,rx,ry,rz); //cambio recursivo de matrices falta
+	FullPoseEstimation_setInitialPose(tx,ty,tz,rx,ry,rz); ///Cambio recursivo de matrices falta
 
-	//Leemos todas las camaras del config
+	///Leemos todas las camaras del config
     for(int i=0; i<num_cameras; i++)
     {
         PARAMS param_camera;
@@ -69,10 +69,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         ty = std::stof(params["ty_"+std::to_string(i)].value);
         tz = std::stof(params["tz_"+std::to_string(i)].value);
 
-        //ejes de de camara respecto a robot
+        ///Ejes de de camara respecto a robot
         param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
         param_camera.robot_camera.rotate(Eigen::AngleAxisf (param_camera.rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (param_camera.rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(param_camera.rot_init_angles.z, Eigen::Vector3f::UnitZ()));
-        // ejes de la camara respecto a origen
+        ///Ejes de la camara respecto a origen
         param_camera.origen_camera.linear() = param_camera.robot_camera.linear() * this->origen_robot.linear();
         param_camera.origen_camera.translation() = this->origen_robot.linear() * param_camera.robot_camera.translation() + this->origen_robot.translation();
         //std::cout<<param_camera.origen_camera.matrix()<<std::endl;
@@ -83,7 +83,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
             cfg.enable_device(param_camera.device_serial);
             cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
 
-            //CARGA DEL JSON
+            ///CARGA DEL JSON
             rs2::pipeline_profile profile = cfg.resolve( param_camera.pipe);
             rs2::device dev = profile.get_device();
             rs2::tm2 tm2(dev);
@@ -93,39 +93,45 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
                 rs2::pose_sensor pose_sensor = dev.first<rs2::pose_sensor>() ;
                 param_camera.odometer = new rs2::wheel_odometer(pose_sensor);
                 std::string etc_path = name;
+
                 //replace(etc_path.begin(),etc_path.end(),'/', ' ');
-                //Leemos el .json
+                ///Leemos el .json
                 f_ent.open("etc/" + etc_path +".json");
-                    if (f_ent.is_open()) {
-                        std::cout<<etc_path<<".json"<<" se ha abierto correctamente"<<std::endl;
-                        std::vector<unsigned char> cadena;
-                        char aux = ' ';
-                        while (f_ent.get(aux)) {
-                            cadena.push_back(aux);
-                           // std::cout<<aux;
-                        }
-                        //Cargamos el .json en la odometria
-                        //param_camera.odometer->load_wheel_odometery_config(cadena);
+
+                if (f_ent.is_open()) {
+                    std::cout<<etc_path<<".json"<<" se ha abierto correctamente"<<std::endl;
+                    std::vector<unsigned char> cadena;
+                    char aux = ' ';
+                    while (f_ent.get(aux)) {
+                        cadena.push_back(aux);
+                        //std::cout<<aux;
                     }
+
+                    f_ent.close(); ///Cerramos el .json
+
+                    ///Cargamos el .json en la odometria
+                    param_camera.odometer->load_wheel_odometery_config(cadena);
+                }
                     else
                         std::cout<<"No se pudo abrir el "<<etc_path<<".json"<<std::endl;
             }
-            // Start pipeline with chosen configuration
+            /// Start pipeline with chosen configuration
             param_camera.pipe.start(cfg);
+
         }catch(const std::exception& e)
         {
             std::cout << e.what() << std::endl;
             qFatal("Unable to open device, please check config file");
         }
 
-        //Incluimos la camara generada en el diccionario de camaras
+        ///Incluimos la camara generada en el diccionario de camaras
         cameras_dict.emplace(name,param_camera);
         std::cout<<"Camara añadida: "<<name<<std::endl;
     }
 	return true;
 }
 
-//workaround => using serial value not working on actual api version
+///workaround => using serial value not working on actual api version
 rs2::device SpecificWorker::get_device(const std::string& serial_number) {
     rs2::context ctx;
     while (true)
@@ -147,7 +153,7 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     //RoboCompGenericBase::TBaseState Base = self.differentialrobot_proxy.getBaseState();
-    ///this->genericbase_proxy->getBaseState(Base);
+    //this->genericbase_proxy->getBaseState(Base);
 
     euler_angle ang;
     for (const auto &[key, value] : cameras_dict) {
@@ -160,151 +166,160 @@ void SpecificWorker::compute()
         //std::cout<<"Velocidad "<<v.z<<std::endl;
 
         auto frames = value.pipe.wait_for_frames();
-        // Get a frame from the pose stream
+        /// Get a frame from the pose stream
         auto f = frames.first_or_default(RS2_STREAM_POSE);
-        // Cast the frame to pose_frame and get its data
+        /// Cast the frame to pose_frame and get its data, params->(https://dev.intelrealsense.com/docs/rs-pose)
         auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
-        // Print the x, y, z values of the translation, relative to initial position
-
+        /// Creamos la matriz de los datos obtenidos
         ang = quaternion_to_euler_angle(pose_data.rotation.w, pose_data.rotation.x, pose_data.rotation.y, pose_data.rotation.z);
 
-        Eigen::Quaternion<float> quatIn(pose_data.rotation.w, pose_data.rotation.x, pose_data.rotation.y, pose_data.rotation.z);
-        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,pose_data.translation.y,pose_data.translation.z)));
-        camera_world.rotate(quatIn);
+        //Eigen::Quaternion<float> quatIn(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
 
+        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
+        camera_world.rotate(Eigen::AngleAxisf (ang.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y, Eigen::Vector3f::UnitZ()));
+        //camera_world.rotate(quatIn);
+
+        ///Realizamos trasformación
         bufferMutex.lock();
         cameras_dict[key].origen_world.linear() = camera_world.linear() * cameras_dict[key].origen_camera.linear();
+        //cameras_dict[key].origen_world.linear() = camera_world.linear() * origen_robot.linear();
         cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this->origen_robot.translation();
-
-
-        //Eigen::Quaternion<float> quatOut(camera_world.linear() * this->origen_robot.linear());
-        Eigen::Quaternion<float> quatOut(cameras_dict[key].origen_world.linear() ) ;
-        euler_angle angOut = quaternion_to_euler_angle(quatOut.w(),quatOut.x(),quatOut.y(),quatOut.z());
-
-        /*
-        cameras_dict[key].angles.x = angOut.x;
-        cameras_dict[key].angles.y = angOut.y;
-        cameras_dict[key].angles.z = angOut.z;
-*/
-
-
-        angOut.x = angOut.x - cameras_dict[key].rot_init_angles.x;
-        angOut.y = angOut.y - cameras_dict[key].rot_init_angles.y;
-        angOut.z = angOut.z - cameras_dict[key].rot_init_angles.z;
-
-        if (angOut.x<-M_PI)
-            cameras_dict[key].angles.x = angOut.x + (2*M_PI);
-        else {if(angOut.x>M_PI)
-            cameras_dict[key].angles.x = angOut.x - (2*M_PI);
-        else
-            cameras_dict[key].angles.x=angOut.x;}
-
-        if (angOut.y<-M_PI){
-            cameras_dict[key].angles.y = angOut.y + (2*M_PI);
-            std::cout<< "-180"<<std::endl;
-        }
-        else {
-            if(angOut.y>M_PI){
-                cameras_dict[key].angles.y = angOut.y - (2*M_PI);
-            std::cout<< "180"<<std::endl;
-            }
-            else{
-                cameras_dict[key].angles.y=angOut.y;
-                std::cout<< "NAN"<<std::endl;
-            }
-        }
-
-        if (angOut.z<-M_PI)
-            cameras_dict[key].angles.z = angOut.z + (2*M_PI);
-        else {if(angOut.z>M_PI)
-            cameras_dict[key].angles.z = angOut.z - (2*M_PI);
-        else
-            cameras_dict[key].angles.z=angOut.z;}
+        cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
 
         cameras_dict[key].mapper_confidence = pose_data.mapper_confidence;
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
 
-        //std::cout<<"\r"<< "Quat entrada vs Quat salida: " <<std::setprecision(3)<<quatIn.w()<<" "<<quatOut.w()<<"/"<<quatIn.x()<<" "<<quatOut.x()<<"/"<<quatIn.y()<<" "<<quatOut.y()<<"/"<<quatIn.z()<<" "<<quatOut.z();
-        //std::cout<<"\r" << "Ang entrada vs Ang salida: " << std::setprecision(3)<<180* ang.x/M_PI<<" "<<180*ang.x/M_PI<<" / "<<180*angAux.y/M_PI<<" "<<180* ang.y/M_PI<<" / "<<180*angAux.z/M_PI<<" "<<180*ang.z/M_PI << endl;
-
         bufferMutex.unlock();
 
-        if(print_output){
-            /*std::cout << "\r" << std::setprecision(3)*/
+        ///Muestra por consola si se ha solicitado en el config
+        if(print_output){/*
+            Eigen::Quaternion<float> quatOut(cameras_dict[key].origen_world.linear());
+            Eigen::Vector3f angles =  quatOut.matrix().eulerAngles(0,1,2);
             std::cout << "Device: " << key <<std::setprecision(3)
-
             << std::fixed
             << cameras_dict[key].origen_world.matrix().coeff(0,3)<< " "
             << cameras_dict[key].origen_world.matrix().coeff(1,3) << " "
-            << cameras_dict[key].origen_world.matrix().coeff(2,3)<< " (met) "/*
+            << cameras_dict[key].origen_world.matrix().coeff(2,3)<< " (met) "
             << quatOut.x() << " "
             << quatOut.y() << " "
             << quatOut.z() << " "
-            << quatOut.w() << " (quat) " << " "*/
-            << 180*cameras_dict[key].angles.x/PI << " "
-            << 180*cameras_dict[key].angles.y/PI << " "
-            << 180*cameras_dict[key].angles.z/PI << " (grad) " << " "/*
-            << cameras_dict[key].angles.x << " "
-            << cameras_dict[key].angles.y << " "
-            << cameras_dict[key].angles.z << "(rad)"*/
-            << std::endl;
+            << quatOut.w() << " (quat) " << " "
+            << 180*angles.x()/PI << " "
+            << 180*angles.y()/PI << " "
+            << 180*angles.z()/PI << " (grad) " << " "
+            << angles.x() << " "
+            << angles.y() << " "
+            << angles.z() << "(rad)"
+            << std::endl;*/
 
-            //FullPoseEstimation_getFullPoseEuler();
+            FullPoseEstimation_getFullPoseEuler();
         }
-
-
     }
 }
 
 int SpecificWorker::startup_check()
 {
-	std::cout << "Startup check" << std::endl;
-	QTimer::singleShot(200, qApp, SLOT(quit()));
-	return 0;
+    std::cout << "Startup check" << std::endl;
+    QTimer::singleShot(200, qApp, SLOT(quit()));
+    return 0;
 }
 
 RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_getFullPoseEuler()
 {
 	std::lock_guard<std::mutex> lock(bufferMutex);
 
-	int sigma = 0;
 	RoboCompFullPoseEstimation::FullPoseEuler ret;
 	ret.source = "realsense";
-	for (const auto &[key, value] : cameras_dict)
-	{
-	    //CALCULATE ADDITION BOTH DATA'S CAMERA
-	    ret.x = ret.x + cameras_dict[key].origen_world.matrix().coeff(0,3) * cameras_dict[key].tracker_confidence;
-	    ret.y = ret.y + cameras_dict[key].origen_world.matrix().coeff(1,3) * cameras_dict[key].tracker_confidence;
-	    ret.z = ret.z + cameras_dict[key].origen_world.matrix().coeff(2,3) * cameras_dict[key].tracker_confidence;
-	    ret.rx = ret.rx + cameras_dict[key].angles.x * cameras_dict[key].tracker_confidence;
-	    ret.ry = ret.ry + cameras_dict[key].angles.y * cameras_dict[key].tracker_confidence;
-	    ret.rz = ret.rz + cameras_dict[key].angles.z * cameras_dict[key].tracker_confidence;
-        sigma = sigma + cameras_dict[key].tracker_confidence;
 
-        //CALCULATE AVERAGE OF POSITION
-        ret.x = ret.x / sigma;
-        ret.y = ret.y / sigma;
-        ret.z = ret.z / sigma;
+	std::map<string, PARAMS>::iterator it=cameras_dict.begin();
+	float sigmaAcu;
+	///Inicializamos el acumulador con el primero que no tenga confianza 0
+	do{
+	    sigmaAcu = it->second.tracker_confidence;
+	    if (sigmaAcu == 0){
+	        it++;
+	    }
+	}while (sigmaAcu == 0 && it != cameras_dict.end());
 
-        //CALCULATE AVERAGE OF ANGLES  (CHECK -PI to PI transition !!!!)
-        ret.rx = ret.rx / sigma;
-        ret.ry = ret.ry / sigma;
-        ret.rz = ret.rz / sigma;
+	Eigen::Quaternion<float> quatAcu(it->second.origen_world.linear()) ;    //Rotación
+	Eigen::Vector3f trasAcu = it->second.origen_world.translation();        //Traslación
+	it++;
 
-        if(print_output)
-            std::cout << "\r" << "Resultado" << " " <<
-                                sigma << " " <<
-                                ret.x << " " <<
-                                ret.y << " " <<
-                                ret.z << " " <<
-                                ret.rx << " " <<
-                                ret.ry << " " <<
-                                ret.rz << std::endl;
+	///Valores para normalizar sigma
+	float const sigmaDifMin = -3.0;
+	float const sigmaDifMax = 3.0;
+	float sigmaNormCam = 0.0;
+	float sigmaNormAcu = 0.0;
+
+	///Leemos todas las camaras
+	for ( ; it!=cameras_dict.end(); ++it) {
+
+	    float sigmaCam = it->second.tracker_confidence;
+
+	    if (sigmaCam != 0.0)
+        {
+            ////Normalizar la dif entre sigmaAcu y sigmaOut
+            float sigmaDif = sigmaCam - sigmaAcu;
+            ///Noramalización de [-3,3] a [0,1]
+            sigmaNormCam = (sigmaDif - sigmaDifMin) / (sigmaDifMax - sigmaDifMin); ///esta es para el dos
+            sigmaNormAcu = 1.0 - sigmaNormCam; ///esta para el uno
+
+            std::cout<< " Confianza cámara 1: " << sigmaAcu << std::endl;
+            std::cout<< " Confianza cámara 2: " << sigmaCam << std::endl;
+            std::cout<< " Diferencia entre confianzas (cámara 2 - cámara 1): " << sigmaDif << std::endl;
+
+            ///Traslación
+            Eigen::Vector3f trasCam = it->second.origen_world.translation();
+            ///Media de traslaciones respecto a sigma
+            trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
+
+            /*trasAcu.x() = (trasCam.x() * sigmaNormCam) + (trasAcu.x() * sigmaNormAcu);
+            trasAcu.y() = (trasCam.y() * sigmaNormCam) + (trasAcu.y() * sigmaNormAcu);
+            trasAcu.z() = (trasCam.z() * sigmaNormCam) + (trasAcu.z() * sigmaNormAcu);*/
+
+            ///Rotación
+            std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
+            Eigen::Quaternion<float> quatCam(it->second.origen_world.linear());
+            std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
+            quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
+            std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
+
+            sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
+        }
+
+	    ///Retornos
+	    Eigen::Vector3f angles =  quatAcu.matrix().eulerAngles(0,1,2);
+	    ret.x = trasAcu.x();
+	    ret.y = trasAcu.y();
+	    ret.z = trasAcu.z();
+	    ret.rx = angles[0];
+	    ret.ry = angles[1];
+	    ret.rz = angles[2];
+	    ret.confidence = sigmaAcu;
+
+	    if(print_output)
+	    {
+	        std::cout << std::setprecision(3)<< "Resultado: " <<
+	        " Sigma normalizado cámara 1: " << sigmaNormAcu <<
+	        " Sigma normalizado cámara 2: " << sigmaNormCam <<
+	        " Traslación media (x,y,z): " <<
+	        trasAcu.x() << ", " <<
+	        trasAcu.y() << ", " <<
+	        trasAcu.z() <<
+	        " Quaterniones media (x, y, z, w): " <<
+	        quatAcu.x() << ", " <<
+	        quatAcu.y() << ", " <<
+	        quatAcu.z() << ", " <<
+	        quatAcu.w() <<
+	        " Grados media (x, y, z): " <<
+	        180*angles[0]/M_PI << ", " <<
+	        180*angles[1]/M_PI << ", " <<
+	        180*angles[2]/M_PI <<
+	        std::endl;
+	    }
 	}
-
 	return ret;
 }
-
 
 RoboCompFullPoseEstimation::FullPoseMatrix SpecificWorker::FullPoseEstimation_getFullPoseMatrix()
 {
@@ -312,29 +327,29 @@ RoboCompFullPoseEstimation::FullPoseMatrix SpecificWorker::FullPoseEstimation_ge
 
     RoboCompFullPoseEstimation::FullPoseMatrix fullMatrix;
     fullMatrix.source = "camera_side";
-    std::string camera = "camera_side";
     
-    fullMatrix.m00 = cameras_dict[camera].origen_camera.matrix().coeff(0,0);
-    fullMatrix.m01 = cameras_dict[camera].origen_camera.matrix().coeff(0,1);
-    fullMatrix.m02 = cameras_dict[camera].origen_camera.matrix().coeff(0,2);
-    fullMatrix.m03 = cameras_dict[camera].origen_camera.matrix().coeff(0,3);
-    fullMatrix.m10 = cameras_dict[camera].origen_camera.matrix().coeff(1,0);
-    fullMatrix.m11 = cameras_dict[camera].origen_camera.matrix().coeff(1,1);
-    fullMatrix.m12 = cameras_dict[camera].origen_camera.matrix().coeff(1,2);
-    fullMatrix.m13 = cameras_dict[camera].origen_camera.matrix().coeff(1,3);
-    fullMatrix.m20 = cameras_dict[camera].origen_camera.matrix().coeff(2,0);
-    fullMatrix.m21 = cameras_dict[camera].origen_camera.matrix().coeff(2,1);
-    fullMatrix.m22 = cameras_dict[camera].origen_camera.matrix().coeff(2,2);
-    fullMatrix.m23 = cameras_dict[camera].origen_camera.matrix().coeff(2,3);
-    fullMatrix.m30 = cameras_dict[camera].origen_camera.matrix().coeff(3,0);
-    fullMatrix.m31 = cameras_dict[camera].origen_camera.matrix().coeff(3,1);
-    fullMatrix.m32 = cameras_dict[camera].origen_camera.matrix().coeff(3,2);
-    fullMatrix.m33 = cameras_dict[camera].origen_camera.matrix().coeff(3,3);
+    fullMatrix.m00 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(0,0);
+    fullMatrix.m01 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(0,1);
+    fullMatrix.m02 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(0,2);
+    fullMatrix.m03 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(0,3);
+    fullMatrix.m10 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(1,0);
+    fullMatrix.m11 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(1,1);
+    fullMatrix.m12 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(1,2);
+    fullMatrix.m13 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(1,3);
+    fullMatrix.m20 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(2,0);
+    fullMatrix.m21 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(2,1);
+    fullMatrix.m22 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(2,2);
+    fullMatrix.m23 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(2,3);
+    fullMatrix.m30 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(3,0);
+    fullMatrix.m31 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(3,1);
+    fullMatrix.m32 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(3,2);
+    fullMatrix.m33 = cameras_dict[fullMatrix.source].origen_camera.matrix().coeff(3,3);
     return fullMatrix;
 }
 void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz)
 {
-    //Ejes del robot despecto al origen-mapa
+    std::lock_guard<std::mutex> lock(bufferMutex);
+    ///Ejes del robot despecto al origen-mapa
     this->origen_robot=Eigen::Translation3f(Eigen::Vector3f(x,y,z));
     this->origen_robot.rotate(Eigen::AngleAxisf (rx, Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
 
@@ -344,7 +359,6 @@ void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z
         cameras_dict[key].origen_camera.translation() = this->origen_robot.linear() *  cameras_dict[key].robot_camera.translation() + this->origen_robot.translation();
 
     }
-
 }
 
 SpecificWorker::euler_angle SpecificWorker::quaternion_to_euler_angle(float qw, float qx, float qy, float qz){

@@ -60,7 +60,7 @@ public slots:
 		void initialize(int period);
 
 	private:
-        struct euler_angle{
+        struct euler_angle{ //cambiar nombre
             float x;
             float y;
             float z;
@@ -73,6 +73,7 @@ public slots:
             Eigen::Affine3f origen_camera;   //Matrix de ejes de la camara respecto al origen
             Eigen::Affine3f origen_world;   //3
             euler_angle rot_init_angles;
+            euler_angle traslation_init;
             unsigned int mapper_confidence;     //5
             unsigned int tracker_confidence;    //6
             rs2::wheel_odometer* odometer;
@@ -85,6 +86,9 @@ public slots:
         Eigen::Affine3f origen_robot;   //Matrix de ejes de la robot respecto al origen
 
         euler_angle quaternion_to_euler_angle(float w, float x, float y, float z);
+
+        std::ofstream f_debug;
+        bool debug;
 
 		std::shared_ptr < InnerModel > innerModel;
 		bool startup_check_flag;

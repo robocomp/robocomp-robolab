@@ -35,10 +35,25 @@ SpecificWorker::~SpecificWorker()
 	for (const auto &[key, value] : cameras_dict) {
 	    delete(cameras_dict[key].odometer);
 	}
+    f_debug.close();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+    std::string modDebug;
+    std::cout<<"¿Activar escritura en txt? s/n"<<std::endl;
+    std::cin>>modDebug;
+    if (modDebug=="s" or modDebug=="S")
+        debug = true;
+    else
+        debug = false;
+    if(debug){
+        f_debug.open("dataDebug.txt");
+        if(not f_debug.is_open())
+            std::abort();
+    }
+
+
 	num_cameras = std::stoi(params["num_cameras"].value);
 	print_output = (params["print"].value == "true") or (params["print"].value == "True");
     float rx, ry, rz, tx, ty, tz;
@@ -48,7 +63,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	rx = (PI * (std::stof(params["origen_rx"].value))) / 180;
 	ry = (PI * (std::stof(params["origen_ry"].value))) / 180;
-	rz = (PI * (std::stof(params["origen_rz"].value)))/180;
+	rz = (PI * (std::stof(params["origen_rz"].value))) / 180;
 	tx = std::stof(params["origen_tx"].value);
 	ty = std::stof(params["origen_ty"].value);
 	tz = std::stof(params["origen_tz"].value);
@@ -64,18 +79,17 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         param_camera.device_serial = params["device_serial_"+std::to_string(i)].value;
         param_camera.rot_init_angles.x = (PI * (std::stof(params["rx_"+ std::to_string(i)].value))) / 180;
         param_camera.rot_init_angles.y = (PI * (std::stof(params["ry_"+std::to_string(i)].value))) / 180;
-        param_camera.rot_init_angles.z = (PI * (std::stof(params["rz_"+std::to_string(i)].value)))/180;
-        tx = std::stof (params["tx_"+std::to_string(i)].value);
-        ty = std::stof(params["ty_"+std::to_string(i)].value);
-        tz = std::stof(params["tz_"+std::to_string(i)].value);
-
+        param_camera.rot_init_angles.z = (PI * (std::stof(params["rz_"+std::to_string(i)].value))) / 180;
+        param_camera.traslation_init.x = std::stof (params["tx_"+std::to_string(i)].value);
+        param_camera.traslation_init.y = std::stof(params["ty_"+std::to_string(i)].value);
+        param_camera.traslation_init.z = std::stof(params["tz_"+std::to_string(i)].value);
         ///Ejes de de camara respecto a robot
-        param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
+        param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(param_camera.traslation_init.x,param_camera.traslation_init.y,param_camera.traslation_init.z));
         param_camera.robot_camera.rotate(Eigen::AngleAxisf (param_camera.rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (param_camera.rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(param_camera.rot_init_angles.z, Eigen::Vector3f::UnitZ()));
         ///Ejes de la camara respecto a origen
-        param_camera.origen_camera.linear() = param_camera.robot_camera.linear() * this->origen_robot.linear();
-        param_camera.origen_camera.translation() = this->origen_robot.linear() * param_camera.robot_camera.translation() + this->origen_robot.translation();
-        //std::cout<<param_camera.origen_camera.matrix()<<std::endl;
+        param_camera.origen_camera.matrix() = origen_robot.matrix() * param_camera.robot_camera.matrix();
+        //param_camera.origen_camera.linear() = param_camera.robot_camera.linear() * this->origen_robot.linear();
+        //param_camera.origen_camera.translation() = this->origen_robot.linear() * param_camera.robot_camera.translation() + this->origen_robot.translation();
 
         try
         {
@@ -118,6 +132,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
             /// Start pipeline with chosen configuration
             param_camera.pipe.start(cfg);
 
+            if (debug){
+                f_debug<<"Configuración camara "<<name<<": "<<std::endl<<"Matriz origen_camera: "<<std::endl<<  param_camera.origen_camera.matrix()<<std::endl;
+            }
+
         }catch(const std::exception& e)
         {
             std::cout << e.what() << std::endl;
@@ -154,8 +172,14 @@ void SpecificWorker::compute()
 {
     //RoboCompGenericBase::TBaseState Base = self.differentialrobot_proxy.getBaseState();
     //this->genericbase_proxy->getBaseState(Base);
-
+    std::string text;
     euler_angle ang;
+    if(debug){
+        std::cout<<"configuracion:";
+        std::cin >> text;
+        if(text == "ESC" or text == "esc")
+            std::abort();
+    }
     for (const auto &[key, value] : cameras_dict) {
 
         rs2_vector v;
@@ -175,24 +199,63 @@ void SpecificWorker::compute()
 
         //Eigen::Quaternion<float> quatIn(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
 
-        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
-        camera_world.rotate(Eigen::AngleAxisf (ang.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y, Eigen::Vector3f::UnitZ()));
+        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x - cameras_dict[key].traslation_init.x,-1.0 * pose_data.translation.z - cameras_dict[key].traslation_init.y,pose_data.translation.y - cameras_dict[key].traslation_init.z)));
+        camera_world.rotate(Eigen::AngleAxisf (ang.x - cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z - cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y - cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
         //camera_world.rotate(quatIn);
+
+
 
         ///Realizamos trasformación
         bufferMutex.lock();
-        cameras_dict[key].origen_world.linear() = camera_world.linear() * cameras_dict[key].origen_camera.linear();
+        cameras_dict[key].origen_world = camera_world.matrix() * cameras_dict[key].origen_camera.matrix();
+        //cameras_dict[key].origen_world.linear() = camera_world.linear() * cameras_dict[key].origen_camera.linear();
         //cameras_dict[key].origen_world.linear() = camera_world.linear() * origen_robot.linear();
-        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this->origen_robot.translation();
-        cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
+        //cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this->origen_robot.translation();
+        //cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
 
         cameras_dict[key].mapper_confidence = pose_data.mapper_confidence;
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
 
         bufferMutex.unlock();
+        if(debug){
+            Eigen::Quaternion<float> quatOut(camera_world.linear());
+            Eigen::Vector3f angles =  quatOut.matrix().eulerAngles(0,1,2);
+            Eigen::Quaternion<float> quatOutPOS(cameras_dict[key].origen_world.linear());
+            Eigen::Vector3f anglesPOS =  quatOutPOS.matrix().eulerAngles(0,1,2);
+            f_debug<<"posicion de la camara a: "<<text<<std::endl<<std::setprecision(3)<<"Datos de camara "<<key<<": "<<std::endl<<"camera_world: "<< std::endl<< camera_world.matrix()<<std::endl
+              << camera_world.matrix().coeff(0,3)<< " "
+              << camera_world.matrix().coeff(1,3) << " "
+              << camera_world.matrix().coeff(2,3)<< " (met) "
+              << quatOut.x() << " "
+              << quatOut.y() << " "
+              << quatOut.z() << " "
+              << quatOut.w() << " (quat) " << " "
+              << 180*angles.x()/PI << " "
+              << 180*angles.y()/PI << " "
+              << 180*angles.z()/PI << " (grad) " << " "
+              << angles.x() << " "
+              << angles.y() << " "
+              << angles.z() << "(rad)"
+              << std::endl<< std::endl
+              <<"DATOS DESPUES DE PROCESAMIENTO(origen_world):"<< std::endl
+              << cameras_dict[key].origen_world.matrix().coeff(0,3)<< " "
+              << cameras_dict[key].origen_world.matrix().coeff(1,3) << " "
+              << cameras_dict[key].origen_world.matrix().coeff(2,3)<< " (met) "
+              << quatOutPOS.x() << " "
+              << quatOutPOS.y() << " "
+              << quatOutPOS.z() << " "
+              << quatOutPOS.w() << " (quat) " << " "
+              << 180*anglesPOS.x()/PI << " "
+              << 180*anglesPOS.y()/PI << " "
+              << 180*anglesPOS.z()/PI << " (grad) " << " "
+              << anglesPOS.x() << " "
+              << anglesPOS.y() << " "
+              << anglesPOS.z() << "(rad)"
+              << std::endl;
+        }
 
         ///Muestra por consola si se ha solicitado en el config
-        if(print_output){/*
+        if(print_output){
             Eigen::Quaternion<float> quatOut(cameras_dict[key].origen_world.linear());
             Eigen::Vector3f angles =  quatOut.matrix().eulerAngles(0,1,2);
             std::cout << "Device: " << key <<std::setprecision(3)
@@ -210,9 +273,9 @@ void SpecificWorker::compute()
             << angles.x() << " "
             << angles.y() << " "
             << angles.z() << "(rad)"
-            << std::endl;*/
+            << std::endl;
 
-            FullPoseEstimation_getFullPoseEuler();
+            //FullPoseEstimation_getFullPoseEuler();
         }
     }
 }
@@ -354,10 +417,9 @@ void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z
     this->origen_robot.rotate(Eigen::AngleAxisf (rx, Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
 
     for (const auto &[key, value] : cameras_dict) {
-
-        cameras_dict[key].origen_camera.linear() =  cameras_dict[key].robot_camera.linear() * this->origen_robot.linear();
-        cameras_dict[key].origen_camera.translation() = this->origen_robot.linear() *  cameras_dict[key].robot_camera.translation() + this->origen_robot.translation();
-
+        cameras_dict[key].origen_camera = cameras_dict[key].robot_camera.matrix() * this->origen_robot.matrix();
+        //cameras_dict[key].origen_camera.linear() =  cameras_dict[key].robot_camera.linear() * this->origen_robot.linear();
+        //cameras_dict[key].origen_camera.translation() = this->origen_robot.linear() *  cameras_dict[key].robot_camera.translation() + this->origen_robot.translation();
     }
 }
 

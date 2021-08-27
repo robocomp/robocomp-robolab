@@ -77,6 +77,9 @@ public slots:
             unsigned int mapper_confidence;     //5
             unsigned int tracker_confidence;    //6
             rs2::wheel_odometer* odometer;
+            //final pose estimation
+            Eigen::Vector3f angles;
+            Eigen::Vector3f translation;
         };
 
 		bool print_output = false;

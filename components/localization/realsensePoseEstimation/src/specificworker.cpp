@@ -197,24 +197,48 @@ void SpecificWorker::compute()
         /// Creamos la matriz de los datos obtenidos
         ang = quaternion_to_euler_angle(pose_data.rotation.w, pose_data.rotation.x, pose_data.rotation.y, pose_data.rotation.z);
 
+        Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
+        vecQuat = cameras_dict[key].origen_camera.linear()*vecQuat;
+        // Eigen::Quaternion<float> quatCam(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
+        Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
+        // Eigen::Vector3f euler = quatCam.toRotationMatrix().eulerAngles(0, 1, 2);
+        Eigen::Vector3f euler = quatCam.toRotationMatrix().eulerAngles(0, 1, 2);
+        ang = quaternion_to_euler_angle(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
+
+
         //Eigen::Quaternion<float> quatIn(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
 
-        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x - cameras_dict[key].traslation_init.x,-1.0 * pose_data.translation.z - cameras_dict[key].traslation_init.y,pose_data.translation.y - cameras_dict[key].traslation_init.z)));
-        camera_world.rotate(Eigen::AngleAxisf (ang.x - cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z - cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y - cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
+        Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
+        // Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x - cameras_dict[key].traslation_init.x,-1.0 * pose_data.translation.z - cameras_dict[key].traslation_init.y,pose_data.translation.y - cameras_dict[key].traslation_init.z)));
+        camera_world.rotate(Eigen::AngleAxisf (ang.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ang.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.z, Eigen::Vector3f::UnitZ()));
+
+        // camera_world.linear() = quatCam.toRotationMatrix();
+
+        std::cout<<"pose rot "<<pose_data.rotation.w<<" "<< pose_data.rotation.x<<" "<< pose_data.rotation.y<<" "<< pose_data.rotation.z<<std::endl;
+        std::cout<<"vec quat "<<pose_data.rotation.w<<" "<< vecQuat.x()<<" "<< vecQuat.y()<<" "<< vecQuat.z()<<std::endl;
+        std::cout<<"ang "<<ang.x*180./PI<<"  "<<ang.y*180./PI<<"  "<<ang.z*180./PI<<std::endl;
+        std::cout<<"eigen "<<euler.x()*180./PI<<"  "<<euler.y()*180./PI<<"  "<<euler.z()*180./PI<<std::endl;
+        // camera_world.rotate(Eigen::AngleAxisf (ang.x - cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z - cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y - cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
         //camera_world.rotate(quatIn);
 
 
 
         ///Realizamos trasformación
         bufferMutex.lock();
-        cameras_dict[key].origen_world = camera_world.matrix() * cameras_dict[key].origen_camera.matrix();
-        //cameras_dict[key].origen_world.linear() = camera_world.linear() * cameras_dict[key].origen_camera.linear();
+        // cameras_dict[key].origen_world = camera_world.matrix() * cameras_dict[key].origen_camera.matrix();
+        cameras_dict[key].origen_world.linear() = /*cameras_dict[key].origen_camera.linear() */ camera_world.linear();
         //cameras_dict[key].origen_world.linear() = camera_world.linear() * origen_robot.linear();
-        //cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this->origen_robot.translation();
-        //cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
+        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + cameras_dict[key].origen_camera.translation();//this->origen_robot.translation();
+        // cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
 
         cameras_dict[key].mapper_confidence = pose_data.mapper_confidence;
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
+        cameras_dict[key].angles.x() = ang.x;
+        cameras_dict[key].angles.y() = ang.y;
+        cameras_dict[key].angles.z() = ang.z;
+        cameras_dict[key].translation.x() = cameras_dict[key].origen_world.matrix().coeff(0,3) - cameras_dict[key].origen_camera.matrix().coeff(0,3);
+        cameras_dict[key].translation.y() = cameras_dict[key].origen_world.matrix().coeff(1,3) - cameras_dict[key].origen_camera.matrix().coeff(1,3);
+        cameras_dict[key].translation.z() = cameras_dict[key].origen_world.matrix().coeff(2,3) - cameras_dict[key].origen_camera.matrix().coeff(2,3);
 
         bufferMutex.unlock();
         if(debug){
@@ -258,11 +282,20 @@ void SpecificWorker::compute()
         if(print_output){
             Eigen::Quaternion<float> quatOut(cameras_dict[key].origen_world.linear());
             Eigen::Vector3f angles =  quatOut.matrix().eulerAngles(0,1,2);
+            Eigen::Quaternion<float> quatIni(cameras_dict[key].origen_camera.linear());
+            Eigen::Vector3f anglesIni =  quatIni.matrix().eulerAngles(0,1,2);
+
+            angles.x() = ang.x;//angles.x() - anglesIni.x();
+            // angles.x() = atan2(sin(angles.x()), cos(angles.x()));
+            angles.y() = ang.y;//angles.y() - anglesIni.y();
+            // angles.y() = atan2(sin(angles.y()), cos(angles.y()));
+            angles.z() = ang.z;//angles.z() - anglesIni.z();
+            // angles.z() = atan2(sin(angles.z()), cos(angles.z()));
             std::cout << "Device: " << key <<std::setprecision(3)
             << std::fixed
-            << cameras_dict[key].origen_world.matrix().coeff(0,3)<< " "
-            << cameras_dict[key].origen_world.matrix().coeff(1,3) << " "
-            << cameras_dict[key].origen_world.matrix().coeff(2,3)<< " (met) "
+            << cameras_dict[key].origen_world.matrix().coeff(0,3) - cameras_dict[key].origen_camera.matrix().coeff(0,3)<< " "
+            << cameras_dict[key].origen_world.matrix().coeff(1,3) - cameras_dict[key].origen_camera.matrix().coeff(1,3)<< " "
+            << cameras_dict[key].origen_world.matrix().coeff(2,3) - cameras_dict[key].origen_camera.matrix().coeff(2,3)<< " (met) "
             << quatOut.x() << " "
             << quatOut.y() << " "
             << quatOut.z() << " "
@@ -270,14 +303,15 @@ void SpecificWorker::compute()
             << 180*angles.x()/PI << " "
             << 180*angles.y()/PI << " "
             << 180*angles.z()/PI << " (grad) " << " "
-            << angles.x() << " "
-            << angles.y() << " "
-            << angles.z() << "(rad)"
+            << angles.x()<< " "
+            << angles.y()<< " "
+            << angles.z()<< "(rad)"
             << std::endl;
 
-            //FullPoseEstimation_getFullPoseEuler();
+            // FullPoseEstimation_getFullPoseEuler();
         }
     }
+    FullPoseEstimation_getFullPoseEuler();
 }
 
 int SpecificWorker::startup_check()
@@ -304,9 +338,14 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 	    }
 	}while (sigmaAcu == 0 && it != cameras_dict.end());
 
-	Eigen::Quaternion<float> quatAcu(it->second.origen_world.linear()) ;    //Rotación
-	Eigen::Vector3f trasAcu = it->second.origen_world.translation();        //Traslación
+	Eigen::Vector3f angAcu = it->second.angles ;    //Rotación
+	Eigen::Vector3f trasAcu = it->second.translation;        //Traslación
 	it++;
+
+            std::cout<<" Grados cam (x, y, z): " <<
+	        180*angAcu.x()/M_PI << ", " <<
+	        180*angAcu.y()/M_PI << ", " <<
+	        180*angAcu.z()/M_PI << std::endl;
 
 	///Valores para normalizar sigma
 	float const sigmaDifMin = -3.0;
@@ -332,7 +371,7 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
             std::cout<< " Diferencia entre confianzas (cámara 2 - cámara 1): " << sigmaDif << std::endl;
 
             ///Traslación
-            Eigen::Vector3f trasCam = it->second.origen_world.translation();
+            Eigen::Vector3f trasCam = it->second.translation;
             ///Media de traslaciones respecto a sigma
             trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
 
@@ -341,23 +380,30 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
             trasAcu.z() = (trasCam.z() * sigmaNormCam) + (trasAcu.z() * sigmaNormAcu);*/
 
             ///Rotación
-            std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
-            Eigen::Quaternion<float> quatCam(it->second.origen_world.linear());
-            std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
-            quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
-            std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
+            
+            Eigen::Vector3f angCam = it->second.angles;
+            angAcu = (angCam * sigmaNormCam) + (angAcu * sigmaNormAcu);
+
+            std::cout<<" Grados cam (x, y, z): " <<
+	        180*angCam.x()/M_PI << ", " <<
+	        180*angCam.y()/M_PI << ", " <<
+	        180*angCam.z()/M_PI << std::endl;
+            // std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
+            // Eigen::Quaternion<float> quatCam(it->second.origen_world.linear());
+            // std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
+            // quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
+            // std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
 
             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
         }
 
 	    ///Retornos
-	    Eigen::Vector3f angles =  quatAcu.matrix().eulerAngles(0,1,2);
 	    ret.x = trasAcu.x();
 	    ret.y = trasAcu.y();
 	    ret.z = trasAcu.z();
-	    ret.rx = angles[0];
-	    ret.ry = angles[1];
-	    ret.rz = angles[2];
+	    ret.rx = angAcu.x();
+	    ret.ry = angAcu.y();
+	    ret.rz = angAcu.z();
 	    ret.confidence = sigmaAcu;
 
 	    if(print_output)
@@ -369,20 +415,112 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 	        trasAcu.x() << ", " <<
 	        trasAcu.y() << ", " <<
 	        trasAcu.z() <<
-	        " Quaterniones media (x, y, z, w): " <<
-	        quatAcu.x() << ", " <<
-	        quatAcu.y() << ", " <<
-	        quatAcu.z() << ", " <<
-	        quatAcu.w() <<
 	        " Grados media (x, y, z): " <<
-	        180*angles[0]/M_PI << ", " <<
-	        180*angles[1]/M_PI << ", " <<
-	        180*angles[2]/M_PI <<
+	        180*angAcu.x()/M_PI << ", " <<
+	        180*angAcu.y()/M_PI << ", " <<
+	        180*angAcu.z()/M_PI <<
 	        std::endl;
 	    }
 	}
 	return ret;
 }
+
+// RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_getFullPoseEuler()
+// {
+// 	std::lock_guard<std::mutex> lock(bufferMutex);
+
+// 	RoboCompFullPoseEstimation::FullPoseEuler ret;
+// 	ret.source = "realsense";
+
+// 	std::map<string, PARAMS>::iterator it=cameras_dict.begin();
+// 	float sigmaAcu;
+// 	///Inicializamos el acumulador con el primero que no tenga confianza 0
+// 	do{
+// 	    sigmaAcu = it->second.tracker_confidence;
+// 	    if (sigmaAcu == 0){
+// 	        it++;
+// 	    }
+// 	}while (sigmaAcu == 0 && it != cameras_dict.end());
+
+// 	Eigen::Quaternion<float> quatAcu(it->second.origen_world.linear()) ;    //Rotación
+// 	Eigen::Vector3f trasAcu = it->second.origen_world.translation();        //Traslación
+// 	it++;
+
+// 	///Valores para normalizar sigma
+// 	float const sigmaDifMin = -3.0;
+// 	float const sigmaDifMax = 3.0;
+// 	float sigmaNormCam = 0.0;
+// 	float sigmaNormAcu = 0.0;
+
+// 	///Leemos todas las camaras
+// 	for ( ; it!=cameras_dict.end(); ++it) {
+
+// 	    float sigmaCam = it->second.tracker_confidence;
+
+// 	    if (sigmaCam != 0.0)
+//         {
+//             ////Normalizar la dif entre sigmaAcu y sigmaOut
+//             float sigmaDif = sigmaCam - sigmaAcu;
+//             ///Noramalización de [-3,3] a [0,1]
+//             sigmaNormCam = (sigmaDif - sigmaDifMin) / (sigmaDifMax - sigmaDifMin); ///esta es para el dos
+//             sigmaNormAcu = 1.0 - sigmaNormCam; ///esta para el uno
+
+//             std::cout<< " Confianza cámara 1: " << sigmaAcu << std::endl;
+//             std::cout<< " Confianza cámara 2: " << sigmaCam << std::endl;
+//             std::cout<< " Diferencia entre confianzas (cámara 2 - cámara 1): " << sigmaDif << std::endl;
+
+//             ///Traslación
+//             Eigen::Vector3f trasCam = it->second.origen_world.translation();
+//             ///Media de traslaciones respecto a sigma
+//             trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
+
+//             /*trasAcu.x() = (trasCam.x() * sigmaNormCam) + (trasAcu.x() * sigmaNormAcu);
+//             trasAcu.y() = (trasCam.y() * sigmaNormCam) + (trasAcu.y() * sigmaNormAcu);
+//             trasAcu.z() = (trasCam.z() * sigmaNormCam) + (trasAcu.z() * sigmaNormAcu);*/
+
+//             ///Rotación
+//             std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
+//             Eigen::Quaternion<float> quatCam(it->second.origen_world.linear());
+//             std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
+//             quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
+//             std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
+
+//             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
+//         }
+
+// 	    ///Retornos
+// 	    Eigen::Vector3f angles =  quatAcu.matrix().eulerAngles(0,1,2);
+// 	    ret.x = trasAcu.x();
+// 	    ret.y = trasAcu.y();
+// 	    ret.z = trasAcu.z();
+// 	    ret.rx = angles[0];
+// 	    ret.ry = angles[1];
+// 	    ret.rz = angles[2];
+// 	    ret.confidence = sigmaAcu;
+
+// 	    if(print_output)
+// 	    {
+// 	        std::cout << std::setprecision(3)<< "Resultado: " <<
+// 	        " Sigma normalizado cámara 1: " << sigmaNormAcu <<
+// 	        " Sigma normalizado cámara 2: " << sigmaNormCam <<
+// 	        " Traslación media (x,y,z): " <<
+// 	        trasAcu.x() << ", " <<
+// 	        trasAcu.y() << ", " <<
+// 	        trasAcu.z() <<
+// 	        " Quaterniones media (x, y, z, w): " <<
+// 	        quatAcu.x() << ", " <<
+// 	        quatAcu.y() << ", " <<
+// 	        quatAcu.z() << ", " <<
+// 	        quatAcu.w() <<
+// 	        " Grados media (x, y, z): " <<
+// 	        180*angles[0]/M_PI << ", " <<
+// 	        180*angles[1]/M_PI << ", " <<
+// 	        180*angles[2]/M_PI <<
+// 	        std::endl;
+// 	    }
+// 	}
+// 	return ret;
+// }
 
 RoboCompFullPoseEstimation::FullPoseMatrix SpecificWorker::FullPoseEstimation_getFullPoseMatrix()
 {

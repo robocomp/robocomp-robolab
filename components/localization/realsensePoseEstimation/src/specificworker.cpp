@@ -194,51 +194,34 @@ void SpecificWorker::compute()
         auto f = frames.first_or_default(RS2_STREAM_POSE);
         /// Cast the frame to pose_frame and get its data, params->(https://dev.intelrealsense.com/docs/rs-pose)
         auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
-        /// Creamos la matriz de los datos obtenidos
-        ang = quaternion_to_euler_angle(pose_data.rotation.w, pose_data.rotation.x, pose_data.rotation.y, pose_data.rotation.z);
-
+        
         Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
         vecQuat = cameras_dict[key].origen_camera.linear()*vecQuat;
-        // Eigen::Quaternion<float> quatCam(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
-        Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
+        // Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
         // Eigen::Vector3f euler = quatCam.toRotationMatrix().eulerAngles(0, 1, 2);
-        Eigen::Vector3f euler = quatCam.toRotationMatrix().eulerAngles(0, 1, 2);
-        ang = quaternion_to_euler_angle(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
+        auto ang = quaternion_to_euler_angle(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
 
 
-        //Eigen::Quaternion<float> quatIn(pose_data.rotation.w, pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);
 
         Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
-        // Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x - cameras_dict[key].traslation_init.x,-1.0 * pose_data.translation.z - cameras_dict[key].traslation_init.y,pose_data.translation.y - cameras_dict[key].traslation_init.z)));
-        camera_world.rotate(Eigen::AngleAxisf (ang.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ang.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.z, Eigen::Vector3f::UnitZ()));
-
-        // camera_world.linear() = quatCam.toRotationMatrix();
-
-        std::cout<<"pose rot "<<pose_data.rotation.w<<" "<< pose_data.rotation.x<<" "<< pose_data.rotation.y<<" "<< pose_data.rotation.z<<std::endl;
-        std::cout<<"vec quat "<<pose_data.rotation.w<<" "<< vecQuat.x()<<" "<< vecQuat.y()<<" "<< vecQuat.z()<<std::endl;
-        std::cout<<"ang "<<ang.x*180./PI<<"  "<<ang.y*180./PI<<"  "<<ang.z*180./PI<<std::endl;
-        std::cout<<"eigen "<<euler.x()*180./PI<<"  "<<euler.y()*180./PI<<"  "<<euler.z()*180./PI<<std::endl;
-        // camera_world.rotate(Eigen::AngleAxisf (ang.x - cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0 * ang.z - cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.y - cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
-        //camera_world.rotate(quatIn);
+        // camera_world.rotate(Eigen::AngleAxisf (ang.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ang.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(ang.z, Eigen::Vector3f::UnitZ()));
 
 
+        // std::cout<<"Tr from camera"<<pose_data.translation.x<<" "<<-pose_data.translation.z<<" "<<pose_data.translation.y;
 
         ///Realizamos trasformación
         bufferMutex.lock();
-        // cameras_dict[key].origen_world = camera_world.matrix() * cameras_dict[key].origen_camera.matrix();
-        cameras_dict[key].origen_world.linear() = /*cameras_dict[key].origen_camera.linear() */ camera_world.linear();
-        //cameras_dict[key].origen_world.linear() = camera_world.linear() * origen_robot.linear();
-        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + cameras_dict[key].origen_camera.translation();//this->origen_robot.translation();
-        // cameras_dict[key].origen_world.rotate(Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (-1.0*cameras_dict[key].rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(-1.0*cameras_dict[key].rot_init_angles.z, Eigen::Vector3f::UnitZ()));
+        cameras_dict[key].origen_world.linear() = camera_world.linear();
+        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation();
 
         cameras_dict[key].mapper_confidence = pose_data.mapper_confidence;
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
         cameras_dict[key].angles.x() = ang.x;
         cameras_dict[key].angles.y() = ang.y;
         cameras_dict[key].angles.z() = ang.z;
-        cameras_dict[key].translation.x() = cameras_dict[key].origen_world.matrix().coeff(0,3) - cameras_dict[key].origen_camera.matrix().coeff(0,3);
-        cameras_dict[key].translation.y() = cameras_dict[key].origen_world.matrix().coeff(1,3) - cameras_dict[key].origen_camera.matrix().coeff(1,3);
-        cameras_dict[key].translation.z() = cameras_dict[key].origen_world.matrix().coeff(2,3) - cameras_dict[key].origen_camera.matrix().coeff(2,3);
+        cameras_dict[key].translation.x() = cameras_dict[key].origen_world.matrix().coeff(0,3) ;
+        cameras_dict[key].translation.y() = cameras_dict[key].origen_world.matrix().coeff(1,3) ;
+        cameras_dict[key].translation.z() = cameras_dict[key].origen_world.matrix().coeff(2,3) ;
 
         bufferMutex.unlock();
         if(debug){
@@ -280,35 +263,20 @@ void SpecificWorker::compute()
 
         ///Muestra por consola si se ha solicitado en el config
         if(print_output){
-            Eigen::Quaternion<float> quatOut(cameras_dict[key].origen_world.linear());
-            Eigen::Vector3f angles =  quatOut.matrix().eulerAngles(0,1,2);
-            Eigen::Quaternion<float> quatIni(cameras_dict[key].origen_camera.linear());
-            Eigen::Vector3f anglesIni =  quatIni.matrix().eulerAngles(0,1,2);
 
-            angles.x() = ang.x;//angles.x() - anglesIni.x();
-            // angles.x() = atan2(sin(angles.x()), cos(angles.x()));
-            angles.y() = ang.y;//angles.y() - anglesIni.y();
-            // angles.y() = atan2(sin(angles.y()), cos(angles.y()));
-            angles.z() = ang.z;//angles.z() - anglesIni.z();
-            // angles.z() = atan2(sin(angles.z()), cos(angles.z()));
             std::cout << "Device: " << key <<std::setprecision(3)
             << std::fixed
-            << cameras_dict[key].origen_world.matrix().coeff(0,3) - cameras_dict[key].origen_camera.matrix().coeff(0,3)<< " "
-            << cameras_dict[key].origen_world.matrix().coeff(1,3) - cameras_dict[key].origen_camera.matrix().coeff(1,3)<< " "
-            << cameras_dict[key].origen_world.matrix().coeff(2,3) - cameras_dict[key].origen_camera.matrix().coeff(2,3)<< " (met) "
-            << quatOut.x() << " "
-            << quatOut.y() << " "
-            << quatOut.z() << " "
-            << quatOut.w() << " (quat) " << " "
-            << 180*angles.x()/PI << " "
-            << 180*angles.y()/PI << " "
-            << 180*angles.z()/PI << " (grad) " << " "
-            << angles.x()<< " "
-            << angles.y()<< " "
-            << angles.z()<< "(rad)"
+            << cameras_dict[key].translation.x()<< " "
+            << cameras_dict[key].translation.y()<< " "
+            << cameras_dict[key].translation.z()<< " (met) "
+            << 180*ang.x/PI << " "
+            << 180*ang.y/PI << " "
+            << 180*ang.z/PI << " (grad) " << " "
+            << ang.x<< " "
+            << ang.y<< " "
+            << ang.z<< "(rad)"
             << std::endl;
 
-            // FullPoseEstimation_getFullPoseEuler();
         }
     }
     FullPoseEstimation_getFullPoseEuler();
@@ -342,11 +310,6 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 	Eigen::Vector3f trasAcu = it->second.translation;        //Traslación
 	it++;
 
-            std::cout<<" Grados cam (x, y, z): " <<
-	        180*angAcu.x()/M_PI << ", " <<
-	        180*angAcu.y()/M_PI << ", " <<
-	        180*angAcu.z()/M_PI << std::endl;
-
 	///Valores para normalizar sigma
 	float const sigmaDifMin = -3.0;
 	float const sigmaDifMax = 3.0;
@@ -375,24 +338,10 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
             ///Media de traslaciones respecto a sigma
             trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
 
-            /*trasAcu.x() = (trasCam.x() * sigmaNormCam) + (trasAcu.x() * sigmaNormAcu);
-            trasAcu.y() = (trasCam.y() * sigmaNormCam) + (trasAcu.y() * sigmaNormAcu);
-            trasAcu.z() = (trasCam.z() * sigmaNormCam) + (trasAcu.z() * sigmaNormAcu);*/
-
             ///Rotación
             
             Eigen::Vector3f angCam = it->second.angles;
             angAcu = (angCam * sigmaNormCam) + (angAcu * sigmaNormAcu);
-
-            std::cout<<" Grados cam (x, y, z): " <<
-	        180*angCam.x()/M_PI << ", " <<
-	        180*angCam.y()/M_PI << ", " <<
-	        180*angCam.z()/M_PI << std::endl;
-            // std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
-            // Eigen::Quaternion<float> quatCam(it->second.origen_world.linear());
-            // std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
-            // quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
-            // std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
 
             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
         }

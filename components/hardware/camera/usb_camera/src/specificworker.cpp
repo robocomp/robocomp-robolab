@@ -38,6 +38,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     try
     {
+        //Parametros por el config
         pars.device  = params.at("device").value;
         pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
@@ -51,12 +52,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-
-<<<<<<< HEAD
-	if( auto success = capture.open("/dev/video2"); success != true)
-=======
 	if( auto success = capture.open(pars.device); success != true)
->>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
     {
 	    qWarning() << __FUNCTION__ << " No camera found";
 	    std::terminate();
@@ -75,18 +71,6 @@ void SpecificWorker::compute()
 {
     my_mutex.lock();
         capture >> frame;
-<<<<<<< HEAD
-        //qInfo() << frame.total() * frame.elemSize();
-        cv::imencode(".jpg", frame, buffer, compression_params);
-        //qInfo() << "raw: " << frame.total() * frame.elemSize() << "compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size();
-    my_mutex.unlock();
-    //cv::imshow("USB Camera", frame);
-    //cv::Mat dest=cv::imdecode(buffer, -1);
-   // cv::imshow("USB Camera comprimido", dest);
-    //cv::waitKey(2); // waits to display frame
-
-    //fps.print("FPS:");
-=======
         if(pars.compressed)
             cv::imencode(".jpg", frame, buffer, compression_params);
     my_mutex.unlock();
@@ -100,7 +84,6 @@ void SpecificWorker::compute()
     fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
     //fps.print("");
 
->>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -112,18 +95,11 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
     res.depth = frame.channels();
     res.height = frame.rows;
     res.width = frame.cols;
-<<<<<<< HEAD
-    res.compressed=true;
-    //res.image.assign(frame.data, frame.data + (frame.rows*frame.cols*3));
-    res.image.assign(buffer.begin(), buffer.end());
-    //copy(buffer.begin(),buffer.end(),res.image.begin());
-=======
     res.compressed = pars.compressed;
     if(res.compressed)
         res.image = buffer;
     else
         res.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
->>>>>>> dfb089bccedb892269f92cc7b500ee4e0b724b51
     return res;
 }
 

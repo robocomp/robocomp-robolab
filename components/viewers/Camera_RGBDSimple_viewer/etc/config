@@ -1,0 +1,15 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h 158.49.247.193 -p 10094
+
+InnerModelPath = innermodel.xml
+
+display_rgb = true
+display_depth = true
+display_compressed = true
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

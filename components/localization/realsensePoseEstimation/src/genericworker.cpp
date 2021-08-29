@@ -23,7 +23,9 @@
 GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
 
-	fullposeestimationpub_pubproxy = std::get<0>(tprx);
+	differentialrobot_proxy = std::get<0>(tprx);
+	genericbase_proxy = std::get<1>(tprx);
+	fullposeestimationpub_pubproxy = std::get<2>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

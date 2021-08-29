@@ -1,0 +1,11 @@
+import "PoseBasedGestureRecognition.idsl";
+
+Component PoseBasedGestureRecognition
+{
+	Communications
+	{
+		implements PoseBasedGestureRecognition;
+	};
+	language python;
+};
+

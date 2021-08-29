@@ -1,10 +1,14 @@
+
 import "FullPoseEstimation.idsl";
 import "FullPoseEstimationPub.idsl";
+import "DifferentialRobot.idsl";
+import "GenericBase.idsl";
 
 Component realSensePoseEstimation
 {
     Communications
     {
+        requires DifferentialRobot, GenericBase;
         implements FullPoseEstimation;
         publishes FullPoseEstimationPub;
     };

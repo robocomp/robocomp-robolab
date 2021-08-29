@@ -13,4 +13,4 @@ SET ( HEADERS
 
 set(CMAKE_CXX_STANDARD 17 )
 add_definitions(-O3 -march=native  -fmax-errors=5 -std=c++2a )
-SET (LIBS ${LIBS} realsense2 )
+SET (LIBS ${LIBS} realsense2 qmat )

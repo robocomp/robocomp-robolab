@@ -1,5 +1,6 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2021 by Alejandro Torrejon Harto
+ *    Date: 26/07/2021
  *
  *    This file is part of RoboComp
  *
@@ -36,17 +37,26 @@
 #include <iostream>
 #include <stdio.h>
 
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp> 
+#include <opencv2/imgproc.hpp>
+
 ///////////////////////////////IMAGE////////////////////////////
-class PreviewRender : public RealSenseID::PreviewImageReadyCallback
-{
-public:
-		RealSenseID::Image frame;
-		void OnPreviewImageReady(const RealSenseID::Image image){
-		std::cout << "frame #" << image.number << ": " << image.width << "x" << image.height << " (" << image.size
-					<< " bytes)" << "stride: "<< image.stride << std::endl;
-		this->frame=image;
-	}
-};
+class PreviewRender : public RealSenseID::PreviewImageReadyCallback 
+{ 
+public: 
+    RealSenseID::Image frame; 
+    std::mutex *mutex;
+    PreviewRender(std::mutex *mutex){ 
+        this->mutex=mutex; 
+    } 
+    void OnPreviewImageReady(const RealSenseID::Image image){ 
+        //std::cout << "frame #" << image.number << ": " << image.width << "x" << image.height << " (" << image.size << " bytes)" << "stride: "<< image.stride << std::endl; 
+        mutex->lock(); 
+            this->frame=image; 
+        mutex->unlock(); 
+    } 
+}; 
 
 //////////////////SPECIFICWORKER///////////////////////////
 
@@ -77,9 +87,21 @@ public slots:
 private:
 	std::shared_ptr < InnerModel > innerModel;
 	bool startup_check_flag;
+    
+    std::mutex my_mutex; 
+    std::unique_ptr<RealSenseID::Preview> preview; 
+    std::unique_ptr<PreviewRender> preview_callback; 
 
-    std::unique_ptr<RealSenseID::Preview> preview;
-	std::unique_ptr<PreviewRender> preview_callback;
+ 
+    vector<int> compression_params;
+    vector<uchar> buffer;
+    struct PARAMS
+    {
+        std::string device = "/dev/ttyACM0";
+        bool display = false;
+        bool compressed = false;
+    };
+    PARAMS pars;
 } ;
 
 

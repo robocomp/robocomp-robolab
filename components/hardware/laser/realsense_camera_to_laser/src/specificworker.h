@@ -118,7 +118,7 @@ private:
     RoboCompLaser::TLaserData compute_laser(const Camera_Map &cam_map_extended);
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
 
-    Camera_Map read_and_filter(Camera_Map &cam_map);
+    Camera_Map& read_and_filter(Camera_Map &cam_map);
 
     std::mutex my_mutex;
     FPSCounter fps;

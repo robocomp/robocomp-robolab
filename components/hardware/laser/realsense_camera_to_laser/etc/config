@@ -6,7 +6,7 @@ Laser.Endpoints=tcp -p 10003
 serial_center = 105322252279
 serial_left = 049522250171
 serial_right = 046322251148
-display_depth = true
+display_depth = false
 display_rgb = false
 
 Ice.Warn.Connections=0

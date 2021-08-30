@@ -89,11 +89,11 @@ void SpecificWorker::initialize(int period)
         for (auto p : profile_center.get_streams())
             std::cout << "  stream ID: " << p.unique_id() << " - Stream name: " << p.stream_name() << std::endl;
 
-        Eigen::Translation<float, 3> center_tr(0.f, 0.f, 0.113);
+        Eigen::Translation<float, 3> center_tr(0.f, 0.f, 0.100);
         Eigen::Matrix3f center_m;
         center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-                * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitY())
-                * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
+                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitY())
+                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> center_depth_extrinsics;;
         center_depth_extrinsics = center_tr;
         center_depth_extrinsics.rotate(center_m);
@@ -101,13 +101,14 @@ void SpecificWorker::initialize(int period)
         cam_map[serial_center] = std::make_tuple(center_pipe, center_depth_intr, center_depth_extrinsics, rs2::frame(), rs2::points());
         qInfo() << __FUNCTION__ << " center-camera started";
 
+        // right
         rs2::pipeline right_pipe;
         right_pipe.start(cfg_right);
         right_depth_intr = right_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
         Eigen::Translation<float, 3> right_tr(0.0963, 0, 0.0578);
         Eigen::Matrix3f right_m;
         right_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-            * Eigen::AngleAxisf(M_PI/6, Eigen::Vector3f::UnitY())
+            * Eigen::AngleAxisf(M_PI/3, Eigen::Vector3f::UnitY())
             * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> right_depth_extrinsics;;
         right_depth_extrinsics = right_tr;
@@ -123,7 +124,7 @@ void SpecificWorker::initialize(int period)
         Eigen::Translation<float, 3> left_tr(-0.0963, 0.f, 0.0578);
         Eigen::Matrix3f left_m;
         left_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-                * Eigen::AngleAxisf(-M_PI/6, Eigen::Vector3f::UnitY())
+                * Eigen::AngleAxisf(-M_PI/3, Eigen::Vector3f::UnitY())
                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> left_depth_extrinsics;;
         left_depth_extrinsics = left_tr;
@@ -143,7 +144,7 @@ void SpecificWorker::initialize(int period)
     { std::cout << e.what() << " - Exception at pipe start" << std::endl; std::terminate();}
 
 
-    this->Period = period;
+    this->Period = 50;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
@@ -152,12 +153,12 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    auto cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
+    const auto &cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
     auto ldata_local = compute_laser(cam_map_extended);
 
     if ( display_depth )
     {
-        std::vector<cv::Mat> image_stack;
+        std::map<std::string,cv::Mat> image_stack;
         int w, h;
         for (auto &[key, value] : cam_map)
         {
@@ -169,12 +170,15 @@ void SpecificWorker::compute()
                 h = depth_frame.as<rs2::video_frame>().get_height();
                 cv::Mat frame_depth(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
                 //image_stack.emplace_back(cv::Mat(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP));
-                image_stack.push_back(frame_depth);
+                image_stack[key] = frame_depth.clone();
             }
         }
         cv::Mat frame_final(cv::Size(w * image_stack.size(), h), CV_8UC3);
-        for(auto &&[i, img] : iter::enumerate(image_stack))
-            img.copyTo(frame_final(cv::Rect(i*w,0,w,h)));
+        image_stack[serial_left].copyTo(frame_final(cv::Rect(0,0,w,h)));
+        image_stack[serial_center].copyTo(frame_final(cv::Rect(w,0,w,h)));
+        image_stack[serial_right].copyTo(frame_final(cv::Rect(2*w,0,w,h)));
+//        for(auto &&[i, img] : iter::enumerate(image_stack))
+//            img.copyTo(frame_final(cv::Rect(i*w,0,w,h)));
         cv::imshow("Depth mosaic", frame_final);
         cv::waitKey(1);
     }
@@ -185,11 +189,11 @@ void SpecificWorker::compute()
     ldata.swap(ldata_local);
 }
 
-SpecificWorker::Camera_Map SpecificWorker::read_and_filter(Camera_Map &cam_map)
+SpecificWorker::Camera_Map& SpecificWorker::read_and_filter(Camera_Map &cam_map)
 {
     for (auto &[key, value] : cam_map)
     {
-        if(/*key != serial_center and*/ key != serial_right) continue;
+        //if(key != serial_center and key != serial_right) continue;
 
         auto &[my_pipe, intr, extr, depth_frame, points] = value;
         rs2::frameset data = my_pipe.wait_for_frames();
@@ -271,23 +275,24 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
     if(ldata.empty()) return;
 
-    cv::Mat laser_img(cv::Size(400, 400), CV_8UC3);
+    const int lado = 800;
+    cv::Mat laser_img(cv::Size(lado, lado), CV_8UC3);
     laser_img = cv::Scalar(255,255,255);
     float scale = 100;
-    float x = ldata.front().dist * sin(ldata.front().angle) * scale + 200;
-    float y = 400 - ldata.front().dist * cos(ldata.front().angle) * scale;
-    cv::line(laser_img, cv::Point{200,400}, cv::Point(x,y), cv::Scalar(0,200,0));
+    float x = ldata.front().dist * sin(ldata.front().angle) * scale + lado/2;
+    float y = lado - ldata.front().dist * cos(ldata.front().angle) * scale;
+    cv::line(laser_img, cv::Point{lado/2,lado}, cv::Point(x,y), cv::Scalar(0,200,0));
     for(auto &&l : iter::sliding_window(ldata, 2))
     {
-        int x1 = l[0].dist * sin(l[0].angle) * scale + 200;
-        int y1 = 400 - l[0].dist * cos(l[0].angle) * scale;
-        int x2 = l[1].dist * sin(l[1].angle) * scale + 200;
-        int y2 = 400 - l[1].dist * cos(l[1].angle) * scale;
+        int x1 = l[0].dist * sin(l[0].angle) * scale + lado/2;
+        int y1 = 500 - l[0].dist * cos(l[0].angle) * scale;
+        int x2 = l[1].dist * sin(l[1].angle) * scale + lado/2;
+        int y2 = 500 - l[1].dist * cos(l[1].angle) * scale;
         cv::line(laser_img, cv::Point{x1,y1}, cv::Point(x2,y2), cv::Scalar(0,200,0));
     }
-    x = ldata.back().dist * sin(ldata.back().angle) * scale + 200;
-    y = 400 - ldata.back().dist * cos(ldata.back().angle) * scale;
-    cv::line(laser_img, cv::Point(x,y), cv::Point(200,400), cv::Scalar(0,200,0));
+    x = ldata.back().dist * sin(ldata.back().angle) * scale + lado/2;
+    y = lado - ldata.back().dist * cos(ldata.back().angle) * scale;
+    cv::line(laser_img, cv::Point(x,y), cv::Point(lado/2,lado), cv::Scalar(0,200,0));
 
     cv::imshow("Laser", laser_img);
     cv::waitKey(2);

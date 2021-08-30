@@ -89,7 +89,8 @@ void SpecificWorker::initialize(int period)
         for (auto p : profile_center.get_streams())
             std::cout << "  stream ID: " << p.unique_id() << " - Stream name: " << p.stream_name() << std::endl;
 
-        Eigen::Translation<float, 3> center_tr(0.f, 0.f, 0.100);
+        const float ALTURA_AL_SUELO = 1.0;
+        Eigen::Translation<float, 3> center_tr(0.f, ALTURA_AL_SUELO, 0.100);
         Eigen::Matrix3f center_m;
         center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
                  * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitY())
@@ -105,7 +106,7 @@ void SpecificWorker::initialize(int period)
         rs2::pipeline right_pipe;
         right_pipe.start(cfg_right);
         right_depth_intr = right_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> right_tr(0.0963, 0, 0.0578);
+        Eigen::Translation<float, 3> right_tr(0.0963, ALTURA_AL_SUELO, 0.0578);
         Eigen::Matrix3f right_m;
         right_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
             * Eigen::AngleAxisf(M_PI/3, Eigen::Vector3f::UnitY())
@@ -121,7 +122,7 @@ void SpecificWorker::initialize(int period)
         rs2::pipeline left_pipe;
         left_pipe.start(cfg_left);
         left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> left_tr(-0.0963, 0.f, 0.0578);
+        Eigen::Translation<float, 3> left_tr(-0.0963, ALTURA_AL_SUELO, 0.0578);
         Eigen::Matrix3f left_m;
         left_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
                 * Eigen::AngleAxisf(-M_PI/3, Eigen::Vector3f::UnitY())

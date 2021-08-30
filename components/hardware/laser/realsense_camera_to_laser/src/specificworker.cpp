@@ -51,46 +51,17 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initializing worker" << std::endl;
 
-    try
-    { cfg_center.enable_device(serial_center);}
-    catch(const std::exception &e)
-    { std::cout << e.what()<< " Serial number:" << serial_center << std::endl; std::terminate();}
-    try
-    { cfg_left.enable_device(serial_left);}
-    catch(const std::exception &e)
-    { std::cout << e.what()<< " Serial number:" << serial_left << std::endl; std::terminate();}
-    try
-    { cfg_right.enable_device(serial_right);}
-    catch(const std::exception &e)
-    { std::cout << e.what()<< " Serial number:" << serial_right << std::endl; std::terminate();}
-
+	const int w = 640;
+    const int h = 480;
     try
     {
-        const int w = 640;
-        const int h = 480;
+        cfg_center.enable_device(serial_center);
         cfg_center.enable_stream(RS2_STREAM_DEPTH, w, h, RS2_FORMAT_Z16, 15);
-        cfg_left.enable_stream(RS2_STREAM_DEPTH, w, h, RS2_FORMAT_Z16, 15);
-        cfg_right.enable_stream(RS2_STREAM_DEPTH, w, h, RS2_FORMAT_Z16, 15);
-
+        cfg_center.enable_stream(RS2_STREAM_COLOR, w, h, RS2_FORMAT_BGR8, 15);
         rs2::pipeline center_pipe;
         rs2::pipeline_profile profile_center = center_pipe.start(cfg_center);
         center_depth_intr = center_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        float center_fov[2]; // X, Y fov
-        rs2_fov(&center_depth_intr, center_fov);
-        std::cout << "Camera " << serial_center << " started" << std::endl;
-        std::cout << "  width: " << center_depth_intr.width << std::endl;
-        std::cout << "  height: " << center_depth_intr.height << std::endl;
-        std::cout << "  image center x: " << center_depth_intr.ppx << std::endl;
-        std::cout << "  image center y: " << center_depth_intr.ppy << std::endl;
-        std::cout << "  focal x: " << center_depth_intr.fx << std::endl;
-        std::cout << "  focal y: " << center_depth_intr.fy << std::endl;
-        std::cout << "  horizontal angle: " << center_fov[0] << std::endl;
-        std::cout << "  vertical angle: " << center_fov[1] << std::endl;
-        for (auto p : profile_center.get_streams())
-            std::cout << "  stream ID: " << p.unique_id() << " - Stream name: " << p.stream_name() << std::endl;
-
-        const float ALTURA_AL_SUELO = 1.0;
-        Eigen::Translation<float, 3> center_tr(0.f, ALTURA_AL_SUELO, 0.100);
+        Eigen::Translation<float, 3> center_tr(0.f, 0, 0.100);
         Eigen::Matrix3f center_m;
         center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
                  * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitY())
@@ -98,31 +69,48 @@ void SpecificWorker::initialize(int period)
         Eigen::Transform<float, 3, Eigen::Affine> center_depth_extrinsics;;
         center_depth_extrinsics = center_tr;
         center_depth_extrinsics.rotate(center_m);
-        std::cout << "center transform " << center_depth_extrinsics.matrix() << std::endl;
-        cam_map[serial_center] = std::make_tuple(center_pipe, center_depth_intr, center_depth_extrinsics, rs2::frame(), rs2::points());
+        cam_map[serial_center] = std::make_tuple(center_pipe, center_depth_intr, center_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
+        print_camera_params(serial_center, profile_center);
         qInfo() << __FUNCTION__ << " center-camera started";
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what()<< " Serial number:" << serial_center << std::endl; std::terminate();}
 
-        // right
+    // right camera
+    try
+    {
+        cfg_right.enable_device(serial_right);
+        cfg_right.enable_stream(RS2_STREAM_DEPTH, w, h, RS2_FORMAT_Z16, 15);
+        cfg_right.enable_stream(RS2_STREAM_COLOR, w, h, RS2_FORMAT_BGR8, 15);
         rs2::pipeline right_pipe;
-        right_pipe.start(cfg_right);
+        rs2::pipeline_profile profile_right = right_pipe.start(cfg_right);
         right_depth_intr = right_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> right_tr(0.0963, ALTURA_AL_SUELO, 0.0578);
+        Eigen::Translation<float, 3> right_tr(0.0963, 0, 0.0578);
         Eigen::Matrix3f right_m;
         right_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-            * Eigen::AngleAxisf(M_PI/3, Eigen::Vector3f::UnitY())
-            * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
+                * Eigen::AngleAxisf(M_PI/3, Eigen::Vector3f::UnitY())  //60 degrees
+                * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> right_depth_extrinsics;;
         right_depth_extrinsics = right_tr;
         right_depth_extrinsics.rotate(right_m);
         std::cout << "right transform " << right_depth_extrinsics.matrix() << std::endl;
-        cam_map[serial_right] = std::make_tuple(right_pipe, right_depth_intr, right_depth_extrinsics,  rs2::frame(), rs2::points());
+        cam_map[serial_right] = std::make_tuple(right_pipe, right_depth_intr, right_depth_extrinsics,  rs2::frame(), rs2::points(), rs2::frame());
+        print_camera_params(serial_right, profile_right);
         qInfo() << __FUNCTION__ << " right-camera started";
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what()<< " Serial number:" << serial_right << std::endl; std::terminate();}
 
-        // left
+    // left camera
+    try
+    {
+        cfg_left.enable_device(serial_left);
+        cfg_left.enable_stream(RS2_STREAM_DEPTH, w, h, RS2_FORMAT_Z16, 15);
+        cfg_left.enable_stream(RS2_STREAM_COLOR, w, h, RS2_FORMAT_BGR8, 15);
         rs2::pipeline left_pipe;
-        left_pipe.start(cfg_left);
+        rs2::pipeline_profile profile_left = left_pipe.start(cfg_left);
         left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> left_tr(-0.0963, ALTURA_AL_SUELO, 0.0578);
+        Eigen::Translation<float, 3> left_tr(-0.0963, 0, 0.0578);
         Eigen::Matrix3f left_m;
         left_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
                 * Eigen::AngleAxisf(-M_PI/3, Eigen::Vector3f::UnitY())
@@ -130,20 +118,19 @@ void SpecificWorker::initialize(int period)
         Eigen::Transform<float, 3, Eigen::Affine> left_depth_extrinsics;;
         left_depth_extrinsics = left_tr;
         left_depth_extrinsics.rotate(left_m);
-        std::cout << "left transform " << left_depth_extrinsics.matrix() << std::endl;
-        cam_map[serial_left] = std::make_tuple(left_pipe, left_depth_intr, left_depth_extrinsics, rs2::frame(), rs2::points());
+        cam_map[serial_left] = std::make_tuple(left_pipe, left_depth_intr, left_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
+        print_camera_params(serial_left, profile_left);
         qInfo() << __FUNCTION__ << " left-camera started";
-
-        // Filters
-        rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 4, error);
-        filters.emplace_back("Decimate", dec_filter);
-        filters.emplace_back("Spatial", spat_filter);
-        filters.emplace_back("Temporal", temp_filter);
-        filters.emplace_back("HFilling", holef_filter);
     }
     catch(const std::exception &e)
-    { std::cout << e.what() << " - Exception at pipe start" << std::endl; std::terminate();}
+    { std::cout << e.what()<< " Serial number:" << serial_left << std::endl; std::terminate();}
 
+    // Filters
+    rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 4, error);
+    filters.emplace_back("Decimate", dec_filter);
+    filters.emplace_back("Spatial", spat_filter);
+    filters.emplace_back("Temporal", temp_filter);
+    filters.emplace_back("HFilling", holef_filter);
 
     this->Period = 50;
 	if(this->startup_check_flag)
@@ -154,35 +141,20 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    const auto &cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
+    auto &cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
     auto ldata_local = compute_laser(cam_map_extended);
+    auto &&[virtual_frame] = mosaic(cam_map_extended);
 
-    if ( display_depth )
+    if(display_depth)
+        show_depth_images(cam_map_extended);
+
+    if(display_rgb)
     {
-        std::map<std::string,cv::Mat> image_stack;
-        int w, h;
-        for (auto &[key, value] : cam_map)
-        {
-            auto &[pipe, intr, extr, depth_frame, points] = value;
-            if(depth_frame)
-            {
-                rs2::frame depth_color = depth_frame.apply_filter(color_map);
-                w = depth_frame.as<rs2::video_frame>().get_width();
-                h = depth_frame.as<rs2::video_frame>().get_height();
-                cv::Mat frame_depth(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
-                //image_stack.emplace_back(cv::Mat(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP));
-                image_stack[key] = frame_depth.clone();
-            }
-        }
-        cv::Mat frame_final(cv::Size(w * image_stack.size(), h), CV_8UC3);
-        image_stack[serial_left].copyTo(frame_final(cv::Rect(0,0,w,h)));
-        image_stack[serial_center].copyTo(frame_final(cv::Rect(w,0,w,h)));
-        image_stack[serial_right].copyTo(frame_final(cv::Rect(2*w,0,w,h)));
-//        for(auto &&[i, img] : iter::enumerate(image_stack))
-//            img.copyTo(frame_final(cv::Rect(i*w,0,w,h)));
-        cv::imshow("Depth mosaic", frame_final);
+        //cv::flip(virtual_frame, virtual_frame, 0);
+        cv::imshow("Virtual", virtual_frame);
         cv::waitKey(1);
     }
+
     draw_laser(ldata);
     fps.print("FPS: ");
 
@@ -196,21 +168,21 @@ SpecificWorker::Camera_Map& SpecificWorker::read_and_filter(Camera_Map &cam_map)
     {
         //if(key != serial_center and key != serial_right) continue;
 
-        auto &[my_pipe, intr, extr, depth_frame, points] = value;
+        auto &[my_pipe, intr, extr, depth_frame, points, color_frame] = value;
         rs2::frameset data = my_pipe.wait_for_frames();
         depth_frame = data.get_depth_frame(); // Find and colorize the depth dat
+        color_frame = data.get_color_frame(); // Find and colorize the depth dat
 
         for (auto &&filter : filters)
             depth_frame = filter.filter.process(depth_frame);
 
         // rgb_list[i] = data.get_color_frame(); // Find the color data
         rs2::pointcloud pointcloud;
+        pointcloud.map_to(color_frame);
         points = pointcloud.calculate(depth_frame);
-        // pointclouds[i].map_to(rgb_list[i]);
     }
     return cam_map;
 }
-
 RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_map_extended)
 {
     const int MAX_LASER_BINS = 200;
@@ -226,7 +198,7 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_ma
 
     for( const auto &[key, value] : cam_map_extended)
     {
-        const auto &[pipe, intrin, extrin, depth_frame, points] = value;
+        const auto &[pipe, intrin, extrin, depth_frame, points, color_frame] = value;
         if(points.size() == 0) continue;
         const rs2::vertex *vertices = points.get_vertices();
         float FLOOR_DISTANCE_MINUS_OFFSET =  extrin.translation().y() * 0.9;  // Y axis points downwards
@@ -236,12 +208,10 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_ma
             {
                 auto to_point = extrin * Eigen::Vector3f{vertices[i].x, vertices[i].y, vertices[i].z};
                 const float &xv = to_point[0]; const float &yv = to_point[1]; const float &zv = to_point[2];
-
 //                std::cout << from_point[0] << " " << from_point[1] << " " << from_point[2] << std::endl;
 //                std::cout << to_point[0] << " " << to_point[1] << " " << to_point[2] << std::endl;
 //                std::cout << std::endl;
-
-                if (yv < FLOOR_DISTANCE_MINUS_OFFSET)
+                if (yv < RIG_ELEVATION_FROM_FLOOR * 0.9)
                 {
                     float hor_angle = atan2(xv, zv);
                     // map from +-MAX_ANGLE to 0-MAX_LASER_BINS
@@ -252,7 +222,6 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_ma
             }
         }
     }
-
     RoboCompLaser::TLaserData ldata(MAX_LASER_BINS);
     uint i = 0;
     for (auto &bin : hor_bins)
@@ -272,6 +241,130 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_ma
     return ldata;
 }
 
+////////////////// MOSAIC ///////////////////////////////////////////////////
+std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
+{
+    // virtual frame
+    cv::Mat frame_virtual = cv::Mat::zeros(cv::Size(640*3, 480*1.5), CV_8UC3);
+
+    float center_virtual_cols = frame_virtual.cols / 2.0;
+    float center_virtual_rows = frame_virtual.rows / 2.0;
+    float frame_virtual_lfocalx = 390;
+    float frame_virtual_rfocalx = 390;
+
+    //if (left_cam_intr.width == left_depth_intr.width and left_cam_intr.height == left_depth_intr.height)
+    // check size requirements
+
+    for(const auto &[key, cam] : cam_map)
+    {
+        const auto &[pipe, intr, extr, depth_frame, points, color_frame] = cam;
+        rs2::video_frame video_frame(color_frame);
+        const rs2::vertex *vertices = points.get_vertices();
+        auto tex_coords = points.get_texture_coordinates(); // and texture coordinates, u v coor of rgb image
+        for (size_t i = 0; i < points.size(); i++)
+        {
+            if (vertices[i].z >= 0.1)
+            {
+                // transform to virtual camera CS at center of both cameras.
+                auto to_point = extr * Eigen::Vector3f{vertices[i].x, vertices[i].y, vertices[i].z};
+                const float &xv = to_point[0]; const float &yv = to_point[1]; const float &zv = to_point[2];
+
+                // project
+                int col_virtual = static_cast<int>(fabs(frame_virtual_lfocalx * xv / zv + center_virtual_cols));
+                int row_virtual = static_cast<int>(fabs(frame_virtual_lfocalx * yv / zv + center_virtual_rows));
+                if (col_virtual >= frame_virtual.cols or row_virtual >= frame_virtual.rows) continue;
+                int k = tex_coords[i].v * video_frame.get_height();
+                int l = tex_coords[i].u * video_frame.get_width();
+                if (k < 0 or k >= video_frame.get_height() or l < 0 or l > video_frame.get_width()) continue;
+                color(color_frame, frame_virtual, row_virtual, col_virtual, k, l);
+                //cv::Vec3b &color = frame_virtual.at<cv::Vec3b>(row_virtual, col_virtual);
+//                auto ptr = (uint8_t *) video_frame.get_data();
+//                auto stride = video_frame.get_stride_in_bytes();
+//                color[0] = int(ptr[k * stride + (3 * l)]);
+//                color[1] = int(ptr[k * stride + (3 * l) + 1]);
+//                color[2] = int(ptr[k * stride + (3 * l) + 2]);
+
+            }
+        }
+    }
+
+    // Image postprocessing
+//    int TotalNumberOfPixels = frame_virtual.rows * frame_virtual.cols;
+//    cv::Mat binaryImage;
+//    cvtColor(frame_virtual, binaryImage, cv::COLOR_BGR2GRAY);
+//    qInfo() << __FUNCTION__ << TotalNumberOfPixels - cv::countNonZero(binaryImage);
+
+//    qInfo() << __FUNCTION__ << "one";
+//    cv::Vec3b zero{0,0,0};
+//    cv::Mat mask = cv::Mat::zeros(cv::Size(frame_virtual.cols, frame_virtual.rows), CV_8UC1);
+//    for(int i=0; i<frame_virtual.rows; i++)
+//        for(int j=0; j<frame_virtual.cols; j++)
+//            if(frame_virtual.at<cv::Vec3b>(i,j) == zero)
+//                mask.at<char>(i,j) = 1;
+//
+//    qInfo() << __FUNCTION__ << "two";
+//    cv::inpaint(frame_virtual, mask, frame_virtual, 3, cv::INPAINT_TELEA);
+//    qInfo() << __FUNCTION__ << "three";
+
+//    cv::GaussianBlur(frame_virtual, frame_virtual, cv::Size(13, 13), 0, 0, 0);
+//    float alpha = 4.0;
+//    float beta = -1.0;
+//    frame_virtual.convertTo(frame_virtual, -1, alpha, beta);
+
+    return std::make_tuple(frame_virtual);
+}
+void SpecificWorker::color(rs2::video_frame image, cv::Mat frame_v, int row_v, int col_v, int k, int l)
+{
+    auto ptr = (uint8_t *) image.get_data();
+    auto stride = image.get_stride_in_bytes();
+
+    cv::Vec3b &color = frame_v.at<cv::Vec3b>(floor(row_v), floor(col_v));
+    color[0] = int(ptr[k * stride + (3 * l)]);
+    color[1] = int(ptr[k * stride + (3 * l) + 1]);
+    color[2] = int(ptr[k * stride + (3 * l) + 2]);
+    color = frame_v.at<cv::Vec3b>(ceil(row_v), floor(col_v));
+    color[0] = int(ptr[k * stride + (3 * l)]);
+    color[1] = int(ptr[k * stride + (3 * l) + 1]);
+    color[2] = int(ptr[k * stride + (3 * l) + 2]);
+    color = frame_v.at<cv::Vec3b>(floor(row_v), ceil(col_v));
+    color[0] = int(ptr[k * stride + (3 * l)]);
+    color[1] = int(ptr[k * stride + (3 * l) + 1]);
+    color[2] = int(ptr[k * stride + (3 * l) + 2]);
+    color = frame_v.at<cv::Vec3b>(ceil(row_v), ceil(col_v));
+    color[0] = int(ptr[k * stride + (3 * l)]);
+    color[1] = int(ptr[k * stride + (3 * l) + 1]);
+    color[2] = int(ptr[k * stride + (3 * l) + 2]);
+}
+///////////////////// DISPLAY ////////////////////////////////////77
+void SpecificWorker::show_depth_images(Camera_Map &cam_map)
+{
+    std::map<std::string,cv::Mat> image_stack;
+    int w=0, h=0;
+    for (auto &[key, value] : cam_map)
+    {
+        auto &[pipe, intr, extr, depth_frame, points, color_frame] = value;
+        if(depth_frame)
+        {
+            rs2::frame depth_color = depth_frame.apply_filter(color_map);
+            w = depth_frame.as<rs2::video_frame>().get_width();
+            h = depth_frame.as<rs2::video_frame>().get_height();
+            cv::Mat frame_depth(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
+            //image_stack.emplace_back(cv::Mat(cv::Size(w,h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP));
+            image_stack[key] = frame_depth.clone();
+        }
+    }
+    if(not cam_map.empty())
+    {
+        cv::Mat frame_final(cv::Size(w * image_stack.size(), h), CV_8UC3);
+        image_stack[serial_left].copyTo(frame_final(cv::Rect(0,0,w,h)));
+        image_stack[serial_center].copyTo(frame_final(cv::Rect(w,0,w,h)));
+        image_stack[serial_right].copyTo(frame_final(cv::Rect(2*w,0,w,h)));
+        //        for(auto &&[i, img] : iter::enumerate(image_stack))
+        //            img.copyTo(frame_final(cv::Rect(i*w,0,w,h)));
+        cv::imshow("Depth mosaic", frame_final);
+        cv::waitKey(1);
+    }
+}
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
     if(ldata.empty()) return;
@@ -298,6 +391,25 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
     cv::imshow("Laser", laser_img);
     cv::waitKey(2);
 }
+void SpecificWorker::print_camera_params(const std::string &serial, const rs2::pipeline_profile &profile)
+{
+    float center_fov[2]; // X, Y fov
+    const auto &[pipe, intr, extr, depth_frame, points, color_frame] = cam_map.at(serial);
+    rs2_fov(&intr, center_fov);
+    std::cout << "Camera " << serial << " started" << std::endl;
+    std::cout << "  width: " << center_depth_intr.width << std::endl;
+    std::cout << "  height: " << center_depth_intr.height << std::endl;
+    std::cout << "  image center x: " << center_depth_intr.ppx << std::endl;
+    std::cout << "  image center y: " << center_depth_intr.ppy << std::endl;
+    std::cout << "  focal x: " << center_depth_intr.fx << std::endl;
+    std::cout << "  focal y: " << center_depth_intr.fy << std::endl;
+    std::cout << "  horizontal angle: " << center_fov[0] << std::endl;
+    std::cout << "  vertical angle: " << center_fov[1] << std::endl;
+    std::cout << "  extrinsics: " << extr.matrix() << std::endl;
+    for (auto p : profile.get_streams())
+        std::cout << "  stream ID: " << p.unique_id() << " - Stream name: " << p.stream_name() << std::endl;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {

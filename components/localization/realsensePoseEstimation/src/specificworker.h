@@ -80,6 +80,7 @@ public slots:
             //final pose estimation
             Eigen::Vector3f angles;
             Eigen::Vector3f translation;
+            Eigen::Quaternion<float> quatCam;
         };
 
 		bool print_output = false;

@@ -29,11 +29,14 @@
 
 #include <genericworker.h>
 #include <librealsense2/rs.hpp>
+#include <librealsense2/rsutil.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cppitertools/enumerate.hpp>
 #include <opencv2/opencv.hpp>
 #include <fps/fps.h>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 class SpecificWorker : public GenericWorker
 {
@@ -53,69 +56,83 @@ public slots:
 	void initialize(int period);
 
 private:
+
+    // consts
+    const float RIG_ELEVATION_FROM_FLOOR = 1.0; // m
+
+    using Camera_Map = std::map<std::string,
+                                std::tuple<rs2::pipeline,
+                                rs2_intrinsics,
+                                Eigen::Transform<float, 3, Eigen::Affine>,
+                                rs2::frame,
+                                rs2::points,
+                                rs2::frame>>;
 	bool startup_check_flag;
 
     // camera
     // Declare RealSense pipeline, encapsulating the actual device and sensors
-    std::string serial;
+    std::string serial_center, serial_left, serial_right;
     bool display_rgb = false;
     bool display_depth = false;
-    rs2::pipeline  pipeline;
 
     // Create a configuration for configuring the pipeline with a non default profile
-    rs2::config cfg;
-    rs2_intrinsics cam_intr, depth_intr;
-
-    // filters
-    struct filter_options
-    {
-        public:
-            std::string filter_name;                                   //Friendly name of the filter
-            rs2::filter &filter;                                       //The filter in use
-            std::atomic_bool is_enabled;                               //A boolean controlled by the user that determines whether to apply the filter or not
-
-            filter_options( const std::string name, rs2::filter &flt) :
-                    filter_name(name),
-                    filter(flt),
-                    is_enabled(true)
-            {
-                const std::array<rs2_option, 5> possible_filter_options =
-                        {
-                                RS2_OPTION_FILTER_MAGNITUDE,
-                                RS2_OPTION_FILTER_SMOOTH_ALPHA,
-                                RS2_OPTION_MIN_DISTANCE,
-                                RS2_OPTION_MAX_DISTANCE,
-                                RS2_OPTION_FILTER_SMOOTH_DELTA
-                        };
-            }
-            filter_options(filter_options&& other) :
-                    filter_name(std::move(other.filter_name)),
-                    filter(other.filter),
-                    is_enabled(other.is_enabled.load())
-            { }
-    };
+    rs2::config cfg_center, cfg_left, cfg_right;
+    rs2_intrinsics center_cam_intr, left_cam_intr, right_cam_intr, center_depth_intr, left_depth_intr, right_depth_intr;
+    //std::vector<std::tuple<rs2::pipeline, float, float, float>>  pipelines; // z angle, x, y
+    Camera_Map cam_map;
+    rs2::context ctx;
 
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
 
     // filters
+    struct filter_options
+            {
+                public:
+                    std::string filter_name;                                   //Friendly name of the filter
+                    rs2::filter &filter;                                       //The filter in use
+                    std::atomic_bool is_enabled;                               //A boolean controlled by the user that determines whether to apply the filter or not
+
+                    filter_options( const std::string name, rs2::filter &flt) : filter_name(name),
+                                                                                filter(flt),
+                                                                                is_enabled(true)
+                    {};
+                    filter_options(filter_options&& other) : filter_name(std::move(other.filter_name)),
+                                                             filter(other.filter),
+                                                             is_enabled(other.is_enabled.load())
+                    {};
+                    const std::array<rs2_option, 5> possible_filter_options =
+                            {
+                            RS2_OPTION_FILTER_MAGNITUDE,
+                            RS2_OPTION_FILTER_SMOOTH_ALPHA,
+                            RS2_OPTION_MIN_DISTANCE,
+                            RS2_OPTION_MAX_DISTANCE,
+                            RS2_OPTION_FILTER_SMOOTH_DELTA
+                            };
+            };
     std::vector<filter_options> filters;
     rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
     rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing
     rs2::temporal_filter temp_filter;
     rs2::hole_filling_filter holef_filter;
-    rs2::pipeline  pipe;
     rs2::pipeline_profile profile;
     rs2::pointcloud pointcloud;
+    rs2_error** error;
 
+    // laser
     RoboCompLaser::TLaserData ldata;
 
-    FPSCounter fps;
-
-    RoboCompLaser::TLaserData compute_laser(const rs2::points &points);
+    RoboCompLaser::TLaserData compute_laser(const Camera_Map &cam_map_extended);
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
 
+    Camera_Map& read_and_filter(Camera_Map &cam_map);
+    void print_camera_params(const std::string &serial, const rs2::pipeline_profile &profile);
+    std::tuple<cv::Mat> mosaic(const Camera_Map &cam_map);
+    void color(rs2::video_frame image, cv::Mat frame_v, int row_v, int col_v, int k, int l);
+    void show_depth_images(Camera_Map &cam_map);
+
     std::mutex my_mutex;
+    FPSCounter fps;
 };
 
 #endif

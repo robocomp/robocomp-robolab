@@ -1,0 +1,12 @@
+import "RealSenseFaceID.idsl";
+import "CameraSimple.idsl";
+
+Component realsense_face_id
+{
+    Communications
+    {
+        implements RealSenseFaceID, CameraSimple;
+    };
+    language Cpp11;
+};
+

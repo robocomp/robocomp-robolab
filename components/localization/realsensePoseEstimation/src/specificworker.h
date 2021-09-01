@@ -26,7 +26,14 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
+#include <innermodel/innermodel.h>
 #include <qmat/QMatAll>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
+#include <math.h>
+#include <iostream>
+
+#define PI 3.14159265358979323846
 
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
@@ -42,25 +49,53 @@ class SpecificWorker : public GenericWorker
 		~SpecificWorker();
 		bool setParams(RoboCompCommonBehavior::ParameterList params);
 		rs2::device get_device(const std::string& serial_number);
-        RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix(){ return RoboCompFullPoseEstimation::FullPoseMatrix();};
+		RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix();/*{return RoboCompFullPoseEstimation::FullPoseMatrix();};*/
 		RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimation_getFullPoseEuler();
 		void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
 
+
 public slots:
 		void compute();
+        int startup_check();
 		void initialize(int period);
 
 	private:
-		std::string serial;
+        struct euler_angle{ //cambiar nombre
+            float x;
+            float y;
+            float z;
+        };
+
+        struct PARAMS {
+            std::string device_serial;          //0
+            rs2::pipeline pipe;               //2
+            Eigen::Affine3f robot_camera;
+            Eigen::Affine3f origen_camera;   //Matrix de ejes de la camara respecto al origen
+            Eigen::Affine3f origen_world;   //3
+            euler_angle rot_init_angles;
+            euler_angle traslation_init;
+            unsigned int mapper_confidence;     //5
+            unsigned int tracker_confidence;    //6
+            rs2::wheel_odometer* odometer;
+            //final pose estimation
+            Eigen::Vector3f angles;
+            Eigen::Vector3f translation;
+            Eigen::Quaternion<float> quatCam;
+        };
+
 		bool print_output = false;
-		mutable std::mutex bufferMutex;
-		RoboCompFullPoseEstimation::FullPoseEuler fullpose;
-		// Declare RealSense pipeline, encapsulating the actual device and sensors
-		rs2::pipeline pipe;
-		// Create a configuration for configuring the pipeline with a non default profile
-		rs2::config cfg;
-		rs2::context ctx;
-		RTMat initialPose;
+		int num_cameras;
+        std::map<string, PARAMS> cameras_dict;
+        mutable std::mutex bufferMutex;
+        Eigen::Affine3f origen_robot;   //Matrix de ejes de la robot respecto al origen
+
+        euler_angle quaternion_to_euler_angle(float w, float x, float y, float z);
+
+        std::ofstream f_debug;
+        bool debug;
+
+		std::shared_ptr < InnerModel > innerModel;
+		bool startup_check_flag;
 };
 
 #endif

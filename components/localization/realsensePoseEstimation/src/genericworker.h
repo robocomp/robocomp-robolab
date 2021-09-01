@@ -24,15 +24,17 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
+#include <DifferentialRobot.h>
 #include <FullPoseEstimation.h>
 #include <FullPoseEstimationPub.h>
+#include <GenericBase.h>
 
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrxPtr>;
+using TuplePrx = std::tuple<RoboCompDifferentialRobot::DifferentialRobotPrxPtr,RoboCompGenericBase::GenericBasePrxPtr,RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrxPtr>;
 
 
 class GenericWorker : public QObject
@@ -48,6 +50,8 @@ public:
 	QMutex *mutex;
 
 
+	RoboCompDifferentialRobot::DifferentialRobotPrxPtr differentialrobot_proxy;
+	RoboCompGenericBase::GenericBasePrxPtr genericbase_proxy;
 	RoboCompFullPoseEstimationPub::FullPoseEstimationPubPrxPtr fullposeestimationpub_pubproxy;
 
 	virtual RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimation_getFullPoseEuler() = 0;

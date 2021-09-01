@@ -23,6 +23,7 @@ import sys, os, traceback, time
 import numpy as np
 import cv2
 from PySide2.QtCore import qApp, QTimer
+
 from genericworker import *
 
 
@@ -62,11 +63,12 @@ class SpecificWorker(GenericWorker):
 
 
         # Display the resulting frame
-        cv2.imshow('frameL',self.frameL)
+        # cv2.imshow('frameL',self.frameL)
         return True
 
     def startup_check(self):
-        QTimer.singleShot(200, qApp.quit)
+        #QTimer.singleShot(200, qApp.quit)
+        pass
 
 
 

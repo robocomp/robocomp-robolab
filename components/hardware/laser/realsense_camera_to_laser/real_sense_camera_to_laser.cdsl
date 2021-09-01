@@ -1,0 +1,11 @@
+import "Laser.idsl";
+
+Component real_sense_camera_to_laser
+{
+    Communications
+    {
+        implements Laser;
+    };
+    language Cpp11;
+};
+

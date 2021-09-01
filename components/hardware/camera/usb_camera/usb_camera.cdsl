@@ -1,0 +1,11 @@
+import "CameraSimple.idsl";
+
+Component usb_camera
+{
+    Communications
+    {
+        implements CameraSimple;
+    };
+    language Cpp11;
+};
+

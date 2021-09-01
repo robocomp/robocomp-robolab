@@ -1,0 +1,19 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+SET (LIBS 
+  -L/home/robocomp/software/RealSenseID/build/lib librsid_c.so librsid.so
+)
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
+set(CMAKE_CXX_STANDARD 20)
+

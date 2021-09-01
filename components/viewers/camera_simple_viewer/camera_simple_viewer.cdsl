@@ -1,0 +1,11 @@
+import "CameraSimple.idsl";
+
+Component camera_simple_viewer
+{
+    Communications
+    {
+        requires CameraSimple;
+    };
+    language Cpp11;
+};
+

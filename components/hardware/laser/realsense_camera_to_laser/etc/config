@@ -1,0 +1,15 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Endpoints for implements interfaces
+Laser.Endpoints=tcp -p 10003
+
+serial_center = 105322252279
+serial_left = 049522250171
+serial_right = 046322251148
+display_depth = false
+display_rgb = true
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

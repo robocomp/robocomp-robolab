@@ -87,9 +87,60 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
+	int num_cameras;
 	aux.editable = false;
-	configGetString( "","serial", aux.value, "");
-	params["serial"] = aux;
+
+
+
+    configGetString( "","origen_rx", aux.value, "");
+    params["origen_rx"] = aux;
+
+    configGetString( "","origen_ry", aux.value, "");
+    params["origen_ry"] = aux;
+
+    configGetString( "","origen_rz", aux.value, "");
+    params["origen_rz"] = aux;
+
+    configGetString( "","origen_tx", aux.value, "");
+    params["origen_tx"] = aux;
+
+    configGetString( "","origen_ty", aux.value, "");
+    params["origen_ty"] = aux;
+
+    configGetString( "","origen_tz", aux.value, "");
+    params["origen_tz"] = aux;
+
+    configGetString( "","num_cameras", aux.value, "");
+    params["num_cameras"] = aux;
+    num_cameras = std::stoi(aux.value);
+
+
+    for(int i = 0; i<num_cameras; i++){
+
+        configGetString( "","device_serial_" + std::to_string(i), aux.value, "");
+        params["device_serial_"+std::to_string(i)] = aux;
+
+        configGetString( "","name_"+std::to_string(i), aux.value, "");
+        params["name_"+std::to_string(i)] = aux;
+
+        configGetString( "","rx_"+std::to_string(i), aux.value, "");
+        params["rx_"+std::to_string(i)] = aux;
+
+        configGetString( "","ry_"+std::to_string(i), aux.value, "");
+        params["ry_"+std::to_string(i)] = aux;
+
+        configGetString( "","rz_"+std::to_string(i), aux.value, "");
+        params["rz_"+std::to_string(i)] = aux;
+
+        configGetString( "","tx_"+std::to_string(i), aux.value, "");
+        params["tx_"+std::to_string(i)] = aux;
+
+        configGetString( "","ty_"+std::to_string(i), aux.value, "");
+        params["ty_"+std::to_string(i)] = aux;
+
+        configGetString( "","tz_"+std::to_string(i), aux.value, "");
+        params["tz_"+std::to_string(i)] = aux;
+    }
 
 	configGetString( "","print", aux.value, "false");
     params["print"] = aux;

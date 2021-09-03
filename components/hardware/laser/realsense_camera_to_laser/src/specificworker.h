@@ -128,7 +128,7 @@ private:
     Camera_Map& read_and_filter(Camera_Map &cam_map);
     void print_camera_params(const std::string &serial, const rs2::pipeline_profile &profile);
     std::tuple<cv::Mat> mosaic(const Camera_Map &cam_map);
-    void color(rs2::video_frame image, cv::Mat frame_v, int row_v, int col_v, int k, int l);
+    void color(rs2::video_frame image, cv::Mat frame_v, float row_v, float col_v, int k, int l);
     void show_depth_images(Camera_Map &cam_map);
 
     std::mutex my_mutex;

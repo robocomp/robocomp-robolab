@@ -247,10 +247,18 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
     // virtual frame
     cv::Mat frame_virtual = cv::Mat::zeros(cv::Size(640*3, 480*1.5), CV_8UC3);
 
+    cv::Mat cylinder = cv::Mat::zeros(cv::Size(400, 400), CV_8UC3);
+    float cylinder_radius =  cylinder.rows/2.;
+    float cylinder_cols = cylinder.cols;
+    float cylinder_rows = cylinder.rows;
+
+
+
     float center_virtual_cols = frame_virtual.cols / 2.0;
     float center_virtual_rows = frame_virtual.rows / 2.0;
     float frame_virtual_lfocalx = 390;
     float frame_virtual_rfocalx = 390;
+
 
     //if (left_cam_intr.width == left_depth_intr.width and left_cam_intr.height == left_depth_intr.height)
     // check size requirements
@@ -269,14 +277,28 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
                 auto to_point = extr * Eigen::Vector3f{vertices[i].x, vertices[i].y, vertices[i].z};
                 const float &xv = to_point[0]; const float &yv = to_point[1]; const float &zv = to_point[2];
 
-                // project
-                int col_virtual = static_cast<int>(fabs(frame_virtual_lfocalx * xv / zv + center_virtual_cols));
-                int row_virtual = static_cast<int>(fabs(frame_virtual_lfocalx * yv / zv + center_virtual_rows));
-                if (col_virtual >= frame_virtual.cols or row_virtual >= frame_virtual.rows) continue;
+                float cX = atan2(xv, zv) * cylinder_cols/M_PI + cylinder_cols/2.;
+                // float alpha = atan2(yv, zv);
+                // float cY = tan(alpha)*cylinder_radius + cylinder_rows/2.;
+                float cY = atan2(yv, zv) * cylinder_cols/M_PI + cylinder_cols/2.;
+                if (cX < 0 or cX >= cylinder_cols or cY < 0 or cY >= cylinder_rows) continue;
                 int k = tex_coords[i].v * video_frame.get_height();
                 int l = tex_coords[i].u * video_frame.get_width();
                 if (k < 0 or k >= video_frame.get_height() or l < 0 or l > video_frame.get_width()) continue;
-                color(color_frame, frame_virtual, row_virtual, col_virtual, k, l);
+                color(color_frame, cylinder, cY, cX, k, l);
+                ////////////////////////////////
+                // // project
+                // float col_virtual = static_cast<float>((frame_virtual_lfocalx * xv / zv + center_virtual_cols));
+                // float row_virtual = static_cast<float>((frame_virtual_lfocalx * yv / zv + center_virtual_rows));
+                // if (col_virtual < 0 or col_virtual >= frame_virtual.cols or row_virtual < 0 or row_virtual >= frame_virtual.rows) continue;
+                // int k = tex_coords[i].v * video_frame.get_height();
+                // int l = tex_coords[i].u * video_frame.get_width();
+                // if (k < 0 or k >= video_frame.get_height() or l < 0 or l > video_frame.get_width()) continue;
+                // color(color_frame, frame_virtual, row_virtual, col_virtual, k, l);
+                ////////////////////////////////
+
+
+
                 //cv::Vec3b &color = frame_virtual.at<cv::Vec3b>(row_virtual, col_virtual);
 //                auto ptr = (uint8_t *) video_frame.get_data();
 //                auto stride = video_frame.get_stride_in_bytes();
@@ -285,8 +307,24 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
 //                color[2] = int(ptr[k * stride + (3 * l) + 2]);
 
             }
-        }
+        }   
     }
+
+   for(int y=0; y<frame_virtual.rows; y++)
+       for(int x=0; x<frame_virtual.cols; x++)
+       {
+            float xv = x - center_virtual_cols;
+            float yv = y - center_virtual_rows;
+            float cX = atan2(xv, frame_virtual_lfocalx) * cylinder_cols/M_PI + cylinder_cols/2.;
+            float cY = atan2(yv, frame_virtual_lfocalx) * cylinder_cols/M_PI + cylinder_cols/2.;
+            // float alpha = atan2(yv, frame_virtual_lfocalx);
+            // float cY = tan(alpha)*cylinder_radius + cylinder_rows/2.;
+            if (cX < 0 or cX >= cylinder_cols or cY < 0 or cY > cylinder_rows) continue;
+            frame_virtual.at<cv::Vec3b>(y, x) = cylinder.at<cv::Vec3b>(rint(cY), rint(cX));
+       }
+
+
+    // cv::resize(frame_virtual, frame_virtual, cv::Size(), 0.5, 0.5);
 
     // Image postprocessing
 //    int TotalNumberOfPixels = frame_virtual.rows * frame_virtual.cols;
@@ -313,7 +351,33 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
 
     return std::make_tuple(frame_virtual);
 }
-void SpecificWorker::color(rs2::video_frame image, cv::Mat frame_v, int row_v, int col_v, int k, int l)
+
+
+
+// std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
+// {
+//     // virtual frame
+//     cv::Mat frame_virtual = cv::Mat::zeros(cv::Size(640*3, 480), CV_8UC3);
+
+//     cv::Mat winLeft = frame_virtual(cv::Rect(0,0,640,480));
+//     cv::Mat winCenter = frame_virtual(cv::Rect(640,0,640,480));
+//     cv::Mat winRight = frame_virtual(cv::Rect(2*640,0,640,480));
+
+//     const auto &[pipeL, intrL, extrL, depth_frameL, pointsL, color_frameL] = cam_map.at(serial_left);
+//     cv::Mat imgLeft(480, 640, CV_8UC3, (char *) color_frameL.get_data());
+//     imgLeft.copyTo(winLeft);
+//     const auto &[pipeC, intrC, extrC, depth_frameC, pointsC, color_frameC] = cam_map.at(serial_center);
+//     cv::Mat imgCenter(480, 640, CV_8UC3, (char *) color_frameC.get_data());
+//     imgCenter.copyTo(winCenter);
+//     const auto &[pipeR, intrR, extrR, depth_frameR, pointsR, color_frameR] = cam_map.at(serial_right);
+//     cv::Mat imgRight(480, 640, CV_8UC3, (char *) color_frameR.get_data());
+//     imgRight.copyTo(winRight);
+
+//     return std::make_tuple(frame_virtual);
+
+// }
+
+void SpecificWorker::color(rs2::video_frame image, cv::Mat frame_v, float row_v, float col_v, int k, int l)
 {
     auto ptr = (uint8_t *) image.get_data();
     auto stride = image.get_stride_in_bytes();

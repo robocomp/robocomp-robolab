@@ -201,6 +201,7 @@ void SpecificWorker::compute()
         vecQuat = cameras_dict[key].origen_camera.linear()*vecQuat;
         // Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
         // Eigen::Vector3f euler = quatCam.toRotationMatrix().eulerAngles(0, 1, 2);
+        Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
         auto ang = quaternion_to_euler_angle(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
 
 
@@ -223,6 +224,7 @@ void SpecificWorker::compute()
         cameras_dict[key].translation.x() = cameras_dict[key].origen_world.matrix().coeff(0,3) ;
         cameras_dict[key].translation.y() = cameras_dict[key].origen_world.matrix().coeff(1,3) ;
         cameras_dict[key].translation.z() = cameras_dict[key].origen_world.matrix().coeff(2,3) ;
+        cameras_dict[key].quatCam = quatCam;
 
         bufferMutex.unlock();
         if(debug){
@@ -309,6 +311,7 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 
 	Eigen::Vector3f angAcu = it->second.angles ;    //Rotación
 	Eigen::Vector3f trasAcu = it->second.translation;        //Traslación
+    Eigen::Quaternion<float> quatAcu = it->second.quatCam;
 	it++;
 
 	///Valores para normalizar sigma
@@ -340,14 +343,27 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
             trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
 
             ///Rotación
+
+            // std::cout<<"antes1 quat  "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<< std::endl;
+            Eigen::Quaternion<float> quatCam = it->second.quatCam;
+            // std::cout<<"antes2 quat  "<<quatCam.x()<< " " << quatCam.y() << " " << quatCam.z()<< " " <<quatCam.w()<< std::endl;
+            quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
+            // std::cout<<"despues      "<<quatAcu.x()<< " " << quatAcu.y() << " " << quatAcu.z()<< " " <<quatAcu.w()<<  std::endl;
+
             
-            Eigen::Vector3f angCam = it->second.angles;
-            angAcu = (angCam * sigmaNormCam) + (angAcu * sigmaNormAcu);
+            // Eigen::Vector3f angCam = it->second.angles;
+            // angAcu = (angCam * sigmaNormCam) + (angAcu * sigmaNormAcu);
 
             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
         }
-	}
-    ///Retornos
+
+        auto ang = quaternion_to_euler_angle(quatAcu.w(), quatAcu.x(), quatAcu.y(), quatAcu.z());
+        angAcu.x() = ang.x;
+        angAcu.y() = ang.y;
+        angAcu.z() = ang.z;
+
+
+	    ///Retornos
 	    ret.x = trasAcu.x();
 	    ret.y = trasAcu.y();
 	    ret.z = trasAcu.z();

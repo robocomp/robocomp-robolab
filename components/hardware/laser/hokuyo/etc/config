@@ -9,7 +9,7 @@ Laser.Endpoints=tcp -p 10003
 GenericBaseProxy = genericbase:tcp -h localhost -p 10004
 
 #Laser.Driver = HokuyoURG30LX
-Laser.Driver = HokuyoURG
+Laser.Driver = HokuyoURG04LX-UG01
 Laser.Device = /dev/ttyACM0
 Laser.StartValue = 180
 Laser.EndValue = 900

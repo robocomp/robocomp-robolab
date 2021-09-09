@@ -38,6 +38,7 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	RoboCompBatteryStatus::TBattery BatteryStatus_getBatteryState();
 	void DifferentialRobot_correctOdometer(int x, int z, float alpha);
 	void DifferentialRobot_getBasePose(int &x, int &z, float &alpha);
 	void DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state);
@@ -46,7 +47,11 @@ public:
 	void DifferentialRobot_setOdometerPose(int x, int z, float alpha);
 	void DifferentialRobot_setSpeedBase(float adv, float rot);
 	void DifferentialRobot_stopBase();
-
+	float Giraff_decTilt();
+	RoboCompGiraff::Botones Giraff_getBotonesState();
+	float Giraff_getTilt();
+	float Giraff_incTilt();
+	void Giraff_setTilt(float tilt);
 
 public slots:
 	void compute();

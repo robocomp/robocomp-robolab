@@ -17,6 +17,19 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include "giraff_funciones.h"
+#include "giraff_serial.h"
+#include <time.h>
+#include "BatteryStatus.h"
+
+time_t time_actual;
+
+BatteryState Bateria;
+GiraffState Estado,EstadoActualizado;
+Odometria DatosOdometria;
+Botones DatosBotones;
+
+
 
 /**
 * \brief Default constructor
@@ -25,7 +38,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 {
 	this->startup_check_flag = startup_check;
 }
-
+//
 /**
 * \brief Default destructor
 */
@@ -47,10 +60,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //	catch(const std::exception &e) { qFatal("Error reading config params"); }
 
 
-
-
-
-
 	return true;
 }
 
@@ -58,6 +67,35 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 	this->Period = period;
+
+	if(!iniciarAvr){
+		std::cout<<"ERROR:INICIO AVR"<<std::endl;
+	}
+
+	if(iniciarAvr())
+		std::cout<<"Inicio correcto del AVR"<<std::endl;
+	
+	//OBTENCIÓN DATOS BATERÍA
+
+	if(!getGiraffBatteryData(Bateria)){
+		std::cout<<"Error en lectura de bateria"<<std::endl;
+	}
+
+	DatosOdometria.alpha=0;
+	DatosOdometria.x=0;
+	DatosOdometria.z=0;
+	DatosOdometria.v=0;
+	DatosOdometria.vg=0;
+
+	DatosBotones.Dial=0;
+	//Poner pantalla recta
+	usleep(3000000);
+	EstadoActualizado.tilt=0,6;
+
+	setTilt(EstadoActualizado.tilt);
+
+	EstadoActualizado=Estado;
+	
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -67,24 +105,39 @@ void SpecificWorker::initialize(int period)
 		timer.start(Period);
 	}
 
+	
 }
 
 void SpecificWorker::compute()
 {
-	//computeCODE
-	//QMutexLocker locker(mutex);
-	//try
-	//{
-	//  camera_proxy->getYImage(0,img, cState, bState);
-	//  memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-	//  searchTags(image_gray);
-	//}
-	//catch(const Ice::Exception &e)
-	//{
-	//  std::cout << "Error reading from Camera" << e << std::endl;
-	//}
-	
-	
+	//Actualización velocidad
+
+	mutex->lock();
+		if(Estado.a!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
+		{
+			SetSpeedBase(Estado.v, Estado.vg);
+			EstadoActualizado = Estado;		
+		}
+		if(Estado.tilt!=EstadoActualizado.tilt)
+		{
+			EstadoActualizado.tilt=Estado.tilt;
+			setTilt(EstadoActualizado.tilt);
+			EstadoActualizado = Estado;	
+		}
+		
+	mutex->unlock();
+
+	getGiraffOdometria(DatosOdometria);
+	get_button_data(DatosBotones);
+	EstadoActualizado.tilt=0,6;
+	////Comprobación bateria
+	time(&time_actual);
+	double seconds = difftime(time_actual,Bateria.timeStamp);
+	if (seconds>=10 && EstadoActualizado.v==0 && EstadoActualizado.ang_speed==0)
+	{
+		getGiraffBatteryData(Bateria);
+	}
+
 }
 
 int SpecificWorker::startup_check()
@@ -95,27 +148,59 @@ int SpecificWorker::startup_check()
 }
 
 
+RoboCompBatteryStatus::TBattery SpecificWorker::BatteryStatus_getBatteryState()
+{
+	RoboCompBatteryStatus::TBattery bat;
+
+	bat.percentage=Bateria.percentage;
+	bat.voltage=Bateria.voltage;
+	bat.current=Bateria.current;
+
+
+	switch(Bateria.power_supply_status) 
+	{
+		case 1: 
+		bat.state=RoboCompBatteryStatus::BatteryStates::Charged;  
+		break;
+		case 2: 
+		bat.state=RoboCompBatteryStatus::BatteryStates::Charging;  
+		break;
+		case 3: 
+		bat.state=RoboCompBatteryStatus::BatteryStates::Disconnected;  
+		break;
+		default: 
+		bat.state=RoboCompBatteryStatus::BatteryStates::Disconnected;  
+	}
+	return bat;
+
+}
+
+
 void SpecificWorker::DifferentialRobot_correctOdometer(int x, int z, float alpha)
 {
-//implementCODE
-
+	
 }
 
 void SpecificWorker::DifferentialRobot_getBasePose(int &x, int &z, float &alpha)
-{
-//implementCODE
+{	
 
-}
+}	
 
 void SpecificWorker::DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseState &state)
 {
-//implementCODE
-
+	state.x=DatosOdometria.x;
+	state.z=DatosOdometria.z;
+	state.alpha=DatosOdometria.alpha;
+	state.advVz=0;
+	state.rotV=DatosOdometria.vg;
+	if (EstadoActualizado.v<0)
+		state.advVx=-DatosOdometria.v;
+	else
+		state.advVx=DatosOdometria.v;
 }
 
 void SpecificWorker::DifferentialRobot_resetOdometer()
 {
-//implementCODE
 
 }
 
@@ -127,25 +212,67 @@ void SpecificWorker::DifferentialRobot_setOdometer(RoboCompGenericBase::TBaseSta
 
 void SpecificWorker::DifferentialRobot_setOdometerPose(int x, int z, float alpha)
 {
-//implementCODE
-
+	//QMutexLocker locker(mutex);
+	//DatosOdometria.x=x;
+	//DatosOdometria.z=z;
+	//DatosOdometria.alpha=alpha;
 }
 
 void SpecificWorker::DifferentialRobot_setSpeedBase(float adv, float rot)
 {
-//implementCODE
+	QMutexLocker locker(mutex);
+	Estado.v = adv;
+	Estado.vg = rot;
 
 }
 
 void SpecificWorker::DifferentialRobot_stopBase()
 {
-//implementCODE
-
+	QMutexLocker locker(mutex);
+	Estado.v=0;
+	Estado.vg=0;
 }
 
 
+float SpecificWorker::Giraff_decTilt()
+{
+	QMutexLocker locker(mutex);
+	Estado.tilt=EstadoActualizado.tilt-0.1;
+}
+
+RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
+{
+	RoboCompGiraff::Botones Botones;
+
+	QMutexLocker locker(mutex);
+	Botones.Rojo=DatosBotones.Rojo;
+	Botones.Verde=DatosBotones.Verde;
+	Botones.Dial=DatosBotones.Dial;
+
+}
+
+float SpecificWorker::Giraff_getTilt()
+{
+	return EstadoActualizado.tilt;
+}
+
+float SpecificWorker::Giraff_incTilt()
+{
+	QMutexLocker locker(mutex);
+	Estado.tilt=EstadoActualizado.tilt+0.1;
+}
+
+void SpecificWorker::Giraff_setTilt(float tilt)
+{
+	QMutexLocker locker(mutex);
+	Estado.tilt=tilt;
+}
+
+
+/**************************************/
+// From the RoboCompBatteryStatus you can use this types:
+// RoboCompBatteryStatus::TBattery
 
 /**************************************/
 // From the RoboCompDifferentialRobot you can use this types:
-// RoboCompDifferentialRobot::TMechParams
-
+// RoboCompDifferentialRobot::TMechParamscma

@@ -83,6 +83,7 @@
 
 #include <batterystatusI.h>
 #include <differentialrobotI.h>
+#include <giraffI.h>
 
 #include <GenericBase.h>
 
@@ -208,6 +209,24 @@ int ::giraff::run(int argc, char* argv[])
 		}
 		catch (const IceStorm::TopicExists&){
 			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for DifferentialRobot\n";
+		}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "Giraff.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Giraff";
+			}
+			Ice::ObjectAdapterPtr adapterGiraff = communicator()->createObjectAdapterWithEndpoints("Giraff", tmp);
+			auto giraff = std::make_shared<GiraffI>(worker);
+			adapterGiraff->add(giraff, Ice::stringToIdentity("giraff"));
+			adapterGiraff->activate();
+			cout << "[" << PROGRAM_NAME << "]: Giraff adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Giraff\n";
 		}
 
 

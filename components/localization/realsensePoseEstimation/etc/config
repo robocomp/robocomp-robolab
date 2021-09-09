@@ -13,9 +13,9 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 origen_rx=0,0
 origen_ry=0,0
-origen_rz=0,0
-origen_tx=0,0
-origen_ty=0,0
+origen_rz=-45,0
+origen_tx=8249,0
+origen_ty=-23144,0
 origen_tz=0,0
 
 num_cameras=2
@@ -32,8 +32,8 @@ tx_0=0,3
 ty_0=0,0
 tz_0=0,1
 
-device_serial_1=121222110343
-#device_serial_1=925122110585
+#device_serial_1=121222110343
+device_serial_1=925122110585
 name_1=camera_front
 rx_1=0,0
 ry_1=0,0

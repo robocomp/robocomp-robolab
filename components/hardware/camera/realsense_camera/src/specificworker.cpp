@@ -38,13 +38,27 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
     display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
-    std::cout << "display_rgb " << display_depth << " display_depth " << display_rgb << std::endl;
+    display_compressed = (params["display_compressed"].value == "true") or (params["display_compressed"].value =="True");
+    std::cout <<  "display_rgb " << display_rgb << " display_depth " << display_depth << " display_compressed " << display_compressed << std::endl;
     return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
+
+    compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params_image.push_back(50);
+    compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params_depth.push_back(100);
+    /*
+
+    compression_params_image.push_back(cv::IMWRITE_PNG_COMPRESSION);//PNG
+    compression_params_depth.push_back(cv::IMWRITE_PNG_COMPRESSION);
+
+    compression_params_image.push_back(9); //cambiar abajo
+    compression_params_depth.push_back(9);//cambiar abajo*/
+
 
     try
     {
@@ -72,7 +86,6 @@ void SpecificWorker::initialize(int period)
         filters.emplace_back("Spatial", spat_filter);
         filters.emplace_back("Temporal", temp_filter);
         filters.emplace_back("HFilling", holef_filter);
-        
     }
     catch(std::exception &e)
     { std::cout<<e.what()<<std::endl; }
@@ -103,6 +116,7 @@ void SpecificWorker::compute()
         if (filter.is_enabled)
             depth_frame = filter.filter.process(depth_frame);
 
+    //if (!display_compressed) //si no está comprimida creo la rgbd porque es la que devuelvo cuando no comprimo
     rgbd = create_trgbd();
 
     if (display_rgb)
@@ -111,6 +125,7 @@ void SpecificWorker::compute()
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
     }
+
     if (display_depth)
     {
         rs2::frame depth_color = depth_frame.apply_filter(color_map);
@@ -124,6 +139,26 @@ void SpecificWorker::compute()
         cv::waitKey(1);
     }
 
+//    if (display_all)
+//    {
+//     //Si no comprimo, mando la imagen directamente pero no la del buffer
+//        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame.get_data(), cv::Mat::AUTO_STEP);
+//        cv::imshow("RGB image", frame);
+//        cv::waitKey(1);
+//
+//        rs2::frame depth_color = depth_frame.apply_filter(color_map);
+//
+//        //std::cout<<"hola"<<std::endl;
+//        // Query frame size (width and height)
+//        const int w = depth_frame.as<rs2::video_frame>().get_width();
+//        const int h = depth_frame.as<rs2::video_frame>().get_height();
+//
+//        cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
+//        cv::imshow("DEPTH image", frame_depth);
+//        cv::waitKey(1);
+//
+//    }
+
 }
 
 float SpecificWorker::get_depth_scale(rs2::device dev)
@@ -133,7 +168,10 @@ float SpecificWorker::get_depth_scale(rs2::device dev)
     {
         // Check if the sensor if a depth sensor
         if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>())
+        {
+            //qInfo() << "Depth scale: " << dpt.get_depth_scale();
             return dpt.get_depth_scale();
+        }
     }
     throw std::runtime_error("Device does not have a depth sensor");
 }
@@ -199,20 +237,123 @@ int SpecificWorker::startup_check()
 ////////////////////////////////////////////////////////////////////////////
 RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
 {
+//   ::RoboCompCameraRGBDSimple::TRGBD all;
+
     const std::lock_guard<std::mutex> lg(swap_mutex);
+
+//    all.image.depth = 3;
+//    all.image.height = rgbd.image.height;
+//    all.image.width = rgbd.image.width;
+//    all.image.compressed=true;
+
+//    cv::Mat frame (cv::Size(rgbd.image.width, rgbd.image.height), CV_8UC3, &all.image.image[0],  cv::Mat::AUTO_STEP);
+//    cv::imshow("USB Camera", frame);
+//    cv::imencode(".jpg", frame, buffer, compression_params);
+//    std:: cout << "raw: " << frame.total() * frame.elemSize() << " compressed: " << buffer.size() << " Ratio:" << frame.total() * frame.elemSize()/buffer.size()<<std::endl;
+//    all.image.image.assign(buffer.begin(), buffer.end());
+
+//    all.depth.depth = 3;
+//    all.depth.height = rgbd.depth.height;
+//    all.depth.width = rgbd.depth.width;
+//    all.depth.compressed=true;
+
+//    cv::Mat frame_depth (cv::Size(rgbd.depth.width, rgbd.depth.height), CV_32F, &all.depth.depth[0],  cv::Mat::AUTO_STEP);
+//    cv::imshow("USB Camera", frame_depth);
+//    cv::imencode(".jpg", frame_depth, buffer, compression_params);
+//    std:: cout << "Tamaño rgbd.depth.depth "<< rgbd.depth.depth.size() << std::endl;
+//    std:: cout << "raw: " << frame_depth.total() * frame_depth.elemSize() << " compressed: " << buffer.size() << " Ratio:" << frame_depth.total() * frame_depth.elemSize()/buffer.size()<<std::endl;
+
+//    all.depth.depth.assign(buffer.begin(), buffer.end());
+
+
     return rgbd;
 }
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
-    const std::lock_guard<std::mutex> lg(swap_mutex);
-    return rgbd.depth;
+
+    if (display_compressed)
+    {
+
+        const std::lock_guard<std::mutex> lg(swap_mutex);
+
+        rgbd.depth.cameraID = 0;
+        rgbd.depth.focalx = depth_intr.fx;
+        rgbd.depth.focaly = depth_intr.fy;
+        rgbd.depth.alivetime = 0;
+        rgbd.depth.depthFactor = depth_scale;
+        rgbd.depth.compressed = true;
+
+        cv::Mat frame_depth(cv::Size(rgbd.depth.width, rgbd.depth.height), CV_32F, &rgbd.depth.depth[0],
+                            cv::Mat::AUTO_STEP);
+
+        //cv::imshow("prueba", frame_depth);
+
+//    for(int i=0; i<480; i++) {
+//        std::cout << frame_depth.at<float>(i, 300) << std::endl;
+//    }
+
+        cv::imencode(".jpg", frame_depth, buffer, compression_params_depth);// modificar ".jpg" a ".png" ty viceversa, tipo de compresión
+//        std::cout << "Tamaño rgbd.depth.depth " << rgbd.depth.depth.size() << std::endl;
+        std::cout << "raw: " << frame_depth.total() * frame_depth.elemSize() << " compressed: " << buffer.size()
+                  << " Ratio:" << frame_depth.total() * frame_depth.elemSize() / buffer.size() << std::endl;
+
+        rgbd.depth.depth.assign(buffer.begin(), buffer.end());
+
+        return rgbd.depth;
+    }
+
+    else
+    {
+        const std::lock_guard<std::mutex> lg(swap_mutex);
+
+//        std::cout << "Depth no comprimido: " << rgbd.depth.depth.size() << std::endl;
+
+        //std::cout<< "Widht:" << rgbd.depth.width << ", heigh: "<< rgbd.depth.height << ", size: " << rgbd.depth.depth.size() <<std::endl;
+
+//        Voy a probar a mostrar los valores de todas las filas en la columna 300
+//        for(int i=0; i<480; i++) {
+//            printf("%d",rgbd.depth.depth.at(i));
+//        }
+
+        return rgbd.depth;
+    }
+
 }
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
-    const std::lock_guard<std::mutex> lg(swap_mutex);
-    return rgbd.image;
+    if (display_compressed) {
+
+        const std::lock_guard<std::mutex> lg(swap_mutex);
+
+        rgbd.image.cameraID = 0;
+        rgbd.image.focalx = depth_intr.fx;
+        rgbd.image.focaly = depth_intr.fy;
+        rgbd.image.alivetime = 0;
+        rgbd.image.compressed = true;
+
+        cv::Mat frame(cv::Size(rgbd.image.width, rgbd.image.height), CV_8UC3, &rgbd.image.image[0], cv::Mat::AUTO_STEP);
+        //cv::imshow("USB Camera", frame);
+        cv::imencode(".png", frame, buffer, compression_params_image);
+        std::cout << "raw: " << frame.total() * frame.elemSize() << " compressed: " << buffer.size() << " Ratio:"
+                  << frame.total() * frame.elemSize() / buffer.size() << std::endl;
+
+        rgbd.image.image.assign(buffer.begin(), buffer.end());
+
+        return rgbd.image;
+    }
+
+    else
+    {
+        const std::lock_guard<std::mutex> lg(swap_mutex);
+
+//        std::cout << "Image no comprimido: " << rgbd.image.image.size() << std::endl;
+
+
+
+        return rgbd.image;
+    }
 }
 
 /**************************************/

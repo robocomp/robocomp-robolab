@@ -68,12 +68,11 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	ty = std::stof(params["origen_ty"].value);
 	tz = std::stof(params["origen_tz"].value);
 
-	FullPoseEstimation_setInitialPose(tx,ty,tz,rx,ry,rz); ///Cambio recursivo de matrices falta
+	FullPoseEstimation_setInitialPose(tx,ty,tz,rx,ry,rz);
 
 	///Leemos todas las camaras del config
     for(int i=0; i<num_cameras; i++)
-    {
-        PARAMS param_camera;
+    {        PARAMS param_camera;
         name = params["name_"+std::to_string(i)].value;
         std::cout<<"Cargando: "<<name<<std::endl;
         param_camera.device_serial = params["device_serial_"+std::to_string(i)].value;
@@ -87,7 +86,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(param_camera.traslation_init.x,param_camera.traslation_init.y,param_camera.traslation_init.z));
         param_camera.robot_camera.rotate(Eigen::AngleAxisf (param_camera.rot_init_angles.x,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (param_camera.rot_init_angles.y, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(param_camera.rot_init_angles.z, Eigen::Vector3f::UnitZ()));
         ///Ejes de la camara respecto a origen
-        param_camera.origen_camera.matrix() = origen_robot.matrix() * param_camera.robot_camera.matrix();
+        param_camera.origen_camera.matrix() = param_camera.robot_camera.matrix() * this->origen_robot.matrix();
+        cout << "origen_robot.matrix" << this->origen_robot.matrix() << endl;
+        cout << "robot_camera.matrix" << param_camera.robot_camera.matrix() << endl;
+        cout << "origen_camera.matrix" << this->origen_robot.matrix() << endl;
         //param_camera.origen_camera.linear() = param_camera.robot_camera.linear() * this->origen_robot.linear();
         //param_camera.origen_camera.translation() = this->origen_robot.linear() * param_camera.robot_camera.translation() + this->origen_robot.translation();
 
@@ -212,8 +214,7 @@ void SpecificWorker::compute()
         ///Realizamos trasformación
         bufferMutex.lock();
         cameras_dict[key].origen_world.linear() = camera_world.linear();
-        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation();
-
+        cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this -> origen_robot.translation();
         cameras_dict[key].mapper_confidence = pose_data.mapper_confidence;
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
         cameras_dict[key].angles.x() = ang.x;
@@ -279,7 +280,7 @@ void SpecificWorker::compute()
 
         }
     }
-    FullPoseEstimation_getFullPoseEuler();
+    //FullPoseEstimation_getFullPoseEuler();
 }
 
 int SpecificWorker::startup_check()
@@ -345,8 +346,8 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 
             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
         }
-
-	    ///Retornos
+	}
+    ///Retornos
 	    ret.x = trasAcu.x();
 	    ret.y = trasAcu.y();
 	    ret.z = trasAcu.z();
@@ -370,7 +371,6 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 	        180*angAcu.z()/M_PI <<
 	        std::endl;
 	    }
-	}
 	return ret;
 }
 
@@ -502,7 +502,7 @@ void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z
     ///Ejes del robot despecto al origen-mapa
     this->origen_robot=Eigen::Translation3f(Eigen::Vector3f(x,y,z));
     this->origen_robot.rotate(Eigen::AngleAxisf (rx, Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
-
+    std::cout<<"New origen:"<<std::endl<<this->origen_robot.matrix()<<endl;
     for (const auto &[key, value] : cameras_dict) {
         cameras_dict[key].origen_camera = cameras_dict[key].robot_camera.matrix() * this->origen_robot.matrix();
         //cameras_dict[key].origen_camera.linear() =  cameras_dict[key].robot_camera.linear() * this->origen_robot.linear();

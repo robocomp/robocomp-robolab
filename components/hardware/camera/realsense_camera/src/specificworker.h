@@ -32,7 +32,6 @@
 #include <librealsense2/rs.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <cppitertools/enumerate.hpp>
 #include <opencv2/opencv.hpp>
 
 class SpecificWorker : public GenericWorker
@@ -55,16 +54,24 @@ public slots:
 private:
 	bool startup_check_flag;
 
+
 	// camera
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     std::string serial;
     bool display_rgb = false;
     bool display_depth = false;
+    bool display_compressed = false;
     rs2::pipeline  pipeline;
 
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
     rs2_intrinsics cam_intr, depth_intr;
+
+    vector<int> compression_params_image;
+    vector<int> compression_params_depth;
+    vector<uchar> buffer;
+
+    //FPSCounter fps;
 
     // filters
     struct filter_options

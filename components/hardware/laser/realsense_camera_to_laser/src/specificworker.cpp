@@ -61,7 +61,8 @@ void SpecificWorker::initialize(int period)
         rs2::pipeline center_pipe;
         rs2::pipeline_profile profile_center = center_pipe.start(cfg_center);
         center_depth_intr = center_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> center_tr(0.f, 0, 0.100);
+        Eigen::Translation<float, 3> center_tr(0.f, 0, 0.1004);
+        // Eigen::Translation<float, 3> center_tr(0.f, 0, 0.100);
         Eigen::Matrix3f center_m;
         center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
                  * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitY())
@@ -85,10 +86,11 @@ void SpecificWorker::initialize(int period)
         rs2::pipeline right_pipe;
         rs2::pipeline_profile profile_right = right_pipe.start(cfg_right);
         right_depth_intr = right_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> right_tr(0.0963, 0, 0.0578);
+        Eigen::Translation<float, 3> right_tr(0.0966, 0., 0.0276);
+        // Eigen::Translation<float, 3> right_tr(0.0963, 0., 0.0578);
         Eigen::Matrix3f right_m;
         right_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-                * Eigen::AngleAxisf(M_PI/3, Eigen::Vector3f::UnitY())  //60 degrees
+                * Eigen::AngleAxisf(2.*M_PI/5., Eigen::Vector3f::UnitY())  //60 degrees
                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> right_depth_extrinsics;;
         right_depth_extrinsics = right_tr;
@@ -110,10 +112,11 @@ void SpecificWorker::initialize(int period)
         rs2::pipeline left_pipe;
         rs2::pipeline_profile profile_left = left_pipe.start(cfg_left);
         left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> left_tr(-0.0963, 0, 0.0578);
+        Eigen::Translation<float, 3> left_tr(-0.0966, 0., 0.0276);
+        // Eigen::Translation<float, 3> left_tr(-0.0963, 0., 0.0578);
         Eigen::Matrix3f left_m;
         left_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-                * Eigen::AngleAxisf(-M_PI/3, Eigen::Vector3f::UnitY())
+                * Eigen::AngleAxisf(-2.*M_PI/5., Eigen::Vector3f::UnitY())
                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
         Eigen::Transform<float, 3, Eigen::Affine> left_depth_extrinsics;;
         left_depth_extrinsics = left_tr;
@@ -127,7 +130,7 @@ void SpecificWorker::initialize(int period)
 
     // Filters
     rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 4, error);
-    filters.emplace_back("Decimate", dec_filter);
+    // filters.emplace_back("Decimate", dec_filter);
     filters.emplace_back("Spatial", spat_filter);
     filters.emplace_back("Temporal", temp_filter);
     filters.emplace_back("HFilling", holef_filter);
@@ -247,10 +250,10 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
     // virtual frame
     cv::Mat frame_virtual = cv::Mat::zeros(cv::Size(640*3, 480*1.5), CV_8UC3);
 
-    cv::Mat cylinder = cv::Mat::zeros(cv::Size(400, 400), CV_8UC3);
-    float cylinder_radius =  cylinder.rows/2.;
-    float cylinder_cols = cylinder.cols;
-    float cylinder_rows = cylinder.rows;
+    cv::Mat sphere = cv::Mat::zeros(cv::Size(800, 600), CV_8UC3);
+    float sphere_radius =  sphere.rows/2.;
+    float sphere_cols = sphere.cols;
+    float sphere_rows = sphere.rows;
 
 
 
@@ -277,17 +280,15 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
                 auto to_point = extr * Eigen::Vector3f{vertices[i].x, vertices[i].y, vertices[i].z};
                 const float &xv = to_point[0]; const float &yv = to_point[1]; const float &zv = to_point[2];
 
-                float cX = atan2(xv, zv) * cylinder_cols/M_PI + cylinder_cols/2.;
-                // float alpha = atan2(yv, zv);
-                // float cY = tan(alpha)*cylinder_radius + cylinder_rows/2.;
-                float cY = atan2(yv, zv) * cylinder_cols/M_PI + cylinder_cols/2.;
-                if (cX < 0 or cX >= cylinder_cols or cY < 0 or cY >= cylinder_rows) continue;
+                float cX = atan2(xv, zv) * sphere_cols/M_PI + sphere_cols/2.;
+                float cY = atan2(yv, zv) * sphere_rows/M_PI + sphere_rows/2.;
+                if (cX < 0 or cX >= sphere_cols or cY < 0 or cY >= sphere_rows) continue;
                 int k = tex_coords[i].v * video_frame.get_height();
                 int l = tex_coords[i].u * video_frame.get_width();
                 if (k < 0 or k >= video_frame.get_height() or l < 0 or l > video_frame.get_width()) continue;
-                color(color_frame, cylinder, cY, cX, k, l);
-                ////////////////////////////////
-                // // project
+                color(color_frame, sphere, cY, cX, k, l);
+                // ////////////////////////////////
+                // // project without sphere
                 // float col_virtual = static_cast<float>((frame_virtual_lfocalx * xv / zv + center_virtual_cols));
                 // float row_virtual = static_cast<float>((frame_virtual_lfocalx * yv / zv + center_virtual_rows));
                 // if (col_virtual < 0 or col_virtual >= frame_virtual.cols or row_virtual < 0 or row_virtual >= frame_virtual.rows) continue;
@@ -295,7 +296,7 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
                 // int l = tex_coords[i].u * video_frame.get_width();
                 // if (k < 0 or k >= video_frame.get_height() or l < 0 or l > video_frame.get_width()) continue;
                 // color(color_frame, frame_virtual, row_virtual, col_virtual, k, l);
-                ////////////////////////////////
+                // ////////////////////////////////
 
 
 
@@ -310,17 +311,19 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
         }   
     }
 
+    cv::imshow("Sphere", sphere);
+    cv::waitKey(1);
+
+
    for(int y=0; y<frame_virtual.rows; y++)
        for(int x=0; x<frame_virtual.cols; x++)
        {
             float xv = x - center_virtual_cols;
             float yv = y - center_virtual_rows;
-            float cX = atan2(xv, frame_virtual_lfocalx) * cylinder_cols/M_PI + cylinder_cols/2.;
-            float cY = atan2(yv, frame_virtual_lfocalx) * cylinder_cols/M_PI + cylinder_cols/2.;
-            // float alpha = atan2(yv, frame_virtual_lfocalx);
-            // float cY = tan(alpha)*cylinder_radius + cylinder_rows/2.;
-            if (cX < 0 or cX >= cylinder_cols or cY < 0 or cY > cylinder_rows) continue;
-            frame_virtual.at<cv::Vec3b>(y, x) = cylinder.at<cv::Vec3b>(rint(cY), rint(cX));
+            float cX = atan2(xv, frame_virtual_lfocalx) * sphere_cols/M_PI + sphere_cols/2.;
+            float cY = atan2(yv, frame_virtual_lfocalx) * sphere_rows/M_PI + sphere_rows/2.;
+            if (cX < 0 or cX >= sphere_cols or cY < 0 or cY > sphere_rows) continue;
+            frame_virtual.at<cv::Vec3b>(y, x) = sphere.at<cv::Vec3b>(rint(cY), rint(cX));
        }
 
 
@@ -352,8 +355,130 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
     return std::make_tuple(frame_virtual);
 }
 
+////////////////// MOSAIC  WITH AFFINE TRANSFORMATION //////////////////////////////////////////
+// std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
+// {
+//     // virtual frame
+//     cv::Mat frame_virtual = cv::Mat::zeros(cv::Size(640*3, 480*1.5), CV_8UC3);
+
+//     float center_virtual_cols = frame_virtual.cols / 2.0;
+//     float center_virtual_rows = frame_virtual.rows / 2.0;
+//     float frame_virtual_lfocalx = 390;
+//     float frame_virtual_rfocalx = 390;
+
+//     cv::Mat winLeft = frame_virtual(cv::Rect(0,120,640,480));
+//     cv::Mat winCenter = frame_virtual(cv::Rect(640,120,640,480));
+//     cv::Mat winRight = frame_virtual(cv::Rect(2*640,120,640,480));    
 
 
+//     const auto &[pipeL, intrL, extrL, depth_frameL, pointsL, color_frameL] = cam_map.at(serial_left);
+//     cv::Mat imgLeft(480, 640, CV_8UC3, (char *) color_frameL.get_data());
+//     const auto &[pipeC, intrC, extrC, depth_frameC, pointsC, color_frameC] = cam_map.at(serial_center);
+//     cv::Mat imgCenter(480, 640, CV_8UC3, (char *) color_frameC.get_data());
+//     const auto &[pipeR, intrR, extrR, depth_frameR, pointsR, color_frameR] = cam_map.at(serial_right);
+//     cv::Mat imgRight(480, 640, CV_8UC3, (char *) color_frameR.get_data());
+
+
+//     imgCenter.copyTo(winCenter);
+//     addImageToFrame(pointsL, extrC.inverse()*extrL, 120, 640, imgLeft, winLeft);
+//     addImageToFrame(pointsR, extrC.inverse()*extrR, 0, -640, imgRight, winRight);
+//     return std::make_tuple(frame_virtual);
+
+// }
+
+
+void SpecificWorker::addImageToFrame(rs2::points points, Eigen::Transform<float, 3, Eigen::Affine> extr, uint iniColumn, int columnShift, cv::Mat image, cv::Mat & frameWin)
+{
+    float frame_virtual_lfocalx = 390;
+    float frame_virtual_rfocalx = 390;
+
+    std::vector<cv::Point2d> imagePoints, framePoints;
+
+    const rs2::vertex * vertices = points.get_vertices();
+    auto tex_coords = points.get_texture_coordinates(); // and texture coordinates, u v coor of rgb image
+    for (uint y = 0; y <120; y++)
+        for (uint x = iniColumn; x <iniColumn + 40; x++)
+        {
+            uint i = y*160 + x;
+            if (vertices[i].z >= 0.1)
+            {
+                // transform to virtual camera CS at center of both cameras.
+                auto to_point = extr * Eigen::Vector3f{vertices[i].x, vertices[i].y, vertices[i].z};
+                const float &xv = to_point[0]; const float &yv = to_point[1]; const float &zv = to_point[2];
+                float dist = sqrt(xv*xv+yv*yv+zv*zv);
+                if(dist < 0.4 or dist > 6.) continue;
+
+
+                float col = static_cast<float>((frame_virtual_lfocalx * xv / zv + image.cols/2.));
+                float row = static_cast<float>((frame_virtual_lfocalx * yv / zv + image.rows/2.));
+                // if (col < 0 or col >= image.cols or row < 0 or row >= image.rows) continue;
+                float k = tex_coords[i].v * image.rows;
+                float l = tex_coords[i].u * image.cols;
+                if (k < 0 or k >=  image.rows or l < 0 or l > image.cols) continue;
+                imagePoints.push_back(cv::Point(l, k));
+                framePoints.push_back(cv::Point(col+columnShift, row));
+
+                // if(imagePoints.size()>20)
+                //     break;
+
+            }
+        }   
+
+
+    // cv::Mat affineT = getAffineTransform(imagePoints, framePoints);
+
+    cv::Mat affineT;
+    
+    if(computeAffine(imagePoints, framePoints, affineT))
+    {
+
+        cv::Mat warped;
+
+        cv::warpAffine(image, warped, affineT, cv::Size(640*2, 480*2));
+
+    
+        warped(cv::Rect(0,0,640,480)).copyTo(frameWin);
+    }
+
+}
+
+
+// find affine transformation between two pointsets (use least square matching)
+bool SpecificWorker::computeAffine(const std::vector<cv::Point2d> &srcPoints, const std::vector<cv::Point2d> &dstPoints, cv::Mat &transf)
+{
+    // sanity check
+    if ((srcPoints.size() < 3) || (srcPoints.size() != dstPoints.size()))
+        return false;
+
+    // container for output
+    transf.create(2, 3, CV_64F);
+
+    // fill the matrices
+    const int n = (int)srcPoints.size(), m = 3;
+    cv::Mat A(n,m,CV_64F), xc(n,1,CV_64F), yc(n,1,CV_64F);
+    for(int i=0; i<n; i++)
+    {
+        double x = srcPoints[i].x, y = srcPoints[i].y;
+        double rowI[m] = {x, y, 1};
+        cv::Mat(1,m,CV_64F,rowI).copyTo(A.row(i));
+        xc.at<double>(i,0) = dstPoints[i].x;
+        yc.at<double>(i,0) = dstPoints[i].y;
+    }
+
+    // solve linear equations (for x and for y)
+    cv::Mat aTa, resX, resY;
+    cv::mulTransposed(A, aTa, true);
+    cv::solve(aTa, A.t()*xc, resX, cv::DECOMP_CHOLESKY);
+    cv::solve(aTa, A.t()*yc, resY, cv::DECOMP_CHOLESKY);
+
+    // store result
+    memcpy(transf.ptr<double>(0), resX.data, m*sizeof(double));
+    memcpy(transf.ptr<double>(1), resY.data, m*sizeof(double));
+
+    return true;
+}
+
+////////////////// MOSAIC  WITHOUT PROCESSING //////////////////////////////////////////
 // std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
 // {
 //     // virtual frame

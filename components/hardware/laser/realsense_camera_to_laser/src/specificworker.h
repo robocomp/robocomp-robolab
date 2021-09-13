@@ -130,6 +130,8 @@ private:
     std::tuple<cv::Mat> mosaic(const Camera_Map &cam_map);
     void color(rs2::video_frame image, cv::Mat frame_v, float row_v, float col_v, int k, int l);
     void show_depth_images(Camera_Map &cam_map);
+    void addImageToFrame(rs2::points points, Eigen::Transform<float, 3, Eigen::Affine> extr, uint iniColumn, int columnShift, cv::Mat image, cv::Mat & frameWin);
+    bool computeAffine(const std::vector<cv::Point2d> &srcPoints, const std::vector<cv::Point2d> &dstPoints, cv::Mat &transf);
 
     std::mutex my_mutex;
     FPSCounter fps;

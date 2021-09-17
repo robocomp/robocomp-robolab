@@ -1,0 +1,12 @@
+import "Laser.idsl";
+
+Component laser_viewer
+{
+    Communications
+    {
+        requires Laser;
+    };
+    language Cpp11;
+
+};
+

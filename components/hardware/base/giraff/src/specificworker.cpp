@@ -113,9 +113,12 @@ void SpecificWorker::compute()
 	//Actualización velocidad
 
 	mutex->lock();
-		if(Estado.a!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
+		if(Estado.v!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
 		{
 			SetSpeedBase(Estado.v, Estado.vg);
+			std::cout << "velocidad: " << Estado.v <<std::endl;
+			std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
+			
 			EstadoActualizado = Estado;		
 		}
 		if(Estado.tilt!=EstadoActualizado.tilt)
@@ -126,7 +129,6 @@ void SpecificWorker::compute()
 		}
 		
 	mutex->unlock();
-
 	getGiraffOdometria(DatosOdometria);
 	get_button_data(DatosBotones);
 	EstadoActualizado.tilt=0,6;

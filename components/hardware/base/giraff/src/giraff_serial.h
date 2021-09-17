@@ -493,7 +493,7 @@ inline void _printTime() {
 	char day[4], mon[4];
 	int wday, hh, mm, ss, year;
 	sscanf(ctime((time_t*) &(ts.tv_sec)), "%s %s %d %d:%d:%d %d",day, mon, &wday, &hh, &mm, &ss, &year);
-	std::cout << std::setw(2) << std::setfill(' ') << wday << ' ' << mon << ' ' << year << ' ' << std::setfill('0') << hh << ':' << mm << ':' << ss << '.' << ts.tv_nsec<< ' ';
+	//std::cout << std::setw(2) << std::setfill(' ') << wday << ' ' << mon << ' ' << year << ' ' << std::setfill('0') << hh << ':' << mm << ':' << ss << '.' << ts.tv_nsec<< ' ';
 }
 
 
@@ -520,7 +520,7 @@ inline bool SerialInterface::open()
     if (fd!=-1)     //is it alreay open?
     {
         lastError = std::string("[Giraff_ros_driver] Cannot open ") + devicename + std::string(" because it's already open.");
-        std::cout  <<  "[Giraff_ros_driver] " << lastError.c_str() << std::endl;
+        //std::cout  <<  "[Giraff_ros_driver] " << lastError.c_str() << std::endl;
         return false;
     }
 
@@ -535,7 +535,7 @@ inline bool SerialInterface::open()
 
     if (success)
     {
-        std::cout  <<  "[Giraff_ros_driver] Successfully opened AVR on " <<  devicename.c_str() << std::endl;
+        //std::cout  <<  "[Giraff_ros_driver] Successfully opened AVR on " <<  devicename.c_str() << std::endl;
         attr.c_cflag &= ~(PARENB | CSTOPB | CSIZE);
         attr.c_cflag |= (CS8 | CLOCAL | CREAD);
         if (hardware_flow_control)
@@ -552,7 +552,7 @@ inline bool SerialInterface::open()
 
     if (!success)
     {
-        std::cout  <<  "[Giraff_ros_driver] Error opening AVR on " <<  devicename.c_str() << std::endl;
+        //std::cout  <<  "[Giraff_ros_driver] Error opening AVR on " <<  devicename.c_str() << std::endl;
         //ROS_ERROR("%s", strerror(errno));
         lastError = std::string(strerror(errno));
         closeNow();
@@ -710,7 +710,7 @@ inline bool GiraffAVR::open()
     welcomeMessage="";
     #ifdef _GIRAFF_AVR_DEBUG_
     _printTime();
-    std::cout<<"Activating RTS->DSR flag to Giraff AVR"<<std::endl;
+    //std::cout<<"Activating RTS->DSR flag to Giraff AVR"<<std::endl;
     #endif
     if (!SerialInterface::setRTS(false)) {
         closeNow();
@@ -724,7 +724,7 @@ inline bool GiraffAVR::open()
     }
     #ifdef _GIRAFF_AVR_DEBUG_
     _printTime();
-    std::cout<<"Waiting for Giraff AVR welcome message"<<std::endl;
+    //std::cout<<"Waiting for Giraff AVR welcome message"<<std::endl;
     #endif
     if (!readResponse(welcomeMessage,true)) {
         closeNow();
@@ -739,7 +739,7 @@ inline bool GiraffAVR::open()
     welcomeMessage=welcomeMessage.substr(n,welcomeMessage.size());
     #ifdef _GIRAFF_AVR_DEBUG_
             _printTime();
-            std::cout << "Giraff AVR -> Linux PC  : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
+            //std::cout << "Giraff AVR -> Linux PC  : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
     #endif
 
     return true;
@@ -777,14 +777,14 @@ inline bool GiraffAVR::writeCommand(const std::string& command, std::string& res
         }
         #ifdef _GIRAFF_AVR_DEBUG_
             _printTime();
-            std::cout << "Linux PC   -> Giraff AVR: "<< command.substr(0,command.find_first_of('\r')) << std::endl;
+            //std::cout << "Linux PC   -> Giraff AVR: "<< command.substr(0,command.find_first_of('\r')) << std::endl;
         #endif
         if (!readResponse(response)) {
              return false;
         }
         #ifdef _GIRAFF_AVR_DEBUG_
             _printTime();
-            std::cout << "Giraff AVR -> Linux PC  : "<< response.substr(0,response.find_first_of('\r')) << std::endl;
+            //std::cout << "Giraff AVR -> Linux PC  : "<< response.substr(0,response.find_first_of('\r')) << std::endl;
         #endif
 
     } while(response.size()==0);
@@ -992,18 +992,18 @@ inline bool GiraffPC::checkDSR(const std::string& welcomeMessage, Action& action
 		initiated=true;
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Giraff PC  -> Linux PC  : DTR up" << std::endl;
+			//std::cout << "Giraff PC  -> Linux PC  : DTR up" << std::endl;
 		#endif	
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Linux PC   -> Giraff PC : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
+			//std::cout << "Linux PC   -> Giraff PC : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
 		#endif	
 	}
 	else if (initiated && !dsr) {
 		initiated=false;
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Giraff PC  -> Linux PC  : DTR down"<<std::endl;
+			//std::cout << "Giraff PC  -> Linux PC  : DTR down"<<std::endl;
 		#endif	
 	}
 	return true;
@@ -1028,18 +1028,18 @@ inline bool GiraffPC::checkRTS(const std::string& welcomeMessage, Action& action
 		initiated=true;
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Giraff PC  -> Linux PC  : DTR up" << std::endl;
+			//std::cout << "Giraff PC  -> Linux PC  : DTR up" << std::endl;
 		#endif	
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Linux PC   -> Giraff PC : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
+			//std::cout << "Linux PC   -> Giraff PC : "<< welcomeMessage.substr(0,welcomeMessage.find_first_of('\r')) << std::endl;
 		#endif	
 	}
 	else if (initiated && !rts) {
 		initiated=false;
 		#ifdef _GIRAFF_PC_DEBUG_ 
 			_printTime(); 
-			std::cout << "Giraff PC  -> Linux PC  : DTR down"<<std::endl;
+			//std::cout << "Giraff PC  -> Linux PC  : DTR down"<<std::endl;
 		#endif	
 	}
 	return true;
@@ -1091,7 +1091,7 @@ inline bool GiraffPC::readCommand(std::string& command)
 	#ifdef _GIRAFF_PC_DEBUG_ 
 		if (command.size()>0) {
 			_printTime(); 
-			std::cout << "Giraff PC  -> Linux PC  : "<< command.substr(0,command.find_first_of('\r')) << std::endl;
+			//std::cout << "Giraff PC  -> Linux PC  : "<< command.substr(0,command.find_first_of('\r')) << std::endl;
 		}
 	#endif
 	return true;
@@ -1106,7 +1106,7 @@ inline bool GiraffPC::writeResponse(const std::string& response)
 	
 	#ifdef _GIRAFF_PC_DEBUG_ 
 		_printTime(); 
-		std::cout << "Linux PC   -> Giraff PC : "<< response.substr(0,response.find_first_of('\r')) << std::endl;
+		//std::cout << "Linux PC   -> Giraff PC : "<< response.substr(0,response.find_first_of('\r')) << std::endl;
 	#endif	
 
 	return success;

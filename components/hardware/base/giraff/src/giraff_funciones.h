@@ -229,7 +229,7 @@ bool getGiraffBatteryData(BatteryState &bat){
 
 
 void SetSpeedBase(float adv, float rot)
-{
+{   
     float lin_acceleration = 0.3;
     float ang_acceleration = 0.3;
     float r = 50;
@@ -240,7 +240,7 @@ void SetSpeedBase(float adv, float rot)
     float maxAngularVelocity = 0.7;
     float virtualGR = 20;
     float cdp_cte = 1.05;
-
+    
 
     //-----ESTABLECER STOP--------
 
@@ -280,7 +280,7 @@ void SetSpeedBase(float adv, float rot)
 
     //IMPLEMENTACION II: giraff mode 0   
     
-    
+
 
     // Clothoid deceleration point (Cte). Setting this just above the value of p, but a lower value does also seem to work.
     //------------------------
@@ -340,7 +340,7 @@ void SetSpeedBase(float adv, float rot)
             r = 50;
             v = fabs(linearVelocity);
             p = linearVelocity > 0.0 ? 1.0 : -1.0;
-            vgr = virtualGR*rot;
+            vgr = 0;
             //vgr=0;
                     
             if (!giraffavr.setInt32("mode",0) || !giraffavr.setFloat("a",lin_acceleration) || !giraffavr.setFloat("vgr",vgr) || !giraffavr.setFloat("v",v) || !giraffavr.setInt32("r",r) || !giraffavr.setFloat("p",p))

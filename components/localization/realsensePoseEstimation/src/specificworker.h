@@ -33,7 +33,6 @@
 #include <math.h>
 #include <iostream>
 
-#define PI 3.14159265358979323846
 
 #pragma push_macro("Q_FOREACH")
 #undef Q_FOREACH
@@ -49,7 +48,7 @@ class SpecificWorker : public GenericWorker
 		~SpecificWorker();
 		bool setParams(RoboCompCommonBehavior::ParameterList params);
 		rs2::device get_device(const std::string& serial_number);
-		RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix();/*{return RoboCompFullPoseEstimation::FullPoseMatrix();};*/
+		RoboCompFullPoseEstimation::FullPoseMatrix FullPoseEstimation_getFullPoseMatrix();
 		RoboCompFullPoseEstimation::FullPoseEuler FullPoseEstimation_getFullPoseEuler();
 		void FullPoseEstimation_setInitialPose(float x, float y, float z, float rx, float ry, float rz);
 
@@ -60,25 +59,16 @@ public slots:
 		void initialize(int period);
 
 	private:
-        struct euler_angle{ //cambiar nombre
-            float x;
-            float y;
-            float z;
-        };
 
         struct PARAMS {
-            std::string device_serial;          //0
-            rs2::pipeline pipe;               //2
-            Eigen::Affine3f robot_camera;
-            Eigen::Affine3f origen_camera;   //Matrix de ejes de la camara respecto al origen
-            Eigen::Affine3f origen_world;   //3
-            euler_angle rot_init_angles;
-            euler_angle traslation_init;
+            std::string device_serial;          ///Serial del la camara
+            rs2::pipeline pipe;                 ///Pipe de la camara
+            Eigen::Affine3f robot_camera;       ///Matriz de camara respecto al robort (config)
+            Eigen::Affine3f origen_camera;      ///Matrix de ejes de la camara respecto al origen
             unsigned int mapper_confidence;     //5
             unsigned int tracker_confidence;    //6
             rs2::wheel_odometer* odometer;
             //final pose estimation
-            Eigen::Vector3f angles;
             Eigen::Vector3f translation;
             Eigen::Quaternion<float> quatCam;
         };
@@ -88,11 +78,10 @@ public slots:
         std::map<string, PARAMS> cameras_dict;
         mutable std::mutex bufferMutex;
         Eigen::Affine3f origen_robot;   //Matrix de ejes de la robot respecto al origen
+        Eigen::Vector3f initAngles;
 
-        euler_angle quaternion_to_euler_angle(float w, float x, float y, float z);
-
-        std::ofstream f_debug;
-        bool debug;
+        Eigen::Vector3f quaternion_to_euler_angle(float w, float x, float y, float z);
+        float addAng180(float ang, float angAdd);
 
 		std::shared_ptr < InnerModel > innerModel;
 		bool startup_check_flag;

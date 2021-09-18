@@ -67,7 +67,7 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-    
+
         # get_single_scan(self, start_step=START_STEP, stop_step=STOP_STEP, cluster_count=1):
         scan = self.laser.get_single_scan()
 

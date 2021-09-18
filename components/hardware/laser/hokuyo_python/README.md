@@ -1,6 +1,13 @@
 # hokuyo_python
 Intro to component here
 
+Component that provides access to the Hokuyo family of LIDARs
+
+You need to clone this library:
+
+https://github.com/pasuder/hokuyo-python-lib
+
+Install it with suoo puthon3 setup.py install
 
 ## Configuration parameters
 As any other component, *hokuyo_python* needs a configuration file to start. In

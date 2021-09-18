@@ -36,7 +36,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <cppitertools/sliding_window.hpp>
+#include <cppitertools/range.hpp>
 #include <fps/fps.h>
 
 class SpecificWorker : public GenericWorker
@@ -55,13 +55,21 @@ public slots:
 	void compute();
 	int startup_check();
 	void initialize(int period);
+
 private:
-	std::shared_ptr < InnerModel > innerModel;
-	bool startup_check_flag;
+
+    const int max_dist = 5000; //millimeters
+    const int lado = 500; // window siae in pixels
+    const float scale = (float)lado/max_dist;  // pixels per millimeter
+    const int semilado = lado/2;
+    const float radius = 500; // circle separation
+
+    bool startup_check_flag;
     RoboCompLaser::TLaserData new_laser;
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
     std::mutex my_mutex;
     FPSCounter fps;
+    cv::Mat robot_image;
 };
 
 #endif

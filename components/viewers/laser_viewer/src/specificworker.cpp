@@ -42,21 +42,20 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
+
+    robot_image = cv::imread("giraff.png", -1);
+    cv::resize(robot_image, robot_image, cv::Size(50,50));
+    //cv::flip(robot_image, robot_image, -1);
+
 	this->Period = period;
 	if(this->startup_check_flag)
-	{
 		this->startup_check();
-	}
 	else
-	{
 		timer.start(Period);
-	}
-
 }
 
 void SpecificWorker::compute()
 {
-
     try
     {
         new_laser= laser_proxy->getLaserData();
@@ -75,26 +74,38 @@ void SpecificWorker::compute()
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
     if(ldata.empty()) return;
-
-    const int lado = 800;
+    
     cv::Mat laser_img(cv::Size(lado, lado), CV_8UC3);
-    laser_img = cv::Scalar (255,255,255);
-    float scale = 0.1;
-    float x = ldata.front().dist * sin(ldata.front().angle) * scale + lado/2;
-    float y = lado - ldata.front().dist * cos(ldata.front().angle) * scale;
-    cv::line(laser_img, cv::Point{lado/2,lado}, cv::Point(x,y), cv::Scalar(0,200,0));
-    for(auto &&l : iter::sliding_window(ldata, 2))
+    auto laser_color = cv::Scalar(198, 220, 220);
+    laser_img = cv::Scalar(255, 255, 255);
+    std::vector<cv::Point> fillContSingle;
+    
+    fillContSingle.push_back(cv::Point{semilado,semilado});
+    for(auto &&l : ldata)
     {
-        int x1 = l[0].dist * sin(l[0].angle) * scale + lado/2;
-        int y1 = 500 - l[0].dist * cos(l[0].angle) * scale;
-        int x2 = l[1].dist * sin(l[1].angle) * scale + lado/2;
-        int y2 = 500 - l[1].dist * cos(l[1].angle) * scale;
-        cv::line(laser_img, cv::Point{x1,y1}, cv::Point(x2,y2), cv::Scalar(0,200,0));
+        int x = l.dist * sin(l.angle) * scale + semilado;
+        int y = semilado - l.dist * cos(l.angle) * scale;
+        fillContSingle.push_back(cv::Point(x,y));
     }
-    x = ldata.back().dist * sin(ldata.back().angle) * scale + lado/2;
-    y = lado - ldata.back().dist * cos(ldata.back().angle) * scale;
-    cv::line(laser_img, cv::Point(x,y), cv::Point(lado/2,lado), cv::Scalar(0,200,0));
+    fillContSingle.push_back(cv::Point(semilado,semilado));
+    std::vector<std::vector<cv::Point> > fillContAll;
+    fillContAll.push_back(fillContSingle);
+    cv::fillPoly( laser_img, fillContAll, laser_color);
+    
+    // robot image
+    robot_image.copyTo(laser_img(cv::Rect(semilado - robot_image.cols/2, semilado - robot_image.rows/2, robot_image.cols, robot_image.rows)));
 
+    // circles
+    for(auto &&i : iter::range(10))
+    {
+        cv::circle(laser_img, cv::Point{semilado, semilado}, i*scale*radius, cv::Scalar(10, 200, 10));
+    }
+    // spikes
+    for(auto landa : iter::range(0.0, M_PI*2.0, M_PI*2/8))
+    {
+        auto p = cv::Point(semilado + semilado * cos(landa), semilado + semilado * sin(landa));
+        cv::line(laser_img, cv::Point{semilado, semilado}, p, cv::Scalar(10, 200, 10));
+    }
     cv::imshow("Laser", laser_img);
     cv::waitKey(2);
 }

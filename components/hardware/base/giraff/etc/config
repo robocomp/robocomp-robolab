@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 10000
 # Endpoints for implements interfaces
 BatteryStatus.Endpoints=tcp -p 10050
-DifferentialRobot.Endpoints=tcp -p 10051
+DifferentialRobot.Endpoints=tcp -p 10004
 Giraff.Endpoints=tcp -p 10052
 
 

@@ -13,9 +13,9 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 origen_rx=0,0
 origen_ry=0,0
-origen_rz=-45,0
-origen_tx=8249,0
-origen_ty=-23144,0
+origen_rz=180,0
+origen_tx=1,24
+origen_ty=-18,911
 origen_tz=0,0
 
 num_cameras=2

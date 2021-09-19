@@ -59,21 +59,16 @@ void SpecificWorker::compute()
     try
     {
         new_laser= laser_proxy->getLaserData();
+        draw_laser(new_laser);
     }
-
     catch(const Ice::Exception &e)
-    {
-        std::cout << e.what() << std::endl;
-    }
-
-    draw_laser(new_laser);
-    std::scoped_lock lock(my_mutex);
+    { std::cout << e.what() << std::endl; }
     fps.print("FPS: ");
 }
 
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
-    if(ldata.empty()) return;
+    if(ldata.empty()) { qWarning() << "Laser empty"; return;}
     
     cv::Mat laser_img(cv::Size(lado, lado), CV_8UC3);
     auto laser_color = cv::Scalar(198, 220, 220);

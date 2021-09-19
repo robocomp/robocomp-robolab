@@ -1,0 +1,14 @@
+import "Laser.idsl";
+import "DifferentialRobot.idsl";
+import "CameraRGBDSimple.idsl";
+
+Component giraff_viewer
+{
+    Communications
+    {
+        requires Laser, DifferentialRobot, CameraRGBDSimple;
+    };
+    language Cpp11;
+    gui Qt(QWidget);
+};
+

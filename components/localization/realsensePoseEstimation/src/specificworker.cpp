@@ -150,17 +150,25 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     RoboCompGenericBase::TBaseState Base;
-    this->differentialrobot_proxy->getBaseState(Base);
+    try
+    {
+        this->differentialrobot_proxy->getBaseState(Base);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
+    
     std::string text;
     for (const auto &[key, value] : cameras_dict) {
 
         rs2_vector v;
-        v.z = 0; 
-        //v.z = -Base.advVz/1000;
+        v.z = -Base.advVz;
         v.y = 0;
         v.x = 0;
-        //qInfo () << v.z;
-        //cameras_dict[key].odometer->send_wheel_odometry(0,0,v);
+        qInfo () <<Base.advVx<< Base.advVz;
+        cameras_dict[key].odometer->send_wheel_odometry(0,0,v);
         
         auto frames = value.pipe.wait_for_frames();
         /// Get a frame from the pose stream
@@ -269,6 +277,7 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
         }
     }
 
+    //Eigen::Vector3f ang = quatAcu.matrix().eulerAngles(0,1,2);
     Eigen::Vector3f ang = quaternion_to_euler_angle(quatAcu.w(), quatAcu.x(), quatAcu.y(), quatAcu.z());
     ///Retornos
     ret.x = trasAcu.x();
@@ -347,25 +356,31 @@ Eigen::Vector3f SpecificWorker::quaternion_to_euler_angle(float qw, float qx, fl
     float auxY;
     float auxX;
 
-    auxZ = atan2(2*qy*qw-2*qx*qz, 1- 2*qy*qy - 2*qz*qz);
-    auxY = asin(2*qx*qy + 2*qz*qw);
-    auxX = atan2(2*qx*qw-2*qy*qz , 1 - 2*qx*qx - 2*qz*qz);
+    //auxZ = atan2(2*qy*qw-2*qx*qz, 1- 2*qy*qy - 2*qz*qz);
+    //auxX=0;
+    //auxY=0;
+    auxX = atan2(2*(qw*qx+qy*qz),1-2*(qx*qx+qy*qy));
+    auxY = asin(2*(qw*qy-qz*qx));
+    auxZ = atan2(2*(qw*qz+qx*qy),1-2*(qy*qy + qz*qz));
+    
+    //auxY = asin(2*qx*qy + 2*qz*qw);
+    //auxX = atan2(2*qx*qw-2*qy*qz , 1 - 2*qx*qx - 2*qz*qz);
 
 
-    float equal = qx*qy + qz*qw;
-    if (equal < 0.5+pow(10,-5) and equal > 0.5-pow(10,-5)) {
-        auxZ = 2.0 * atan2(qx, qw);
-        auxX = 0.0;
-    }
-    if (equal < -0.5+pow(10,-5) and equal > -0.5-pow(10,-5)) {
-        auxZ = -2.0 * atan2(qx, qw);
-        auxX = 0.0;
-    }
+    //float equal = qx*qy + qz*qw;
+    //if (equal < 0.5+pow(10,-5) and equal > 0.5-pow(10,-5)) {
+    //    auxZ = 2.0 * atan2(qx, qw);
+    //    auxX = 0.0;
+    //}
+    //if (equal < -0.5+pow(10,-5) and equal > -0.5-pow(10,-5)) {
+    //    auxZ = -2.0 * atan2(qx, qw);
+    //    auxX = 0.0;
+    //}
 
     Eigen::Vector3f ret;
     ret.x() = auxX;
-    ret.y() = auxZ;
-    ret.z() = auxY;
+    ret.y() = auxY;
+    ret.z() = auxZ;
     return ret;
 }
 float SpecificWorker::addAng180(float ang, float angAdd){

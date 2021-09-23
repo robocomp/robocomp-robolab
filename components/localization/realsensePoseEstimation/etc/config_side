@@ -18,29 +18,30 @@ origen_tx=3,88#4,75#1,24
 origen_ty=-22,387#-17,2#-18,911
 origen_tz=0,0
 
-num_cameras=2
+num_cameras=1
 
 #serial number is a string, but in config file should appear without quotes
 
-#Camara con etiqueta verde ID=92122110585
 
+#device_serial_0=925122110807
 device_serial_0=121222110830
 name_0=camera_side
 rx_0=0,0
 ry_0=0,0
-rz_0=180,0
+rz_0=-90,0
 tx_0=0,3
 ty_0=0,0
 tz_0=0,1
 
-device_serial_1=925122110585
-name_1=camera_front
-rx_1=0,0
-ry_1=0,0
-rz_1=0,0
-tx_1=0,0
-ty_1=0,3
-tz_1=0,075
+#device_serial_1=121222110343
+#device_serial_1=925122110585
+#name_1=camera_front
+#rx_1=0,0
+#ry_1=0,0
+#rz_1=0,0
+#tx_1=0,0
+#ty_1=0,3
+#tz_1=0,075
 
 print=true
 

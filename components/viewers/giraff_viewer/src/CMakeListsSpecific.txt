@@ -3,6 +3,7 @@ SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
   abstract_graphic_viewer.h
+  /home/robocomp/robocomp/classes/grid2d/grid.cpp
 )
 
 # Headers set
@@ -14,6 +15,6 @@ SET ( HEADERS
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
 
 
-SET (LIBS ${LIBS}  )
+SET (LIBS ${LIBS} tbb )
 
 

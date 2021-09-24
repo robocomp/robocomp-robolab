@@ -25,12 +25,12 @@ class AbstractGraphicViewer : public QGraphicsView
         QGraphicsPolygonItem *robot_polygon;
 
     public:
-        AbstractGraphicViewer(QWidget *parent, float hmin = -5000, float vmin = -2500, float width = 10000, float height = 5000)
+        AbstractGraphicViewer(QWidget *parent, QRectF dim_)
         {
             QVBoxLayout *vlayout = new QVBoxLayout(parent);
             vlayout->addWidget(this);
-            scene.setItemIndexMethod(QGraphicsScene::NoIndex); // default
-            scene.setSceneRect(hmin, vmin, width, height);
+            scene.setItemIndexMethod(QGraphicsScene::NoIndex);
+            scene.setSceneRect(dim_);
             this->setScene(&scene);
             this->setCacheMode(QGraphicsView::CacheBackground);
             this->setViewport(new QGLWidget(QGLFormat(QGL::SampleBuffers)));
@@ -38,13 +38,16 @@ class AbstractGraphicViewer : public QGraphicsView
             this->setRenderHint(QPainter::Antialiasing);
             this->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
             this->setMinimumSize(200, 200);
-            this->scale(-1, 1);
+            this->scale(1, -1);
             this->adjustSize();
             this->setMouseTracking(true);
             this->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
             this->viewport()->setMouseTracking(true);
-            scene.addRect(sceneRect(), QPen(QColor("Black"), 100));
             auto r = sceneRect();
+            // bounding box
+            auto sr = scene.addRect(r, QPen(QColor("Gray"), 100));
+            sr->setZValue(15);
+            // axis
             QLineF x_axis(r.center(), r.center()+QPointF(300,0));
             QLineF y_axis(r.center(), r.center()+QPointF(0,300));
             scene.addLine(x_axis, QPen(QColor("Red"), 30));

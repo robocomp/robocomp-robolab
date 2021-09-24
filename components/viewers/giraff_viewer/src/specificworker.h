@@ -32,6 +32,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include "/home/robocomp/robocomp/classes/grid2d/grid.h"
 
 class SpecificWorker : public GenericWorker
 {
@@ -47,6 +48,7 @@ public slots:
 	void initialize(int period);
     void new_target_slot(QPointF);
     void new_tilt_value_slot(int);
+    void sweep_button_slot(bool);
 
 private:
 	bool startup_check_flag;
@@ -56,6 +58,9 @@ private:
     const int ROBOT_LENGTH = 400;
     QGraphicsPolygonItem *robot_polygon;
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
+
+    // grid
+    Grid grid;
 };
 
 #endif

@@ -43,10 +43,14 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-    viewer = new AbstractGraphicViewer(this->beta_frame, -5000, -2500, 10000, 5000);
+    viewer = new AbstractGraphicViewer(this->beta_frame, QRectF(-5000, 2500, 10000, -5000));
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
-    connect(tiltSlider, &QSlider::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
+    connect(tilt_scrollbar, &QScrollBar::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
+    connect(sweep_button, &QPushButton::clicked, this, &SpecificWorker::sweep_button_slot);
+
+    // grid
+    grid.initialize(QRectF(-5000, 2500, 10000, -5000), 200, &viewer->scene, false);
 
     this->Period = period;
 	if(this->startup_check_flag)
@@ -69,6 +73,12 @@ void SpecificWorker::compute()
         differentialrobot_proxy->getBaseState(bState);
         robot_polygon->setRotation(bState.alpha*180/M_PI);
         robot_polygon->setPos(bState.x, bState.z);
+        if(sweep_button->isChecked())
+        {
+            grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+            // qInfo() << 100.0 * grid.count_total_visited() / grid.count_total() << " %";
+            sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
+        }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
     try
@@ -97,12 +107,10 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot
     laser_polygon = viewer->scene.addPolygon(robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30), QBrush(color));
     laser_polygon->setZValue(3);
 }
-
 void SpecificWorker::new_target_slot(QPointF target)
 {
     qInfo() << __FUNCTION__ << " Received new target at " << target;
 }
-
 void SpecificWorker::new_tilt_value_slot(int value)
 {
     qInfo() << value;
@@ -113,7 +121,11 @@ void SpecificWorker::new_tilt_value_slot(int value)
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 }
-
+void SpecificWorker::sweep_button_slot(bool checked)
+{
+    if(not checked)
+        grid.set_all_to_not_visited();
+}
 ////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
@@ -121,7 +133,6 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
-
 
 /**************************************/
 // From the RoboCompCameraSimple you can call this methods:

@@ -1,13 +1,11 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 10220
 
 # Proxies for required interfaces
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10096
 DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
 LaserProxy = laser:tcp -h localhost -p 10003
+JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 10086
 
-
-
-InnerModelPath = innermodel.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

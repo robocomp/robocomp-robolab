@@ -46,6 +46,7 @@ public slots:
 	int startup_check();
 	void initialize(int period);
     void new_target_slot(QPointF);
+    void new_tilt_value_slot(int);
 
 private:
 	bool startup_check_flag;

@@ -46,8 +46,9 @@ void SpecificWorker::initialize(int period)
     viewer = new AbstractGraphicViewer(this->beta_frame, -5000, -2500, 10000, 5000);
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
+    connect(tiltSlider, &QSlider::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
 
-	this->Period = period;
+    this->Period = period;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
@@ -68,6 +69,14 @@ void SpecificWorker::compute()
         differentialrobot_proxy->getBaseState(bState);
         robot_polygon->setRotation(bState.alpha*180/M_PI);
         robot_polygon->setPos(bState.x, bState.z);
+    }
+    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+    try
+    {
+        auto top_img = camerargbdsimple_proxy->getImage("camera_tablet");
+        auto top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+        auto pix = QPixmap::fromImage(top_qimg);
+        top_camera_label->setPixmap(pix);
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 }
@@ -94,6 +103,17 @@ void SpecificWorker::new_target_slot(QPointF target)
     qInfo() << __FUNCTION__ << " Received new target at " << target;
 }
 
+void SpecificWorker::new_tilt_value_slot(int value)
+{
+    qInfo() << value;
+    try
+    {
+        float r_value = value * M_PI / 180;
+        jointmotorsimple_proxy->setPosition( "tablet_joint", RoboCompJointMotorSimple::MotorGoalPosition{r_value, 1 });
+    }
+    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+}
+
 ////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
@@ -101,6 +121,7 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
+
 
 /**************************************/
 // From the RoboCompCameraSimple you can call this methods:

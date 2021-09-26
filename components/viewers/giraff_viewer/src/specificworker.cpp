@@ -50,15 +50,17 @@ void SpecificWorker::initialize(int period)
 	std::cout << "Initialize worker" << std::endl;
 
     viewer = new AbstractGraphicViewer(this->beta_frame, this->dimensions);
+    this->resize(900,450);
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
-    laser_in_robot_polygon->setPos(0, 170);
+    laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
+
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
     connect(tilt_scrollbar, &QScrollBar::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
     connect(sweep_button, &QPushButton::clicked, this, &SpecificWorker::sweep_button_slot);
 
     // grid
-    grid.initialize(this->dimensions, 200, &viewer->scene, false);
+    grid.initialize(this->dimensions, 100, &viewer->scene, false);
 
     this->Period = period;
 	if(this->startup_check_flag)
@@ -88,6 +90,7 @@ void SpecificWorker::compute()
         {
             grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
             sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
+            qInfo() << "seep " << 100.0 * grid.count_total_visited() / grid.count_total();
         }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
@@ -111,6 +114,7 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot
         viewer->scene.removeItem(laser_polygon);
 
     QPolygonF poly;
+    poly << QPointF(0,0);
     for(auto &&l : ldata)
         poly << QPointF(l.dist*sin(l.angle), l.dist*cos(l.angle));
 

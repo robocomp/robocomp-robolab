@@ -36,21 +36,29 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	return true;
+    auto left_x = std::stod(params.at("left_x").value);
+    auto top_y = std::stod(params.at("top_y").value);
+    auto width = std::stod(params.at("width").value);
+    auto height = std::stod(params.at("height").value);
+    qInfo() << __FUNCTION__ << " Read parameters: " << left_x << top_y << width << height;
+    this->dimensions = QRectF(left_x, top_y, width, height);
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-    viewer = new AbstractGraphicViewer(this->beta_frame, QRectF(-5000, 2500, 10000, -5000));
+    viewer = new AbstractGraphicViewer(this->beta_frame, this->dimensions);
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
+    laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
+    laser_in_robot_polygon->setPos(0, 170);
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
     connect(tilt_scrollbar, &QScrollBar::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
     connect(sweep_button, &QPushButton::clicked, this, &SpecificWorker::sweep_button_slot);
 
     // grid
-    grid.initialize(QRectF(-5000, 2500, 10000, -5000), 200, &viewer->scene, false);
+    grid.initialize(this->dimensions, 200, &viewer->scene, false);
 
     this->Period = period;
 	if(this->startup_check_flag)
@@ -61,12 +69,15 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+    //laser
     try
     {
         auto ldata = laser_proxy->getLaserData();
         draw_laser( ldata );
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+
+    //robot
     try
     {
         RoboCompGenericBase::TBaseState bState;
@@ -76,11 +87,12 @@ void SpecificWorker::compute()
         if(sweep_button->isChecked())
         {
             grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
-            // qInfo() << 100.0 * grid.count_total_visited() / grid.count_total() << " %";
             sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
         }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+
+    // camera-tablet
     try
     {
         auto top_img = camerargbdsimple_proxy->getImage("camera_tablet");
@@ -104,7 +116,7 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot
 
     QColor color("LightGreen");
     color.setAlpha(40);
-    laser_polygon = viewer->scene.addPolygon(robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30), QBrush(color));
+    laser_polygon = viewer->scene.addPolygon(laser_in_robot_polygon->mapToScene(poly), QPen(QColor("DarkGreen"), 30), QBrush(color));
     laser_polygon->setZValue(3);
 }
 void SpecificWorker::new_target_slot(QPointF target)
@@ -113,7 +125,6 @@ void SpecificWorker::new_target_slot(QPointF target)
 }
 void SpecificWorker::new_tilt_value_slot(int value)
 {
-    qInfo() << value;
     try
     {
         float r_value = value * M_PI / 180;

@@ -2,6 +2,8 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implements interfaces
 Laser.Endpoints=tcp -p 10003
+JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 10086
+
 
 serial_center = 049522250171
 serial_left = 105322252279

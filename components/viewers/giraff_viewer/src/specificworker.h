@@ -27,7 +27,7 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include "abstract_graphic_viewer.h"
+#include "/home/robocomp/robocomp/classes/abstract_graphic_viewer/abstract_graphic_viewer.h"
 #include <QGraphicsPolygonItem>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -57,9 +57,11 @@ private:
     //robot
     const int ROBOT_LENGTH = 400;
     QGraphicsPolygonItem *robot_polygon;
+    QGraphicsRectItem *laser_in_robot_polygon;
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
 
     // grid
+    QRectF dimensions;
     Grid grid;
 };
 

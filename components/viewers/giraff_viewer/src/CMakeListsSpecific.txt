@@ -2,8 +2,8 @@
 SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
-  abstract_graphic_viewer.h
-  /home/robocomp/robocomp/classes/grid2d/grid.cpp
+  $ENV{ROBOCOMP}/classes/grid2d/grid.cpp
+  $ENV{ROBOCOMP}/classes/abstract_graphic_viewer/abstract_graphic_viewer.h
 )
 
 # Headers set

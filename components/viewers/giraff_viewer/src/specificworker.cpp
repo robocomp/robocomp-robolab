@@ -40,8 +40,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     auto top_y = std::stod(params.at("top_y").value);
     auto width = std::stod(params.at("width").value);
     auto height = std::stod(params.at("height").value);
-    qInfo() << __FUNCTION__ << " Read parameters: " << left_x << top_y << width << height;
+    auto tile = std::stod(params.at("tile").value);
+    qInfo() << __FUNCTION__ << " Read parameters: " << left_x << top_y << width << height << tile;
     this->dimensions = QRectF(left_x, top_y, width, height);
+    TILE_SIZE = tile;
     return true;
 }
 
@@ -54,13 +56,21 @@ void SpecificWorker::initialize(int period)
     robot_polygon = viewer->add_robot(ROBOT_LENGTH);
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
     laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
+    try
+    {
+        RoboCompGenericBase::TBaseState bState;
+        differentialrobot_proxy->getBaseState(bState);
+        last_point = QPointF(bState.x, bState.z);
+    }
+    catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
 
     connect(viewer, &AbstractGraphicViewer::new_mouse_coordinates, this, &SpecificWorker::new_target_slot);
     connect(tilt_scrollbar, &QScrollBar::valueChanged, this, &SpecificWorker::new_tilt_value_slot);
     connect(sweep_button, &QPushButton::clicked, this, &SpecificWorker::sweep_button_slot);
+    connect(trace_button, &QPushButton::clicked, this, &SpecificWorker::sweep_button_slot);
 
     // grid
-    grid.initialize(this->dimensions, 100, &viewer->scene, false);
+    grid.initialize(dimensions, TILE_SIZE, &viewer->scene, false);
 
     this->Period = period;
 	if(this->startup_check_flag)
@@ -88,9 +98,14 @@ void SpecificWorker::compute()
         robot_polygon->setPos(bState.x, bState.z);
         if(sweep_button->isChecked())
         {
-            grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+;           grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
             sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
-            qInfo() << "seep " << 100.0 * grid.count_total_visited() / grid.count_total();
+        }
+        if(trace_button->isChecked())
+        {
+            QLineF line(last_point.x(), last_point.y(), bState.x, bState.z);
+            lines.push_back(viewer->scene.addLine(line, QPen(QColor("Blue"),40)));
+            last_point = QPointF(bState.x, bState.z);
         }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
@@ -117,6 +132,7 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata) // robot
     poly << QPointF(0,0);
     for(auto &&l : ldata)
         poly << QPointF(l.dist*sin(l.angle), l.dist*cos(l.angle));
+    poly.pop_back();
 
     QColor color("LightGreen");
     color.setAlpha(40);
@@ -139,7 +155,28 @@ void SpecificWorker::new_tilt_value_slot(int value)
 void SpecificWorker::sweep_button_slot(bool checked)
 {
     if(not checked)
+    {
         grid.set_all_to_not_visited();
+    }
+}
+void SpecificWorker::trace_button_slot(bool checked)
+{
+    if(not checked)
+    {
+        for(auto &l : lines)
+            viewer->scene.removeItem(l);
+        lines.clear();
+    }
+    else
+    {
+        try
+        {
+            RoboCompGenericBase::TBaseState bState;
+            differentialrobot_proxy->getBaseState(bState);
+            last_point = QPointF(bState.x, bState.z);
+        }
+        catch(const Ice::Exception &e) { std::cout << e.what() << std::endl;}
+    }
 }
 ////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()

@@ -49,6 +49,7 @@ public slots:
     void new_target_slot(QPointF);
     void new_tilt_value_slot(int);
     void sweep_button_slot(bool);
+    void trace_button_slot(bool);
 
 private:
 	bool startup_check_flag;
@@ -58,9 +59,12 @@ private:
     const int ROBOT_LENGTH = 400;
     QGraphicsPolygonItem *robot_polygon;
     QGraphicsRectItem *laser_in_robot_polygon;
+    QPointF last_point;
+    std::vector<QGraphicsLineItem *> lines;
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
 
     // grid
+    int TILE_SIZE = 100;
     QRectF dimensions;
     Grid grid;
 };

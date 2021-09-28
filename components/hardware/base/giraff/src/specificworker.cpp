@@ -113,20 +113,20 @@ void SpecificWorker::compute()
 	//Actualización velocidad
 
 	mutex->lock();
-		if(Estado.v!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
-		{
+		//if(Estado.v!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
+		//{
 			SetSpeedBase(Estado.v, Estado.vg);
 			std::cout << "velocidad: " << Estado.v <<std::endl;
 			std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
 			
 			EstadoActualizado = Estado;		
-		}
-		if(Estado.tilt!=EstadoActualizado.tilt)
-		{
+		//}
+		//if(Estado.tilt!=EstadoActualizado.tilt)
+		//{
 			EstadoActualizado.tilt=Estado.tilt;
-			setTilt(EstadoActualizado.tilt);
+			setTilt(0.6);
 			EstadoActualizado = Estado;	
-		}
+		//}
 		
 	mutex->unlock();
 	getGiraffOdometria(DatosOdometria);
@@ -193,12 +193,16 @@ void SpecificWorker::DifferentialRobot_getBaseState(RoboCompGenericBase::TBaseSt
 	state.x=DatosOdometria.x;
 	state.z=DatosOdometria.z;
 	state.alpha=DatosOdometria.alpha;
-	state.advVz=0;
 	state.rotV=DatosOdometria.vg;
-	if (EstadoActualizado.v<0)
-		state.advVx=-DatosOdometria.v;
-	else
-		state.advVx=DatosOdometria.v;
+	if (EstadoActualizado.v<0){
+		state.advVx=-DatosOdometria.v*1000;
+		state.advVz=-DatosOdometria.v*1000;
+	}
+	else{
+		state.advVz=DatosOdometria.v*1000;
+		state.advVx=DatosOdometria.v*1000;
+		
+	}
 }
 
 void SpecificWorker::DifferentialRobot_resetOdometer()
@@ -235,13 +239,6 @@ void SpecificWorker::DifferentialRobot_stopBase()
 	Estado.vg=0;
 }
 
-
-float SpecificWorker::Giraff_decTilt()
-{
-	QMutexLocker locker(mutex);
-	Estado.tilt=EstadoActualizado.tilt-0.1;
-}
-
 RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
 {
 	RoboCompGiraff::Botones Botones;
@@ -262,6 +259,12 @@ float SpecificWorker::Giraff_incTilt()
 {
 	QMutexLocker locker(mutex);
 	Estado.tilt=EstadoActualizado.tilt+0.1;
+}
+
+float SpecificWorker::Giraff_decTilt()
+{
+	QMutexLocker locker(mutex);
+	Estado.tilt=EstadoActualizado.tilt-0.1;
 }
 
 void SpecificWorker::Giraff_setTilt(float tilt)

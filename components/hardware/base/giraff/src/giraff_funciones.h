@@ -233,10 +233,10 @@ void SetSpeedBase(float adv, float rot)
     float lin_acceleration = 0.3;
     float ang_acceleration = 0.3;
     float r = 50;
-    float linearVelocity = adv*0.9;
+    float linearVelocity = adv*0.7;
     float angularVelocity = -rot;
     float v,vg,p,vgr,cdp;
-    float maxLinearVelocity = 0.8;
+    float maxLinearVelocity = 0.7;
     float maxAngularVelocity = 0.7;
     float virtualGR = 20;
     float cdp_cte = 1.05;

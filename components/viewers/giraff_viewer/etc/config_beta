@@ -13,7 +13,8 @@ Ice.MessageSizeMax=20004800
 
 #################################################
 
-left_x = -1900
-top_y = -250
-width = 3800
-height = 3400
+left_x = -5000
+top_y = -2500
+width = 10000
+height = 5000
+tile = 200

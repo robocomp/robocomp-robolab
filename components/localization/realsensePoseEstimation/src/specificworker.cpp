@@ -32,9 +32,12 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check): GenericWorker
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+
 	for (const auto &[key, value] : cameras_dict) {
 	    delete(cameras_dict[key].odometer);
+        cameras_dict[key].pipe.stop();
 	}
+
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -62,14 +65,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         name = params["name_"+std::to_string(i)].value;
         std::cout<<"Cargando: "<<name<<std::endl;
         param_camera.device_serial = params["device_serial_"+std::to_string(i)].value;
-        rx = (M_PI * (std::stof(params["rx_"+ std::to_string(i)].value))) / 180;
-        ry = (M_PI * (std::stof(params["ry_"+std::to_string(i)].value))) / 180;
-        rz = (M_PI * (std::stof(params["rz_"+std::to_string(i)].value))) / 180;
-        tx = std::stof (params["tx_"+std::to_string(i)].value);
+        rx = std::stof(params["rx_"+std::to_string(i)].value);
+        ry = std::stof(params["ry_"+std::to_string(i)].value);
+        rz = std::stof(params["rz_"+std::to_string(i)].value);
+        tx = std::stof(params["tx_"+std::to_string(i)].value);
         ty = std::stof(params["ty_"+std::to_string(i)].value);
         tz = std::stof(params["tz_"+std::to_string(i)].value);
+        has_odometry =  params.at("odometry").value == "true" or (params.at("odometry").value == "True");;
         ///Ejes de de camara respecto a robot
-        param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
+        param_camera.robot_camera = Eigen::Translation3f(Eigen::Vector3f(tx/1000,ty/1000,tz/1000));
         param_camera.robot_camera.rotate(Eigen::AngleAxisf (rx,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
         ///Ejes de la camara respecto a origen
         param_camera.origen_camera.matrix() = param_camera.robot_camera.matrix() * this->origen_robot.matrix();
@@ -150,25 +154,33 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     RoboCompGenericBase::TBaseState Base;
-    try
-    {
-        this->differentialrobot_proxy->getBaseState(Base);
+    bool odometry_flag = false;
+    if (has_odometry){
+        try
+        {
+            this->differentialrobot_proxy->getBaseState(Base);
+            odometry_flag = true;
+        }
+        catch(const std::exception& e)
+        {
+            //std::cerr << e.what() << '\n';
+            qInfo() << "¡¡¡¡I dont have odometry!!!!";
+        }
     }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+    
     
     
     std::string text;
     for (const auto &[key, value] : cameras_dict) {
-
+        if (odometry_flag){
         rs2_vector v;
-        v.z = -Base.advVz;
+        v.z = -Base.advVz/1000;
         v.y = 0;
         v.x = 0;
         qInfo () <<Base.advVx<< Base.advVz;
         cameras_dict[key].odometer->send_wheel_odometry(0,0,v);
+        }
+        
         
         auto frames = value.pipe.wait_for_frames();
         /// Get a frame from the pose stream
@@ -176,7 +188,7 @@ void SpecificWorker::compute()
         /// Cast the frame to pose_frame and get its data, params->(https://dev.intelrealsense.com/docs/rs-pose)
         auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
         
-        Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);        
+            Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);        
         Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
         
         ///Realizamos trasformación
@@ -200,14 +212,12 @@ void SpecificWorker::compute()
         cameras_dict[key].tracker_confidence = pose_data.tracker_confidence;
 
         bufferMutex.unlock();
-
-        ///Muestra por consola si se ha solicitado en el config
+    }
+     ///Muestra por consola si se ha solicitado en el config
         if(print_output)
         {
             FullPoseEstimation_getFullPoseEuler();
         }
-    }
-    
 }
 
 int SpecificWorker::startup_check()
@@ -263,7 +273,7 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
 
             ///Traslación
             Eigen::Vector3f trasCam = it->second.translation;
-            std::cout << trasAcu << std::endl << trasCam << std::endl;
+            std::cout << "Cam_acu" << std::endl << trasAcu << std::endl << it->first << std::endl << trasCam << std::endl;
             ///Media de traslaciones respecto a sigma
             trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
 
@@ -280,9 +290,9 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
     //Eigen::Vector3f ang = quatAcu.matrix().eulerAngles(0,1,2);
     Eigen::Vector3f ang = quaternion_to_euler_angle(quatAcu.w(), quatAcu.x(), quatAcu.y(), quatAcu.z());
     ///Retornos
-    ret.x = trasAcu.x();
-    ret.y = trasAcu.y();
-    ret.z = trasAcu.z();
+    ret.x = trasAcu.x()*1000;
+    ret.y = trasAcu.y()*1000;
+    ret.z = trasAcu.z()*1000;
     ret.rx = addAng180(ang.x(),initAngles.x());
     ret.ry = addAng180(ang.y(),initAngles.y());
     ret.rz = addAng180(ang.z(),initAngles.z());
@@ -337,12 +347,12 @@ void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z
 {
     std::lock_guard<std::mutex> lock(bufferMutex);
     ///Ejes del robot despecto al origen-mapa
-    initAngles.x() = (M_PI * rx) / 180;
-	initAngles.y() = (M_PI * ry) / 180;
-	initAngles.z() = (M_PI * rz) / 180;
+    initAngles.x() = rx;
+	initAngles.y() = ry;
+	initAngles.z() = rz;
 
     ///Matriz de origen
-    this->origen_robot=Eigen::Translation3f(Eigen::Vector3f(x,y,z));
+    this->origen_robot=Eigen::Translation3f(Eigen::Vector3f(x/1000,y/1000,z/1000));
     this->origen_robot.rotate(Eigen::AngleAxisf (initAngles.x(), Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (initAngles.y(), Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(initAngles.z(), Eigen::Vector3f::UnitZ()));
     std::cout<<"New origen:"<<std::endl<<this->origen_robot.matrix()<<endl;
     for (const auto &[key, value] : cameras_dict) {

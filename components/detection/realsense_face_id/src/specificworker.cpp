@@ -53,7 +53,8 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
-    RealSenseFaceID_stopPreview();
+    if (camera_open)
+        RealSenseFaceID_stopPreview();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -74,13 +75,15 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+    qInfo() << "Starting Camera";
     RealSenseID::PreviewConfig config;
     this->preview = std::make_unique<RealSenseID::Preview>(config);
     this->preview_callback = std::make_unique<PreviewRender>(&my_mutex); 
-
+    RealSenseFaceID_startPreview();
+    qInfo() <<  "Load compresion";
     compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION); 
     compression_params.push_back(3); 
-    RealSenseFaceID_startPreview(); 
+    
 
     this->Period = 1000; 
 	if(this->startup_check_flag)
@@ -134,40 +137,51 @@ int SpecificWorker::startup_check()
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
     RoboCompCameraSimple::TImage frame;
-
-    if(preview_callback->frame.buffer != NULL) 
-        {
-        cv::Mat matResize;
-        frame.depth=3; 
-        frame.compressed=pars.compressed;
-        my_mutex.lock();
-            cv::Mat auxMat(preview_callback->frame.height, preview_callback->frame.width, CV_8UC3, preview_callback->frame.buffer);
-            cv::resize(auxMat,matResize,cv::Size(352,640));
-            if(pars.display){   
-                cv::imshow("F455", matResize);
-                //cv::waitKey(1);
+    if(this->camera_open){
+        if(preview_callback->frame.buffer != NULL ) 
+            {
+            cv::Mat matResize;
+            frame.depth=3; 
+            frame.compressed=pars.compressed;
+            my_mutex.lock();
+                cv::Mat auxMat(preview_callback->frame.height, preview_callback->frame.width, CV_8UC3, preview_callback->frame.buffer);
+                cv::resize(auxMat,matResize,cv::Size(352,640));
+                if(pars.display){   
+                    cv::imshow("F455", matResize);
+                    //cv::waitKey(1);
+                }
+                
+                frame.height = matResize.rows;
+                frame.width = matResize.cols;
+            my_mutex.unlock();
+            if (frame.compressed){  
+                cv::imencode(".png",matResize , buffer, compression_params);
+                qInfo() << "raw: " << auxMat.total() * auxMat.elemSize() << "compressed: " << buffer.size() << " Ratio:" << auxMat.total() * auxMat.elemSize()/buffer.size(); 
+                frame.image.assign(buffer.begin(), buffer.end());   
             }
+            else {
+                frame.image.assign(matResize.data, matResize.data + (matResize.total() * matResize.elemSize()));
+            } 
             
-            frame.height = matResize.rows;
-            frame.width = matResize.cols;
-        my_mutex.unlock();
-        if (frame.compressed){  
-            cv::imencode(".png",matResize , buffer, compression_params);
-            qInfo() << "raw: " << auxMat.total() * auxMat.elemSize() << "compressed: " << buffer.size() << " Ratio:" << auxMat.total() * auxMat.elemSize()/buffer.size(); 
-            frame.image.assign(buffer.begin(), buffer.end());   
-        }
-        else {
-            frame.image.assign(matResize.data, matResize.data + (matResize.total() * matResize.elemSize()));
         } 
-        
-    } 
-    else{ 
+        else{ 
+            frame.width =0; 
+            frame.height =0; 
+            frame.depth=0; 
+            frame.compressed=false; 
+            qInfo()<<"Sin imagen";
+        } 
+    }
+    else{
         frame.width =0; 
         frame.height =0; 
         frame.depth=0; 
         frame.compressed=false; 
-        qInfo()<<"Sin imagen";
-    } 
+        qInfo()<<"The camera doesnt starting";
+
+
+    }
+
     return frame;
 } 
 
@@ -300,7 +314,10 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_getQueryUs
 
 bool SpecificWorker::RealSenseFaceID_startPreview()
 {
-    return this->preview->StartPreview(*preview_callback);
+    camera_open = this->preview->StartPreview(*preview_callback);
+    qInfo() << "Camera Opened";
+    return camera_open;
+    
 }
 
 
@@ -308,7 +325,16 @@ bool SpecificWorker::RealSenseFaceID_startPreview()
 
 bool SpecificWorker::RealSenseFaceID_stopPreview()
 {
-    return this->preview->StopPreview();
+    bool ret =false;
+    if (camera_open){
+        camera_open = !this->preview->StopPreview();
+        if (!camera_open){
+            ret=true;
+            qInfo() << "Camera Closed";
+    }
+    }
+    return ret;
+
 }
 
 /**************************************/

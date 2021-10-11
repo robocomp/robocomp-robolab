@@ -46,9 +46,13 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	RoboCompCameraRGBDSimple::TRGBD CameraRGBDSimple_getAll(std::string camera);
+	RoboCompCameraRGBDSimple::TDepth CameraRGBDSimple_getDepth(std::string camera);
+	RoboCompCameraRGBDSimple::TImage CameraRGBDSimple_getImage(std::string camera);
 	RoboCompLaser::TLaserData Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState);
 	RoboCompLaser::LaserConfData Laser_getLaserConfData();
 	RoboCompLaser::TLaserData Laser_getLaserData();
+
 
 public slots:
 	void compute();
@@ -57,16 +61,25 @@ public slots:
 
 private:
 
-    // consts
-    const float RIG_ELEVATION_FROM_FLOOR = 1.0; // m
+    struct CONSTANTS
+    {
+        float RIG_ELEVATION_FROM_FLOOR = 1.0; // m
+        int MAX_LASER_BINS = 180;  // 2 for each degrees
+        float TOTAL_HOR_ANGLE = M_PI;  // D455 opens 87 x 58 degrees
+        float max_up_height = 1;
+        float max_down_height = 1;
+        int width = 848;
+        int height = 480;
+    };
+    CONSTANTS consts;
 
-    using Camera_Map = std::map<std::string,
-                                std::tuple<rs2::pipeline,
-                                rs2_intrinsics,
-                                Eigen::Transform<float, 3, Eigen::Affine>,
-                                rs2::frame,
-                                rs2::points,
-                                rs2::frame>>;
+    using Camera_Map =  std::map<std::string,
+                        std::tuple<rs2::pipeline,
+                        rs2_intrinsics,
+                        Eigen::Transform<float, 3, Eigen::Affine>,
+                        rs2::frame,
+                        rs2::points,
+                        rs2::frame>>;
 	bool startup_check_flag;
 
     // camera
@@ -86,29 +99,29 @@ private:
 
     // filters
     struct filter_options
-            {
-                public:
-                    std::string filter_name;                                   //Friendly name of the filter
-                    rs2::filter &filter;                                       //The filter in use
-                    std::atomic_bool is_enabled;                               //A boolean controlled by the user that determines whether to apply the filter or not
+    {
+    public:
+        std::string filter_name;                                   //Friendly name of the filter
+        rs2::filter &filter;                                       //The filter in use
+        std::atomic_bool is_enabled;                               //A boolean controlled by the user that determines whether to apply the filter or not
 
-                    filter_options( const std::string name, rs2::filter &flt) : filter_name(name),
-                                                                                filter(flt),
-                                                                                is_enabled(true)
-                    {};
-                    filter_options(filter_options&& other) : filter_name(std::move(other.filter_name)),
-                                                             filter(other.filter),
-                                                             is_enabled(other.is_enabled.load())
-                    {};
-                    const std::array<rs2_option, 5> possible_filter_options =
-                            {
-                            RS2_OPTION_FILTER_MAGNITUDE,
-                            RS2_OPTION_FILTER_SMOOTH_ALPHA,
-                            RS2_OPTION_MIN_DISTANCE,
-                            RS2_OPTION_MAX_DISTANCE,
-                            RS2_OPTION_FILTER_SMOOTH_DELTA
-                            };
-            };
+        filter_options( const std::string name, rs2::filter &flt) : filter_name(name),
+                                                                    filter(flt),
+                                                                    is_enabled(true)
+        {};
+        filter_options(filter_options&& other) : filter_name(std::move(other.filter_name)),
+                                                 filter(other.filter),
+                                                 is_enabled(other.is_enabled.load())
+        {};
+        const std::array<rs2_option, 5> possible_filter_options =
+                {
+                        RS2_OPTION_FILTER_MAGNITUDE,
+                        RS2_OPTION_FILTER_SMOOTH_ALPHA,
+                        RS2_OPTION_MIN_DISTANCE,
+                        RS2_OPTION_MAX_DISTANCE,
+                        RS2_OPTION_FILTER_SMOOTH_DELTA
+                };
+    };
     std::vector<filter_options> filters;
     rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
     rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing
@@ -120,18 +133,14 @@ private:
 
     // laser
     RoboCompLaser::TLaserData ldata;
-
     RoboCompLaser::TLaserData compute_laser(const Camera_Map &cam_map_extended);
     void draw_laser(const RoboCompLaser::TLaserData &ldata);
 
+    // images
+    std::tuple<cv::Mat> mosaic(const Camera_Map &cam_map);
     Camera_Map& read_and_filter(Camera_Map &cam_map);
     void print_camera_params(const std::string &serial, const rs2::pipeline_profile &profile);
-    std::tuple<cv::Mat> mosaic(const Camera_Map &cam_map);
-    void color(rs2::video_frame image, cv::Mat frame_v, float row_v, float col_v, int k, int l);
     void show_depth_images(Camera_Map &cam_map);
-    void addImageToFrame(rs2::points points, Eigen::Transform<float, 3, Eigen::Affine> extr, uint iniColumn, int columnShift, cv::Mat image, cv::Mat & frameWin);
-    bool computeAffine(const std::vector<cv::Point2d> &srcPoints, const std::vector<cv::Point2d> &dstPoints, cv::Mat &transf);
-
     std::mutex my_mutex;
     FPSCounter fps;
 };

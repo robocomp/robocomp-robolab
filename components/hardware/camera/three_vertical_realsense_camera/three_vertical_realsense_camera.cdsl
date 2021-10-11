@@ -1,0 +1,12 @@
+import "Laser.idsl";
+import "CameraRGBDSimple.idsl";
+
+Component three_vertical_realsense_camera
+{
+    Communications
+    {
+        implements Laser, CameraRGBDSimple;
+    };
+    language Cpp11;
+};
+

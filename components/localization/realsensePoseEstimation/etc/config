@@ -9,29 +9,30 @@ GenericBaseProxy = genericbase:tcp -h localhost -p 0
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-#Important, decimals will be represented by "," not by "."
+#Important, decimals will be represented by "," not by ".", angles in radians and distances in milimeters
 
 origen_rx=0,0
 origen_ry=0,0
-origen_rz=180,0
-origen_tx=3,88#4,75#1,24
-origen_ty=-22,387#-17,2#-18,911
+origen_rz=3,1416
+origen_tx=3880,0#4750#1240
+origen_ty=-22387,0#-17200#-18911
 origen_tz=0,0
 
 num_cameras=2
+odometry=true
 
 #serial number is a string, but in config file should appear without quotes
 
-#Camara con etiqueta verde ID=92122110585
+#Camara con etiqueta verde ID=925122110585
 
 device_serial_0=121222110830
 name_0=camera_side
 rx_0=0,0
 ry_0=0,0
-rz_0=180,0
-tx_0=0,3
+rz_0=3,1416
+tx_0=300,0
 ty_0=0,0
-tz_0=0,1
+tz_0=100,0
 
 device_serial_1=925122110585
 name_1=camera_front
@@ -39,8 +40,8 @@ rx_1=0,0
 ry_1=0,0
 rz_1=0,0
 tx_1=0,0
-ty_1=0,3
-tz_1=0,075
+ty_1=30,0
+tz_1=75,0
 
 print=true
 

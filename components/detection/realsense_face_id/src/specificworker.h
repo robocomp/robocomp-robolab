@@ -87,6 +87,7 @@ public slots:
 private:
 	std::shared_ptr < InnerModel > innerModel;
 	bool startup_check_flag;
+    bool camera_open = false;
     
     std::mutex my_mutex; 
     std::unique_ptr<RealSenseID::Preview> preview; 

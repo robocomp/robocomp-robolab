@@ -5,7 +5,7 @@ CameraSimple.Endpoints=tcp -p 11060
 RealSenseFaceID.Endpoints=tcp -p 11070
 
 device = /dev/ttyACM0
-display = true 
+display = false 
 compressed = true
 
 

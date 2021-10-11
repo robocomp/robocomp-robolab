@@ -113,20 +113,22 @@ void SpecificWorker::compute()
 	//Actualización velocidad
 
 	mutex->lock();
-		//if(Estado.v!=EstadoActualizado.v or Estado.vg!=EstadoActualizado.vg )
-		//{
+		
+		if(!(EstadoActualizado.v == 0 and Estado.v==0) or !(EstadoActualizado.vg == 0 and Estado.vg==0))
+
+		{
 			SetSpeedBase(Estado.v, Estado.vg);
 			std::cout << "velocidad: " << Estado.v <<std::endl;
 			std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
 			
 			EstadoActualizado = Estado;		
-		//}
-		//if(Estado.tilt!=EstadoActualizado.tilt)
-		//{
+		}
+		if(Estado.tilt!=EstadoActualizado.tilt)
+		{
 			EstadoActualizado.tilt=Estado.tilt;
 			setTilt(0.6);
 			EstadoActualizado = Estado;	
-		//}
+		}
 		
 	mutex->unlock();
 	getGiraffOdometria(DatosOdometria);
@@ -227,7 +229,7 @@ void SpecificWorker::DifferentialRobot_setOdometerPose(int x, int z, float alpha
 void SpecificWorker::DifferentialRobot_setSpeedBase(float adv, float rot)
 {
 	QMutexLocker locker(mutex);
-	Estado.v = adv;
+	Estado.v = adv/1000;
 	Estado.vg = rot;
 
 }

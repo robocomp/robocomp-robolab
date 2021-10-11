@@ -77,6 +77,7 @@ public slots:
 		int num_cameras;
         std::map<string, PARAMS> cameras_dict;
         mutable std::mutex bufferMutex;
+        bool has_odometry;
         Eigen::Affine3f origen_robot;   //Matrix de ejes de la robot respecto al origen
         Eigen::Vector3f initAngles;
 

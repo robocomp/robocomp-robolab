@@ -112,7 +112,10 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
     configGetString( "","num_cameras", aux.value, "");
     params["num_cameras"] = aux;
-    num_cameras = std::stoi(aux.value);
+    num_cameras = std::stoi(params["num_cameras"].value);
+    
+    configGetString( "","odometry", aux.value, "");
+    params["odometry"] = aux;
 
 
     for(int i = 0; i<num_cameras; i++){

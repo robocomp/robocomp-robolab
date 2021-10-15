@@ -88,6 +88,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
     RoboCompCommonBehavior::Parameter aux;
     aux.editable = false;
+
+	
+
     configGetString( "","serial_left", aux.value, "");
     params["serial_left"] = aux;
 
@@ -102,6 +105,12 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
     configGetString( "","display_depth", aux.value, "false");
     params["display_depth"] = aux;
+
+	configGetString( "","display_laser", aux.value, "false");  
+    params["display_laser"] = aux;
+
+	configGetString( "","compressed", aux.value, "false"); 
+    params["compressed"] = aux;
 
     configGetString( "","max_up_height", aux.value, "1");  // + meters
     params["max_up_height"] = aux;

@@ -45,6 +45,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     serial_center = params["serial_center"].value;
     display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
     display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
+    display_laser = (params["display_laser"].value == "true") or (params["display_laser"].value == "True");
+    compressed = (params["compressed"].value == "true") or (params["compressed"].value == "True");
     consts.max_up_height = std::stof(params.at("max_up_height").value);
     consts.max_down_height = std::stof(params.at("max_up_height").value);
     return true;
@@ -54,15 +56,22 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+    compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params_image.push_back(15);
+    compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params_depth.push_back(15);
+
 //    const int w = 640;
 //    const int h = 480;
+    int fps_depth = 15;
+    int fps_color = 30;
 
     // center camera
     try
     {
         cfg_center.enable_device(serial_center);
-        cfg_center.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, 15);
-        cfg_center.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, 15);
+        cfg_center.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, fps_depth);
+        cfg_center.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
         rs2::pipeline center_pipe;
         rs2::pipeline_profile profile_center = center_pipe.start(cfg_center);
         center_depth_intr = center_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
@@ -85,8 +94,8 @@ void SpecificWorker::initialize(int period)
     try
     {
         cfg_right.enable_device(serial_right);
-        cfg_right.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, 15);
-        cfg_right.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, 15);
+        cfg_right.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, fps_depth);
+        cfg_right.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
         rs2::pipeline right_pipe;
         rs2::pipeline_profile profile_right = right_pipe.start(cfg_right);
         right_depth_intr = right_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
@@ -111,8 +120,8 @@ void SpecificWorker::initialize(int period)
     try
     {
         cfg_left.enable_device(serial_left);
-        cfg_left.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, 15);
-        cfg_left.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, 15);
+        cfg_left.enable_stream(RS2_STREAM_DEPTH, consts.width, consts.height, RS2_FORMAT_Z16, fps_depth);
+        cfg_left.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
         rs2::pipeline left_pipe;
         rs2::pipeline_profile profile_left = left_pipe.start(cfg_left);
         left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
@@ -131,7 +140,6 @@ void SpecificWorker::initialize(int period)
     }
     catch(const std::exception &e)
     { std::cout << e.what()<< " Serial number:" << serial_left << std::endl; std::terminate();}
-
     // Filters
     rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 2, error);
     filters.emplace_back("Decimate", dec_filter);
@@ -150,8 +158,11 @@ void SpecificWorker::compute()
 {
     auto &cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
     auto ldata_local = compute_laser(cam_map_extended);
-    auto &&[virtual_frame] = mosaic(cam_map_extended);
-
+    //auto &&[virtual_frame] = mosaic(cam_map_extended);
+    auto &&[v_f] = mosaic(cam_map_extended);
+    my_mutex.lock();
+    virtual_frame=v_f.clone();
+    my_mutex.unlock();
     if(display_depth)
         show_depth_images(cam_map_extended);
     if(display_rgb)
@@ -159,11 +170,12 @@ void SpecificWorker::compute()
         cv::imshow("Virtual", virtual_frame);
         cv::waitKey(1);
     }
+    if (display_laser)
+        draw_laser(ldata_local);
 
-    draw_laser(ldata_local);
     fps.print("FPS: ");
 
-    std::scoped_lock lock(my_mutex);
+    //std::scoped_lock lock(my_mutex);
     //ldata.swap(ldata_local);
 
 }
@@ -369,7 +381,70 @@ RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
-//implementCODE
+    RoboCompCameraRGBDSimple::TImage im;
+    my_mutex.lock();
+    im.height = virtual_frame.rows;
+    im.width = virtual_frame.cols;
+    if(im.height != 0 and im.width != 0){
+        im.compressed = compressed;
+
+        /*
+        // if (cam_map.find(camera)!= cam_map.end()){
+        //     //std::lock_guard<std::mutex> ml(bufferMutex);
+        
+        //     im.cameraID=0;
+            camera=serial_center;
+            //im.depth = m.depth();
+            im.height = center_cam_intr.height;
+            im.width = center_cam_intr.width;
+            im.focalx = center_cam_intr.fx;
+            im.focaly = center_cam_intr.fy;
+            im.alivetime = chrono::duration_cast<chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            cv::imshow("unasola", virtual_frame);
+            cv::waitKey(1);
+            /*if(true){//compresion
+            im.compressed = true;
+            vector<uchar> buffer;
+            cv::Mat frame(cv::Size(im.width, im.height), CV_8UC3, &cam_map[camera].frame.get_data()[0], cv::Mat::AUTO_STEP);
+                //cv::imshow("USB Camera", frame);
+                cv::imencode(".png", frame, buffer, compression_params_image);
+                std::cout << "raw: " << frame.total() * frame.elemSize() << " compressed: " << buffer.size() << " Ratio:"
+                            << frame.total() * frame.elemSize() / buffer.size() << std::endl;
+
+                im.image.assign(buffer.begin(), buffer.end());
+
+            }
+            else
+                im.image = cam_map[camera].color_frame.get_data();
+                
+        }*/
+
+    // if (camera == "mosaic"){
+        if(true){
+            
+            //im.focalx = cam_map[camera].rs2_intrinsics.fx;
+            //im.focaly = cam_map[camera].rs2_intrinsics.fy;
+            //if(im.compressed)
+            if ( im.compressed){
+                vector<uchar> buffer;
+                cv::Mat frame(cv::Size(im.width, im.height), CV_8UC3, &virtual_frame.data[0], cv::Mat::AUTO_STEP);
+                cv::imencode(".jpg", frame, buffer, compression_params_image);
+                std::cout << "raw: " << frame.total() * frame.elemSize() << " compressed: " << buffer.size() << " Ratio:"
+                            << frame.total() * frame.elemSize() / buffer.size() << std::endl;
+                im.image.assign(buffer.begin(), buffer.end());
+            }
+            else
+                im.image.assign(virtual_frame.data, virtual_frame.data + (virtual_frame.total() * virtual_frame.elemSize()));
+            
+
+        }
+    }
+    else
+        qInfo() << "I dont have image";
+        
+    my_mutex.unlock();
+    return im;
+
 
 }
 

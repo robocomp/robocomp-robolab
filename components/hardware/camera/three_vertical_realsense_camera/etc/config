@@ -8,7 +8,9 @@ serial_center = 114122250668
 serial_left = 105322252279
 serial_right = 049522250171
 display_depth = false
-display_rgb = true
+display_rgb = false
+display_laser = true
+compressed = true
 
 max_up_height = 0.1  # meters
 max_down_height = 0.1

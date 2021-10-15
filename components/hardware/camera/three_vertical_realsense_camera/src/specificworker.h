@@ -28,6 +28,8 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
+#include <iostream>
+#include <string>
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
 #include <opencv2/core/core.hpp>
@@ -86,6 +88,8 @@ private:
     std::string serial_center, serial_left, serial_right;
     bool display_rgb = false;
     bool display_depth = false;
+    bool display_laser = false;
+    bool compressed = false;
 
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg_center, cfg_left, cfg_right;
@@ -94,8 +98,14 @@ private:
     Camera_Map cam_map;
     rs2::context ctx;
 
+    vector<int> compression_params_image;
+    vector<int> compression_params_depth;
+
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
+
+    //mosaic
+    cv::Mat virtual_frame;
 
     // filters
     struct filter_options

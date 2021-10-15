@@ -54,18 +54,21 @@ void SpecificWorker::compute()
 {
 	try
 	{
-		
+
 		auto image = this->camerasimple_proxy->getImage();
-		qInfo()<<image.width<<"x"<< image.height<<" Size: "<<image.image.size();
-		if (image.compressed){
-			cv::Mat frameCompr=cv::imdecode(image.image, -1);
-			cv::imshow("RGB image", frameCompr);
-		}
-		else{
-			cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
-			cv::imshow("RGB image", frame);
-		}
-        cv::waitKey(1);
+        if (image.width !=0 and image.height !=0) {
+            qInfo() << image.width << "x" << image.height << " Size: " << image.image.size();
+            if (image.compressed) {
+                cv::Mat frameCompr = cv::imdecode(image.image, -1);
+                cv::imshow("RGB image", frameCompr);
+            } else {
+                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+                cv::imshow("RGB image", frame);
+            }
+            cv::waitKey(1);
+        }
+        else
+            qInfo() << "I dont have image";
 	}
 	catch(const std::exception& e)
 	{

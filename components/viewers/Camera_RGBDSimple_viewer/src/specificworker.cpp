@@ -46,8 +46,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-
-	this->Period = period;
+    this->Period = 33;
+    std::cout <<"Period compute(ms): "<<this->Period<< " Frequency compute(Hz): " << (1.0/this->Period*1000)<<std::endl;
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -63,66 +63,81 @@ void SpecificWorker::compute()
 {
    if (display_rgb)
    {
-       if (display_compressed) //Si quiero la imagen comprimida
-       {
+       try {
            std::string nada = "nada"; //test
            auto image = this->camerargbdsimple_proxy->getImage(nada);
-           //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
-           cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
-           cv::Mat frameCompr = cv::imdecode(image.image, -1);
-           cv::imshow("RGB image", frameCompr);
-           cv::waitKey(1);
+           if (image.width !=0 and image.height !=0) {
+               if (image.compressed) //Si quiero la imagen comprimida
+               {
+                   //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
+                   cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+                   cv::Mat frameCompr = cv::imdecode(image.image, -1);
+                   cv::imshow("RGB image compress", frameCompr);
+                   cv::waitKey(1);
+               } else {
+                   std::string nada = "nada"; //test
+                   auto image = this->camerargbdsimple_proxy->getImage(nada);
+                   //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
+                   cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+                   cv::imshow("RGB image", frame);
+                   cv::waitKey(1);
+               }
+           }
+           else
+           qInfo() << "I dont have rgb image";
        }
-       else
-       {
-           std::string nada = "nada"; //test
-           auto image = this->camerargbdsimple_proxy->getImage(nada);
-           //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
-           cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
-           cv::imshow("RGB image", frame);
-           cv::waitKey(1);
-       }
+       catch(const std::exception &e)
+       { std::cout << e.what() << "Fault in rgb image"<< std::endl;}
+
+       
    }
 
    if (display_depth)
    {
-       if (display_compressed) //Si quiero la imagen comprimida
-       {
+       try {
            std::string nada = "nada"; //test
            auto depth = this->camerargbdsimple_proxy->getDepth(nada);
-           cv::Mat frame_depth = cv::imdecode(depth.depth, -1);
+           if (depth.width != 0 and depth.height != 0) {
+               if (depth.compressed) //Si quiero la imagen comprimida
+               {
+                   cv::Mat frame_depth = cv::imdecode(depth.depth, -1);
 
-//           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.elemSize() <<std::endl;
+                   //           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.elemSize() <<std::endl;
 
-//           Voy a probar a mostrar los valores de todas las filas en la columna 300
-//           for (int i = 0; i < 480; i++) {
-//               std::cout << frame_depth.at<float>(i, 300) << std::endl;
-//           }
+                   //           Voy a probar a mostrar los valores de todas las filas en la columna 300
+                   //           for (int i = 0; i < 480; i++) {
+                   //               std::cout << frame_depth.at<float>(i, 300) << std::endl;
+                   //           }
 
-           frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
-           applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
-           cv::imshow("Depth image ", frame_depth);
-           cv::waitKey(1);
+                   frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
+                   applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
+                   cv::imshow("Depth image compress", frame_depth);
+                   cv::waitKey(1);
+               } else {
+                   std::string nada = "nada"; //test
+                   auto depth = this->camerargbdsimple_proxy->getDepth(nada);
+                   cv::Mat frame_depth(cv::Size(depth.width, depth.height), CV_32FC1, &depth.depth[0],
+                                       cv::Mat::AUTO_STEP);
+
+                   //           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.size <<std::endl;
+
+                   //           Voy a probar a mostrar los valores de todas las filas en la columna 300
+                   //           for (int i = 0; i < 480; i++) {
+                   //               std::cout << frame_depth.at<float>(i, 300) << std::endl;
+                   //           }
+
+                   frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
+                   applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
+                   //std::cout<<"Depth factor"<< depth.depthFactor<<std::endl;
+                   cv::imshow("Depth image ", frame_depth);
+                   cv::waitKey(1);
+               }
+           }
+           else
+               qInfo() << "I dont have depth image";
        }
-       else
-       {
-           std::string nada = "nada"; //test
-           auto depth = this->camerargbdsimple_proxy->getDepth(nada);
-           cv::Mat frame_depth(cv::Size(depth.width, depth.height), CV_32FC1, &depth.depth[0], cv::Mat::AUTO_STEP);
-
-//           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.size <<std::endl;
-
-//           Voy a probar a mostrar los valores de todas las filas en la columna 300
-//           for (int i = 0; i < 480; i++) {
-//               std::cout << frame_depth.at<float>(i, 300) << std::endl;
-//           }
-
-           frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
-           applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
-           //std::cout<<"Depth factor"<< depth.depthFactor<<std::endl;
-           cv::imshow("Depth image ", frame_depth);
-           cv::waitKey(1);
-       }
+       catch(const std::exception &e)
+       { std::cout << e.what() << "Fault in depth image"<< std::endl;}
    }
 
 //   if (display_all) {

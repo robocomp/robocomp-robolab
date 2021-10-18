@@ -47,11 +47,13 @@ public:
 	void DifferentialRobot_setOdometerPose(int x, int z, float alpha);
 	void DifferentialRobot_setSpeedBase(float adv, float rot);
 	void DifferentialRobot_stopBase();
-	float Giraff_decTilt();
-	RoboCompGiraff::Botones Giraff_getBotonesState();
-	float Giraff_getTilt();
-	float Giraff_incTilt();
-	void Giraff_setTilt(float tilt);
+	RoboCompGiraffButton::Botones GiraffButton_getBotonesState();
+	RoboCompJointMotorSimple::MotorParams JointMotorSimple_getMotorParams(std::string motor);
+	RoboCompJointMotorSimple::MotorState JointMotorSimple_getMotorState(std::string motor);
+	void JointMotorSimple_setPosition(std::string name, RoboCompJointMotorSimple::MotorGoalPosition goal);
+	void JointMotorSimple_setVelocity(std::string name, RoboCompJointMotorSimple::MotorGoalVelocity goal);
+	void JointMotorSimple_setZeroPos(std::string name);
+
 
 public slots:
 	void compute();

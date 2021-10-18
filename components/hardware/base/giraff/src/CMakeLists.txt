@@ -26,7 +26,8 @@ SET ( SOURCES
   genericworker.cpp
   batterystatusI.cpp
   differentialrobotI.cpp
-  giraffI.cpp
+  giraffbuttonI.cpp
+  jointmotorsimpleI.cpp
 )
 
 
@@ -37,8 +38,8 @@ FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior BatteryStatus DifferentialRobot GenericBase Giraff)
-ROBOCOMP_ICE_TO_SRC( CommonBehavior BatteryStatus DifferentialRobot GenericBase Giraff)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior BatteryStatus DifferentialRobot GenericBase GiraffButton JointMotorSimple)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior BatteryStatus DifferentialRobot GenericBase GiraffButton JointMotorSimple)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

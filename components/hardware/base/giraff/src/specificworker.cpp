@@ -104,8 +104,6 @@ void SpecificWorker::initialize(int period)
 	{
 		timer.start(Period);
 	}
-
-	
 }
 
 void SpecificWorker::compute()
@@ -241,9 +239,9 @@ void SpecificWorker::DifferentialRobot_stopBase()
 	Estado.vg=0;
 }
 
-RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
+RoboCompGiraffButton::Botones SpecificWorker::GiraffButton_getBotonesState()
 {
-	RoboCompGiraff::Botones Botones;
+	RoboCompGiraffButton::Botones Botones;
 
 	QMutexLocker locker(mutex);
 	Botones.Rojo=DatosBotones.Rojo;
@@ -252,27 +250,39 @@ RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
 
 }
 
-float SpecificWorker::Giraff_getTilt()
+
+RoboCompJointMotorSimple::MotorParams SpecificWorker::JointMotorSimple_getMotorParams(std::string motor)
 {
-	return EstadoActualizado.tilt;
+//implementCODE
+
 }
 
-float SpecificWorker::Giraff_incTilt()
+RoboCompJointMotorSimple::MotorState SpecificWorker::JointMotorSimple_getMotorState(std::string motor)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=EstadoActualizado.tilt+0.1;
+//implementCODE
+RoboCompJointMotorSimple::MotorState motorScreen;
+motorScreen.pos = EstadoActualizado.tilt;
+return motorScreen;
+
 }
 
-float SpecificWorker::Giraff_decTilt()
+void SpecificWorker::JointMotorSimple_setPosition(std::string name, RoboCompJointMotorSimple::MotorGoalPosition goal)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=EstadoActualizado.tilt-0.1;
+//implementCODE
+QMutexLocker locker(mutex);
+	Estado.tilt=goal.position;
 }
 
-void SpecificWorker::Giraff_setTilt(float tilt)
+void SpecificWorker::JointMotorSimple_setVelocity(std::string name, RoboCompJointMotorSimple::MotorGoalVelocity goal)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=tilt;
+//implementCODE
+
+}
+
+void SpecificWorker::JointMotorSimple_setZeroPos(std::string name)
+{
+//implementCODE
+
 }
 
 
@@ -282,4 +292,16 @@ void SpecificWorker::Giraff_setTilt(float tilt)
 
 /**************************************/
 // From the RoboCompDifferentialRobot you can use this types:
-// RoboCompDifferentialRobot::TMechParamscma
+// RoboCompDifferentialRobot::TMechParams
+
+/**************************************/
+// From the RoboCompGiraffButton you can use this types:
+// RoboCompGiraffButton::Botones
+
+/**************************************/
+// From the RoboCompJointMotorSimple you can use this types:
+// RoboCompJointMotorSimple::MotorState
+// RoboCompJointMotorSimple::MotorParams
+// RoboCompJointMotorSimple::MotorGoalPosition
+// RoboCompJointMotorSimple::MotorGoalVelocity
+

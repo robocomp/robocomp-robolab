@@ -76,10 +76,17 @@ void SpecificWorker::initialize(int period)
 	std::cout << "Initialize worker" << std::endl;
 
     qInfo() << "Starting Camera";
+    try{
     RealSenseID::PreviewConfig config;
     this->preview = std::make_unique<RealSenseID::Preview>(config);
     this->preview_callback = std::make_unique<PreviewRender>(&my_mutex); 
     RealSenseFaceID_startPreview();
+    
+    }
+    catch(const std::exception &e)
+    { std::cout << e.what() << " Error Starting Camera" << std::endl;
+    exit(1);
+    };
     qInfo() <<  "Load compresion";
     compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION); 
     compression_params.push_back(3); 

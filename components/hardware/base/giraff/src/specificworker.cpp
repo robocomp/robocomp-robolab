@@ -51,13 +51,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 //	THE FOLLOWING IS JUST AN EXAMPLE
 //	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
+
 
 
 	return true;
@@ -90,7 +84,7 @@ void SpecificWorker::initialize(int period)
 	DatosBotones.Dial=0;
 	//Poner pantalla recta
 	usleep(3000000);
-	EstadoActualizado.tilt=0,6;
+	EstadoActualizado.tilt=0.7;
 
 	setTilt(EstadoActualizado.tilt);
 
@@ -115,23 +109,26 @@ void SpecificWorker::compute()
 		if(!(EstadoActualizado.v == 0 and Estado.v==0) or !(EstadoActualizado.vg == 0 and Estado.vg==0))
 
 		{
-			SetSpeedBase(Estado.v, Estado.vg);
-			std::cout << "velocidad: " << Estado.v <<std::endl;
-			std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
-			
+			//if (abs(Estado.vg) > 0.10 or abs(Estado.v) > 0.001 ){
+
+				SetSpeedBase(Estado.v, Estado.vg);
+				std::cout << "velocidad: " << Estado.v <<std::endl;
+				std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
+
+			// }		
 			EstadoActualizado = Estado;		
 		}
 		if(Estado.tilt!=EstadoActualizado.tilt)
 		{
+			std::cout << " Inclinación pantalla " << Estado.tilt << endl;
 			EstadoActualizado.tilt=Estado.tilt;
-			setTilt(0.6);
+			setTilt(EstadoActualizado.tilt);
 			EstadoActualizado = Estado;	
 		}
 		
 	mutex->unlock();
 	getGiraffOdometria(DatosOdometria);
 	get_button_data(DatosBotones);
-	EstadoActualizado.tilt=0,6;
 	////Comprobación bateria
 	time(&time_actual);
 	double seconds = difftime(time_actual,Bateria.timeStamp);

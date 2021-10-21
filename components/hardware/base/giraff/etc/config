@@ -4,7 +4,7 @@ CommonBehavior.Endpoints=tcp -p 10000
 BatteryStatus.Endpoints=tcp -p 10050
 DifferentialRobot.Endpoints=tcp -p 10004
 GiraffButton.Endpoints=tcp -p 10052
-JointMotorSimple.Endpoints=tcp -p 10009
+JointMotorSimple.Endpoints=tcp -p 10086
 
 
 InnerModelPath = innermodel.xml

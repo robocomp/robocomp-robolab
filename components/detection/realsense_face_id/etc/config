@@ -6,7 +6,7 @@ RealSenseFaceID.Endpoints=tcp -p 11070
 
 device = /dev/ttyACM0
 display = false
-compressed = true
+compressed = false
 
 
 InnerModelPath = innermodel.xml

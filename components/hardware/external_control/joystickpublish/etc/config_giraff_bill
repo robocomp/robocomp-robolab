@@ -6,7 +6,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
 JoystickAdapter=JoystickAdapter
-joystickUniversal.Device = /dev/input/js0
+joystickUniversal.Device = /dev/input/js1
 joystickUniversal.NumAxes = 5
 joystickUniversal.Axis_0 = turn, 0, -1, 1, false, 0.2  # degrees per second
 joystickUniversal.Axis_1 = advance, 1, -1000, 1000,  true, 200  # mm por segundo

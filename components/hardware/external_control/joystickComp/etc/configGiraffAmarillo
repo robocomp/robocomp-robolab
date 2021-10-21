@@ -1,0 +1,22 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Endpoints for implemented interfaces
+JoyStick.Endpoints=tcp -p 10052
+
+# Proxies for required interfaces
+#DifferentialRobotProxy = differentialrobot:tcp -h 192.168.1.48 -p 10004
+DifferentialRobotProxy = differentialrobot:tcp -h 158.49.247.193 -p 10004
+
+
+# User config parameters
+# Example = value
+Joy.Device = /dev/input/js1
+Joy.XMotionAxis = 0
+Joy.YMotionAxis = 1.
+Joy.SampleRate = 15
+Joy.MaxSteering = 1.
+Joy.MaxAdvance = 1000
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

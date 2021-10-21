@@ -1,11 +1,11 @@
 CommonBehavior.Endpoints=tcp -p 10220
 
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10096
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
-LaserProxy = laser:tcp -h localhost -p 10003
-JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 10086
-
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h 158.49.247.193 -p 10095
+DifferentialRobotProxy = differentialrobot:tcp -h 158.49.247.193 -p 10004
+LaserProxy = laser:tcp -h 158.49.247.193 -p 10003
+JointMotorSimpleProxy = jointmotorsimple:tcp -h 158.49.247.193 -p 10086
+CameraSimpleProxy = camerasimple:tcp -h 158.49.247.193 -p 11060
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
@@ -14,6 +14,6 @@ Ice.MessageSizeMax=20004800
 #################################################
 
 left_x = -1900
-top_y = -250
+top_y = -1700 
 width = 3800
 height = 3400

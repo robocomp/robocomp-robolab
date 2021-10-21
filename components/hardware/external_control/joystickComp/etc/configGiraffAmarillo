@@ -1,10 +1,12 @@
-CommonBehavior.Endpoints=tcp -h 192.168.1.48 -p 10000
+CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implemented interfaces
 JoyStick.Endpoints=tcp -p 10052
 
 # Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h 192.168.1.48 -p 10004
+#DifferentialRobotProxy = differentialrobot:tcp -h 192.168.1.48 -p 10004
+DifferentialRobotProxy = differentialrobot:tcp -h 158.49.247.193 -p 10004
+
 
 # User config parameters
 # Example = value

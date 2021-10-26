@@ -82,30 +82,51 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     //laser
-    try
-    {
-        auto ldata = laser_proxy->getLaserData();
-        draw_laser( ldata );
-    }
-    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+//    try
+//    {
+//        auto ldata = laser_proxy->getLaserData();
+//        draw_laser( ldata );
+//    }
+//    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 
     //robot
+//    try
+//    {
+//        RoboCompGenericBase::TBaseState bState;
+//        differentialrobot_proxy->getBaseState(bState);
+//        robot_polygon->setRotation(bState.alpha*180/M_PI);
+//        robot_polygon->setPos(bState.x, bState.z);
+//        if(sweep_button->isChecked())
+//        {
+//;           grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+//            sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
+//        }
+//        if(trace_button->isChecked())
+//        {
+//            QLineF line(last_point.x(), last_point.y(), bState.x, bState.z);
+//            lines.push_back(viewer->scene.addLine(line, QPen(QColor("Blue"),40)));
+//            last_point = QPointF(bState.x, bState.z);
+//        }
+//    }
+//    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+
     try
     {
-        RoboCompGenericBase::TBaseState bState;
-        differentialrobot_proxy->getBaseState(bState);
-        robot_polygon->setRotation(bState.alpha*180/M_PI);
-        robot_polygon->setPos(bState.x, bState.z);
+        RoboCompFullPoseEstimation::FullPoseEuler bState;
+        bState = fullposeestimation_proxy->getFullPoseEuler();
+        qInfo()  << bState.x << bState.y << bState.rz;
+        robot_polygon->setRotation(bState.rz*180/M_PI);
+        robot_polygon->setPos(bState.x, bState.y);
         if(sweep_button->isChecked())
         {
-;           grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+            ;           grid.setVisited(grid.pointToGrid(bState.x, bState.y), true);
             sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
         }
         if(trace_button->isChecked())
         {
-            QLineF line(last_point.x(), last_point.y(), bState.x, bState.z);
+            QLineF line(last_point.x(), last_point.y(), bState.x, bState.y);
             lines.push_back(viewer->scene.addLine(line, QPen(QColor("Blue"),40)));
-            last_point = QPointF(bState.x, bState.z);
+            last_point = QPointF(bState.x, bState.y);
         }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
@@ -113,8 +134,16 @@ void SpecificWorker::compute()
     // camera-tablet
     try
     {
-        auto top_img = camerargbdsimple_proxy->getImage("camera_tablet");
-        auto top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+        auto top_img = camerasimple_proxy->getImage();
+        QImage top_qimg;
+        if (top_img.compressed)
+        {
+            cv::Mat frame_decomp = cv::imdecode(top_img.image, -1);
+            top_qimg = QImage(frame_decomp.data, top_img.width, top_img.height, QImage::Format_RGB888).scaled(
+                    top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+        }
+        else
+            top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
         auto pix = QPixmap::fromImage(top_qimg);
         top_camera_label->setPixmap(pix);
     }

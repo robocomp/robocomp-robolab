@@ -54,7 +54,7 @@ class SpecificWorker(GenericWorker):
         """Destructor"""
 
     def setParams(self, params):
-        uart_port = '/dev/ttyACM0'
+        uart_port = '/dev/ttyACM1'
         uart_speed = 115200
         laser_serial = serial.Serial(port=uart_port, baudrate=uart_speed, timeout=0.5)
         port = serial_port.SerialPort(laser_serial)

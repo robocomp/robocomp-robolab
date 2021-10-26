@@ -134,18 +134,22 @@ void SpecificWorker::compute()
     // camera-tablet
     try
     {
-        auto top_img = camerasimple_proxy->getImage();
+        cv::Mat top_img_uncomp;
         QImage top_qimg;
-        if (top_img.compressed)
+        auto top_img = camerasimple_proxy->getImage();
+        if(not top_img.image.empty())
         {
-            cv::Mat frame_decomp = cv::imdecode(top_img.image, -1);
-            top_qimg = QImage(frame_decomp.data, top_img.width, top_img.height, QImage::Format_RGB888).scaled(
-                    top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+            if (top_img.compressed)
+            {
+                top_img_uncomp = cv::imdecode(top_img.image, -1);
+                top_qimg = QImage(top_img_uncomp.data, top_img.width, top_img.height, QImage::Format_RGB888).scaled(
+                        top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+            } else
+                top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(
+                        top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+            auto pix = QPixmap::fromImage(top_qimg);
+            top_camera_label->setPixmap(pix);
         }
-        else
-            top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
-        auto pix = QPixmap::fromImage(top_qimg);
-        top_camera_label->setPixmap(pix);
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 }
@@ -215,6 +219,20 @@ int SpecificWorker::startup_check()
 	return 0;
 }
 
+
+
+/**************************************/
+// From the RoboCompCameraRGBDSimple you can call this methods:
+// this->camerargbdsimple_proxy->getAll(...)
+// this->camerargbdsimple_proxy->getDepth(...)
+// this->camerargbdsimple_proxy->getImage(...)
+
+/**************************************/
+// From the RoboCompCameraRGBDSimple you can use this types:
+// RoboCompCameraRGBDSimple::TImage
+// RoboCompCameraRGBDSimple::TDepth
+// RoboCompCameraRGBDSimple::TRGBD
+
 /**************************************/
 // From the RoboCompCameraSimple you can call this methods:
 // this->camerasimple_proxy->getImage(...)
@@ -239,6 +257,21 @@ int SpecificWorker::startup_check()
 // RoboCompDifferentialRobot::TMechParams
 
 /**************************************/
+// From the RoboCompJointMotorSimple you can call this methods:
+// this->jointmotorsimple_proxy->getMotorParams(...)
+// this->jointmotorsimple_proxy->getMotorState(...)
+// this->jointmotorsimple_proxy->setPosition(...)
+// this->jointmotorsimple_proxy->setVelocity(...)
+// this->jointmotorsimple_proxy->setZeroPos(...)
+
+/**************************************/
+// From the RoboCompJointMotorSimple you can use this types:
+// RoboCompJointMotorSimple::MotorState
+// RoboCompJointMotorSimple::MotorParams
+// RoboCompJointMotorSimple::MotorGoalPosition
+// RoboCompJointMotorSimple::MotorGoalVelocity
+
+/**************************************/
 // From the RoboCompLaser you can call this methods:
 // this->laser_proxy->getLaserAndBStateData(...)
 // this->laser_proxy->getLaserConfData(...)
@@ -248,4 +281,3 @@ int SpecificWorker::startup_check()
 // From the RoboCompLaser you can use this types:
 // RoboCompLaser::LaserConfData
 // RoboCompLaser::TData
-

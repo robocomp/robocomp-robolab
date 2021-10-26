@@ -104,7 +104,7 @@ bool iniciarAvr(){
     
     usleep(3000000);
 
-    giraffavr.setFloat("tilt_angle_from_home",0.6);
+    giraffavr.setFloat("tilt_angle_from_home",0.7);
 
     //ESTABLECIMIENTO VALORES INICIALES A 0.
 

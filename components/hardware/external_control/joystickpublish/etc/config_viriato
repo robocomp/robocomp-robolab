@@ -8,7 +8,7 @@ InnerModelPath = innermodel.xml
 
 
 JoystickAdapter=JoystickAdapter
-joystickUniversal.Device = /dev/input/js1
+joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 6
                           #name  axis min  max  inverted, dead_zone
 

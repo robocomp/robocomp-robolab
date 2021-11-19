@@ -83,7 +83,8 @@
 
 #include <batterystatusI.h>
 #include <differentialrobotI.h>
-#include <giraffI.h>
+#include <giraffbuttonI.h>
+#include <jointmotorsimpleI.h>
 
 #include <GenericBase.h>
 
@@ -215,18 +216,36 @@ int ::giraff::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "Giraff.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "GiraffButton.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Giraff";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GiraffButton";
 			}
-			Ice::ObjectAdapterPtr adapterGiraff = communicator()->createObjectAdapterWithEndpoints("Giraff", tmp);
-			auto giraff = std::make_shared<GiraffI>(worker);
-			adapterGiraff->add(giraff, Ice::stringToIdentity("giraff"));
-			adapterGiraff->activate();
-			cout << "[" << PROGRAM_NAME << "]: Giraff adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr adapterGiraffButton = communicator()->createObjectAdapterWithEndpoints("GiraffButton", tmp);
+			auto giraffbutton = std::make_shared<GiraffButtonI>(worker);
+			adapterGiraffButton->add(giraffbutton, Ice::stringToIdentity("giraffbutton"));
+			adapterGiraffButton->activate();
+			cout << "[" << PROGRAM_NAME << "]: GiraffButton adapter created in port " << tmp << endl;
 		}
 		catch (const IceStorm::TopicExists&){
-			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Giraff\n";
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for GiraffButton\n";
+		}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "JointMotorSimple.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy JointMotorSimple";
+			}
+			Ice::ObjectAdapterPtr adapterJointMotorSimple = communicator()->createObjectAdapterWithEndpoints("JointMotorSimple", tmp);
+			auto jointmotorsimple = std::make_shared<JointMotorSimpleI>(worker);
+			adapterJointMotorSimple->add(jointmotorsimple, Ice::stringToIdentity("jointmotorsimple"));
+			adapterJointMotorSimple->activate();
+			cout << "[" << PROGRAM_NAME << "]: JointMotorSimple adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for JointMotorSimple\n";
 		}
 
 

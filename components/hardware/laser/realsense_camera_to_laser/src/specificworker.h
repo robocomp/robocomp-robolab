@@ -70,7 +70,6 @@ private:
 	bool startup_check_flag;
 
     // camera
-    // Declare RealSense pipeline, encapsulating the actual device and sensors
     std::string serial_center, serial_left, serial_right;
     bool display_rgb = false;
     bool display_depth = false;

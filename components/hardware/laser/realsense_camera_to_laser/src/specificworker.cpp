@@ -386,7 +386,6 @@ std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
 
 // }
 
-
 void SpecificWorker::addImageToFrame(rs2::points points, Eigen::Transform<float, 3, Eigen::Affine> extr, uint iniColumn, int columnShift, cv::Mat image, cv::Mat & frameWin)
 {
     float frame_virtual_lfocalx = 390;
@@ -441,7 +440,6 @@ void SpecificWorker::addImageToFrame(rs2::points points, Eigen::Transform<float,
     }
 
 }
-
 
 // find affine transformation between two pointsets (use least square matching)
 bool SpecificWorker::computeAffine(const std::vector<cv::Point2d> &srcPoints, const std::vector<cv::Point2d> &dstPoints, cv::Mat &transf)

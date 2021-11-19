@@ -5,8 +5,8 @@ CommonBehavior.Endpoints=tcp -p 12096
 CameraSimple.Endpoints=tcp -p 10195
 InnerModelPath = innermodel.xml
 
-device = /dev/video0
-display = true
+device = /dev/video2
+display = false
 compressed = true
 
 Ice.Warn.Connections=0

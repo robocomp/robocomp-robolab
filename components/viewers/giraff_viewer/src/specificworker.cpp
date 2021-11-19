@@ -82,30 +82,51 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     //laser
-    try
-    {
-        auto ldata = laser_proxy->getLaserData();
-        draw_laser( ldata );
-    }
-    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+//    try
+//    {
+//        auto ldata = laser_proxy->getLaserData();
+//        draw_laser( ldata );
+//    }
+//    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 
     //robot
+//    try
+//    {
+//        RoboCompGenericBase::TBaseState bState;
+//        differentialrobot_proxy->getBaseState(bState);
+//        robot_polygon->setRotation(bState.alpha*180/M_PI);
+//        robot_polygon->setPos(bState.x, bState.z);
+//        if(sweep_button->isChecked())
+//        {
+//;           grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+//            sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
+//        }
+//        if(trace_button->isChecked())
+//        {
+//            QLineF line(last_point.x(), last_point.y(), bState.x, bState.z);
+//            lines.push_back(viewer->scene.addLine(line, QPen(QColor("Blue"),40)));
+//            last_point = QPointF(bState.x, bState.z);
+//        }
+//    }
+//    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+
     try
     {
-        RoboCompGenericBase::TBaseState bState;
-        differentialrobot_proxy->getBaseState(bState);
-        robot_polygon->setRotation(bState.alpha*180/M_PI);
-        robot_polygon->setPos(bState.x, bState.z);
+        RoboCompFullPoseEstimation::FullPoseEuler bState;
+        bState = fullposeestimation_proxy->getFullPoseEuler();
+        qInfo()  << bState.x << bState.y << bState.rz;
+        robot_polygon->setRotation(bState.rz*180/M_PI);
+        robot_polygon->setPos(bState.x, bState.y);
         if(sweep_button->isChecked())
         {
-;           grid.setVisited(grid.pointToGrid(bState.x, bState.z), true);
+            ;           grid.setVisited(grid.pointToGrid(bState.x, bState.y), true);
             sweep_lcdNumber->display(100.0 * grid.count_total_visited() / grid.count_total());
         }
         if(trace_button->isChecked())
         {
-            QLineF line(last_point.x(), last_point.y(), bState.x, bState.z);
+            QLineF line(last_point.x(), last_point.y(), bState.x, bState.y);
             lines.push_back(viewer->scene.addLine(line, QPen(QColor("Blue"),40)));
-            last_point = QPointF(bState.x, bState.z);
+            last_point = QPointF(bState.x, bState.y);
         }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
@@ -113,10 +134,22 @@ void SpecificWorker::compute()
     // camera-tablet
     try
     {
-        auto top_img = camerargbdsimple_proxy->getImage("camera_tablet");
-        auto top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
-        auto pix = QPixmap::fromImage(top_qimg);
-        top_camera_label->setPixmap(pix);
+        cv::Mat top_img_uncomp;
+        QImage top_qimg;
+        auto top_img = camerasimple_proxy->getImage();
+        if(not top_img.image.empty())
+        {
+            if (top_img.compressed)
+            {
+                top_img_uncomp = cv::imdecode(top_img.image, -1);
+                top_qimg = QImage(top_img_uncomp.data, top_img.width, top_img.height, QImage::Format_RGB888).scaled(
+                        top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+            } else
+                top_qimg = QImage(&top_img.image[0], top_img.width, top_img.height, QImage::Format_RGB888).scaled(
+                        top_camera_label->width(), top_camera_label->height(), Qt::KeepAspectRatioByExpanding);;
+            auto pix = QPixmap::fromImage(top_qimg);
+            top_camera_label->setPixmap(pix);
+        }
     }
     catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 }
@@ -186,6 +219,20 @@ int SpecificWorker::startup_check()
 	return 0;
 }
 
+
+
+/**************************************/
+// From the RoboCompCameraRGBDSimple you can call this methods:
+// this->camerargbdsimple_proxy->getAll(...)
+// this->camerargbdsimple_proxy->getDepth(...)
+// this->camerargbdsimple_proxy->getImage(...)
+
+/**************************************/
+// From the RoboCompCameraRGBDSimple you can use this types:
+// RoboCompCameraRGBDSimple::TImage
+// RoboCompCameraRGBDSimple::TDepth
+// RoboCompCameraRGBDSimple::TRGBD
+
 /**************************************/
 // From the RoboCompCameraSimple you can call this methods:
 // this->camerasimple_proxy->getImage(...)
@@ -210,6 +257,21 @@ int SpecificWorker::startup_check()
 // RoboCompDifferentialRobot::TMechParams
 
 /**************************************/
+// From the RoboCompJointMotorSimple you can call this methods:
+// this->jointmotorsimple_proxy->getMotorParams(...)
+// this->jointmotorsimple_proxy->getMotorState(...)
+// this->jointmotorsimple_proxy->setPosition(...)
+// this->jointmotorsimple_proxy->setVelocity(...)
+// this->jointmotorsimple_proxy->setZeroPos(...)
+
+/**************************************/
+// From the RoboCompJointMotorSimple you can use this types:
+// RoboCompJointMotorSimple::MotorState
+// RoboCompJointMotorSimple::MotorParams
+// RoboCompJointMotorSimple::MotorGoalPosition
+// RoboCompJointMotorSimple::MotorGoalVelocity
+
+/**************************************/
 // From the RoboCompLaser you can call this methods:
 // this->laser_proxy->getLaserAndBStateData(...)
 // this->laser_proxy->getLaserConfData(...)
@@ -219,4 +281,3 @@ int SpecificWorker::startup_check()
 // From the RoboCompLaser you can use this types:
 // RoboCompLaser::LaserConfData
 // RoboCompLaser::TData
-

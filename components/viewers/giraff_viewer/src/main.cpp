@@ -131,7 +131,9 @@ int ::giraff_viewer::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr camerargbdsimple_proxy;
+	RoboCompCameraSimple::CameraSimplePrxPtr camerasimple_proxy;
 	RoboCompDifferentialRobot::DifferentialRobotPrxPtr differentialrobot_proxy;
+	RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr fullposeestimation_proxy;
 	RoboCompJointMotorSimple::JointMotorSimplePrxPtr jointmotorsimple_proxy;
 	RoboCompLaser::LaserPrxPtr laser_proxy;
 
@@ -156,6 +158,22 @@ int ::giraff_viewer::run(int argc, char* argv[])
 
 	try
 	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimpleProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimpleProxy\n";
+		}
+		camerasimple_proxy = Ice::uncheckedCast<RoboCompCameraSimple::CameraSimplePrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy CameraSimple: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("CameraSimpleProxy initialized Ok!");
+
+
+	try
+	{
 		if (not GenericMonitor::configGetString(communicator(), prefix, "DifferentialRobotProxy", proxy, ""))
 		{
 			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy DifferentialRobotProxy\n";
@@ -168,6 +186,22 @@ int ::giraff_viewer::run(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	rInfo("DifferentialRobotProxy initialized Ok!");
+
+
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "FullPoseEstimationProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy FullPoseEstimationProxy\n";
+		}
+		fullposeestimation_proxy = Ice::uncheckedCast<RoboCompFullPoseEstimation::FullPoseEstimationPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy FullPoseEstimation: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("FullPoseEstimationProxy initialized Ok!");
 
 
 	try
@@ -202,7 +236,11 @@ int ::giraff_viewer::run(int argc, char* argv[])
 	rInfo("LaserProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(camerargbdsimple_proxy,differentialrobot_proxy,jointmotorsimple_proxy,laser_proxy);
+<<<<<<< HEAD
+	tprx = std::make_tuple(camerargbdsimple_proxy,camerasimple_proxy,differentialrobot_proxy,fullposeestimation_proxy,jointmotorsimple_proxy,laser_proxy);
+=======
+	tprx = std::make_tuple(camerargbdsimple_proxy,camerasimple_proxy,differentialrobot_proxy,jointmotorsimple_proxy,laser_proxy);
+>>>>>>> 96dd63de41571fa25ec09a8c2d01285a9b19ef71
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

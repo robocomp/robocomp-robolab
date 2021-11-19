@@ -29,28 +29,8 @@ GiraffI::~GiraffI()
 }
 
 
-float GiraffI::decTilt(const Ice::Current&)
-{
-	return worker->Giraff_decTilt();
-}
-
-RoboCompGiraff::Botones GiraffI::getBotonesState(const Ice::Current&)
+Giraff::Botones GiraffI::getBotonesState(const Ice::Current&)
 {
 	return worker->Giraff_getBotonesState();
-}
-
-float GiraffI::getTilt(const Ice::Current&)
-{
-	return worker->Giraff_getTilt();
-}
-
-float GiraffI::incTilt(const Ice::Current&)
-{
-	return worker->Giraff_incTilt();
-}
-
-void GiraffI::setTilt(float tilt, const Ice::Current&)
-{
-	worker->Giraff_setTilt(tilt);
 }
 

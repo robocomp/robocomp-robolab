@@ -51,13 +51,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 //	THE FOLLOWING IS JUST AN EXAMPLE
 //	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
+
 
 
 	return true;
@@ -90,7 +84,7 @@ void SpecificWorker::initialize(int period)
 	DatosBotones.Dial=0;
 	//Poner pantalla recta
 	usleep(3000000);
-	EstadoActualizado.tilt=0,6;
+	EstadoActualizado.tilt=0.7;
 
 	setTilt(EstadoActualizado.tilt);
 
@@ -104,8 +98,6 @@ void SpecificWorker::initialize(int period)
 	{
 		timer.start(Period);
 	}
-
-	
 }
 
 void SpecificWorker::compute()
@@ -117,23 +109,26 @@ void SpecificWorker::compute()
 		if(!(EstadoActualizado.v == 0 and Estado.v==0) or !(EstadoActualizado.vg == 0 and Estado.vg==0))
 
 		{
-			SetSpeedBase(Estado.v, Estado.vg);
-			std::cout << "velocidad: " << Estado.v <<std::endl;
-			std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
-			
+			//if (abs(Estado.vg) > 0.10 or abs(Estado.v) > 0.001 ){
+
+				SetSpeedBase(Estado.v, Estado.vg);
+				std::cout << "velocidad: " << Estado.v <<std::endl;
+				std::cout << "velocidad_giro: " << Estado.vg <<std::endl;
+
+			// }		
 			EstadoActualizado = Estado;		
 		}
 		if(Estado.tilt!=EstadoActualizado.tilt)
 		{
+			std::cout << " Inclinación pantalla " << Estado.tilt << endl;
 			EstadoActualizado.tilt=Estado.tilt;
-			setTilt(0.6);
+			setTilt(EstadoActualizado.tilt);
 			EstadoActualizado = Estado;	
 		}
 		
 	mutex->unlock();
 	getGiraffOdometria(DatosOdometria);
 	get_button_data(DatosBotones);
-	EstadoActualizado.tilt=0,6;
 	////Comprobación bateria
 	time(&time_actual);
 	double seconds = difftime(time_actual,Bateria.timeStamp);
@@ -241,9 +236,9 @@ void SpecificWorker::DifferentialRobot_stopBase()
 	Estado.vg=0;
 }
 
-RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
+RoboCompGiraffButton::Botones SpecificWorker::GiraffButton_getBotonesState()
 {
-	RoboCompGiraff::Botones Botones;
+	RoboCompGiraffButton::Botones Botones;
 
 	QMutexLocker locker(mutex);
 	Botones.Rojo=DatosBotones.Rojo;
@@ -252,27 +247,39 @@ RoboCompGiraff::Botones SpecificWorker::Giraff_getBotonesState()
 
 }
 
-float SpecificWorker::Giraff_getTilt()
+
+RoboCompJointMotorSimple::MotorParams SpecificWorker::JointMotorSimple_getMotorParams(std::string motor)
 {
-	return EstadoActualizado.tilt;
+//implementCODE
+
 }
 
-float SpecificWorker::Giraff_incTilt()
+RoboCompJointMotorSimple::MotorState SpecificWorker::JointMotorSimple_getMotorState(std::string motor)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=EstadoActualizado.tilt+0.1;
+//implementCODE
+RoboCompJointMotorSimple::MotorState motorScreen;
+motorScreen.pos = EstadoActualizado.tilt;
+return motorScreen;
+
 }
 
-float SpecificWorker::Giraff_decTilt()
+void SpecificWorker::JointMotorSimple_setPosition(std::string name, RoboCompJointMotorSimple::MotorGoalPosition goal)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=EstadoActualizado.tilt-0.1;
+//implementCODE
+QMutexLocker locker(mutex);
+	Estado.tilt=goal.position;
 }
 
-void SpecificWorker::Giraff_setTilt(float tilt)
+void SpecificWorker::JointMotorSimple_setVelocity(std::string name, RoboCompJointMotorSimple::MotorGoalVelocity goal)
 {
-	QMutexLocker locker(mutex);
-	Estado.tilt=tilt;
+//implementCODE
+
+}
+
+void SpecificWorker::JointMotorSimple_setZeroPos(std::string name)
+{
+//implementCODE
+
 }
 
 
@@ -282,4 +289,16 @@ void SpecificWorker::Giraff_setTilt(float tilt)
 
 /**************************************/
 // From the RoboCompDifferentialRobot you can use this types:
-// RoboCompDifferentialRobot::TMechParamscma
+// RoboCompDifferentialRobot::TMechParams
+
+/**************************************/
+// From the RoboCompGiraffButton you can use this types:
+// RoboCompGiraffButton::Botones
+
+/**************************************/
+// From the RoboCompJointMotorSimple you can use this types:
+// RoboCompJointMotorSimple::MotorState
+// RoboCompJointMotorSimple::MotorParams
+// RoboCompJointMotorSimple::MotorGoalPosition
+// RoboCompJointMotorSimple::MotorGoalVelocity
+

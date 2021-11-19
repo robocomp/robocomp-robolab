@@ -27,17 +27,13 @@
 #include "genericworker.h"
 
 
-class GiraffI : public virtual RoboCompGiraff::Giraff
+class GiraffI : public virtual Giraff::Giraff
 {
 public:
 	GiraffI(GenericWorker *_worker);
 	~GiraffI();
 
-	float decTilt(const Ice::Current&);
-	RoboCompGiraff::Botones getBotonesState(const Ice::Current&);
-	float getTilt(const Ice::Current&);
-	float incTilt(const Ice::Current&);
-	void setTilt(float tilt, const Ice::Current&);
+	Giraff::Botones getBotonesState(const Ice::Current&);
 
 private:
 

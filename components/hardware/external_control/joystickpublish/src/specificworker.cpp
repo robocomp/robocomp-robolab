@@ -124,7 +124,9 @@ void SpecificWorker::initialize(int period)
 }
 
 void SpecificWorker::compute( )
-{}
+{
+
+}
 
 ////////////////////////////////////////////////////////////////////////777
 

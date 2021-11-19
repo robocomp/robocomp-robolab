@@ -34,8 +34,7 @@ Worker::Worker(QObject *parent) : QThread(parent)
 */
 Worker::~Worker()
 {
-	if(handler != NULL)
-		delete handler;
+	v
 	delete w_mutex;
 	delete monitor_mutex;
 }

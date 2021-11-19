@@ -1,0 +1,11 @@
+import "JointMotorSimple.idsl";
+
+Component dynamixel
+{
+    Communications
+    {
+        implements JointMotorSimple;
+    };
+    language Cpp11;
+};
+

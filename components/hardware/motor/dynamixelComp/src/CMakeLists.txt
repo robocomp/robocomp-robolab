@@ -12,7 +12,6 @@ SET ( SOURCES
   servo.cpp
   commonbehaviorI.cpp
   $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
-  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.cpp
   $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
 )
 
@@ -21,7 +20,6 @@ SET ( HEADERS
   worker.h
   monitor.h
   commonbehaviorI.h
-  $ENV{ROBOCOMP}/classes/q4serialport/q4serialport.h
 )
 
 # RoboComp
@@ -31,16 +29,12 @@ INCLUDE ($ENV{ROBOCOMP}/cmake/modules/dynamixel.cmake )
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( JointMotor CommonBehavior)
 
-# Qt4
-ADD_DEFINITIONS( -Wall -DLINUX -D__LINUX__ -DUNIX -DQT_DLL -DQT_GUI_LIB -DQT_CORE_LIB )
-FIND_PACKAGE( Qt4 REQUIRED )
-SET( QT_USE_QTGUI TRUE )
-SET( QT_USE_QTOPENGL TRUE )
-INCLUDE( ${QT_USE_FILE} )
-QT4_WRAP_CPP( MOC_SOURCES ${HEADERS} )
+# Qt
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/qt.cmake )
+
 
 # Specify construction and link process
 SET (EXECUTABLE_OUTPUT_PATH ../bin)
 ADD_EXECUTABLE( dynamixelComp ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
-TARGET_LINK_LIBRARIES( dynamixelComp ${QT_LIBRARIES} -lQtXml  ${LIBS} -lusb ${Ice_LIBRARIES})
+TARGET_LINK_LIBRARIES( dynamixelComp ${QT_LIBRARIES}   ${LIBS} -lusb ${Ice_LIBRARIES})
 INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/dynamixelComp DESTINATION /opt/robocomp/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

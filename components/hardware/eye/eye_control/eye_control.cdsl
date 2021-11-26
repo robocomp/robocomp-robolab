@@ -1,0 +1,12 @@
+import "JointMotorSimple.idsl";
+
+Component eye_control
+{
+    Communications
+    {
+        requires JointMotorSimple;
+    };
+    language python;
+    gui Qt(QWidget);
+};
+

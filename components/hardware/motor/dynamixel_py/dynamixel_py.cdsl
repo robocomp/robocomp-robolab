@@ -6,6 +6,6 @@ Component dynamixel
     {
         implements JointMotorSimple;
     };
-    language Cpp11;
+    language python; 
 };
 

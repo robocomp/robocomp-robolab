@@ -1,0 +1,14 @@
+# Proxies for required interfaces
+JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 17193
+
+
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

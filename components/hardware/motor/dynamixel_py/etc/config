@@ -1,13 +1,10 @@
-CommonBehavior.Endpoints=tcp -p 10000
-
 # Endpoints for implements interfaces
-interfaceName.Endpoints=tcp -p 0
-
-
-
-InnerModelPath = innermodel.xml
+JointMotorSimple.Endpoints=tcp -p 17193
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 Ice.MessageSizeMax=20004800
+
+
+

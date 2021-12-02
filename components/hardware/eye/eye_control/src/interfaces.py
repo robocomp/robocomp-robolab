@@ -5,9 +5,29 @@ from rich.console import Console, Text
 console = Console()
 
 
+Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
+import RoboCompCameraSimple
 Ice.loadSlice("-I ./src/ --all ./src/JointMotorSimple.ice")
 import RoboCompJointMotorSimple
 
+class ImgType(list):
+    def __init__(self, iterable=list()):
+        super(ImgType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(ImgType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).insert(index, item)
+
+setattr(RoboCompCameraSimple, "ImgType", ImgType)
 
 
 
@@ -47,6 +67,8 @@ class Requires:
     def __init__(self, ice_connector):
         self.ice_connector = ice_connector
         self.mprx={}
+
+        self.CameraSimple = self.create_proxy("CameraSimpleProxy", RoboCompCameraSimple.CameraSimplePrx)
 
         self.JointMotorSimple = self.create_proxy("JointMotorSimpleProxy", RoboCompJointMotorSimple.JointMotorSimplePrx)
 

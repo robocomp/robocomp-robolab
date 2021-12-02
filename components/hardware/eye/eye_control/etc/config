@@ -1,8 +1,6 @@
 # Proxies for required interfaces
 JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 17193
-
-
-
+CameraSimpleProxy = camerasimple:tcp -h localhost -p 10195
 
 
 Ice.Warn.Connections=0

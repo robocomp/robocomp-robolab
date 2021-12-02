@@ -21,23 +21,54 @@
 
 from PySide2.QtCore import QTimer
 from PySide2.QtWidgets import QApplication
+from PySide2.QtGui import QImage, QPixmap
+from PySide2.QtCharts import QtCharts
+from PySide2.QtCore import QRandomGenerator
 from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
+import numpy as np
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
+QChartView = QtCharts.QChartView
+QChart = QtCharts.QChart
+QValueAxis = QtCharts.QValueAxis
+QLineSeries = QtCharts.QLineSeries
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
 
-        QObject.connect(self.ui.horizontalSlider_pos, SIGNAL('valueChanged(int)'), self.slot_change_pos)
-        QObject.connect(self.ui.horizontalSlider_max_speed, SIGNAL('valueChanged(int)'), self.slot_change_max_speed)
         motor = self.jointmotorsimple_proxy.getMotorState("")
         self.ui.horizontalSlider_pos.setSliderPosition(motor.pos)
         self.current_max_speed = 0.0
+
+        QObject.connect(self.ui.horizontalSlider_pos, SIGNAL('valueChanged(int)'), self.slot_change_pos)
+        QObject.connect(self.ui.horizontalSlider_max_speed, SIGNAL('valueChanged(int)'), self.slot_change_max_speed)
+        QObject.connect(self.ui.pushButton_center, SIGNAL('clicked()'), self.slot_center)
+
+        self.m_x = 0
+        self.chart = QChart()
+        self.track_error = QLineSeries()
+        green_pen = QPen(Qt.blue)
+        green_pen.setWidth(2)
+        self.track_error.setPen(green_pen)
+        self.axisX = QValueAxis()
+        self.axisY = QValueAxis()
+        self.axisX.setTickCount(0.1)
+        self.axisX.setRange(0, 1000)
+        self.axisY.setRange(-5, 10)
+        self.chart.addSeries(self.track_error)
+        self.chart.addAxis(self.axisX, Qt.AlignBottom)
+        self.chart.addAxis(self.axisY, Qt.AlignLeft)
+        self.track_error.attachAxis(self.axisX)
+        self.track_error.attachAxis(self.axisY)
+        self.chart.legend().hide()
+        self.chartView = QChartView(self.chart, self.ui.frame_error)
+        self.chartView.resize(self.ui.frame_error.size())
+        self.chartView.show()
 
         self.Period = 100
         if startup_check:
@@ -60,32 +91,55 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print('SpecificWorker.compute...')
-        motor = self.jointmotorsimple_proxy.getMotorState("")
-        #print(motor)
+        #print('SpecificWorker.compute...')
+        try:
+            motor = self.jointmotorsimple_proxy.getMotorState("")
+        except:
+            print("Ice error communicating with JointMotorSimple interface")
+
+        try:
+            color = self.camerasimple_proxy.getImage()
+            #image = np.frombuffer(color.image, np.uint8).reshape(color.height, color.width, color.depth)
+        except:
+            print("Ice error communicating with CameraSimple interface")
+
+        image = QImage(color.image, color.width, color.height, QImage.Format_RGB888)
+        pix = QPixmap.fromImage(image).scaled(self.ui.label_image.width(), self.ui.label_image.height())
+        self.ui.label_image.setPixmap(pix)
+
         self.ui.lcdNumber_pos.display(motor.pos)
-        if motor.vel < 1023:
-            self.ui.lcdNumber_speed.display(motor.vel)
-        else:
-            self.ui.lcdNumber_speed.display(1000-motor.vel)
+        self.ui.lcdNumber_speed.display(motor.vel)
         self.ui.lcdNumber_temp.display(motor.temperature)
         self.ui.lcdNumber_max_speed.display(self.current_max_speed)
         if motor.isMoving:
             self.ui.radioButton_moving.setChecked(True)
         else:
             self.ui.radioButton_moving.setChecked(False)
-        return True
+
+        self.graph_tick()
 
     @QtCore.Slot()
-    def slot_change_pos(self, pos):
+    def slot_change_pos(self, pos):   # comes in degrees -150 .. 150. Sent in radians -2.62 .. 2.62
         goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-        goal.position = pos
-        goal.maxSpeed = 0
+        goal.position = (2.62/150.0)*pos
+        goal.maxSpeed = self.current_max_speed
         self.jointmotorsimple_proxy.setPosition("", goal)
 
     @QtCore.Slot()
     def slot_change_max_speed(self, max_speed):
-        self.current_max_speed = max_speed
+        self.current_max_speed = max_speed*0.111/60*np.pi*2.0
+
+    @QtCore.Slot()
+    def slot_center(self):
+        self.ui.horizontalSlider_pos.setSliderPosition(0)
+
+    def graph_tick(self):
+        m_y = QRandomGenerator.global_().bounded(5) - 2.5
+        self.m_x += 20
+        self.track_error.append(self.m_x, m_y)
+        if self.m_x > 1000:
+            self.chart.scroll(5, 0)
+
 
 #####################################################################################################
     def startup_check(self):

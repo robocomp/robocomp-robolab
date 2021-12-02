@@ -3,4 +3,4 @@ PROJECT(  eye_control )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior JointMotorSimple )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraSimple JointMotorSimple )

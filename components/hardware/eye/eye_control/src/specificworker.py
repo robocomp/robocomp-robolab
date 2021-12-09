@@ -28,6 +28,7 @@ from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
 import numpy as np
+import cv2, traceback, json
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -70,6 +71,11 @@ class SpecificWorker(GenericWorker):
         self.chartView.resize(self.ui.frame_error.size())
         self.chartView.show()
 
+        self.face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+        with open('human_pose.json', 'r') as f:
+            self.human_pose = json.load(f)
+
         self.Period = 100
         if startup_check:
             self.startup_check()
@@ -98,14 +104,60 @@ class SpecificWorker(GenericWorker):
             print("Ice error communicating with JointMotorSimple interface")
 
         try:
-            color = self.camerasimple_proxy.getImage()
-            #image = np.frombuffer(color.image, np.uint8).reshape(color.height, color.width, color.depth)
+            color = self.camerargbdsimple_proxy.getImage("")
         except:
-            print("Ice error communicating with CameraSimple interface")
+            print("Ice error communicating with CameraRGBDSimple interface")
 
-        image = QImage(color.image, color.width, color.height, QImage.Format_RGB888)
-        pix = QPixmap.fromImage(image).scaled(self.ui.label_image.width(), self.ui.label_image.height())
+        try:
+            people_data = self.humancamerabody_proxy.newPeopleData()
+            #print(list(people_data.peoplelist[0].joints.keys()))
+        except:
+            traceback.print_exc()
+            print("Ice error communicating with HumaCameraBody interface")
+
+        image = np.frombuffer(color.image, np.uint8).reshape(color.width, color.height, color.depth)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # Draw body parts on image
+        for person in people_data.peoplelist:
+            for name1, name2 in self.human_pose["skeleton"]:
+                try:
+                    #if str(name1) in list(person.joints.keys()) and str(name2) in list(person.joints.keys()):
+                    #    print(name1, name2)
+                    joint1 = person.joints[str(name1)]
+                    joint2 = person.joints[str(name2)]
+                    #print(joint1.i, joint2.j)
+                    cv2.line(image, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+                except:
+                    pass
+
+        # compute bounding box
+        faceList = ["2", "3"]
+        faceNameList = []
+
+        if len(people_data.peoplelist) > 0:
+            person = people_data.peoplelist[0]
+            for key_point in list(person.joints.keys()):
+                if key_point in faceList:
+                    faceNameList.append(key_point)
+
+        if len(faceNameList) == 2:
+            puntoMedioX = (person.joints[faceNameList[0]].i + person.joints[faceNameList[1]].i)/2.0
+            puntoMedioY = (person.joints[faceNameList[0]].j + person.joints[faceNameList[1]].j)/2.0
+            cv2.circle(image, (int(puntoMedioX-10), int(puntoMedioY-10)), 10, (255, 0, 0), 2)
+
+            error = puntoMedioX - color.width/2
+            goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
+            error_rads = np.arctan2(error, color.focalx)
+            print(goal.position, color.focalx, motor.pos)
+            goal.position = motor.pos - error_rads
+            #     print(goal)
+            self.jointmotorsimple_proxy.setPosition("", goal)
+
+        qt_image = QImage(image, color.height, color.width, QImage.Format_RGB888)
+        pix = QPixmap.fromImage(qt_image).scaled(self.ui.label_image.width(), self.ui.label_image.height())
         self.ui.label_image.setPixmap(pix)
+        # image = np.frombuffer(color.image, np.uint8).reshape(color.height, color.width, color.depth)
 
         self.ui.lcdNumber_pos.display(motor.pos)
         self.ui.lcdNumber_speed.display(motor.vel)
@@ -116,7 +168,7 @@ class SpecificWorker(GenericWorker):
         else:
             self.ui.radioButton_moving.setChecked(False)
 
-        self.graph_tick()
+        #self.graph_tick()
 
     @QtCore.Slot()
     def slot_change_pos(self, pos):   # comes in degrees -150 .. 150. Sent in radians -2.62 .. 2.62
@@ -167,5 +219,27 @@ class SpecificWorker(GenericWorker):
     # RoboCompJointMotorSimple.MotorParams
     # RoboCompJointMotorSimple.MotorGoalPosition
     # RoboCompJointMotorSimple.MotorGoalVelocity
+
+
+    #image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        #faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
+        #print(len(faces))
+        # for (x, y, w, h) in faces:
+        #     cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        #     error = x+(w/2.0) - color.width/2.0
+        #     # # # error en pixels to radians
+        #     goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
+        #     #goal.position = np.arctan2(error, color.focalx)
+        #     goal.position = motor.pos + (error / 800)
+        #     print(goal)
+            #self.jointmotorsimple_proxy.setPosition("", goal)
+        #cv2.imshow("", image)
+
+        # try:
+        #     skeleton = self.humancamerabody_proxy.newPeopleData()
+        #     print(skeleton)
+        # except:
+        #     print("Ice error communicating with HumanCameraBody interface")
 
 

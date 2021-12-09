@@ -5,8 +5,10 @@ from rich.console import Console, Text
 console = Console()
 
 
-Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
-import RoboCompCameraSimple
+Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
+import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
+import RoboCompHumanCameraBody
 Ice.loadSlice("-I ./src/ --all ./src/JointMotorSimple.ice")
 import RoboCompJointMotorSimple
 
@@ -27,7 +29,151 @@ class ImgType(list):
         assert isinstance(item, byte)
         super(ImgType, self).insert(index, item)
 
-setattr(RoboCompCameraSimple, "ImgType", ImgType)
+setattr(RoboCompCameraRGBDSimple, "ImgType", ImgType)
+class DepthType(list):
+    def __init__(self, iterable=list()):
+        super(DepthType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(DepthType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(DepthType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(DepthType, self).insert(index, item)
+
+setattr(RoboCompCameraRGBDSimple, "DepthType", DepthType)
+class DescriptorFloat(list):
+    def __init__(self, iterable=list()):
+        super(DescriptorFloat, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, float)
+        super(DescriptorFloat, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, float)
+        super(DescriptorFloat, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, float)
+        super(DescriptorFloat, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescriptorFloat", DescriptorFloat)
+class DescriptorByte(list):
+    def __init__(self, iterable=list()):
+        super(DescriptorByte, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(DescriptorByte, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(DescriptorByte, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(DescriptorByte, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescriptorByte", DescriptorByte)
+class DescByteList(list):
+    def __init__(self, iterable=list()):
+        super(DescByteList, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescByteList", DescByteList)
+class DescFloatList(list):
+    def __init__(self, iterable=list()):
+        super(DescFloatList, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescFloatList", DescFloatList)
+class ImgType(list):
+    def __init__(self, iterable=list()):
+        super(ImgType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(ImgType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "ImgType", ImgType)
+class GroundTruth(list):
+    def __init__(self, iterable=list()):
+        super(GroundTruth, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "GroundTruth", GroundTruth)
+class People(list):
+    def __init__(self, iterable=list()):
+        super(People, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "People", People)
 
 
 
@@ -68,7 +214,9 @@ class Requires:
         self.ice_connector = ice_connector
         self.mprx={}
 
-        self.CameraSimple = self.create_proxy("CameraSimpleProxy", RoboCompCameraSimple.CameraSimplePrx)
+        self.CameraRGBDSimple = self.create_proxy("CameraRGBDSimpleProxy", RoboCompCameraRGBDSimple.CameraRGBDSimplePrx)
+
+        self.HumanCameraBody = self.create_proxy("HumanCameraBodyProxy", RoboCompHumanCameraBody.HumanCameraBodyPrx)
 
         self.JointMotorSimple = self.create_proxy("JointMotorSimpleProxy", RoboCompJointMotorSimple.JointMotorSimplePrx)
 

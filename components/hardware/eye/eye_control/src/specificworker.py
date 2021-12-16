@@ -76,6 +76,8 @@ class SpecificWorker(GenericWorker):
         with open('human_pose.json', 'r') as f:
             self.human_pose = json.load(f)
 
+        self.error_ant = 0
+
         self.Period = 100
         if startup_check:
             self.startup_check()
@@ -133,26 +135,55 @@ class SpecificWorker(GenericWorker):
 
         # compute bounding box
         faceList = ["2", "3"]
+        hipList = ["12", "13"]
         faceNameList = []
+        hipNameList = []
 
         if len(people_data.peoplelist) > 0:
             person = people_data.peoplelist[0]
             for key_point in list(person.joints.keys()):
                 if key_point in faceList:
                     faceNameList.append(key_point)
+                if key_point in hipList:
+                    hipNameList.append(key_point)
 
         if len(faceNameList) == 2:
-            puntoMedioX = (person.joints[faceNameList[0]].i + person.joints[faceNameList[1]].i)/2.0
-            puntoMedioY = (person.joints[faceNameList[0]].j + person.joints[faceNameList[1]].j)/2.0
+            i0 = person.joints[faceNameList[0]].i
+            j0 = person.joints[faceNameList[0]].j
+            i1 = person.joints[faceNameList[1]].i
+            j1 = person.joints[faceNameList[1]].j
+            puntoMedioX = (i0 + i1)/2.0
+            puntoMedioY = (j0 + j1) / 2.0
             cv2.circle(image, (int(puntoMedioX-10), int(puntoMedioY-10)), 10, (255, 0, 0), 2)
+            cv2.rectangle(image,  (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
+
+            # points = np.array()
+            # points = np.append(ooints, )
+            # rect = cv2.boundingRect(points)
+            # cv2.rectangle(image,  (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
+
+            # error = puntoMedioX - color.width/2
+            # goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
+            # error_rads = np.arctan2(error, color.focalx)
+            # print(goal.position, color.focalx, motor.pos)
+            # goal.position = motor.pos - error_rads
+            #     print(goal)
+            # self.jointmotorsimple_proxy.setPosition("", goal)
+
+        if len(hipNameList) == 2:
+            puntoMedioX = (person.joints[hipNameList[0]].i + person.joints[hipNameList[1]].i)/2.0
+            puntoMedioY = (person.joints[hipNameList[0]].j + person.joints[hipNameList[1]].j)/2.0
+            cv2.circle(image, (int(puntoMedioX-10), int(puntoMedioY-10)), 10, (0, 150, 255), 2)
 
             error = puntoMedioX - color.width/2
             goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-            error_rads = np.arctan2(error, color.focalx)
+            der_error = -(error - self.error_ant)
+            error_rads = np.arctan2(1.1*error + 0.8*der_error, color.focalx)
             print(goal.position, color.focalx, motor.pos)
             goal.position = motor.pos - error_rads
             #     print(goal)
             self.jointmotorsimple_proxy.setPosition("", goal)
+            self.error_ant = error
 
         qt_image = QImage(image, color.height, color.width, QImage.Format_RGB888)
         pix = QPixmap.fromImage(qt_image).scaled(self.ui.label_image.width(), self.ui.label_image.height())

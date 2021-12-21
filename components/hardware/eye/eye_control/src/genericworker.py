@@ -47,7 +47,8 @@ class GenericWorker(QtWidgets.QWidget):
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
-        self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+        self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
+        self.humancamerabody_proxy = mprx["HumanCameraBodyProxy"]
         self.jointmotorsimple_proxy = mprx["JointMotorSimpleProxy"]
 
         self.ui = Ui_guiDlg()

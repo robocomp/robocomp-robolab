@@ -1,11 +1,12 @@
 import "JointMotorSimple.idsl";
-import "CameraSimple.idsl";
+import "CameraRGBDSimple.idsl";
+import "HumanCameraBody.idsl"; 
 
 Component eye_control
 {
     Communications
     {
-        requires JointMotorSimple,CameraSimple;
+        requires JointMotorSimple, CameraRGBDSimple, HumanCameraBody;
     };
     language python;
     gui Qt(QWidget);

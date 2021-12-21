@@ -26,7 +26,7 @@ from genericworker import *
 import interfaces as ifaces
 from dynamixel_sdk import *                    # Uses Dynamixel SDK library
 import sys, time
-from threading import Thread, Lock
+import numpy as np
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -61,9 +61,29 @@ DEVICENAME                  = '/dev/ttyUSB0'    # Check which port is being used
 
 TORQUE_ENABLE               = 1                # Value for enabling the torque
 TORQUE_DISABLE              = 0                # Value for disabling the torque
-DXL_MINIMUM_POSITION_VALUE = 0                 # Dynamixel will rotate between this value
-DXL_MAXIMUM_POSITION_VALUE = 299               # and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
-DXL_MOVING_STATUS_THRESHOLD = 2                # Dynamixel moving status threshold
+
+MIN_POS_STEPS = 0
+MAX_POS_STEPS = 1023                           # steps 0~1023 (0x3FF), and the unit is 0.29 [°]
+MAX_POS_RANGE_RADS = 5.23
+MIN_POS_RADS = -MAX_POS_RANGE_RADS/2
+MAX_POS_RADS = MAX_POS_RANGE_RADS/2
+
+# MAX SPEED
+# 0 ~ 1,023(0x3FF) can be used, and the unit is about 0.111rpm.
+# If it is set to 0, it means the maximum rpm of the motor is used without controlling the speed.
+# If it is 1023, it is about 114rpm.
+# For example, if it is set to 300, it is about 33.3 rpm.
+MAX_SPEED_STEPS = 1023
+MIN_SPEED_STEPS = 1
+MAX_SPEED_RADSG = (np.pi*2.0/60)*0.111*1023
+MIN_SPEED_RADSG = (np.pi*2.0/60)*0.111
+
+# SET USB latency to 1ms
+# echo 1 | sudo tee /sys/bus/usb-serial/devices/ttyUSB0/latency_timer
+# $ echo ACTION==\"add\", SUBSYSTEM==\"usb-serial\", DRIVER==\"ftdi_sio\", ATTR{latency_timer}=\"1\" > 99-dynamixelsdk-usb.rules # $ sudo cp ./99-dynamixelsdk-usb.rules /etc/udev/rules.d/
+# $ sudo udevadm control --reload-rules
+# $ sudo udevadm trigger --action=add
+# $ cat /sys/bus/usb-serial/devices/ttyUSB0/latency_timer
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
@@ -94,12 +114,12 @@ class SpecificWorker(GenericWorker):
             quit()
 
         # Global vars
-        self.current_pos = 0.0
-        self.current_speed = 0.0
+        self.current_pos = 0
+        self.current_speed = 0
         self.current_temp = 0
         self.moving_status = False
         self.current_goal = None
-        self.mutex = QtCore.QMutex()
+        self.current_max_speed = None
 
         self.Period = 100
         if startup_check:
@@ -121,39 +141,41 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        #locker = QtCore.QMutexLocker(self.mutex)
-
         if self.current_goal:
             dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler,
                                                                            DXL_ID,
                                                                            ADDR_MX_MOVING_SPEED,
-                                                                           int(self.current_goal.maxSpeed))
+                                                                           self.current_max_speed)
             if not self.check_error("Goal max speed", dxl_comm_result, dxl_error):
                 pass
 
             dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler,
                                                                            DXL_ID,
                                                                            ADDR_MX_GOAL_POSITION,
-                                                                           int(self.current_goal.position))
+                                                                           self.current_goal)
             if not self.check_error("Goal pos", dxl_comm_result, dxl_error):
                 self.current_goal = None
 
-        #print('SpecificWorker.compute...')
+        # POS
         dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler,
                                                                                             DXL_ID,
                                                                                             ADDR_MX_PRESENT_POSITION)
         if not self.check_error("Position", dxl_comm_result, dxl_error):
-            #print("Pos: ", dxl_present_position)
-            self.current_pos = dxl_present_position
+            self.current_pos = (MAX_POS_RANGE_RADS/MAX_POS_STEPS)*dxl_present_position - (MAX_POS_RANGE_RADS/2.0)
+            #print("Pos (steps): ", dxl_present_position, " - rads", self.current_pos)
 
+        # SPEED
         dxl_present_speed, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler,
                                                                                             DXL_ID,
                                                                                             ADDR_MX_PRESENT_SPEED)
         if not self.check_error("Speed", dxl_comm_result, dxl_error):
-            #print("Speed: ", dxl_present_speed)
-            #if dxl_present_speed > 1023:
-            self.current_speed = dxl_present_speed
+            if dxl_present_speed > MAX_SPEED_STEPS:
+                self.current_speed = -(dxl_present_speed-MAX_SPEED_STEPS)*(MAX_SPEED_RADSG/MAX_SPEED_STEPS)
+            else:
+                self.current_speed = dxl_present_speed*(MAX_SPEED_RADSG/MAX_SPEED_STEPS)
+            print("Speed  ", dxl_present_speed, self.current_speed)
 
+        # TEMP
         dxl_present_temperature, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler,
                                                                                          DXL_ID,
                                                                                          ADDR_MX_PRESENT_TEMPERATURE)
@@ -161,6 +183,7 @@ class SpecificWorker(GenericWorker):
             #print("Temp: ", dxl_present_temperature)
             self.current_temp = dxl_present_temperature
 
+        # MOVING
         dxl_moving_status, dxl_comm_result, dxl_error = self.packetHandler.read2ByteTxRx(self.portHandler,
                                                                                          DXL_ID,
                                                                                          ADDR_MX_MOVING_STATUS)
@@ -189,16 +212,13 @@ class SpecificWorker(GenericWorker):
     #
     def JointMotorSimple_getMotorParams(self, motor):
         ret = ifaces.RoboCompJointMotorSimple.MotorParams()
-        #
-        # write your CODE here
-        #
         return ret
     #
     # IMPLEMENTATION of getMotorState method from JointMotorSimple interface
     #
     def JointMotorSimple_getMotorState(self, motor):
         ret = ifaces.RoboCompJointMotorSimple.MotorState()
-        ret.pos = self.current_pos      # rads
+        ret.pos = self.current_pos      # rads -2.62 .. 2.62.
         ret.vel = self.current_speed    #rads / sg
         ret.power = 0
         ret.timeStamp = str(int(time.time()))
@@ -210,12 +230,11 @@ class SpecificWorker(GenericWorker):
     #
     # IMPLEMENTATION of setPosition method from JointMotorSimple interface
     #
-    def JointMotorSimple_setPosition(self, name, goal):
+    def JointMotorSimple_setPosition(self, name, goal):  # comes in radians -2.62 .. 2.62. Goes in STEPS 0..1023
         #print("Set position: ", goal)
-        if goal.position <= DXL_MAXIMUM_POSITION_VALUE and \
-                goal.position > DXL_MINIMUM_POSITION_VALUE and \
-                goal.maxSpeed >= 0 and goal.maxSpeed < 1024:
-            self.current_goal = goal
+        if goal.position <= MAX_POS_RADS and goal.position > MIN_POS_RADS and goal.maxSpeed >= 0 and goal.maxSpeed < 1024:
+            self.current_goal = int((MAX_POS_STEPS/MAX_POS_RANGE_RADS)*goal.position + (MAX_POS_STEPS/2))
+            self.current_max_speed = int(MAX_SPEED_STEPS/MAX_SPEED_RADSG*goal.maxSpeed)
 
     #
     # IMPLEMENTATION of setVelocity method from JointMotorSimple interface
@@ -226,7 +245,6 @@ class SpecificWorker(GenericWorker):
         # write your CODE here
         #
         pass
-
 
     #
     # IMPLEMENTATION of setZeroPos method from JointMotorSimple interface

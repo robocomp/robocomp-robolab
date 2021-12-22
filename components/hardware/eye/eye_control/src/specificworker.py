@@ -24,6 +24,7 @@ from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QImage, QPixmap
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import QRandomGenerator
+from meld.vc import _null
 from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
@@ -38,6 +39,9 @@ QChart = QtCharts.QChart
 QValueAxis = QtCharts.QValueAxis
 QLineSeries = QtCharts.QLineSeries
 
+MIN_VELOCITY = 0.05
+TOLERANCE = 0.01
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
@@ -49,6 +53,8 @@ class SpecificWorker(GenericWorker):
         QObject.connect(self.ui.horizontalSlider_pos, SIGNAL('valueChanged(int)'), self.slot_change_pos)
         QObject.connect(self.ui.horizontalSlider_max_speed, SIGNAL('valueChanged(int)'), self.slot_change_max_speed)
         QObject.connect(self.ui.pushButton_center, SIGNAL('clicked()'), self.slot_center)
+        QObject.connect(self.ui.pushButton, SIGNAL('clicked()'), self.slot_track)
+
 
         self.m_x = 0
         self.chart = QChart()
@@ -76,9 +82,11 @@ class SpecificWorker(GenericWorker):
         with open('human_pose.json', 'r') as f:
             self.human_pose = json.load(f)
 
+        self.track = False
         self.error_ant = 0
+        self.rad_old = 0
 
-        self.Period = 100
+        self.Period = 50
         if startup_check:
             self.startup_check()
         else:
@@ -99,7 +107,23 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        #print('SpecificWorker.compute...')
+        #obtenemos datos
+        motor, color, people_data = self.obtencion_datos()
+
+        image = np.frombuffer(color.image, np.uint8).reshape(color.width, color.height, color.depth)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # Draw body parts on image
+        image, puntoMedioX, puntoMedioY = self.proceso_esqueleto(image, people_data)
+
+        #Hay persona y modo track activado
+        if puntoMedioY and puntoMedioX and self.track:
+            self.tracker(color, motor, puntoMedioX)
+
+        #Actualización de ventana Eye Control
+        self.refesco_ventana(color, image)
+
+    def obtencion_datos(self):
         try:
             motor = self.jointmotorsimple_proxy.getMotorState("")
         except:
@@ -112,23 +136,23 @@ class SpecificWorker(GenericWorker):
 
         try:
             people_data = self.humancamerabody_proxy.newPeopleData()
-            #print(list(people_data.peoplelist[0].joints.keys()))
+            # print(list(people_data.peoplelist[0].joints.keys()))
         except:
             traceback.print_exc()
             print("Ice error communicating with HumaCameraBody interface")
+        return motor, color, people_data
 
-        image = np.frombuffer(color.image, np.uint8).reshape(color.width, color.height, color.depth)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    def proceso_esqueleto(self, image, people_data):
         # Draw body parts on image
         for person in people_data.peoplelist:
             for name1, name2 in self.human_pose["skeleton"]:
                 try:
-                    #if str(name1) in list(person.joints.keys()) and str(name2) in list(person.joints.keys()):
+                    # Printing bones
+                    # if str(name1) in list(person.joints.keys()) and str(name2) in list(person.joints.keys()):
                     #    print(name1, name2)
                     joint1 = person.joints[str(name1)]
                     joint2 = person.joints[str(name2)]
-                    #print(joint1.i, joint2.j)
+                    # print(joint1.i, joint2.j)
                     cv2.line(image, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
                 except:
                     pass
@@ -147,15 +171,18 @@ class SpecificWorker(GenericWorker):
                 if key_point in hipList:
                     hipNameList.append(key_point)
 
+        puntoMedioX = None
+        puntoMedioY = None
+
         if len(faceNameList) == 2:
             i0 = person.joints[faceNameList[0]].i
             j0 = person.joints[faceNameList[0]].j
             i1 = person.joints[faceNameList[1]].i
             j1 = person.joints[faceNameList[1]].j
-            puntoMedioX = (i0 + i1)/2.0
+            puntoMedioX = (i0 + i1) / 2.0
             puntoMedioY = (j0 + j1) / 2.0
-            cv2.circle(image, (int(puntoMedioX-10), int(puntoMedioY-10)), 10, (255, 0, 0), 2)
-            cv2.rectangle(image,  (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
+            cv2.circle(image, (int(puntoMedioX - 10), int(puntoMedioY - 10)), 10, (255, 0, 0), 2)
+            cv2.rectangle(image, (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
 
             # points = np.array()
             # points = np.append(ooints, )
@@ -170,21 +197,38 @@ class SpecificWorker(GenericWorker):
             #     print(goal)
             # self.jointmotorsimple_proxy.setPosition("", goal)
 
+
+
         if len(hipNameList) == 2:
-            puntoMedioX = (person.joints[hipNameList[0]].i + person.joints[hipNameList[1]].i)/2.0
-            puntoMedioY = (person.joints[hipNameList[0]].j + person.joints[hipNameList[1]].j)/2.0
-            cv2.circle(image, (int(puntoMedioX-10), int(puntoMedioY-10)), 10, (0, 150, 255), 2)
+            puntoMedioX = (person.joints[hipNameList[0]].i + person.joints[hipNameList[1]].i) / 2.0
+            puntoMedioY = (person.joints[hipNameList[0]].j + person.joints[hipNameList[1]].j) / 2.0
+            cv2.circle(image, (int(puntoMedioX - 10), int(puntoMedioY - 10)), 10, (0, 150, 255), 2)
+        return image, puntoMedioX, puntoMedioY
 
-            error = puntoMedioX - color.width/2
-            goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-            der_error = -(error - self.error_ant)
-            error_rads = np.arctan2(1.1*error + 0.8*der_error, color.focalx)
-            print(goal.position, color.focalx, motor.pos)
+    def tracker(self, color, motor, puntoMedioX):
+        error = puntoMedioX - color.width / 2
+        goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
+        der_error = -(error - self.error_ant)
+        error_rads = np.arctan2(1.1 * error + 0.8 * der_error, color.focalx)
+        goal_rad = motor.pos - error_rads
+        # Se mueve el sujeto?
+        if self.rad_old > goal_rad + TOLERANCE or self.rad_old < goal_rad - TOLERANCE:
+            rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
+
+            # filtramos velicidad, ya que 0 es maxima
+            if rad_seg < MIN_VELOCITY and rad_seg > MIN_VELOCITY:
+                goal.maxSpeed = MIN_VELOCITY
+            else:
+                goal.maxSpeed = rad_seg
             goal.position = motor.pos - error_rads
-            #     print(goal)
+            # mandamos al motor el objetivo
             self.jointmotorsimple_proxy.setPosition("", goal)
-            self.error_ant = error
 
+            print(goal_rad, self.rad_old, rad_seg)
+            self.error_ant = error
+            self.rad_old = goal_rad
+
+    def refesco_ventana(self, color, image):
         qt_image = QImage(image, color.height, color.width, QImage.Format_RGB888)
         pix = QPixmap.fromImage(qt_image).scaled(self.ui.label_image.width(), self.ui.label_image.height())
         self.ui.label_image.setPixmap(pix)
@@ -199,7 +243,7 @@ class SpecificWorker(GenericWorker):
         else:
             self.ui.radioButton_moving.setChecked(False)
 
-        #self.graph_tick()
+        # self.graph_tick()
 
     @QtCore.Slot()
     def slot_change_pos(self, pos):   # comes in degrees -150 .. 150. Sent in radians -2.62 .. 2.62
@@ -215,6 +259,12 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def slot_center(self):
         self.ui.horizontalSlider_pos.setSliderPosition(0)
+        self.slot_change_pos(0)
+
+    @QtCore.Slot()
+    def slot_track(self):
+        self.track = not self.track
+        print("state track", self.track)
 
     def graph_tick(self):
         m_y = QRandomGenerator.global_().bounded(5) - 2.5

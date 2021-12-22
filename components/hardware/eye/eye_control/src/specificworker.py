@@ -29,7 +29,7 @@ from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
 import numpy as np
-import cv2, traceback, json
+import cv2, traceback, json, math
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -52,8 +52,13 @@ class SpecificWorker(GenericWorker):
 
         QObject.connect(self.ui.horizontalSlider_pos, SIGNAL('valueChanged(int)'), self.slot_change_pos)
         QObject.connect(self.ui.horizontalSlider_max_speed, SIGNAL('valueChanged(int)'), self.slot_change_max_speed)
+        QObject.connect(self.ui.horizontalSlider, SIGNAL('valueChanged(int)'), self.slot_giraff_speed)
         QObject.connect(self.ui.pushButton_center, SIGNAL('clicked()'), self.slot_center)
         QObject.connect(self.ui.pushButton, SIGNAL('clicked()'), self.slot_track)
+        QObject.connect(self.ui.pushButton_2, SIGNAL('clicked()'), self.slot_STOP)
+
+
+
 
 
         self.m_x = 0
@@ -85,6 +90,8 @@ class SpecificWorker(GenericWorker):
         self.track = False
         self.error_ant = 0
         self.rad_old = 0
+
+        self.centered = False
 
         self.Period = 50
         if startup_check:
@@ -121,7 +128,7 @@ class SpecificWorker(GenericWorker):
             self.tracker(color, motor, puntoMedioX)
 
         #Actualización de ventana Eye Control
-        self.refesco_ventana(color, image)
+        self.refesco_ventana(color, image, motor)
 
     def obtencion_datos(self):
         try:
@@ -207,28 +214,71 @@ class SpecificWorker(GenericWorker):
 
     def tracker(self, color, motor, puntoMedioX):
         error = puntoMedioX - color.width / 2
-        goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
         der_error = -(error - self.error_ant)
         error_rads = np.arctan2(1.1 * error + 0.8 * der_error, color.focalx)
-        goal_rad = motor.pos - error_rads
         # Se mueve el sujeto?
+
+
+
+        # Camera speed
+        goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
+        goal_rad = motor.pos - error_rads
         if self.rad_old > goal_rad + TOLERANCE or self.rad_old < goal_rad - TOLERANCE:
             rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
 
-            # filtramos velicidad, ya que 0 es maxima
-            if rad_seg < MIN_VELOCITY and rad_seg > MIN_VELOCITY:
-                goal.maxSpeed = MIN_VELOCITY
+            # Base speed
+            if (self.rad_old > goal_rad):
+                base_speed = 2*(1 - math.exp(-rad_seg ** 2))
             else:
-                goal.maxSpeed = rad_seg
-            goal.position = motor.pos - error_rads
-            # mandamos al motor el objetivo
-            self.jointmotorsimple_proxy.setPosition("", goal)
+                base_speed = -2*((1 - math.exp(-rad_seg ** 2)))
+            self.differentialrobot_proxy.setSpeedBase(0, base_speed)
+            print("base_speed: ", abs(base_speed))
+            print("rad_seg: ", rad_seg)
+            camera_speed = rad_seg - base_speed
+            if abs(base_speed) < rad_seg:
+                # filtramos velicidad, ya que 0 es maxima
+                if camera_speed < MIN_VELOCITY and camera_speed > MIN_VELOCITY:
+                    goal.maxSpeed = MIN_VELOCITY
+                else:
+                    goal.maxSpeed = camera_speed
+                goal.position = motor.pos - error_rads
+                # mandamos al motor el objetivo
+                self.jointmotorsimple_proxy.setPosition("", goal)
+                print(goal_rad, self.rad_old, rad_seg)
 
-            print(goal_rad, self.rad_old, rad_seg)
             self.error_ant = error
             self.rad_old = goal_rad
+        '''
+        if -0.09 <= error_rads <= 0.09:
+            self.centered = True
+            goal_rad = 0
+            while -TOLERANCE <= motor.pos <= TOLERANCE:
+                if -0.09 <= error_rads:
+                    self.differentialrobot_proxy.setSpeedBase(0, -0.6)
+                    error = puntoMedioX - color.width / 2
+                    der_error = -(error - self.error_ant)
+                    error_rads = np.arctan2(1.1 * error + 0.8 * der_error, color.focalx)
+                    if self.rad_old < goal_rad - TOLERANCE:
+                        rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
+                        if rad_seg < MIN_VELOCITY and rad_seg > MIN_VELOCITY:
+                            goal.maxSpeed = MIN_VELOCITY
+                        else:
+                            goal.maxSpeed = rad_seg
+                        goal.position = motor.pos - error_rads
+                        # mandamos al motor el objetivo
+                        self.jointmotorsimple_proxy.setPosition("", goal)
+                        self.error_ant = error
+                        self.rad_old = goal_rad
 
-    def refesco_ventana(self, color, image):
+        else:
+            self.centered = False
+            
+
+        print("BASE SPEED: ", base_speed)
+        print("ANGLE: ", error_rads)
+        '''
+
+    def refesco_ventana(self, color, image, motor):
         qt_image = QImage(image, color.height, color.width, QImage.Format_RGB888)
         pix = QPixmap.fromImage(qt_image).scaled(self.ui.label_image.width(), self.ui.label_image.height())
         self.ui.label_image.setPixmap(pix)
@@ -248,7 +298,7 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def slot_change_pos(self, pos):   # comes in degrees -150 .. 150. Sent in radians -2.62 .. 2.62
         goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-        goal.position = (2.62/150.0)*pos
+        goal.position = -(2.62/150.0)*pos
         goal.maxSpeed = self.current_max_speed
         self.jointmotorsimple_proxy.setPosition("", goal)
 
@@ -264,7 +314,20 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def slot_track(self):
         self.track = not self.track
+        self.differentialrobot_proxy.setSpeedBase(0, 0)
         print("state track", self.track)
+
+    @QtCore.Slot()
+    def slot_STOP(self):
+        self.track = False
+        self.differentialrobot_proxy.setSpeedBase(0, 0)
+        print("¡¡¡¡¡¡STOOOOOOOOOOOOOP!!!!!!")
+
+    @QtCore.Slot()
+    def slot_giraff_speed(self, speed):
+        self.differentialrobot_proxy.setSpeedBase(0, speed/1000)
+        self.ui.horizontalSlider.setSliderPosition(0)
+
 
     def graph_tick(self):
         m_y = QRandomGenerator.global_().bounded(5) - 2.5
@@ -276,6 +339,24 @@ class SpecificWorker(GenericWorker):
 
 #####################################################################################################
     def startup_check(self):
+        print(f"Testing RoboCompCameraRGBDSimple.TImage from ifaces.RoboCompCameraRGBDSimple")
+        test = ifaces.RoboCompCameraRGBDSimple.TImage()
+        print(f"Testing RoboCompCameraRGBDSimple.TDepth from ifaces.RoboCompCameraRGBDSimple")
+        test = ifaces.RoboCompCameraRGBDSimple.TDepth()
+        print(f"Testing RoboCompCameraRGBDSimple.TRGBD from ifaces.RoboCompCameraRGBDSimple")
+        test = ifaces.RoboCompCameraRGBDSimple.TRGBD()
+        print(f"Testing RoboCompDifferentialRobot.TMechParams from ifaces.RoboCompDifferentialRobot")
+        test = ifaces.RoboCompDifferentialRobot.TMechParams()
+        print(f"Testing RoboCompHumanCameraBody.TImage from ifaces.RoboCompHumanCameraBody")
+        test = ifaces.RoboCompHumanCameraBody.TImage()
+        print(f"Testing RoboCompHumanCameraBody.TGroundTruth from ifaces.RoboCompHumanCameraBody")
+        test = ifaces.RoboCompHumanCameraBody.TGroundTruth()
+        print(f"Testing RoboCompHumanCameraBody.KeyPoint from ifaces.RoboCompHumanCameraBody")
+        test = ifaces.RoboCompHumanCameraBody.KeyPoint()
+        print(f"Testing RoboCompHumanCameraBody.Person from ifaces.RoboCompHumanCameraBody")
+        test = ifaces.RoboCompHumanCameraBody.Person()
+        print(f"Testing RoboCompHumanCameraBody.PeopleData from ifaces.RoboCompHumanCameraBody")
+        test = ifaces.RoboCompHumanCameraBody.PeopleData()
         print(f"Testing RoboCompJointMotorSimple.MotorState from ifaces.RoboCompJointMotorSimple")
         test = ifaces.RoboCompJointMotorSimple.MotorState()
         print(f"Testing RoboCompJointMotorSimple.MotorParams from ifaces.RoboCompJointMotorSimple")
@@ -285,6 +366,45 @@ class SpecificWorker(GenericWorker):
         print(f"Testing RoboCompJointMotorSimple.MotorGoalVelocity from ifaces.RoboCompJointMotorSimple")
         test = ifaces.RoboCompJointMotorSimple.MotorGoalVelocity()
         QTimer.singleShot(200, QApplication.instance().quit)
+
+    ######################
+    # From the RoboCompCameraRGBDSimple you can call this methods:
+    # self.camerargbdsimple_proxy.getAll(...)
+    # self.camerargbdsimple_proxy.getDepth(...)
+    # self.camerargbdsimple_proxy.getImage(...)
+
+    ######################
+    # From the RoboCompCameraRGBDSimple you can use this types:
+    # RoboCompCameraRGBDSimple.TImage
+    # RoboCompCameraRGBDSimple.TDepth
+    # RoboCompCameraRGBDSimple.TRGBD
+
+    ######################
+    # From the RoboCompDifferentialRobot you can call this methods:
+    # self.differentialrobot_proxy.correctOdometer(...)
+    # self.differentialrobot_proxy.getBasePose(...)
+    # self.differentialrobot_proxy.getBaseState(...)
+    # self.differentialrobot_proxy.resetOdometer(...)
+    # self.differentialrobot_proxy.setOdometer(...)
+    # self.differentialrobot_proxy.setOdometerPose(...)
+    # self.differentialrobot_proxy.setSpeedBase(...)
+    # self.differentialrobot_proxy.stopBase(...)
+
+    ######################
+    # From the RoboCompDifferentialRobot you can use this types:
+    # RoboCompDifferentialRobot.TMechParams
+
+    ######################
+    # From the RoboCompHumanCameraBody you can call this methods:
+    # self.humancamerabody_proxy.newPeopleData(...)
+
+    ######################
+    # From the RoboCompHumanCameraBody you can use this types:
+    # RoboCompHumanCameraBody.TImage
+    # RoboCompHumanCameraBody.TGroundTruth
+    # RoboCompHumanCameraBody.KeyPoint
+    # RoboCompHumanCameraBody.Person
+    # RoboCompHumanCameraBody.PeopleData
 
     ######################
     # From the RoboCompJointMotorSimple you can call this methods:
@@ -300,27 +420,3 @@ class SpecificWorker(GenericWorker):
     # RoboCompJointMotorSimple.MotorParams
     # RoboCompJointMotorSimple.MotorGoalPosition
     # RoboCompJointMotorSimple.MotorGoalVelocity
-
-
-    #image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        #faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
-        #print(len(faces))
-        # for (x, y, w, h) in faces:
-        #     cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        #     error = x+(w/2.0) - color.width/2.0
-        #     # # # error en pixels to radians
-        #     goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-        #     #goal.position = np.arctan2(error, color.focalx)
-        #     goal.position = motor.pos + (error / 800)
-        #     print(goal)
-            #self.jointmotorsimple_proxy.setPosition("", goal)
-        #cv2.imshow("", image)
-
-        # try:
-        #     skeleton = self.humancamerabody_proxy.newPeopleData()
-        #     print(skeleton)
-        # except:
-        #     print("Ice error communicating with HumanCameraBody interface")
-
-

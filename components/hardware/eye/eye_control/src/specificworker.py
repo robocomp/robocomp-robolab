@@ -30,6 +30,7 @@ from genericworker import *
 import interfaces as ifaces
 import numpy as np
 import cv2, traceback, json, math
+import time
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -41,6 +42,7 @@ QLineSeries = QtCharts.QLineSeries
 
 MIN_VELOCITY = 0.05
 TOLERANCE = 0.01
+SERVO_TOLERANCE = 0.1
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
@@ -56,10 +58,6 @@ class SpecificWorker(GenericWorker):
         QObject.connect(self.ui.pushButton_center, SIGNAL('clicked()'), self.slot_center)
         QObject.connect(self.ui.pushButton, SIGNAL('clicked()'), self.slot_track)
         QObject.connect(self.ui.pushButton_2, SIGNAL('clicked()'), self.slot_STOP)
-
-
-
-
 
         self.m_x = 0
         self.chart = QChart()
@@ -91,9 +89,21 @@ class SpecificWorker(GenericWorker):
         self.error_ant = 0
         self.rad_old = 0
 
-        self.centered = False
+        # Speed filters variables
+        self.rotational_speed_coefficients=[0,0,0]
+        self.rotational_speed_avg=None
+        self.lineal_speed_coefficients=[0,0,0]
+        self.lineal_speed_avg=None
 
-        self.Period = 50
+
+        # Person distance filter
+        self.distance_coefficients=[0,0,0,0]
+        self.distance_avg=None
+
+        # Distance limit
+        self.distance_limit = 1300
+
+        self.Period = 10
         if startup_check:
             self.startup_check()
         else:
@@ -121,11 +131,11 @@ class SpecificWorker(GenericWorker):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Draw body parts on image
-        image, puntoMedioX, puntoMedioY = self.proceso_esqueleto(image, people_data)
+        image, puntoMedioX, puntoMedioY, distance = self.proceso_esqueleto(image, people_data)
 
         #Hay persona y modo track activado
-        if puntoMedioY and puntoMedioX and self.track:
-            self.tracker(color, motor, puntoMedioX)
+        if puntoMedioY and puntoMedioX and self.track and distance:
+            self.tracker(color, motor, puntoMedioX, distance)
 
         #Actualización de ventana Eye Control
         self.refesco_ventana(color, image, motor)
@@ -172,11 +182,28 @@ class SpecificWorker(GenericWorker):
 
         if len(people_data.peoplelist) > 0:
             person = people_data.peoplelist[0]
+            keypoints_x = []
+            keypoints_y = []
+            keypoints_z = []  # profundidad
+            for key in person.joints:
+                keypoint = person.joints[key]
+                keypoints_x.append(keypoint.x)  # sacar las x de la posicion respecto al mundo
+                keypoints_y.append(keypoint.y)
+                keypoints_z.append(keypoint.z)  # sacar las y de la posicion respecto al mundo
+            pos_x = sum(keypoints_x) / len(keypoints_x)
+            pos_y = sum(keypoints_y) / len(keypoints_y)
+            pos_z = sum(keypoints_z) / len(keypoints_z)
+            distance_vector = [pos_x*1000, pos_y*1000, pos_z*1000]
+            distance = distance_vector[2]
+            print("Distance init: ", distance[2])
+
             for key_point in list(person.joints.keys()):
                 if key_point in faceList:
                     faceNameList.append(key_point)
                 if key_point in hipList:
                     hipNameList.append(key_point)
+        else:
+            distance = 0
 
         puntoMedioX = None
         puntoMedioY = None
@@ -204,79 +231,98 @@ class SpecificWorker(GenericWorker):
             #     print(goal)
             # self.jointmotorsimple_proxy.setPosition("", goal)
 
-
+        # Filtering rotational speeds
+        self.distance_coefficients.append(distance)
+        self.distance_coefficients.pop(0)
+        self.distance_avg = sum(self.distance_coefficients) / len(self.distance_coefficients)
 
         if len(hipNameList) == 2:
             puntoMedioX = (person.joints[hipNameList[0]].i + person.joints[hipNameList[1]].i) / 2.0
             puntoMedioY = (person.joints[hipNameList[0]].j + person.joints[hipNameList[1]].j) / 2.0
             cv2.circle(image, (int(puntoMedioX - 10), int(puntoMedioY - 10)), 10, (0, 150, 255), 2)
-        return image, puntoMedioX, puntoMedioY
+        return image, puntoMedioX, puntoMedioY, self.distance_avg
 
-    def tracker(self, color, motor, puntoMedioX):
+    def tracker(self, color, motor, puntoMedioX, distance):
+        print("Distance: ", distance)
         error = puntoMedioX - color.width / 2
         der_error = -(error - self.error_ant)
         error_rads = np.arctan2(1.1 * error + 0.8 * der_error, color.focalx)
-        # Se mueve el sujeto?
 
-
-
-        # Camera speed
         goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
         goal_rad = motor.pos - error_rads
+
+        # Calculate and filter person speed
         if self.rad_old > goal_rad + TOLERANCE or self.rad_old < goal_rad - TOLERANCE:
-            rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
+            # Calculating rotational speed with image and period data
+            rot_rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
+        else:
+            rot_rad_seg = 0
 
-            # Base speed
-            if (self.rad_old > goal_rad):
-                base_speed = 2*(1 - math.exp(-rad_seg ** 2))
+        # Set rotational base speed
+
+        # Check if somebody is centered by the camera
+        if abs(error_rads) < 0.05:
+            print("CENTERED")
+            if motor.pos > 0:
+                base_speed_rot = -1*(1 - math.exp(-(error_rads ** 2)/5))
+            elif motor.pos < 0:
+                base_speed_rot = 1*(1 - math.exp(-(error_rads ** 2)/5))
             else:
-                base_speed = -2*((1 - math.exp(-rad_seg ** 2)))
-            self.differentialrobot_proxy.setSpeedBase(0, base_speed)
-            print("base_speed: ", abs(base_speed))
-            print("rad_seg: ", rad_seg)
-            camera_speed = rad_seg - base_speed
-            if abs(base_speed) < rad_seg:
-                # filtramos velicidad, ya que 0 es maxima
-                if camera_speed < MIN_VELOCITY and camera_speed > MIN_VELOCITY:
-                    goal.maxSpeed = MIN_VELOCITY
-                else:
-                    goal.maxSpeed = camera_speed
-                goal.position = motor.pos - error_rads
-                # mandamos al motor el objetivo
-                self.jointmotorsimple_proxy.setPosition("", goal)
-                print(goal_rad, self.rad_old, rad_seg)
-
-            self.error_ant = error
-            self.rad_old = goal_rad
-        '''
-        if -0.09 <= error_rads <= 0.09:
-            self.centered = True
-            goal_rad = 0
-            while -TOLERANCE <= motor.pos <= TOLERANCE:
-                if -0.09 <= error_rads:
-                    self.differentialrobot_proxy.setSpeedBase(0, -0.6)
-                    error = puntoMedioX - color.width / 2
-                    der_error = -(error - self.error_ant)
-                    error_rads = np.arctan2(1.1 * error + 0.8 * der_error, color.focalx)
-                    if self.rad_old < goal_rad - TOLERANCE:
-                        rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
-                        if rad_seg < MIN_VELOCITY and rad_seg > MIN_VELOCITY:
-                            goal.maxSpeed = MIN_VELOCITY
-                        else:
-                            goal.maxSpeed = rad_seg
-                        goal.position = motor.pos - error_rads
-                        # mandamos al motor el objetivo
-                        self.jointmotorsimple_proxy.setPosition("", goal)
-                        self.error_ant = error
-                        self.rad_old = goal_rad
+                base_speed_rot = 0
 
         else:
-            self.centered = False
-            
+            print("NOT CENTERED")
+            if (self.rad_old > goal_rad):
+                base_speed_rot = 2*(1 - math.exp(-(rot_rad_seg ** 2)/10))
+            else:
+                base_speed_rot = -2*(1 - math.exp(-(rot_rad_seg ** 2)/10))
 
-        print("BASE SPEED: ", base_speed)
-        print("ANGLE: ", error_rads)
-        '''
+        # Check if the camera is aligned with the robot
+        if abs(motor.pos) <= 0.1:
+            print("ALIGNED")
+            base_speed_rot = 0
+
+        # Filtering rotational speeds
+        self.rotational_speed_coefficients.append(base_speed_rot)
+        self.rotational_speed_coefficients.pop(0)
+        self.rotational_speed_avg = sum(self.rotational_speed_coefficients)/len(self.rotational_speed_coefficients)
+
+        # Set camera speed
+        if abs(self.rotational_speed_avg) < rot_rad_seg:
+            camera_speed = rot_rad_seg - self.rotational_speed_avg
+            # filtramos velicidad, ya que 0 es maxima
+            if camera_speed < MIN_VELOCITY:
+                goal.maxSpeed = MIN_VELOCITY
+            else:
+                goal.maxSpeed = camera_speed
+            goal.position = motor.pos - error_rads
+            # mandamos al motor el objetivo
+            self.jointmotorsimple_proxy.setPosition("", goal)
+
+            # print(goal_rad, self.rad_old, rad_seg)
+
+        self.error_ant = error
+        self.rad_old = goal_rad
+
+        # Calculating lineal speed with distance
+        if distance < self.distance_limit or distance == 0:
+            lin_rad_seg = 0
+        else:
+            lin_rad_seg = 1 - (self.distance_limit/distance)
+
+        # Set lineal base speed. Rotational speed dependence
+        base_speed_lin = 1000 * lin_rad_seg * math.exp(-(self.rotational_speed_avg ** 2)/10)
+
+        # Filtering lineal speeds
+        self.lineal_speed_coefficients.append(base_speed_lin)
+        self.lineal_speed_coefficients.pop(0)
+        self.lineal_speed_avg = sum(self.lineal_speed_coefficients) / len(self.lineal_speed_coefficients)
+
+        print("base_speed_lin: ", self.lineal_speed_avg)
+        print("base_speed_rot: ", self.rotational_speed_avg)
+
+        # Sending speeds to base
+        # self.differentialrobot_proxy.setSpeedBase(self.lineal_speed_avg, self.rotational_speed_avg)
 
     def refesco_ventana(self, color, image, motor):
         qt_image = QImage(image, color.height, color.width, QImage.Format_RGB888)

@@ -41,8 +41,12 @@ QValueAxis = QtCharts.QValueAxis
 QLineSeries = QtCharts.QLineSeries
 
 MIN_VELOCITY = 0.05
-TOLERANCE = 0.01
+TOLERANCE_RAD = 0.01
+TOLERANCE_METERS = 250
 SERVO_TOLERANCE = 0.1
+REACCION_GIRAFF_GIRO = 10
+REACCION_GIRAFF_LINEAL = 2
+
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
@@ -91,17 +95,17 @@ class SpecificWorker(GenericWorker):
 
         # Speed filters variables
         self.rotational_speed_coefficients=[0,0,0]
-        self.rotational_speed_avg=None
+        self.rotational_speed_avg=0
         self.lineal_speed_coefficients=[0,0,0]
-        self.lineal_speed_avg=None
-
+        self.lineal_speed_avg=0
 
         # Person distance filter
         self.distance_coefficients=[0,0,0,0]
-        self.distance_avg=None
+        self.distance_avg=0
+        self.distance_old = 0
 
         # Distance limit
-        self.distance_limit = 1300
+        self.distance_limit = 1.3
 
         self.Period = 10
         if startup_check:
@@ -159,6 +163,26 @@ class SpecificWorker(GenericWorker):
             print("Ice error communicating with HumaCameraBody interface")
         return motor, color, people_data
 
+    def get_pos_esqueleto(self, person, list):
+
+        # Calculating middle points for eyes and hips
+        puntoMedioX = (person.joints[list[0]].i + person.joints[list[1]].i) / 2.0
+        puntoMedioY = (person.joints[list[0]].j + person.joints[list[1]].j) / 2.0
+
+        z0 = person.joints[list[0]].z
+        z1 = person.joints[list[1]].z
+
+        if z0 != 0:
+            if abs(z0 - z1) < 0.5:
+                distance = (z0 + z1) / 2.0
+                print("puntos ", z0, z1, "dist", distance)
+            else:
+                print("fallo poniendo punto ", z0)
+                distance = z0
+        else:
+            distance = 0
+        return puntoMedioX, puntoMedioY, distance
+
     def proceso_esqueleto(self, image, people_data):
         # Draw body parts on image
         for person in people_data.peoplelist:
@@ -177,69 +201,65 @@ class SpecificWorker(GenericWorker):
         # compute bounding box
         faceList = ["2", "3"]
         hipList = ["12", "13"]
+        chestList = ["6", "7"]
         faceNameList = []
         hipNameList = []
+        chestNameList = []
 
         if len(people_data.peoplelist) > 0:
             person = people_data.peoplelist[0]
             keypoints_x = []
             keypoints_y = []
             keypoints_z = []  # profundidad
-            for key in person.joints:
-                keypoint = person.joints[key]
-                keypoints_x.append(keypoint.x)  # sacar las x de la posicion respecto al mundo
-                keypoints_y.append(keypoint.y)
-                keypoints_z.append(keypoint.z)  # sacar las y de la posicion respecto al mundo
-            pos_x = sum(keypoints_x) / len(keypoints_x)
-            pos_y = sum(keypoints_y) / len(keypoints_y)
-            pos_z = sum(keypoints_z) / len(keypoints_z)
-            distance_vector = [pos_x*1000, pos_y*1000, pos_z*1000]
-            distance = distance_vector[2]
-            print("Distance init: ", distance[2])
+
+            # for key in person.joints:
+            #     keypoint = person.joints[key]
+            #     keypoints_x.append(keypoint.x)  # sacar las x de la posicion respecto al mundo
+            #     keypoints_y.append(keypoint.y)
+            #     keypoints_z.append(keypoint.z)  # sacar las y de la posicion respecto al mundo
+            # pos_x = sum(keypoints_x) / len(keypoints_x)
+            # pos_y = sum(keypoints_y) / len(keypoints_y)
+            # pos_z = sum(keypoints_z) / len(keypoints_z)
+            # distance_vector = [pos_x, pos_y, pos_z]
+            # distance = distance_vector[2]
+            # print("Distance init: ", distance[2])
 
             for key_point in list(person.joints.keys()):
                 if key_point in faceList:
                     faceNameList.append(key_point)
                 if key_point in hipList:
                     hipNameList.append(key_point)
-        else:
-            distance = 0
+                if key_point in chestList:
+                    chestNameList.append(key_point)
 
         puntoMedioX = None
         puntoMedioY = None
 
+        # Create dictionarý to append some skeleton data
+        distances = {}
+
         if len(faceNameList) == 2:
-            i0 = person.joints[faceNameList[0]].i
-            j0 = person.joints[faceNameList[0]].j
-            i1 = person.joints[faceNameList[1]].i
-            j1 = person.joints[faceNameList[1]].j
-            puntoMedioX = (i0 + i1) / 2.0
-            puntoMedioY = (j0 + j1) / 2.0
-            cv2.circle(image, (int(puntoMedioX - 10), int(puntoMedioY - 10)), 10, (255, 0, 0), 2)
-            cv2.rectangle(image, (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
-
-            # points = np.array()
-            # points = np.append(ooints, )
-            # rect = cv2.boundingRect(points)
-            # cv2.rectangle(image,  (int(i0), int(j0)), (int(i1), int(j1)), (255, 128, 0), 1)
-
-            # error = puntoMedioX - color.width/2
-            # goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
-            # error_rads = np.arctan2(error, color.focalx)
-            # print(goal.position, color.focalx, motor.pos)
-            # goal.position = motor.pos - error_rads
-            #     print(goal)
-            # self.jointmotorsimple_proxy.setPosition("", goal)
-
-        # Filtering rotational speeds
-        self.distance_coefficients.append(distance)
-        self.distance_coefficients.pop(0)
-        self.distance_avg = sum(self.distance_coefficients) / len(self.distance_coefficients)
-
+            distances["face"] = (self.get_pos_esqueleto(person, faceNameList))
+            cv2.circle(image, (int(distances["face"][0] - 10), int(distances["face"][1] - 10)), 10, (255, 0, 0), 2)
+            print("face", distances["face"])
+            
+        if len(chestNameList) == 2:
+            distances["chest"] = (self.get_pos_esqueleto(person, chestNameList))
+            cv2.circle(image, (int(distances["chest"][0] - 10), int(distances["chest"][1] - 10)), 10, (0, 150, 255), 2)
+            print("chest", distances["chest"])
+            
         if len(hipNameList) == 2:
-            puntoMedioX = (person.joints[hipNameList[0]].i + person.joints[hipNameList[1]].i) / 2.0
-            puntoMedioY = (person.joints[hipNameList[0]].j + person.joints[hipNameList[1]].j) / 2.0
-            cv2.circle(image, (int(puntoMedioX - 10), int(puntoMedioY - 10)), 10, (0, 150, 255), 2)
+            distances["hips"] = (self.get_pos_esqueleto(person, hipNameList))
+            cv2.circle(image, (int(distances["hips"][0] - 10), int(distances["hips"][1] - 10)), 10, (0, 255, 150), 2)
+            print("hips", distances["hips"])
+
+        
+
+        # Filtering distances
+        # self.distance_coefficients.append(distance_chest)
+        # self.distance_coefficients.pop(0)
+        # self.distance_avg = sum(self.distance_coefficients) / len(self.distance_coefficients)
+        # print("Distansia pecho promediá: ", self.distance_avg)
         return image, puntoMedioX, puntoMedioY, self.distance_avg
 
     def tracker(self, color, motor, puntoMedioX, distance):
@@ -251,8 +271,8 @@ class SpecificWorker(GenericWorker):
         goal = ifaces.RoboCompJointMotorSimple.MotorGoalPosition()
         goal_rad = motor.pos - error_rads
 
-        # Calculate and filter person speed
-        if self.rad_old > goal_rad + TOLERANCE or self.rad_old < goal_rad - TOLERANCE:
+        # Calculate rotational person speed
+        if self.rad_old > goal_rad + TOLERANCE_RAD or self.rad_old < goal_rad - TOLERANCE_RAD:
             # Calculating rotational speed with image and period data
             rot_rad_seg = abs(((self.rad_old - goal_rad) / self.Period) * 1000)  # rad/s
         else:
@@ -264,18 +284,18 @@ class SpecificWorker(GenericWorker):
         if abs(error_rads) < 0.05:
             print("CENTERED")
             if motor.pos > 0:
-                base_speed_rot = -1*(1 - math.exp(-(error_rads ** 2)/5))
+                base_speed_rot = -1*(1 - math.exp(-(error_rads ** 2)/(REACCION_GIRAFF_GIRO/2)))
             elif motor.pos < 0:
-                base_speed_rot = 1*(1 - math.exp(-(error_rads ** 2)/5))
+                base_speed_rot = 1*(1 - math.exp(-(error_rads ** 2)/(REACCION_GIRAFF_GIRO/2)))
             else:
                 base_speed_rot = 0
 
         else:
             print("NOT CENTERED")
             if (self.rad_old > goal_rad):
-                base_speed_rot = 2*(1 - math.exp(-(rot_rad_seg ** 2)/10))
+                base_speed_rot = 2*(1 - math.exp(-(rot_rad_seg ** 2)/REACCION_GIRAFF_GIRO))
             else:
-                base_speed_rot = -2*(1 - math.exp(-(rot_rad_seg ** 2)/10))
+                base_speed_rot = -2*(1 - math.exp(-(rot_rad_seg ** 2)/REACCION_GIRAFF_GIRO))
 
         # Check if the camera is aligned with the robot
         if abs(motor.pos) <= 0.1:
@@ -305,13 +325,10 @@ class SpecificWorker(GenericWorker):
         self.rad_old = goal_rad
 
         # Calculating lineal speed with distance
-        if distance < self.distance_limit or distance == 0:
-            lin_rad_seg = 0
-        else:
-            lin_rad_seg = 1 - (self.distance_limit/distance)
 
         # Set lineal base speed. Rotational speed dependence
-        base_speed_lin = 1000 * lin_rad_seg * math.exp(-(self.rotational_speed_avg ** 2)/10)
+        # base_speed_lin = lin_seg * math.exp(-(self.rotational_speed_avg ** 2)/10)
+        base_speed_lin = 1000 * ((2 / (1 + math.exp(-(distance-self.distance_limit)*REACCION_GIRAFF_LINEAL)))-1) #K* ((2/(1*e^-cons*x))-1)
 
         # Filtering lineal speeds
         self.lineal_speed_coefficients.append(base_speed_lin)

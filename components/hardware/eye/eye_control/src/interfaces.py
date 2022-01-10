@@ -7,6 +7,10 @@ console = Console()
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/DifferentialRobot.ice")
+import RoboCompDifferentialRobot
+Ice.loadSlice("-I ./src/ --all ./src/GenericBase.ice")
+import RoboCompGenericBase
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
 Ice.loadSlice("-I ./src/ --all ./src/JointMotorSimple.ice")
@@ -215,6 +219,8 @@ class Requires:
         self.mprx={}
 
         self.CameraRGBDSimple = self.create_proxy("CameraRGBDSimpleProxy", RoboCompCameraRGBDSimple.CameraRGBDSimplePrx)
+
+        self.DifferentialRobot = self.create_proxy("DifferentialRobotProxy", RoboCompDifferentialRobot.DifferentialRobotPrx)
 
         self.HumanCameraBody = self.create_proxy("HumanCameraBodyProxy", RoboCompHumanCameraBody.HumanCameraBodyPrx)
 

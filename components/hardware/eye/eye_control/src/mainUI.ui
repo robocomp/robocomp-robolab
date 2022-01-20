@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>662</width>
-    <height>681</height>
+    <height>992</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,6 +20,9 @@
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>6</number>
+         </property>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
@@ -28,10 +31,10 @@
               <enum>Qt::LeftToRight</enum>
              </property>
              <property name="minimum">
-              <number>-150</number>
+              <number>-90</number>
              </property>
              <property name="maximum">
-              <number>150</number>
+              <number>90</number>
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -57,7 +60,7 @@
               </font>
              </property>
              <property name="text">
-              <string>position (rads)</string>
+              <string>position (rad)</string>
              </property>
             </widget>
            </item>
@@ -103,12 +106,42 @@
            </item>
           </layout>
          </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,0,0">
+           <item>
+            <widget class="QSlider" name="horizontalSlider">
+             <property name="minimum">
+              <number>-600</number>
+             </property>
+             <property name="maximum">
+              <number>600</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLCDNumber" name="lcdNumber"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Ver giraff speed(rad/s)</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
         </layout>
        </item>
       </layout>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <property name="spacing">
+        <number>6</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -212,8 +245,11 @@
          </item>
          <item>
           <widget class="QPushButton" name="pushButton_2">
+           <property name="styleSheet">
+            <string notr="true">background-color: rgb(204, 0, 0);</string>
+           </property>
            <property name="text">
-            <string>PushButton</string>
+            <string>STOP</string>
            </property>
           </widget>
          </item>
@@ -257,8 +293,8 @@
       <widget class="QLabel" name="label_image">
        <property name="minimumSize">
         <size>
-         <width>400</width>
-         <height>400</height>
+         <width>480</width>
+         <height>640</height>
         </size>
        </property>
        <property name="text">

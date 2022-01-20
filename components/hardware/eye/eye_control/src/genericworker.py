@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-#    Copyright (C) 2021 by YOUR NAME HERE
+#    Copyright (C) 2022 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -47,16 +47,21 @@ class GenericWorker(QtWidgets.QWidget):
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
-        self.camerasimple_proxy = mprx["CameraSimpleProxy"]
+        self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
+        self.differentialrobot_proxy = mprx["DifferentialRobotProxy"]
+        self.humancamerabody_proxy = mprx["HumanCameraBodyProxy"]
         self.jointmotorsimple_proxy = mprx["JointMotorSimpleProxy"]
+        self.soundrotation_proxy = mprx["SoundRotationProxy"]
 
         self.ui = Ui_guiDlg()
         self.ui.setupUi(self)
         self.show()
 
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-        self.Period = 30
-        self.timer = QtCore.QTimer(self)
+        self.Period_camera = 70
+        self.Period_base = 1000
+        self.timer_camera = QtCore.QTimer(self)
+        self.timer_base = QtCore.QTimer(self)
 
 
     @QtCore.Slot()

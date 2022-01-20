@@ -1,6 +1,16 @@
+# Endpoints for implements interfaces
+Follower.Endpoints=tcp -p 18917
+
+
 # Proxies for required interfaces
-JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 17193
-CameraSimpleProxy = camerasimple:tcp -h localhost -p 10195
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 15765
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+HumanCameraBodyProxy = humancamerabody:tcp -h localhost -p 13197
+JointMotorSimpleProxy = jointmotorsimple:tcp -h localhost -p 16034
+SoundRotationProxy = soundrotation:tcp -h localhost -p 12544
+
+
+
 
 
 Ice.Warn.Connections=0

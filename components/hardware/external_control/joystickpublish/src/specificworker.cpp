@@ -142,8 +142,7 @@ void SpecificWorker::sendJoystickEvent()
 					qDebug() << "axes "+QString::fromStdString(data.axes[x].name)+" = "+QString::number(data.axes[x].value);
 					//~ sendEvent &= (fabs(joystickParams.data.axes[x].value)<0.1);
 			}
-			if(sendEvent)
-				sendEvent = false;
+			sendEvent = false;
 			joystickadapter_pubproxy->sendData(data);
 		}
 	}
@@ -154,13 +153,13 @@ void SpecificWorker::sendJoystickEvent()
 	}
 }
 
-
+// event received from device
 void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 {
-    //for(auto &ax : data.axes)
-    //    ax.value = 0;
-    //for(auto &bu : data.buttons)
-    //    bu.step = 0;
+    for(auto &ax : data.axes)
+        ax.value = 0;
+    for(auto &bu : data.buttons)
+        bu.step = 0;
 
     switch( type)
 	{

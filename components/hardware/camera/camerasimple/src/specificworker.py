@@ -19,19 +19,8 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, traceback, time
-import numpy as np
 import cv2
-from PySide2.QtCore import qApp, QTimer
-
 from genericworker import *
-
-
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# sys.path.append('/opt/robocomp/lib')
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):

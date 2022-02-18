@@ -76,6 +76,14 @@ void SpecificWorker::compute()
 	RoboCompRealSenseFaceID::UserDataList dataList;
 	RoboCompRealSenseFaceID::UserData data;
 	RoboCompCameraSimple::TImage frame;
+	std::cout<<endl<<"a autentificar"<<endl<< "d borrar paco"<<endl<< "b borrar todo"
+	<<endl<< "y arrancar camara"
+	<<endl<< "n para camara"<<
+	endl<< "visualizar camara"
+	<<endl<< "u lista de usuarios"<<endl;
+	
+	
+	
 	
 	if (std::getline(std::cin, input)){
         if (input.empty() || input.length() > 1)
@@ -96,8 +104,10 @@ void SpecificWorker::compute()
 				break;}
 			case 'a':{
 				dataList=this->realsensefaceid_proxy->authenticate();
-				data=dataList.at(0);
-				std::cout<<data.userAuthenticated<<std::endl;
+				for (int i=0;i<dataList.size();i++){
+					data=dataList.at(i);
+					std::cout<<"["<<i<<"] "<<data.userAuthenticated<<std::endl;
+				}
 				break;}
 			case 'd':
 				std::cout<<this->realsensefaceid_proxy->eraseUser("Paco")<<std::endl;

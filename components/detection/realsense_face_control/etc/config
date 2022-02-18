@@ -1,8 +1,8 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Proxies for required interfaces
-CameraSimpleProxy = camerasimple:tcp -h 158.49.247.193 -p 11060
-RealSenseFaceIDProxy = realsensefaceid:tcp -h 158.49.247.193 -p 11070
+CameraSimpleProxy = camerasimple:tcp -h 192.168.3.5 -p 11060
+RealSenseFaceIDProxy = realsensefaceid:tcp -h 192.168.3.5 -p 11070
 
 
 

@@ -113,7 +113,7 @@ void SpecificWorker::initialize(int period)
 
 		// Connect signals
 		connect( joystick, SIGNAL( inputEvent(int, int, int) ), this, SLOT( receivedJoystickEvent(int, int, int) ) );
-		connect( &timer, SIGNAL( timeout() ), this, SLOT( sendJoystickEvent() ) );
+		connect( &timer, SIGNAL( timeout() ), this, SLOT( compute() ) );
 		
 		//~ qWarning("[joystickUniversalComp]: New Joystick Handler settings: XMotionAxis [%2d], YMotionAxis [%2d]", config.XMotionAxis, config.YMotionAxis);
 		//~ qWarning("[joystickUniversalComp]: Max advance speed: [%i], Max steering speed: [%f]",config.maxAdv,config.maxRot);
@@ -125,42 +125,36 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute( )
 {
-
+    try
+    {
+        if(sendEvent)
+        {
+            //rDebug("trying to send event. NumAxes="+QString::number(joystickParams.numAxes));
+            for(int x=0; x < joystickParams.numAxes; x++)
+            {
+                //qDebug() << "axes "+QString::fromStdString(data.axes[x].name)+" = "+QString::number(data.axes[x].value);
+                //~ sendEvent &= (fabs(joystickParams.data.axes[x].value)<0.1);
+            }
+            sendEvent = false;
+            joystickadapter_pubproxy->sendData(data);
+        }
+    }
+    catch(const Ice::Exception& ex)
+    {
+        cout << "[joystickUniversalComp ]: Fallo la comunicacion a traves del proxy (base). Waiting" << endl;
+        cout << "[joystickUniversalComp]: Motivo: " << endl << ex << endl;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////777
 
 void SpecificWorker::sendJoystickEvent()
 {
-	try
-	{
-		if(sendEvent)
-		{
-			rDebug("trying to send event. NumAxes="+QString::number(joystickParams.numAxes));
-			for(int x=0; x < joystickParams.numAxes; x++)
-			{
-					qDebug() << "axes "+QString::fromStdString(data.axes[x].name)+" = "+QString::number(data.axes[x].value);
-					//~ sendEvent &= (fabs(joystickParams.data.axes[x].value)<0.1);
-			}
-			sendEvent = false;
-			joystickadapter_pubproxy->sendData(data);
-		}
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[joystickUniversalComp ]: Fallo la comunicacion a traves del proxy (base). Waiting" << endl;
-		cout << "[joystickUniversalComp]: Motivo: " << endl << ex << endl;
-	}
 }
 
 // event received from device
 void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 {
-    for(auto &ax : data.axes)
-        ax.value = 0;
-    for(auto &bu : data.buttons)
-        bu.step = 0;
-
     switch( type)
 	{
 		case  JOYSTICK_EVENT_TYPE_AXIS:
@@ -182,7 +176,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
                     {
                         dr->value = normalized_value;
-                        qDebug() << "Axis:" << number << "Value:" << normalized_value;
+                        //qDebug() << "Axis:" << number << "Value:" << normalized_value;
                         sendEvent = true;
                     }
                     break;
@@ -203,7 +197,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                                                                                                                                            data.buttons.end())
                 {
                     dr->step = button.step;
-                    qDebug() << "Button " + QString::number(number) + ": " << value << "name: " + QString::fromStdString(button.name);
+                    //qDebug() << "Button " + QString::number(number) + ": " << value << "name: " + QString::fromStdString(button.name);
                     sendEvent = true;
                 }
             }

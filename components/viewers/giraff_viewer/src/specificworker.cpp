@@ -53,7 +53,8 @@ void SpecificWorker::initialize(int period)
 
     viewer = new AbstractGraphicViewer(this->beta_frame, this->dimensions);
     this->resize(900,450);
-    robot_polygon = viewer->add_robot(ROBOT_LENGTH);
+    const auto &[rp, re] = viewer->add_robot(ROBOT_LENGTH, ROBOT_LENGTH);
+    robot_polygon = rp;
     laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
     laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
     try
@@ -82,12 +83,12 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     //laser
-//    try
-//    {
-//        auto ldata = laser_proxy->getLaserData();
-//        draw_laser( ldata );
-//    }
-//    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
+    try
+    {
+        auto ldata = laser_proxy->getLaserData();
+        draw_laser( ldata );
+    }
+    catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;}
 
     //robot
 //    try

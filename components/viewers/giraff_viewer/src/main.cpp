@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2022 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -236,11 +236,7 @@ int ::giraff_viewer::run(int argc, char* argv[])
 	rInfo("LaserProxy initialized Ok!");
 
 
-<<<<<<< HEAD
 	tprx = std::make_tuple(camerargbdsimple_proxy,camerasimple_proxy,differentialrobot_proxy,fullposeestimation_proxy,jointmotorsimple_proxy,laser_proxy);
-=======
-	tprx = std::make_tuple(camerargbdsimple_proxy,camerasimple_proxy,differentialrobot_proxy,jointmotorsimple_proxy,laser_proxy);
->>>>>>> 96dd63de41571fa25ec09a8c2d01285a9b19ef71
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2022 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -44,7 +44,7 @@
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompCameraSimple::CameraSimplePrxPtr,RoboCompDifferentialRobot::DifferentialRobotPrxPtr,RoboCompJointMotorSimple::JointMotorSimplePrxPtr,RoboCompLaser::LaserPrxPtr>;
+using TuplePrx = std::tuple<RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompCameraSimple::CameraSimplePrxPtr,RoboCompDifferentialRobot::DifferentialRobotPrxPtr,RoboCompFullPoseEstimation::FullPoseEstimationPrxPtr,RoboCompJointMotorSimple::JointMotorSimplePrxPtr,RoboCompLaser::LaserPrxPtr>;
 
 
 class GenericWorker : public QWidget, public Ui_guiDlg

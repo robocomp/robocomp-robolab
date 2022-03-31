@@ -3,12 +3,13 @@ import "DifferentialRobot.idsl";
 import "CameraRGBDSimple.idsl";
 import "CameraSimple.idsl" ;
 import "JointMotorSimple.idsl";
+import "FullPoseEstimation.idsl";
 
 Component giraff_viewer
 {
     Communications
     {
-        requires Laser, DifferentialRobot, CameraRGBDSimple, CameraSimple, JointMotorSimple;
+        requires Laser, DifferentialRobot, CameraRGBDSimple, CameraSimple, JointMotorSimple, FullPoseEstimation;
     };
     language Cpp11;
     gui Qt(QWidget);

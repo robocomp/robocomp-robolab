@@ -58,7 +58,7 @@ class SpecificWorker(GenericWorker):
 
     def setParams(self, params):
         try:
-            self.display = params["display"]
+            self.display = params["display"] == "true" or params["display"] == "True"
             self.family = params["family"]
             self.tagsize = float(params["tagsize"])
 

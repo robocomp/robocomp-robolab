@@ -94,9 +94,9 @@ class SpecificWorker(GenericWorker):
 
                 rtag = ifaces.RoboCompAprilTags.Tag()
                 rtag.id = tag.tag_id
-                rtag.tx = float(trans[0])
+                rtag.tx = -float(trans[0])
                 rtag.ty = -float(trans[1])
-                rtag.tz = -float(trans[2])
+                rtag.tz = float(trans[2])
                 rtag.rx = rot[0]
                 rtag.ry = rot[1]
                 rtag.rz = rot[2]

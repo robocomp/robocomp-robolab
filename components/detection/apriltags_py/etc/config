@@ -1,0 +1,15 @@
+# Endpoints for implements interfaces
+
+AprilTags.Endpoints=tcp -p 12555
+
+display = true
+family = tag36h11
+tagsize = 0.5
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

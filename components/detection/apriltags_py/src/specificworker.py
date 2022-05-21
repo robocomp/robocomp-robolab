@@ -26,7 +26,7 @@ from genericworker import *
 import interfaces as ifaces
 import cv2
 import numpy as np
-#import apriltag
+import time
 import pupil_apriltags
 from scipy.spatial.transform import Rotation as R
 
@@ -43,6 +43,8 @@ class SpecificWorker(GenericWorker):
         self.image = ifaces.RoboCompCameraRGBDSimple.TImage()
         self.new_image = False
         self.tags = []
+        self.cont = 0
+        self.last_time = time.time()
 
         self.Period = 50
         if startup_check:
@@ -71,8 +73,6 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        # if self.color is not None and self.color.shape[0]>0 and self.color.shape[1]>0:
-        #     cv2.imshow("", self.color)
         if self.new_image:
             color = np.frombuffer(self.image.image, dtype=np.uint8)
             color = color.reshape((self.image.height, self.image.width, 3))
@@ -119,6 +119,12 @@ class SpecificWorker(GenericWorker):
                     print(rtag)
 
             self.new_image = False
+        if time.time() - self.last_time > 1:
+            self.last_time = time.time()
+            print("Freq: ", self.cont, "Hz")
+            self.cont = 0
+        else:
+            self.cont += 1
         return True
 
     def draw_image(self, image, detections):

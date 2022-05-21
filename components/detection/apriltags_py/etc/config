@@ -2,7 +2,7 @@
 
 AprilTags.Endpoints=tcp -p 12555
 
-display = true
+display = false
 family = tag36h11
 tagsize = 0.5
 

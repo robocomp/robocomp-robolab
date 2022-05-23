@@ -74,6 +74,7 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         if self.new_image:
+            self.tags = []
             color = np.frombuffer(self.image.image, dtype=np.uint8)
             color = color.reshape((self.image.height, self.image.width, 3))
             camera_params = [self.image.focalx, self.image.focaly, color.shape[1]/2, color.shape[0]/2]
@@ -119,6 +120,8 @@ class SpecificWorker(GenericWorker):
                     print(rtag)
 
             self.new_image = False
+
+        # Hz
         if time.time() - self.last_time > 1:
             self.last_time = time.time()
             print("Freq: ", self.cont, "Hz")

@@ -1,0 +1,15 @@
+# Endpoints for implements interfaces
+CameraRGBDSimple.Endpoints=tcp -p 14842
+HumanCameraBody.Endpoints=tcp -p 14213
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -h 192.168.3.5 -p 9999
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

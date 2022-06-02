@@ -4,27 +4,27 @@ import IceStorm
 from rich.console import Console, Text
 console = Console()
 
-Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
-import RoboCompCameraRGBDSimple
+
 Ice.loadSlice("-I ./src/ --all ./src/AprilTags.ice")
 import RoboCompAprilTags
-
+Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
+import RoboCompCameraRGBDSimple
 
 class TagsList(list):
     def __init__(self, iterable=list()):
         super(TagsList, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, RoboCompAprilTags.tag)
+        assert isinstance(item, RoboCompAprilTags.Tag)
         super(TagsList, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, RoboCompAprilTags.tag)
+            assert isinstance(item, RoboCompAprilTags.Tag)
         super(TagsList, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, RoboCompAprilTags.tag)
+        assert isinstance(item, RoboCompAprilTags.Tag)
         super(TagsList, self).insert(index, item)
 
 setattr(RoboCompAprilTags, "TagsList", TagsList)

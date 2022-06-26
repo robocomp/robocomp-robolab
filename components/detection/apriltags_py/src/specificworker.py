@@ -84,7 +84,9 @@ class SpecificWorker(GenericWorker):
                                               camera_params=camera_params,
                                               tag_size=self.tagsize)
             if len(detections) == 0:
-                print("Compute_april_tags: No tags detected")
+                #print("Compute_april_tags: No tags detected")
+                self.new_image = False
+                return
 
             for tag in detections:
                 rot = tag.pose_R
@@ -164,6 +166,9 @@ class SpecificWorker(GenericWorker):
             while not self.image:       # tags cannot be computed in this thread
                 pass
             ret = self.tags
+            print("Tags detected:")
+            for r in ret:
+                print(r.id)
             self.new_image = True
 
         return ret

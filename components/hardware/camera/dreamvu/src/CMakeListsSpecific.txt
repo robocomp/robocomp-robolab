@@ -1,0 +1,18 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
+
+set(CMAKE_CXX_STANDARD 20)
+SET (LIBS ${LIBS}  )
+
+

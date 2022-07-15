@@ -130,12 +130,15 @@ void SpecificWorker::compute( )
         if(sendEvent)
         {
             //rDebug("trying to send event. NumAxes="+QString::number(joystickParams.numAxes));
-            for(int x=0; x < joystickParams.numAxes; x++)
-            {
+            //for(int x=0; x < joystickParams.numAxes; x++)
+            //{
                 //qDebug() << "axes "+QString::fromStdString(data.axes[x].name)+" = "+QString::number(data.axes[x].value);
                 //~ sendEvent &= (fabs(joystickParams.data.axes[x].value)<0.1);
-            }
+            //}
             sendEvent = false;
+//            for(auto a: data.axes)
+//                qInfo() << a.value << QString::fromStdString(a.name);
+//            qInfo() << "---------------";
             joystickadapter_pubproxy->sendData(data);
         }
     }

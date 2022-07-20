@@ -26,28 +26,48 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <innermodel/innermodel.h>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+#include <PAL/PAL.h>
+#include <PAL/PAL_CameraProperties.h>
+#include <X11/Xlib.h>
+#include <chrono>
+
+namespace PAL
+{
+	namespace Internal
+	{
+		void EnableDepth(bool flag);
+		void MinimiseCompute(bool flag);
+	}
+}
 
 class SpecificWorker : public GenericWorker
 {
-Q_OBJECT
-public:
-	SpecificWorker(TuplePrx tprx, bool startup_check);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	RoboCompCameraRGBDSimple::TRGBD CameraRGBDSimple_getAll(std::string camera);
-	RoboCompCameraRGBDSimple::TDepth CameraRGBDSimple_getDepth(std::string camera);
-	RoboCompCameraRGBDSimple::TImage CameraRGBDSimple_getImage(std::string camera);
+	Q_OBJECT
+	public:
+		SpecificWorker(TuplePrx tprx, bool startup_check);
+		~SpecificWorker();
+		bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+		RoboCompCameraRGBDSimple::TRGBD CameraRGBDSimple_getAll(std::string camera);
+		RoboCompCameraRGBDSimple::TDepth CameraRGBDSimple_getDepth(std::string camera);
+		RoboCompCameraRGBDSimple::TImage CameraRGBDSimple_getImage(std::string camera);
 
-public slots:
-	void compute();
-	int startup_check();
-	void initialize(int period);
-private:
-	std::shared_ptr < InnerModel > innerModel;
-	bool startup_check_flag;
+	public slots:
+		void compute();
+		int startup_check();
+		void initialize(int period);
+
+	private:
+		bool startup_check_flag;
+
+		Display* disp;
+		Screen* scrn;
+		int sc_height;
+		int sc_width ;
+		PAL::Image left_img_write, right_img_write, depth_img_write, depth_img_read, left_img_read;
 
 };
 

@@ -1,6 +1,19 @@
 # Dreamvu
 This component interfaces the DreamVu omni camera
 
+Instructions to make it compile in 18.04 without RoboComp installed
+
+- Comment in src/CMakeList.txt  
+    #ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple CameraRGBDSimplePub)
+    #ROBOCOMP_ICE_TO_SRC( CommonBehavior CameraRGBDSimple CameraRGBDSimplePub)
+- Copy from 20.04 al needed .ice and .h and .cpp for the interfaces used in the
+- add to CMakeListSpecific.txt the ICe libraries: 
+    Ice++11 IceStorm++11
+    and source files  
+       CameraRGBDSimple.cpp
+       CameraRGBDSimplePub.cpp
+       CommonBehavior.cpp
+
 
 ## Configuration parameters
 As any other component, *Dreamvu* needs a configuration file to start. In

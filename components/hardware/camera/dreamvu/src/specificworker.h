@@ -32,6 +32,8 @@
 #include <PAL/PAL_CameraProperties.h>
 #include <X11/Xlib.h>
 #include <chrono>
+#include <doublebuffer/DoubleBuffer.h>
+#include <fps/fps.h>
 
 namespace PAL
 {
@@ -67,7 +69,8 @@ class SpecificWorker : public GenericWorker
 		Screen* scrn;
 		int sc_height;
 		int sc_width ;
-		PAL::Image left_img_write, right_img_write, depth_img_write, depth_img_read, left_img_read;
+		DoubleBuffer<PAL::Image, RoboCompCameraRGBDSimple::TImage> image_buffer;
+		FPSCounter fps;
 
 };
 

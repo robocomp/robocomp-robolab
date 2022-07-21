@@ -80,8 +80,8 @@ void SpecificWorker::initialize(int period)
 
         PAL::CameraProperties prop;
         unsigned int flag = PAL::MODE | PAL::FD | PAL::NR | PAL::FILTER_SPOTS | PAL::VERTICAL_FLIP ;
-        prop.mode = PAL::Mode::FAST_DEPTH; // The other available option is PAL::Mode::HIGH_QUALITY_DEPTH
-        //prop.mode = PAL::Mode::POINT_CLOUD_25D;
+        //prop.mode = PAL::Mode::FAST_DEPTH; // The other available option is PAL::Mode::HIGH_QUALITY_DEPTH
+        prop.mode = PAL::Mode::POINT_CLOUD_25D;
         prop.fd = 1;
         prop.nr = 1;
         prop.filter_spots = 1;
@@ -101,33 +101,42 @@ void SpecificWorker::initialize(int period)
 //        //p.mode = PAL::Mode::POINT_CLOUD_25D;
 //        //p.mode = PAL::Mode::FAST_DEPTH;
 //        PAL::SetCameraProperties(&p);
-		timer.start(Period);
+		timer.start(50);
 	}
 }
 
 void SpecificWorker::compute()
 {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    cv::Mat rgb, depth, right;
+    //cv::Mat rgb, depth, right;
 
     // get image from camera
-	PAL::GrabFrames(&left_img_write, &right_img_write, &depth_img_write);
-	depth = cv::Mat(depth_img_write.rows, depth_img_write.cols, CV_32FC1, depth_img_write.Raw.f32_data);
-	rgb = cv::Mat(left_img_write.rows, left_img_write.cols, CV_8UC3, left_img_write.Raw.u8_data);
+	PAL::Image left_img, right_img, depth_img;
+	PAL::GrabFrames(&left_img, &right_img, &depth_img);
+	//depth = cv::Mat(depth_img.rows, depth_img.cols, CV_32FC1, depth_img.Raw.f32_data);
+	//rgb = cv::Mat(left_img.rows, left_img.cols, CV_8UC3, left_img.Raw.u8_data);
+    //std::cout << "depth " << depth_img.cols << " " << depth_img.rows << " rgb " << left_img.cols << " " << left_img.rows << std::endl;
+	//cv::imshow( "PAL Occupancy Map", rgb);
+	//cv::waitKey(1);
 
-    std::cout << "depth " << depth_img_write.cols << " " << depth_img_write.rows << " rgb " << left_img_write.cols << " " << left_img_write.rows << std::endl;
-	//cv::resize(rgb, rgb , cv::Size(sc_width, sc_height));
-	//cv::resize(depth, depth , cv::Size(rgb.cols, rgb.rows));
-	cv::imshow( "PAL Occupancy Map", rgb);
-	cv::waitKey(1);
-	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-	std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+    image_buffer.put(std::move(left_img), [left_img](auto &&input, auto &output)
+   		{
+			output.compressed = false; // opencv jpeg compression
+			output.cameraID = 0;
+			output.width = left_img.cols;
+			output.height = left_img.rows;
+			output.depth = 3;
+			output.focalx = 0;
+			output.focaly = 0;
+			output.alivetime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			auto ptr = reinterpret_cast<uint8_t*>(left_img.Raw.u8_data);
+			output.image.insert(output.image.end(), ptr, ptr+left_img.cols*left_img.rows*3);
+	    });
 
-    mutex->lock();
-		PAL::Image temp = left_img_write;
-        left_img_write = left_img_read;
-        left_img_read = left_img_write;
-    mutex->unlock();
+    fps.print("FPS: ");
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,31 +150,20 @@ int SpecificWorker::startup_check()
 
 RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
 {
-
+    return RoboCompCameraRGBDSimple::TRGBD();
 }
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
-//implementCODE
-
+    return RoboCompCameraRGBDSimple::TDepth();
 }
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
-    RoboCompCameraRGBDSimple::TImage image;
-    image.compressed = false; // opencv jpeg compression
-    image.cameraID = 0;
-    image.width = left_img_read.cols;
-    image.height = left_img_read.rows;
-    image.depth = 3;
-    image.focalx = 0;
-    image.focaly = 0;
-    image.alivetime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    mutex->lock();
-		auto ptr = reinterpret_cast<uint8_t*>(left_img_read.Raw.u8_data);
-		image.image.insert(image.image.end(), ptr, ptr+sizeof(left_img_read.Raw.u8_data));
-    mutex->unlock();
-    return image;
+	if(auto img = image_buffer.try_get(); img.has_value())
+		return img.value();
+	else
+		return RoboCompCameraRGBDSimple::TImage();
 }
 
 

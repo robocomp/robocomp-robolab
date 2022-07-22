@@ -60,7 +60,6 @@ void SpecificWorker::initialize(int period)
 	}
 	else
 	{
-		//Depth should be enable for occupancy map as a prerequisite
 		bool isDepthEnabled = true;
 		PAL::Internal::EnableDepth(isDepthEnabled);
 		PAL::Internal::MinimiseCompute(false);
@@ -79,14 +78,15 @@ void SpecificWorker::initialize(int period)
 		}
 
         PAL::CameraProperties prop;
-        unsigned int flag = PAL::MODE | PAL::FD | PAL::NR | PAL::FILTER_SPOTS | PAL::VERTICAL_FLIP ;
+        unsigned int flag = PAL::RESOLUTION | PAL::MODE | PAL::FD | PAL::NR | PAL::FILTER_SPOTS | PAL::VERTICAL_FLIP ;
         //prop.mode = PAL::Mode::FAST_DEPTH; // The other available option is PAL::Mode::HIGH_QUALITY_DEPTH
-        prop.mode = PAL::Mode::POINT_CLOUD_25D;
+		prop.resolution = {1120, 384};
+		prop.mode = PAL::Mode::POINT_CLOUD_25D;
         prop.fd = 1;
         prop.nr = 1;
         prop.filter_spots = 1;
         prop.vertical_flip =0;
-        PAL::SetCameraProperties(&prop, &flag);
+		PAL::SetCameraProperties(&prop, &flag);
 
 //        p.resolution = {1280,448};
 //        //5290x1819 3544x1218 1280x448 1120x384 640x224
@@ -107,55 +107,73 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    //cv::Mat rgb, depth, right;
+	//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	std::vector<PAL::Point> pc;
+	if (PAL::GetPointCloud(&pc) == PAL::SUCCESS)
+	{
+		std::cout << "points" << pc.size() << std::endl;
+	}
 
     // get image from camera
-	PAL::Image left_img, right_img, depth_img;
-	PAL::GrabFrames(&left_img, &right_img, &depth_img);
-	//depth = cv::Mat(depth_img.rows, depth_img.cols, CV_32FC1, depth_img.Raw.f32_data);
-	//rgb = cv::Mat(left_img.rows, left_img.cols, CV_8UC3, left_img.Raw.u8_data);
-    //std::cout << "depth " << depth_img.cols << " " << depth_img.rows << " rgb " << left_img.cols << " " << left_img.rows << std::endl;
-	//cv::imshow( "PAL Occupancy Map", rgb);
-	//cv::waitKey(1);
-
-    image_buffer.put(std::move(left_img), [left_img](auto &&input, auto &output)
-   		{
-			output.compressed = false; // opencv jpeg compression
-			output.cameraID = 0;
-			output.width = left_img.cols;
-			output.height = left_img.rows;
-			output.depth = 3;
-			output.focalx = 0;
-			output.focaly = 0;
-			output.alivetime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-			auto ptr = reinterpret_cast<uint8_t*>(left_img.Raw.u8_data);
-			output.image.insert(output.image.end(), ptr, ptr+left_img.cols*left_img.rows*3);
-	    });
+//	PAL::Image left_img, right_img, depth_img;
+//	PAL::GrabFrames(&left_img, &right_img, &depth_img);
+//
+//	//std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//	//std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+//
+//	image_buffer.put(std::move(left_img), [left_img](auto &&input, auto &output)
+//   		{
+//			output.compressed = false; // opencv jpeg compression
+//			output.cameraID = 0;
+//			output.width = left_img.cols;
+//			output.height = left_img.rows;
+//			output.depth = 3;
+//			output.focalx = 0;
+//			output.focaly = 0;
+//			output.alivetime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+//			auto ptr = reinterpret_cast<uint8_t*>(left_img.Raw.u8_data);
+//			output.image.insert(output.image.end(), ptr, ptr+left_img.cols*left_img.rows*3);
+//	    });
+//	depth_buffer.put(std::move(depth_img), [depth_img](auto &&input, auto &output)
+//	{
+//		output.compressed = false; // opencv jpeg compression
+//		output.cameraID = 0;
+//		output.width = depth_img.cols;
+//		output.height = depth_img.rows;
+//		output.focalx = 0;
+//		output.focaly = 0;
+//		output.alivetime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+//		output.depthFactor = 1;
+//		auto ptr = reinterpret_cast<uint8_t*>(depth_img.Raw.u8_data);
+//		output.depth.insert(output.depth.end(), ptr, ptr+depth_img.cols*depth_img.rows*4);
+//	});
 
     fps.print("FPS: ");
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-int SpecificWorker::startup_check()
-{
-	std::cout << "Startup check" << std::endl;
-	QTimer::singleShot(200, qApp, SLOT(quit()));
-	return 0;
-}
-
-
 RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
 {
-    return RoboCompCameraRGBDSimple::TRGBD();
+	auto img = image_buffer.try_get();
+	auto depth = depth_buffer.try_get();
+	RoboCompCameraRGBDSimple::TRGBD all;
+	if(img.has_value() and depth.has_value())
+	{
+		all.image.image.swap(img.value().image);
+		all.depth.depth.swap(depth.value().depth);
+		return all;
+	}
+	else
+		return RoboCompCameraRGBDSimple::TRGBD();
 }
 
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
-    return RoboCompCameraRGBDSimple::TDepth();
+	if(auto depth = depth_buffer.try_get(); depth.has_value())
+		return depth.value();
+	else
+		return RoboCompCameraRGBDSimple::TDepth();
 }
 
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
@@ -178,3 +196,9 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
 // RoboCompCameraRGBDSimple::TDepth
 // RoboCompCameraRGBDSimple::TRGBD
 
+int SpecificWorker::startup_check()
+{
+	std::cout << "Startup check" << std::endl;
+	QTimer::singleShot(200, qApp, SLOT(quit()));
+	return 0;
+}

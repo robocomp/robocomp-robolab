@@ -70,6 +70,7 @@ class SpecificWorker : public GenericWorker
 		int sc_height;
 		int sc_width ;
 		DoubleBuffer<PAL::Image, RoboCompCameraRGBDSimple::TImage> image_buffer;
+		DoubleBuffer<PAL::Image, RoboCompCameraRGBDSimple::TDepth> depth_buffer;
 		FPSCounter fps;
 
 };

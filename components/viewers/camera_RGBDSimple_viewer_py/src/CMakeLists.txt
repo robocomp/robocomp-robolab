@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-PROJECT(  camerargbdsimpleviewer )
+PROJECT(  camera_RGBDSimple_viewer_py )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 

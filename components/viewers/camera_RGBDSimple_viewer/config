@@ -1,0 +1,14 @@
+CommonBehavior.Endpoints=tcp -p 13005
+
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h dreamvu-desktop.local -p 10096
+
+
+display_rgb = true
+display_depth = true
+display_compressed = false
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

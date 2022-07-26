@@ -1,0 +1,13 @@
+
+import "CameraRGBDSimple.idsl";
+
+Component Camera_RGBDSimple_viewer
+{
+    Communications
+    {
+        requires CameraRGBDSimple;
+       
+    };
+    language Cpp11;
+};
+

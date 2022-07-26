@@ -29,6 +29,8 @@
 std::unique_ptr<RealSenseID::FaceAuthenticator> CreateAuthenticator(const char* port)
 {
 	RealSenseID::SerialConfig serial_config;
+    RealSenseID::DeviceConfig device_config;
+    device_config.face_selection_policy = RealSenseID::DeviceConfig::FaceSelectionPolicy::All;
 	serial_config.port = port;
     auto authenticator = std::make_unique<RealSenseID::FaceAuthenticator>();
     auto connect_status = authenticator->Connect(serial_config);
@@ -38,6 +40,8 @@ std::unique_ptr<RealSenseID::FaceAuthenticator> CreateAuthenticator(const char* 
         std::exit(1);
     }
     std::cout << "Connected to device" << std::endl;
+    authenticator->SetDeviceConfig(device_config);
+
     return authenticator;
 }
 
@@ -92,7 +96,7 @@ void SpecificWorker::initialize(int period)
     compression_params.push_back(3); 
     
 
-    this->Period = 1000; 
+    this->Period = 1000;
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -108,30 +112,42 @@ void SpecificWorker::compute()
 {
  
 
-if (false){
-    RoboCompRealSenseFaceID::UserDataList usersList; 
-    usersList=RealSenseFaceID_authenticate(); 
-    //¿Hay usuarios?
-    if (!usersList.empty()){ 
-        RoboCompRealSenseFaceID::UserData user=usersList.at(0); 
-        std::cout<<user.userAuthenticated<<std::endl; 
-        try { 
-            auto image = CameraSimple_getImage(); 
-            if (image.compressed){ 
-                cv::Mat frameCompr=cv::imdecode(image.image, -1); 
-                cv::imshow(user.userAuthenticated, frameCompr); 
-            } 
-            else{ 
-                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP); 
-                cv::imshow(user.userAuthenticated, frame); 
-            } 
-            cv::waitKey(1); 
-            } 
-        catch(const std::exception& e) 
-        { 
-            std::cerr << e.what() << '\n'; 
-        } 
-    } }
+//if (false){
+//    RoboCompRealSenseFaceID::UserDataList usersList;
+//    usersList=RealSenseFaceID_authenticate();
+//    //¿Hay usuarios?
+//    if (!usersList.empty()){
+//        RoboCompRealSenseFaceID::UserData user=usersList.at(0);
+//        std::cout<<user.userAuthenticated<<std::endl;
+//        try {
+//            auto image = CameraSimple_getImage();
+//            if (image.compressed){
+//                cv::Mat frameCompr=cv::imdecode(image.image, -1);
+//                cv::imshow(user.userAuthenticated, frameCompr);
+//            }
+//            else{
+//                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+//                if(face_bounding_box_spec.size() > 0)
+//                {
+//                    for(auto bb : face_bounding_box_spec)
+//                    {
+//                        cv::RNG rng(12345);
+//                        cv::Scalar color_1 = cv::Scalar( rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256));
+//                        cv::rectangle(frame, cv::Rect(face_box.x, face_box.y, face_box.width, face_box.height), color_1, 5);
+//                    }
+//                    cv::Mat resized;
+//                    cv::resize(frame,resized,cv::Size(720,1280));
+//                    cv::imshow(user.userAuthenticated, resized);
+//                }
+//            }
+//            cv::waitKey(1);
+//            }
+//        catch(const std::exception& e)
+//        {
+//            std::cerr << e.what() << '\n';
+//        }
+//    }
+//}
 }
 
 int SpecificWorker::startup_check()
@@ -152,22 +168,22 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
             frame.compressed=pars.compressed;
             my_mutex.lock();
                 cv::Mat auxMat(preview_callback->frame.height, preview_callback->frame.width, CV_8UC3, preview_callback->frame.buffer);
-                cv::resize(auxMat,matResize,cv::Size(352,640));
+//
                 if(pars.display){   
                     cv::imshow("F455", matResize);
                     //cv::waitKey(1);
                 }
                 
-                frame.height = matResize.rows;
-                frame.width = matResize.cols;
+                frame.height = auxMat.rows;
+                frame.width = auxMat.cols;
             my_mutex.unlock();
             if (frame.compressed){  
-                cv::imencode(".png",matResize , buffer, compression_params);
+                cv::imencode(".png",auxMat , buffer, compression_params);
                 qInfo() << "raw: " << auxMat.total() * auxMat.elemSize() << "compressed: " << buffer.size() << " Ratio:" << auxMat.total() * auxMat.elemSize()/buffer.size(); 
                 frame.image.assign(buffer.begin(), buffer.end());   
             }
             else {
-                frame.image.assign(matResize.data, matResize.data + (matResize.total() * matResize.elemSize()));
+                frame.image.assign(auxMat.data, auxMat.data + (auxMat.total() * auxMat.elemSize()));
             } 
             
         } 
@@ -195,7 +211,7 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_authenticate()
 {
 	RoboCompRealSenseFaceID::UserDataList dataList;
-    RoboCompRealSenseFaceID::UserData data;
+
 	auto authenticator = CreateAuthenticator(pars.device.c_str());
     MyAuthClbk auth_clbk;
     auto status = authenticator->Authenticate(auth_clbk);
@@ -203,10 +219,19 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_authentica
     {
         std::cout << "Status: " << status << std::endl << std::endl;
     }
-    if (auth_clbk.userAuthenticated!="Unknown"){
-        data.userAuthenticated=auth_clbk.userAuthenticated;
-        dataList.emplace_back(data);
-    } 
+//    if (auth_clbk.userAuthenticated!="Unknown"){
+//        data.name=auth_clbk.userAuthenticated;
+//        dataList.emplace_back(data);
+//    }
+    if (auth_clbk.users_data.size() > 0)
+    {
+        for(auto user : auth_clbk.users_data)
+        {
+            std::cout << "USER NAME: " << user.name << " X POSITION: " << user.x << " y POSITION: " << user.y << std::endl;
+            RoboCompRealSenseFaceID::UserData data{.name = user.name, .x = user.x, .y = user.y};
+            dataList.emplace_back(data);
+        }
+    }
 	return dataList;
 }
 
@@ -303,7 +328,7 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_getQueryUs
     {
         std::cout << (i + 1) << ".  " << user_ids[i] << std::endl;
         std::string tmp_string(user_ids[i]);
-		data.userAuthenticated=tmp_string;
+		data.name=tmp_string;
         dataList.emplace_back(data);
     }
 

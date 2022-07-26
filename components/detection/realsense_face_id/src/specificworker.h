@@ -21,7 +21,6 @@
 /**
 	\brief
 	@author authorname
-	dsf
 */
 
 
@@ -76,8 +75,9 @@ public:
 	RoboCompRealSenseFaceID::UserDataList RealSenseFaceID_getQueryUsers();
 	bool RealSenseFaceID_startPreview();
 	bool RealSenseFaceID_stopPreview();
+    vector<vector<cv::Point2i>>  face_bounding_box_spec;
 
-
+//    int top_l, top_r, bottom_l, bottom_r;
 
 public slots:
 	void compute();
@@ -109,15 +109,42 @@ private:
 ////////////////////////////////Authentication/////////////////////////////////////
 class MyAuthClbk : public RealSenseID::AuthenticationCallback
 {
+    std::vector<RealSenseID::FaceRect> _faces;
+    size_t _result_idx = 0;
+    unsigned int _ts =0;
+
 public:
+    // Face position
+    struct UserData
+    {
+        string name;
+        int x;
+        int y;
+        float angle;
+    };
+    vector<UserData> users_data;
 	std::string userAuthenticated;
+    vector<vector<cv::Point2i>> face_bounding_box;
+
     void OnResult(const RealSenseID::AuthenticateStatus status, const char* user_id) override
     {
+        std::cout << "\n******* OnResult #" << _result_idx << "*******" << std::endl;
+        users_data.resize(_result_idx+1);
+        std::cout << "Status: " << status << std::endl;
         if (status == RealSenseID::AuthenticateStatus::Success)
         {
             std::cout << "******* Authenticate success.  user_id: " << user_id << " *******" << std::endl;
 			std::string tmp_string(user_id);
 			this->userAuthenticated=tmp_string;
+            auto act_face_pose = _faces[_result_idx];
+            UserData personData {.name=tmp_string, .x = act_face_pose.x + act_face_pose.w/2, .y = act_face_pose.y + act_face_pose.h/2};
+            users_data[_result_idx] = personData;
+//            act_bb.push_back(cv::Point2i(face.x, face.y));
+//            act_bb.push_back(cv::Point2i(face.x + face.w, face.y));
+//            act_bb.push_back(cv::Point2i(face.x, face.y + face.h));
+//            act_bb.push_back(cv::Point2i(face.x + face.w, face.y + face.h));
+//            face_bounding_box.push_back(act_bb);
+            std::cout << "Face: " << "x: " << act_face_pose.x << " y: " << act_face_pose.y << " " << act_face_pose.w << "x" << act_face_pose.h << std::endl;
         }
         else
         {
@@ -130,6 +157,17 @@ public:
     {
         std::cout << "on_hint: hint: " << hint << std::endl;
     }
+    void OnFaceDetected(const std::vector<RealSenseID::FaceRect>& faces, const unsigned int ts) override
+    {
+        _faces = faces;
+        _ts = ts;
+    }
+
+    unsigned int GetLastTimeStamp()
+    {
+        return _ts;
+    }
+
 };
 
 

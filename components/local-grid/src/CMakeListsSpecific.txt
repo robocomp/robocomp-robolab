@@ -1,0 +1,22 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  /home/robocomp/robocomp/classes/local_grid/local_grid.cpp
+  $ENV{ROBOCOMP}/classes/abstract_graphic_viewer/abstract_graphic_viewer.h
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  /home/robocomp/robocomp/classes/local_grid/local_grid.h
+)
+
+set(CMAKE_CXX_STANDARD 20)
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
+add_definitions(-g  -fmax-errors=1 -fno-char8_t)
+
+SET (LIBS ${LIBS}  )
+
+

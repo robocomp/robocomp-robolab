@@ -1,0 +1,21 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10096
+LaserProxy = laser:tcp -h localhost -p 10003
+
+
+#################################################
+# GRID dimensions
+#################################################
+left_x = -5000
+top_y = -2500   # Y axis is inverted in code
+width = 10000
+height = 5000
+tile = 50
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

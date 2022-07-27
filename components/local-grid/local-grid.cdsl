@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+import "Laser.idsl";
+
+Component local_grid
+{
+    Communications
+    {
+        requires CameraRGBDSimple, Laser;
+    };
+    language Cpp11;
+    gui Qt(QWidget);
+};
+

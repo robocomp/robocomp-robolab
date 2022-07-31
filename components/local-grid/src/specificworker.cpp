@@ -17,6 +17,8 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <qmath.h>
+#include <cppitertools/enumerate.hpp>
 
 /**
 * \brief Default constructor
@@ -63,13 +65,13 @@ void SpecificWorker::initialize(int period)
 	else
 	{
         viewer = new AbstractGraphicViewer(this->beta_frame, this->viewer_dimensions);
-        this->resize(900,450);
+        this->resize(900,650);
         const auto &[rp, re] = viewer->add_robot(consts.robot_length, consts.robot_length);
         robot_polygon = rp;
         laser_in_robot_polygon = new QGraphicsRectItem(-10, 10, 20, 20, robot_polygon);
         laser_in_robot_polygon->setPos(0, 190);     // move this to abstract
 
-        local_grid.initialize(Local_Grid::Ranges{-M_PI, M_PI, 0.1}, Local_Grid::Ranges{0.f, 4000.f, 5}, &viewer->scene);
+        local_grid.initialize(Local_Grid::Ranges{0, 360, 5}, Local_Grid::Ranges{0.f, 4000.f, 200}, &viewer->scene);
 
         timer.start(Period);
 	}
@@ -78,12 +80,17 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    qInfo() << __FUNCTION__ << "compute";
-//	try
-//	{
-//	  auto ldata = laser_proxy->getLaserData();
-//	}
-//	catch(const Ice::Exception &e){std::cout << "Error reading from Camera" << e << std::endl;}
+    //qInfo() << __FUNCTION__ << "compute";
+	try
+	{
+	  auto ldata = laser_proxy->getLaserData();
+      std::vector<Eigen::Vector2f> ldata_polar(ldata.size());
+      for(auto &&[i, p] : ldata | iter::enumerate)
+          ldata_polar[i] = {p.angle, p.dist};
+      local_grid.update_map_from_polar_data(ldata_polar, 4000);
+
+	}
+	catch(const Ice::Exception &e){std::cout << "Error reading from Camera" << e << std::endl;}
 }
 
 int SpecificWorker::startup_check()

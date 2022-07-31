@@ -30,6 +30,7 @@
 #include <genericworker.h>
 #include "/home/robocomp/robocomp/classes/local_grid/local_grid.h"
 #include "/home/robocomp/robocomp/classes/abstract_graphic_viewer/abstract_graphic_viewer.h"
+#include "qgraphicscellitem.h"
 
 class SpecificWorker : public GenericWorker
 {

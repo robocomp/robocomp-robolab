@@ -16,10 +16,8 @@ class QGraphicsCellItem : public QGraphicsItem
         QRectF boundingRect() const;
 
         // overriding paint()
-        void paint(QPainter * painter,
-                   const QStyleOptionGraphicsItem * option,
-                   QWidget * widget);
-        void setFreeColor() { current_brush = free_brush;};
+        void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget);
+        void setFreeColor();
         void setOccupiedColor(int level);
 
     protected:
@@ -44,6 +42,7 @@ class QGraphicsCellItem : public QGraphicsItem
         QPointF A,B,C,D;
         QPolygonF poly;
         inline float radians_to_degrees(float a) const { if(a>=0) return a*180.f/M_PI; else return a*180/M_PI+360;};
+        float opacity = 0.1;
 };
 
 #endif //LOCAL_GRID_QGRAPHICSCELLITEM_H

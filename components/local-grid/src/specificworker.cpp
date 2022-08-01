@@ -73,23 +73,22 @@ void SpecificWorker::initialize(int period)
 
         local_grid.initialize(Local_Grid::Ranges{0, 360, 5}, Local_Grid::Ranges{0.f, 4000.f, 200}, &viewer->scene);
 
-        timer.start(Period);
+        timer.start(100);
 	}
 
 }
 
 void SpecificWorker::compute()
 {
-    //qInfo() << __FUNCTION__ << "compute";
-	try
+    try
 	{
 	  auto ldata = laser_proxy->getLaserData();
       std::vector<Eigen::Vector2f> ldata_polar(ldata.size());
       for(auto &&[i, p] : ldata | iter::enumerate)
           ldata_polar[i] = {p.angle, p.dist};
       local_grid.update_map_from_polar_data(ldata_polar, 4000);
-
-	}
+      viewer->viewport()->repaint();
+    }
 	catch(const Ice::Exception &e){std::cout << "Error reading from Camera" << e << std::endl;}
 }
 

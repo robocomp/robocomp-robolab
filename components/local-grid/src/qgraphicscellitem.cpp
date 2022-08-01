@@ -7,7 +7,8 @@
 #include <QtMath>
 #include <QDebug>
 
-QGraphicsCellItem::QGraphicsCellItem(float ang_, float rad_, float ang_step_, float rad_step_) : ang(ang_), rad(rad_), ang_step(ang_step_), rad_step(rad_step_)
+QGraphicsCellItem::QGraphicsCellItem(float ang_, float rad_, float ang_step_, float rad_step_) :
+        ang(ang_), rad(rad_), ang_step(ang_step_), rad_step(rad_step_)
 {
     qInfo() << __FUNCTION__ << ang_ << rad_;
     A = {(rad-rad_step)*sin(-ang_step), (rad-rad_step)*cos(-ang_step)-rad};
@@ -16,39 +17,40 @@ QGraphicsCellItem::QGraphicsCellItem(float ang_, float rad_, float ang_step_, fl
     D = {(rad+rad_step)*sin(-ang_step), (rad+rad_step)*cos(-ang_step)-rad};
     poly << A << B << C << D;
 }
-
 QRectF QGraphicsCellItem::boundingRect() const
 {
     return QRectF(D,B);
 }
-
 void QGraphicsCellItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
-    QRectF rect = boundingRect();
-
     //painter->setPen(free_pen);
     painter->setBrush(current_brush);
-    painter->setOpacity(0.2);
+    painter->setOpacity(opacity);
     painter->drawConvexPolygon(poly);
+    qInfo() << __FUNCTION__ << "paint";
 }
-
-void QGraphicsCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
-{
-    update();
-    QGraphicsItem::mousePressEvent(event);
-}
-
-void QGraphicsCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
-{
-    update();
-    QGraphicsItem::mouseReleaseEvent(event);
-}
-
 void QGraphicsCellItem::setOccupiedColor(int level)
 {
     if (level >= 0 and level < 4)
     {
         current_brush = occupied_brushes[level];
+        opacity = 1;
         update();
     }
+}
+void QGraphicsCellItem::setFreeColor()
+{
+    current_brush = free_brush;;
+    opacity = 0.1;
+    update();
+}
+void QGraphicsCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    update();
+    QGraphicsItem::mousePressEvent(event);
+}
+void QGraphicsCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
+    update();
+    QGraphicsItem::mouseReleaseEvent(event);
 }

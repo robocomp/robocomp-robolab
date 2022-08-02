@@ -73,6 +73,11 @@ void SpecificWorker::initialize(int period)
 
         local_grid.initialize(Local_Grid::Ranges{0, 360, 5}, Local_Grid::Ranges{0.f, 4000.f, 200}, &viewer->scene);
 
+        // 3DViewer
+        points = std::make_shared<std::vector<std::tuple<double, double, double>>>(512*256);
+        viewer_3d = new Viewer(widget_3d, points);
+        viewer_3d->show();
+
         timer.start(100);
 	}
 
@@ -87,9 +92,58 @@ void SpecificWorker::compute()
       for(auto &&[i, p] : ldata | iter::enumerate)
           ldata_polar[i] = {p.angle, p.dist};
       local_grid.update_map_from_polar_data(ldata_polar, 4000);
-      viewer->viewport()->repaint();
     }
 	catch(const Ice::Exception &e){std::cout << "Error reading from Camera" << e << std::endl;}
+
+//    try
+//    {
+//        auto image = camerargbdsimple_proxy->getImage("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
+//        if (image.width != 0 and image.height != 0)
+//        {
+//            cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+//            if (image.compressed)
+//                frame = cv::imdecode(image.image, -1);
+//
+//            cv::imshow("OMNI image", frame);
+//            cv::waitKey(1);
+//        }
+//    }
+//    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
+
+    try
+    {
+        // depth is coded in gray scale as 0-255  -> 0 - 500cm,  Eache gray level codes 2cm
+        auto image = camerargbdsimple_proxy->getImage("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorDepth");
+        if (image.width != 0 and image.height != 0)
+        {
+            cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+            if (image.compressed)
+                frame = cv::imdecode(image.image, -1);
+            cv::Mat gray_frame;
+            cv::cvtColor(frame, gray_frame,  cv::COLOR_RGB2GRAY);
+            // Let's assume that each column corresponds to a polar coordinate: ang_step = 360/image.width
+            // and along the column we have radius
+            // hor ang = 2PI/512 * i
+            std::size_t i=0;
+            float hor_ang, dist, x, y, z;
+            //for(int u=100; u<200; u++)
+            int u = 220;
+                for(int v=0; v<image.width; v++)
+                {
+                    hor_ang = 2*M_PI/image.width * v - M_PI;
+                    dist = (float)gray_frame.at<uchar>(u, v) * 20.f /10000.f;  // to meters
+                    x = -dist * sin(hor_ang);
+                    y = dist * cos(hor_ang);
+                    z = (image.height/2.0 - u) / 128.0 * y; // focal
+                    points->operator[](i++) = std::make_tuple(x,y,z);
+                };
+        }
+        else qWarning() << __FUNCTION__ << "Empty image";
+    }
+    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
+
+    viewer->viewport()->repaint();
+
 }
 
 int SpecificWorker::startup_check()

@@ -31,6 +31,47 @@
 #include "/home/robocomp/robocomp/classes/local_grid/local_grid.h"
 #include "/home/robocomp/robocomp/classes/abstract_graphic_viewer/abstract_graphic_viewer.h"
 #include "qgraphicscellitem.h"
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <QGLViewer/qglviewer.h>
+
+class Viewer : public QGLViewer
+{
+    public:
+        Viewer(QWidget *parent_, std::shared_ptr<std::vector<std::tuple<double, double, double>>> points_) : QGLViewer(parent_)
+        {
+            parent = parent_;
+            resize(parent->width(), parent->height());
+            points = points_;
+        };
+
+    protected:
+        virtual void draw()
+        {
+            glBegin(GL_POINTS);
+            for (const auto &[x,y,z] : *points)
+            {
+                glColor3f(1.0, 0.0, 0.0);
+                glVertex3fv(qglviewer::Vec(x, y, z));
+            }
+            glEnd();
+            resize(parent->width(), parent->height());
+        };
+        virtual void init()
+        {
+            restoreStateFromFile();
+            glDisable(GL_LIGHTING);
+            glPointSize(3.0);
+            setGridIsDrawn();
+        };
+        virtual void animate(){};
+        virtual QString helpString() const {};
+
+    private:
+        std::shared_ptr<std::vector<std::tuple<double, double, double>>> points;
+        QWidget *parent;
+};
 
 class SpecificWorker : public GenericWorker
 {
@@ -63,6 +104,10 @@ class SpecificWorker : public GenericWorker
     QRectF viewer_dimensions;
 
     Local_Grid local_grid;
+
+    Viewer *viewer_3d;
+    std::shared_ptr<std::vector<std::tuple<double, double, double>>> points;
+
 };
 
 #endif

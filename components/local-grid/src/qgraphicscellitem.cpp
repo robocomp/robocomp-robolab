@@ -10,7 +10,6 @@
 QGraphicsCellItem::QGraphicsCellItem(float ang_, float rad_, float ang_step_, float rad_step_) :
         ang(ang_), rad(rad_), ang_step(ang_step_), rad_step(rad_step_)
 {
-    qInfo() << __FUNCTION__ << ang_ << rad_;
     A = {(rad-rad_step)*sin(-ang_step), (rad-rad_step)*cos(-ang_step)-rad};
     B = {(rad-rad_step)*sin(ang_step), (rad-rad_step)*cos(ang_step)-rad};
     C = {(rad+rad_step)*sin(ang_step), (rad+rad_step)*cos(ang_step)-rad};
@@ -27,7 +26,6 @@ void QGraphicsCellItem::paint(QPainter *painter, const QStyleOptionGraphicsItem 
     painter->setBrush(current_brush);
     painter->setOpacity(opacity);
     painter->drawConvexPolygon(poly);
-    qInfo() << __FUNCTION__ << "paint";
 }
 void QGraphicsCellItem::setOccupiedColor(int level)
 {

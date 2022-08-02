@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10096
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10095
 LaserProxy = laser:tcp -h localhost -p 10003
 
 

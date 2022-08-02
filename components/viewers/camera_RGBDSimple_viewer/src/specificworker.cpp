@@ -56,7 +56,6 @@ void SpecificWorker::initialize(int period)
 	{
 		timer.start(Period);
 	}
-
 }
 
 void SpecificWorker::compute()

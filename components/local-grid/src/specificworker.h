@@ -75,7 +75,7 @@ class Viewer : public QGLViewer
             //setGridIsDrawn();
         };
         virtual void animate(){};
-        virtual QString helpString() const {};
+        virtual QString helpString() const { return QString();};
 
     private:
         std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
@@ -103,7 +103,8 @@ class SpecificWorker : public GenericWorker
         float tile_size = 100;
         const float max_laser_range = 4000;
         const float max_camera_depth_range = 4500;
-        const float omni_camera_height_meters = 1.2; //mm
+        const float min_camera_depth_range = 800;
+        const float omni_camera_height_meters = 0.6; //mm
         float robot_length = 500;
      };
     Constants consts;
@@ -119,6 +120,11 @@ class SpecificWorker : public GenericWorker
     Viewer *viewer_3d;
     std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
 
+    RoboCompLaser::TLaserData read_laser();
+    cv::Mat read_rgb(const std::string &camera_name);
+    cv::Mat read_depth_omni();
+    void draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata);
+    void draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_frame, const cv::Mat &rgb_frame);
 };
 
 #endif

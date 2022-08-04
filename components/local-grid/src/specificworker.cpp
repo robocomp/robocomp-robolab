@@ -75,7 +75,8 @@ void SpecificWorker::initialize(int period)
 
         // 3DViewer
         points = std::make_shared<std::vector<std::tuple<double, double, double>>>(512*256);
-        viewer_3d = new Viewer(widget_3d, points);
+        colors = std::make_shared<std::vector<std::tuple<double, double, double>>>(512*256);
+        viewer_3d = new Viewer(widget_3d, points, colors);
         viewer_3d->show();
 
         timer.start(100);
@@ -85,9 +86,10 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+    RoboCompLaser::TLaserData ldata;
     try
 	{
-	  auto ldata = laser_proxy->getLaserData();
+	  ldata = laser_proxy->getLaserData();
       std::vector<Eigen::Vector2f> ldata_polar(ldata.size());
       for(auto &&[i, p] : ldata | iter::enumerate)
           ldata_polar[i] = {p.angle, p.dist};
@@ -95,21 +97,20 @@ void SpecificWorker::compute()
     }
 	catch(const Ice::Exception &e){std::cout << "Error reading from Camera" << e << std::endl;}
 
-//    try
-//    {
-//        auto image = camerargbdsimple_proxy->getImage("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
-//        if (image.width != 0 and image.height != 0)
-//        {
-//            cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
-//            if (image.compressed)
-//                frame = cv::imdecode(image.image, -1);
-//
-//            cv::imshow("OMNI image", frame);
-//            cv::waitKey(1);
-//        }
-//    }
-//    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
+    cv::Mat rgb_frame;
+    try
+    {
+        auto image = camerargbdsimple_proxy->getImage("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
+        if (image.width != 0 and image.height != 0)
+        {
+            rgb_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+            if (image.compressed)
+                rgb_frame = cv::imdecode(image.image, -1);
+        }
+    }
+    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
 
+    struct RGB { uchar blue; uchar green; uchar red;  };
     try
     {
         // depth is coded in gray scale as 0-255  -> 0 - 500cm,  Eache gray level codes 2cm
@@ -125,25 +126,39 @@ void SpecificWorker::compute()
             // and along the column we have radius
             // hor ang = 2PI/512 * i
             std::size_t i=0;
-            float hor_ang, dist, x, y, z;
-            //for(int u=100; u<200; u++)
-            int u = 220;
+            int semi_height = image.height/2;
+            float hor_ang, dist, x, y, z, proy;
+            for(int u=0; u<image.height; u=u+3)
                 for(int v=0; v<image.width; v++)
                 {
-                    hor_ang = 2*M_PI/image.width * v - M_PI;
-                    dist = (float)gray_frame.at<uchar>(u, v) * 20.f /10000.f;  // to meters
+                    hor_ang = 2*M_PI/image.width * v - M_PI; // cols to radians
+                    dist = (float)gray_frame.ptr<uchar>(u)[v] * 19.f;  // pixel to dist scaling factor
+                    if(dist > consts.max_camera_depth_range) continue;
+                    dist /= 1000.f;  // to deca-meters?
                     x = -dist * sin(hor_ang);
                     y = dist * cos(hor_ang);
-                    z = (image.height/2.0 - u) / 128.0 * y; // focal
-                    points->operator[](i++) = std::make_tuple(x,y,z);
+                    proy = dist * cos( atan2((semi_height - u), 128.f));
+                    z = (semi_height - u)/128.f * proy; // 128 focal as PI fov angle for 256 pixels
+                    z += consts.omni_camera_height_meters;
+                    points->operator[](i) = std::make_tuple(x,y,z);
+                    RGB& rgb = rgb_frame.ptr<RGB>(u)[v];
+                    //colors->operator[](i++) = std::make_tuple(rgb.blue/255.0, rgb.green/255.0, rgb.red/255.0);
+                    //float c = z/2;
+                    colors->operator[](i++) = std::make_tuple(1.0,0.6,0.0);
                 };
         }
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
 
+    // draw laser in 3D viewer
+    for(size_t i = ldata.size(); const auto &p : ldata)
+    {
+        points->operator[](i) = std::make_tuple(p.dist*sin(p.angle)/1000.f, p.dist*cos(p.angle)/1000.f, 0.2);
+        colors->operator[](i++) = std::make_tuple(0.0, 0.0, 1.0);
+    }
     viewer->viewport()->repaint();
-
+    viewer_3d->updateGL();
 }
 
 int SpecificWorker::startup_check()

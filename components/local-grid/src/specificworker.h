@@ -35,41 +35,50 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <QGLViewer/qglviewer.h>
+#include <cppitertools/zip.hpp>
 
 class Viewer : public QGLViewer
 {
     public:
-        Viewer(QWidget *parent_, std::shared_ptr<std::vector<std::tuple<double, double, double>>> points_) : QGLViewer(parent_)
+        Viewer(QWidget *parent_, std::shared_ptr<std::vector<std::tuple<double, double, double>>> points_,
+                                 std::shared_ptr<std::vector<std::tuple<double, double, double>>> colors_) : QGLViewer(parent_)
         {
             parent = parent_;
             resize(parent->width(), parent->height());
             points = points_;
+            colors = colors_;
         };
+        ~Viewer(){ saveStateToFile(); }
 
     protected:
         virtual void draw()
         {
+            drawAxis();
+            drawGrid(5.0, 10);
             glBegin(GL_POINTS);
-            for (const auto &[x,y,z] : *points)
+            for (auto &&[point, color] : iter::zip(*points, *colors))
             {
-                glColor3f(1.0, 0.0, 0.0);
+                auto &[x,y,z] = point;
+                auto &[r,g,b] = color;
+                glColor3f(r, g, b);
                 glVertex3fv(qglviewer::Vec(x, y, z));
             }
             glEnd();
-            resize(parent->width(), parent->height());
+            resize(parent->width(), parent->height());  // move to a signal
         };
         virtual void init()
         {
             restoreStateFromFile();
             glDisable(GL_LIGHTING);
             glPointSize(3.0);
-            setGridIsDrawn();
+            setSceneRadius(5.0);
+            //setGridIsDrawn();
         };
         virtual void animate(){};
         virtual QString helpString() const {};
 
     private:
-        std::shared_ptr<std::vector<std::tuple<double, double, double>>> points;
+        std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
         QWidget *parent;
 };
 
@@ -93,6 +102,8 @@ class SpecificWorker : public GenericWorker
     {
         float tile_size = 100;
         const float max_laser_range = 4000;
+        const float max_camera_depth_range = 4500;
+        const float omni_camera_height_meters = 1.2; //mm
         float robot_length = 500;
      };
     Constants consts;
@@ -106,7 +117,7 @@ class SpecificWorker : public GenericWorker
     Local_Grid local_grid;
 
     Viewer *viewer_3d;
-    std::shared_ptr<std::vector<std::tuple<double, double, double>>> points;
+    std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
 
 };
 

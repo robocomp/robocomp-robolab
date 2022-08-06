@@ -90,9 +90,10 @@ void SpecificWorker::compute()
     auto omni_rgb_frame = read_rgb("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
     auto omni_depth_frame = read_depth_omni();
     auto central_rgb = read_rgb("camera_top");
-    
+    auto central_depth = read_depth("camera_top");
+
     draw_omni_depth_frame_on_3dviewer(omni_depth_frame, omni_rgb_frame);
-    // draw_central_depth_frame_on_3dviewer(depth_frame, rgb_frame);
+    draw_central_depth_frame_on_3dviewer(central_depth, central_rgb);
     draw_laser_on_3dviewer(ldata);
 
     viewer->viewport()->repaint();
@@ -124,12 +125,32 @@ cv::Mat SpecificWorker::read_rgb(const std::string &camera_name)
             rgb_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
             if (image.compressed)
                 rgb_frame = cv::imdecode(image.image, -1);
-            cv::imshow("sd", rgb_frame);
+            //cv::imshow("sd", rgb_frame);
         }
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
     return rgb_frame;
+}
+cv::Mat SpecificWorker::read_depth(const std::string &camera_name)
+{
+    cv::Mat depth_frame;
+    try
+    {
+        auto image = camerargbdsimple_proxy->getDepth(camera_name);
+        if (image.width != 0 and image.height != 0)
+        {
+            depth_frame = cv::Mat(cv::Size(image.width, image.height), CV_32FC1, &image.depth[0], cv::Mat::AUTO_STEP);
+            if (image.compressed)
+                depth_frame = cv::imdecode(image.depth, -1);
+            //depth_frame.convertTo(depth_frame, CV_8UC3, 255. / 10, 0);
+            //applyColorMap(depth_frame, depth_frame, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
+            //cv::imshow("Depth image ", depth_frame);
+        }
+        else qWarning() << __FUNCTION__ << "Empty image";
+    }
+    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple (DEPTH)" << std::endl;}
+    return depth_frame;
 }
 cv::Mat SpecificWorker::read_depth_omni()
 {
@@ -173,8 +194,8 @@ void SpecificWorker::draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_fram
             z = (semi_height - u)/128.f * proy; // 128 focal as PI fov angle for 256 pixels
             z += consts.omni_camera_height_meters;
             points->operator[](i) = std::make_tuple(x,y,z);
-            //RGB& rgb = rgb_frame.ptr<RGB>(u)[v];
-            auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
+            //auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
+            auto rgb = rgb_frame.at<cv::Vec3b>(u,v);
 
             //colors->operator[](i++) = std::make_tuple(rgb.blue/255.0, rgb.green/255.0, rgb.red/255.0);
             colors->operator[](i++) = std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0);
@@ -189,6 +210,11 @@ void SpecificWorker::draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &lda
         points->operator[](i) = std::make_tuple(p.dist*sin(p.angle)/1000.f, p.dist*cos(p.angle)/1000.f + 0.172, 0.2); // laser offset on robot
         colors->operator[](i++) = std::make_tuple(0.0, 0.0, 1.0);
     }
+}
+void SpecificWorker::draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb)
+{
+
+
 }
 ////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()

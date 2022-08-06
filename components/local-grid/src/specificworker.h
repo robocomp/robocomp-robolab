@@ -125,6 +125,8 @@ class SpecificWorker : public GenericWorker
     cv::Mat read_depth_omni();
     void draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata);
     void draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_frame, const cv::Mat &rgb_frame);
+    void draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb);
+    cv::Mat read_depth(const string &camera_name);
 };
 
 #endif

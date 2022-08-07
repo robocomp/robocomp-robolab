@@ -40,8 +40,8 @@
 class Viewer : public QGLViewer
 {
     public:
-        Viewer(QWidget *parent_, std::shared_ptr<std::vector<std::tuple<double, double, double>>> points_,
-                                 std::shared_ptr<std::vector<std::tuple<double, double, double>>> colors_) : QGLViewer(parent_)
+        Viewer(QWidget *parent_, std::shared_ptr<std::vector<std::tuple<float, float, float>>> points_,
+                                 std::shared_ptr<std::vector<std::tuple<float, float, float>>> colors_) : QGLViewer(parent_)
         {
             parent = parent_;
             resize(parent->width(), parent->height());
@@ -54,6 +54,7 @@ class Viewer : public QGLViewer
         virtual void draw()
         {
             drawAxis();
+            glColor3f(0.7, 0.7, 0.7);
             drawGrid(5.0, 10);
             glBegin(GL_POINTS);
             for (auto &&[point, color] : iter::zip(*points, *colors))
@@ -78,7 +79,7 @@ class Viewer : public QGLViewer
         virtual QString helpString() const { return QString();};
 
     private:
-        std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
+        std::shared_ptr<std::vector<std::tuple<float, float, float>>> points, colors;
         QWidget *parent;
 };
 
@@ -118,15 +119,18 @@ class SpecificWorker : public GenericWorker
     Local_Grid local_grid;
 
     Viewer *viewer_3d;
-    std::shared_ptr<std::vector<std::tuple<double, double, double>>> points, colors;
+    std::shared_ptr<std::vector<std::tuple<float, float, float>>> points, colors;
 
-    RoboCompLaser::TLaserData read_laser();
-    cv::Mat read_rgb(const std::string &camera_name);
+    tuple<RoboCompLaser::TLaserData, vector<Eigen::Vector2f>> read_laser();
+    std::tuple<cv::Mat, float> read_rgb(const std::string &camera_name);
     cv::Mat read_depth_omni();
     void draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata);
     void draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_frame, const cv::Mat &rgb_frame);
-    void draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb);
-    cv::Mat read_depth(const string &camera_name);
+    void draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb, float focal);
+    std::tuple<cv::Mat, float> read_depth(const string &camera_name);
+
+    Eigen::Transform<float, 3, Eigen::Affine> Rt;
 };
+
 
 #endif

@@ -31,6 +31,7 @@
 #include <ui_mainUI.h>
 #include <CommonBehavior.h>
 
+#include <AprilTags.h>
 #include <CameraRGBDSimple.h>
 #include <GenericBase.h>
 #include <Laser.h>
@@ -40,7 +41,7 @@
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompLaser::LaserPrxPtr>;
+using TuplePrx = std::tuple<RoboCompAprilTags::AprilTagsPrxPtr,RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompLaser::LaserPrxPtr>;
 
 
 class GenericWorker : public QWidget, public Ui_guiDlg
@@ -56,6 +57,7 @@ public:
 	QMutex *mutex;
 
 
+	RoboCompAprilTags::AprilTagsPrxPtr apriltags_proxy;
 	RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr camerargbdsimple_proxy;
 	RoboCompLaser::LaserPrxPtr laser_proxy;
 

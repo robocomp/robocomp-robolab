@@ -22,8 +22,6 @@
 	@author authorname
 */
 
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
@@ -36,6 +34,7 @@
 #include <opencv2/imgproc.hpp>
 #include <QGLViewer/qglviewer.h>
 #include <cppitertools/zip.hpp>
+#include <ceres/ceres.h>
 
 class Viewer : public QGLViewer
 {
@@ -62,7 +61,7 @@ class Viewer : public QGLViewer
                 auto &[x,y,z] = point;
                 auto &[r,g,b] = color;
                 glColor3f(r, g, b);
-                glVertex3fv(qglviewer::Vec(x, y, z));
+                glVertex3f(x, y, z);
             }
             glEnd();
             resize(parent->width(), parent->height());  // move to a signal
@@ -123,13 +122,33 @@ class SpecificWorker : public GenericWorker
 
     tuple<RoboCompLaser::TLaserData, vector<Eigen::Vector2f>> read_laser();
     std::tuple<cv::Mat, float> read_rgb(const std::string &camera_name);
-    cv::Mat read_depth_omni();
-    void draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata);
-    void draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_frame, const cv::Mat &rgb_frame);
-    void draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb, float focal);
     std::tuple<cv::Mat, float> read_depth(const string &camera_name);
-
+    cv::Mat read_depth_omni();
+    void get_laser_3d_points(const RoboCompLaser::TLaserData &ldata, const std::tuple<float, float, float> &color);
+    void get_omni_3d_points(const cv::Mat &depth_frame, const cv::Mat &rgb_frame);
+    void get_central_3d_points(const cv::Mat &central_depth, const cv::Mat &central_rgb, float focal);
     Eigen::Transform<float, 3, Eigen::Affine> Rt;
+
+    // array of sets for sectors representation
+    struct compare
+    { bool operator()(const std::tuple<Eigen::Vector3f, std::tuple<float, float, float>> &a, const std::tuple<Eigen::Vector3f, std::tuple<float, float, float>> &b) const
+        { return std::get<Eigen::Vector3f>(a).norm() < std::get<Eigen::Vector3f>(b).norm(); }
+    };
+    using SetsType = std::vector<std::set<std::tuple<Eigen::Vector3f, std::tuple<float, float, float>>, compare>>;
+    SetsType sets;
+    SetsType group_by_angular_sectors(bool draw = false);
+
+    vector<Eigen::Vector2f> compute_floor_line(SetsType &sets, bool draw=true);
+    cv::RotatedRect estimate_floor_object(const vector<Eigen::Vector2f> &floor_line) const;
+    struct RectangleCostFunctor
+    {
+        template <typename T>
+        bool operator()(const T* const x, T* residual) const
+        {
+            residual[0] = 10.0 - x[0];
+            return true;
+        }
+    };
 };
 
 

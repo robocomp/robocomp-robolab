@@ -29,7 +29,6 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 {
 	this->startup_check_flag = startup_check;
 }
-
 /**
 * \brief Default destructor
 */
@@ -37,7 +36,6 @@ SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
-
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     try
@@ -55,7 +53,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	return true;
 }
-
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
@@ -89,57 +86,41 @@ void SpecificWorker::initialize(int period)
 	}
 
 }
-
 void SpecificWorker::compute()
 {
     points->clear(); colors->clear();
 
+    // read raw sensors
     const auto &[ldata, ldata_polar] = read_laser();
     const auto &[omni_rgb_frame, _] = read_rgb("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
     auto omni_depth_frame = read_depth_omni();
     const auto &[central_rgb, central_rgb_focal] = read_rgb("camera_top");
     const auto &[central_depth, central_depth_focal] = read_depth("camera_top");
 
+    // get 3D points from sensors
+    get_omni_3d_points(omni_depth_frame, omni_rgb_frame);
+    get_laser_3d_points(ldata, std::make_tuple(0.0, 1.0, 0.0));
+    get_central_3d_points(central_depth, central_rgb, central_rgb_focal);
 
-    draw_omni_depth_frame_on_3dviewer(omni_depth_frame, omni_rgb_frame);
-    draw_laser_on_3dviewer(ldata);
-    draw_central_depth_frame_on_3dviewer(central_depth, central_rgb, central_rgb_focal);
+    // Group 3D points by angular sectors and sorted by minimum distance
+    SetsType sets = group_by_angular_sectors();
+
+    // compute floor line
+    auto floor_line = compute_floor_line(sets);
+
+    // estimate floor rectangle from floor_line
+    estimate_floor_object(floor_line);
 
     // update local_grid
     local_grid.update_map_from_polar_data(ldata_polar, 4000);
-    // A get all 3d points together and create an angular sweep sorted by minimum distance and keeping the height of the
-    int num_ang_bins = 360;
-    const double ang_bin = 2.0*M_PI/num_ang_bins;
-    auto compare = [](auto &a, auto &b){ return std::get<Eigen::Vector3f>(a).norm() < std::get<Eigen::Vector3f>(b).norm();};
-    std::vector<std::set<std::tuple<Eigen::Vector3f, std::tuple<float, float, float>>, decltype(compare)>> sets(num_ang_bins);
-    for(const auto &[point, color] : iter::zip(*points, *colors))
-    {
-        const auto &[x,y,z] = point;
-        int ang_index = floor((M_PI + atan2(x, y))/ang_bin);
-        float dist = sqrt(x*x+y*y+z*z);
-        if(dist < 0.1 or dist > 4) continue;
-        if(fabs(z) < 0.15 ) continue;
-        sets[ang_index].emplace(std::make_tuple(Eigen::Vector3f(x,y,z), color));
-    }
-
-    points->clear(); colors->clear();
-    for(const auto &s : sets)
-        if(not s.empty())
-        {
-            const auto &[point, color] = *s.cbegin();
-            for (auto &&t: iter::range(0.f, point.z(), 0.02f))
-            {
-                points->emplace_back(std::make_tuple(point.x(), point.y(), t));
-                colors->emplace_back(color);
-            }
-        }
-
     //local_grid.update_map_from_3D_points(points);
 
+    // update viewers
     viewer->viewport()->repaint();
     viewer_3d->updateGL();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
 std::tuple<RoboCompLaser::TLaserData, std::vector<Eigen::Vector2f>> SpecificWorker::read_laser()
 {
     std::vector<Eigen::Vector2f> ldata_polar;
@@ -170,7 +151,7 @@ std::tuple<cv::Mat, float> SpecificWorker::read_rgb(const std::string &camera_na
         }
         else qWarning() << __FUNCTION__ << "Empty image";
     }
-    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
+    catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple at " << camera_name << std::endl;}
     return std::make_tuple(rgb_frame, image.focaly);
 }
 std::tuple<cv::Mat, float> SpecificWorker::read_depth(const std::string &camera_name)
@@ -211,12 +192,12 @@ cv::Mat SpecificWorker::read_depth_omni()
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch (const Ice::Exception &e)
-    { std::cout << "Error reading from cameraRGBDSimple" << std::endl; }
+    { std::cout << "Error reading from cameraRGBDSimple at " << std::endl; }
     return gray_frame;
 }
 
-////////////////////////// DRAW /////////////////////////////////////////////////////////
-void SpecificWorker::draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_frame, const cv::Mat &rgb_frame)
+////////////////////////// 3D Points /////////////////////////////////////////////////////////
+void SpecificWorker::get_omni_3d_points(const cv::Mat &depth_frame, const cv::Mat &rgb_frame)
 {
     // Let's assume that each column corresponds to a polar coordinate: ang_step = 360/image.width
     // and along the column we have radius
@@ -246,7 +227,7 @@ void SpecificWorker::draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_fram
             colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
         };
 }
-void SpecificWorker::draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata)
+void SpecificWorker::get_laser_3d_points(const RoboCompLaser::TLaserData &ldata, const std::tuple<float, float, float> &color)
 {
     size_t i = points->size();
     points->resize(points->size() + ldata.size());
@@ -254,10 +235,10 @@ void SpecificWorker::draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &lda
     for(const auto &p : ldata)
     {
         points->operator[](i) = std::make_tuple(p.dist*sin(p.angle)/1000.f, p.dist*cos(p.angle)/1000.f + 0.172, 0.2); // laser offset on robot
-        colors->operator[](i++) = std::make_tuple(0.0, 1.0, 0.0);
+        colors->operator[](i++) = color;
     }
 }
-void SpecificWorker::draw_central_depth_frame_on_3dviewer(const cv::Mat &central_depth, const cv::Mat &central_rgb, float focal)
+void SpecificWorker::get_central_3d_points(const cv::Mat &central_depth, const cv::Mat &central_rgb, float focal)
 {
     // compute X,Y,Z coordinates from RGBD images
     size_t i = points->size();
@@ -281,6 +262,68 @@ void SpecificWorker::draw_central_depth_frame_on_3dviewer(const cv::Mat &central
             colors->operator[](i++) = std::make_tuple(1.0, 0.6, 0.0);
         }
 }
+
+/////////////////////////  Group  /////////////////////////////////////////////////
+SpecificWorker::SetsType SpecificWorker::group_by_angular_sectors(bool draw)
+{
+    int num_ang_bins = 360;
+    const double ang_bin = 2.0*M_PI/num_ang_bins;
+    //auto compare = [](auto &a, auto &b){ return std::get<Eigen::Vector3f>(a).norm() < std::get<Eigen::Vector3f>(b).norm();};
+    //std::vector<std::set<std::tuple<Eigen::Vector3f, std::tuple<float, float, float>>, decltype(compare)>> sets(num_ang_bins);
+    SetsType sets(num_ang_bins);
+    for(const auto &[point, color] : iter::zip(*points, *colors))
+    {
+        const auto &[x,y,z] = point;
+        int ang_index = floor((M_PI + atan2(x, y))/ang_bin);
+        float dist = sqrt(x*x+y*y+z*z);
+        if(dist < 0.1 or dist > 4) continue;
+        if(fabs(z) < 0.15 ) continue;
+        sets[ang_index].emplace(std::make_tuple(Eigen::Vector3f(x,y,z), color));
+    }
+
+    // regenerate points and colors
+    points->clear(); colors->clear();
+    if(draw)
+    {
+        for (const auto &s: sets)
+            if (not s.empty())
+                for (auto init = s.cbegin(); init != s.cend(); ++init)
+                {
+                    const auto &[point, color] = *init;
+                    for (auto &&t: iter::range(0.f, point.z(), 0.02f))
+                    {
+                        points->emplace_back(std::make_tuple(point.x(), point.y(), t));
+                        colors->emplace_back(color);
+                    }
+                }
+    }
+    return sets;
+}
+vector<Eigen::Vector2f> SpecificWorker::compute_floor_line(SpecificWorker::SetsType &sets, bool draw)
+{
+    vector<Eigen::Vector2f> floor_line;
+    for(const auto &s: sets)
+    {
+        Eigen::Vector3f p = get<Eigen::Vector3f>(*s.cbegin());
+        floor_line.emplace_back(Eigen::Vector2f(p.x(), p.y()));
+        if(draw)
+        {
+            points->emplace_back(make_tuple(p.x(), p.y(), p.z()));
+            colors->push_back({1.0, 1.0, 0.0});
+        }
+    }
+    return floor_line;
+}
+cv::RotatedRect SpecificWorker::estimate_floor_object(const vector<Eigen::Vector2f> &floor_line) const
+{
+    std::vector<cv::Point2f> cv_points(floor_line.size());
+    for(size_t i=0; const auto &p : floor_line)
+        cv_points[i++] = cv::Point2f{p.x(), p.y()};
+    cv::RotatedRect ro = cv::minAreaRect(cv_points);
+    qInfo() << __FUNCTION__ << ro.size.height << ro.size.width << ro.angle;
+    return ro;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {

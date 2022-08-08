@@ -171,7 +171,7 @@ std::tuple<cv::Mat, float> SpecificWorker::read_rgb(const std::string &camera_na
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple" << std::endl;}
-    return std::make_tuple(rgb_frame, image.focaly);
+    return std::make_tuple(rgb_frame.clone(), image.focaly);
 }
 std::tuple<cv::Mat, float> SpecificWorker::read_depth(const std::string &camera_name)
 {
@@ -240,10 +240,10 @@ void SpecificWorker::draw_omni_depth_frame_on_3dviewer(const cv::Mat &depth_fram
             z = (semi_height - u)/128.f * proy; // 128 focal as PI fov angle for 256 pixels
             z += consts.omni_camera_height_meters;
             points->operator[](i) = std::make_tuple(x,y,z);
-            //auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
+            auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
             //colors->operator[](i++) = std::make_tuple(rgb.blue/255.0, rgb.green/255.0, rgb.red/255.0);
-            //colors->operator[](i++) = std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0);
-            colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
+            colors->operator[](i++) = std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0);
+            // colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
         };
 }
 void SpecificWorker::draw_laser_on_3dviewer(const RoboCompLaser::TLaserData &ldata)

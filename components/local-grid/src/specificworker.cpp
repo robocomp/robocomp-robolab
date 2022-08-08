@@ -103,7 +103,7 @@ void SpecificWorker::compute()
     get_central_3d_points(central_depth, central_rgb, central_rgb_focal);
 
     // Group 3D points by angular sectors and sorted by minimum distance
-    SetsType sets = group_by_angular_sectors();
+    SetsType sets = group_by_angular_sectors(true);
 
     // compute floor line
     auto floor_line = compute_floor_line(sets);
@@ -152,7 +152,7 @@ std::tuple<cv::Mat, float> SpecificWorker::read_rgb(const std::string &camera_na
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple at " << camera_name << std::endl;}
-    return std::make_tuple(rgb_frame, image.focaly);
+    return std::make_tuple(rgb_frame.clone(), image.focaly);
 
 }
 std::tuple<cv::Mat, float> SpecificWorker::read_depth(const std::string &camera_name)
@@ -174,7 +174,7 @@ std::tuple<cv::Mat, float> SpecificWorker::read_depth(const std::string &camera_
         else qWarning() << __FUNCTION__ << "Empty image";
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple (DEPTH)" << std::endl;}
-    return std::make_tuple(depth_frame, image.focalx);
+    return std::make_tuple(depth_frame.clone(), image.focalx);
 }
 cv::Mat SpecificWorker::read_depth_omni()
 {
@@ -194,7 +194,7 @@ cv::Mat SpecificWorker::read_depth_omni()
     }
     catch (const Ice::Exception &e)
     { std::cout << "Error reading from cameraRGBDSimple at " << std::endl; }
-    return gray_frame;
+    return gray_frame.clone();
 }
 
 ////////////////////////// 3D Points /////////////////////////////////////////////////////////
@@ -223,7 +223,6 @@ void SpecificWorker::get_omni_3d_points(const cv::Mat &depth_frame, const cv::Ma
             z += consts.omni_camera_height_meters;
             points->operator[](i) = std::make_tuple(x,y,z);
             auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
-            //colors->operator[](i++) = std::make_tuple(rgb.blue/255.0, rgb.green/255.0, rgb.red/255.0);
             colors->operator[](i++) = std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0);
             // colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
         };
@@ -257,10 +256,10 @@ void SpecificWorker::get_central_3d_points(const cv::Mat &central_depth, const c
             float x = -cols * y / focal;  // x axis is inverted
             float z = rows * y / focal;
             auto res = Rt * Eigen::Vector3f(x, y, z);
-            //auto rgb = central_rgb.ptr<cv::Vec3b>(u)[v];
+            auto rgb = central_rgb.ptr<cv::Vec3b>(u)[v];
             points->operator[](i) = std::make_tuple(res.x(), res.y(), res.z());
-            //colors->operator[](i++) = std::make_tuple(rgb[0]/255, rgb[1]/255, rgb[2]/255);
-            colors->operator[](i++) = std::make_tuple(1.0, 0.6, 0.0);
+            colors->operator[](i++) = std::make_tuple(rgb[0]/255, rgb[1]/255, rgb[2]/255);
+            //colors->operator[](i++) = std::make_tuple(1.0, 0.6, 0.0);
         }
 }
 

@@ -126,7 +126,7 @@ class SpecificWorker(GenericWorker):
         # Hz
         if time.time() - self.last_time > 1:
             self.last_time = time.time()
-            print("Freq: ", self.cont, "Hz")
+            print("Freq: ", self.cont, "Hz. Waiting for image in AprilTags.idsl")
             self.cont = 0
         else:
             self.cont += 1

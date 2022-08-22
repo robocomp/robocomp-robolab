@@ -1,0 +1,14 @@
+import "CameraRGBDSimple.idsl";
+import "HumanCameraBody.idsl";
+import "HumanCameraBodyPub.idsl";
+
+Component jetson_detector_mediapipe
+{
+    Communications
+    {
+        requires CameraRGBDSimple;
+        implements HumanCameraBody;
+        publishes HumanCameraBodyPub;
+    };
+    language python;
+};

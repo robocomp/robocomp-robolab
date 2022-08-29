@@ -26,6 +26,7 @@ GenericWorker::GenericWorker(TuplePrx tprx) : Ui_guiDlg()
 	apriltags_proxy = std::get<0>(tprx);
 	camerargbdsimple_proxy = std::get<1>(tprx);
 	laser_proxy = std::get<2>(tprx);
+	yoloobjects_proxy = std::get<3>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

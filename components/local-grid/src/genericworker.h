@@ -35,13 +35,14 @@
 #include <CameraRGBDSimple.h>
 #include <GenericBase.h>
 #include <Laser.h>
+#include <YoloObjects.h>
 
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompAprilTags::AprilTagsPrxPtr,RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompLaser::LaserPrxPtr>;
+using TuplePrx = std::tuple<RoboCompAprilTags::AprilTagsPrxPtr,RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr,RoboCompLaser::LaserPrxPtr,RoboCompYoloObjects::YoloObjectsPrxPtr>;
 
 
 class GenericWorker : public QWidget, public Ui_guiDlg
@@ -60,6 +61,7 @@ public:
 	RoboCompAprilTags::AprilTagsPrxPtr apriltags_proxy;
 	RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr camerargbdsimple_proxy;
 	RoboCompLaser::LaserPrxPtr laser_proxy;
+	RoboCompYoloObjects::YoloObjectsPrxPtr yoloobjects_proxy;
 
 
 protected:

@@ -75,20 +75,48 @@ void SpecificWorker::initialize(int period)
         // 3DViewer
         points = std::make_shared<std::vector<std::tuple<float, float, float>>>();
         colors = std::make_shared<std::vector<std::tuple<float, float, float>>>();
-        viewer_3d = new Viewer(widget_3d, points, colors);
+        colors_cog = std::make_shared<std::vector<std::tuple<float, float, float>>>();
+        planes = std::make_shared<std::vector<std::tuple<point3f, point3f, point3f, point3f>>>();
+        viewer_3d = new Viewer(widget_3d, points, colors, planes);
         viewer_3d->show();
+        viewer_3d_cog = new Viewer_Cog(widget_3d_cog, planes, colors_cog);
+        viewer_3d_cog->show();
 
         // central camera transform
         Rt = Eigen::Translation<float, 3>(0.0, 0.1, 1.68);
         Rt.rotate(Eigen::AngleAxis<float>(qDegreesToRadians(-22.0), Eigen::Vector3f::UnitX()));
 
-        timer.start(100);
-	}
+        // get object names and joints_list
+        try
+        {
+            yolo_object_names = yoloobjects_proxy->getYoloObjectNames();
+            yolo_joint_data = yoloobjects_proxy->getYoloJointData();
+        }
+        catch(const Ice::Exception &e) {std::cout << e.what() << " Error connecting with YoloObjects interface to retrieve names" << std::endl;}
+
+        timer.start(33);
+
+        // Concepts
+        //Concept cp = {.active=false, .children={"wall_1","wall_2","wall_3","wall_4"}};
+        //room_grammar.emplace("floor", cp);
+//        try
+//        {
+//            std::vector<std::string> class_names = yoloserver2_proxy->getClassNames();
+//            std::vector<cv::Scalar> class_colors;
+//            for(const auto n: class_names)
+//                class_colors.emplace_back(cv::Scalar(1,2,3));
+//        }
+//        catch (const Ice::Exception &e){ std::cout << e.what() << "Aborting" << std::endl; std::terminate();}
+
+        connect(&timer_cog, SIGNAL(timeout()), this, SLOT(compute_cog()));
+        std::cout << "End initializing worker" << std::endl;
+        //timer_cog.start();
+    }
 
 }
 void SpecificWorker::compute()
 {
-    points->clear(); colors->clear();
+    points->clear(); colors->clear(); colors_cog->clear(); planes->clear();
 
     // read raw sensors
     const auto &[ldata, ldata_polar] = read_laser();
@@ -100,10 +128,15 @@ void SpecificWorker::compute()
     // get 3D points from sensors
     get_omni_3d_points(omni_depth_frame, omni_rgb_frame);
     get_laser_3d_points(ldata, std::make_tuple(0.0, 1.0, 0.0));
-    get_central_3d_points(central_depth, central_rgb, central_rgb_focal);
+    //get_central_3d_points(central_depth, central_rgb, central_rgb_focal);
 
     // Group 3D points by angular sectors and sorted by minimum distance
-    SetsType sets = group_by_angular_sectors(true);
+    sets.clear();
+    sets = group_by_angular_sectors(true);
+
+    // update local_grid
+    local_grid.update_map_from_polar_data(ldata_polar, 4000);
+    //local_grid.update_map_from_3D_points(points);
 
     // compute floor line
     auto floor_line = compute_floor_line(sets);
@@ -111,16 +144,79 @@ void SpecificWorker::compute()
     // estimate floor rectangle from floor_line
     estimate_floor_object(floor_line);
 
-    // update local_grid
-    local_grid.update_map_from_polar_data(ldata_polar, 4000);
-    //local_grid.update_map_from_3D_points(points);
+    // get Yolo coordinates
+    try
+    {
+        auto yolo_data = yoloobjects_proxy->getYoloObjects();
+        draw_objects(yolo_data.objects, central_rgb);
+        draw_people(yolo_data.people, central_rgb);
+
+        cv::imshow("central camera", central_rgb);
+        cv::waitKey(1);
+    }
+    catch(const Ice::Exception &e){ std::cerr << e.what() << ". No response from YoloServer" << std::endl;};
 
     // update viewers
     viewer->viewport()->repaint();
     viewer_3d->updateGL();
-}
+    viewer_3d_cog->updateGL();
 
+    fps.print("FPS:");
+}
+void SpecificWorker::compute_cog()
+{
+    // update, add, delete loop with existing objects in scene
+    // adding implies
+    //  - selecting a 3D model
+    //  - orienting and scaling it, and include it in the cog-rep
+
+    // compute floor line
+    auto floor_line = compute_floor_line(sets);
+
+    // estimate floor rectangle from floor_line
+    estimate_floor_object(floor_line);
+}
 ////////////////////////////////////////////////////////////////////////////////////////////
+void SpecificWorker::draw_objects(const RoboCompYoloObjects::TObjects &objects, cv::Mat img)
+{
+    // Plots one bounding box on image img
+    //qInfo() << __FUNCTION__ << QString::fromStdString(box.name) << box.left << box.top << box.right << box.bot << box.prob;
+    for(const auto &box: objects)
+    {
+        auto tl = round(0.002 * (img.cols + img.rows) / 2) + 1; // line / fontthickness
+        cv::Scalar color(0, 255, 0); // box color
+        cv::Point c1(box.left, box.top);
+        cv::Point c2(box.right, box.bot);
+        cv::rectangle(img, c1, c2, color, tl, cv::LINE_AA);
+        int tf = (int) std::max(tl - 1, 1.0);  // font thickness
+        int baseline = 0;
+        std::string label = yolo_object_names.at(box.type) + " " + std::to_string((int) (box.prob * 100)) + "%";
+        auto t_size = cv::getTextSize(label, 0, tl / 3.f, tf, &baseline);
+        c2 = {c1.x + t_size.width, c1.y - t_size.height - 3};
+        cv::rectangle(img, c1, c2, color, -1, cv::LINE_AA);  // filled
+        cv::putText(img, label, cv::Size(c1.x, c1.y - 2), 0, tl / 3, cv::Scalar(225, 255, 255), tf, cv::LINE_AA);
+    }
+}
+void SpecificWorker::draw_people(const RoboCompYoloObjects::TPeople &people, cv::Mat img)
+{
+    qInfo() << __FUNCTION__ << people.size();
+    for(const auto &person: people)
+    {
+        int num_landmarks = person.joints.size();
+        // Draws the connections if the start and end landmarks are both visible.
+        for(const auto &[first, second] : yolo_joint_data.connections)
+        {
+            if (not(first <=0 and first > num_landmarks and second <= 0 and second > num_landmarks))
+                qWarning() << "Landmark index is out of range. Invalid connection from landmark" << first << " to landmark ";
+            if (person.joints.contains(first) and person.joints.contains(second))
+                cv::line(img, cv::Point(person.joints.at(first).i, person.joints.at(first).j),
+                         cv::Point(person.joints.at(second).i, person.joints.at(second).j), cv::Scalar(0, 128, 0), 4);
+        }
+        // draw circles on joints
+        for(const auto &[id, jnt]: person.joints)
+            cv::circle(img, cv::Point(jnt.i, jnt.j), 3, cv::Scalar(255, 255, 255), 2);
+    }
+}
 std::tuple<RoboCompLaser::TLaserData, std::vector<Eigen::Vector2f>> SpecificWorker::read_laser()
 {
     std::vector<Eigen::Vector2f> ldata_polar;
@@ -147,9 +243,9 @@ std::tuple<cv::Mat, float> SpecificWorker::read_rgb(const std::string &camera_na
             rgb_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
             if (image.compressed)
                 rgb_frame = cv::imdecode(image.image, -1);
-            //cv::imshow("sd", rgb_frame);
         }
         else qWarning() << __FUNCTION__ << "Empty image";
+
     }
     catch(const Ice::Exception &e){std::cout << "Error reading from cameraRGBDSimple at " << camera_name << std::endl;}
     return std::make_tuple(rgb_frame.clone(), image.focaly);
@@ -258,7 +354,7 @@ void SpecificWorker::get_central_3d_points(const cv::Mat &central_depth, const c
             auto res = Rt * Eigen::Vector3f(x, y, z);
             auto rgb = central_rgb.ptr<cv::Vec3b>(u)[v];
             points->operator[](i) = std::make_tuple(res.x(), res.y(), res.z());
-            colors->operator[](i++) = std::make_tuple(rgb[0]/255, rgb[1]/255, rgb[2]/255);
+            colors->operator[](i++) = std::make_tuple(rgb[0]/255.f, rgb[1]/255.f, rgb[2]/255.f);
             //colors->operator[](i++) = std::make_tuple(1.0, 0.6, 0.0);
         }
 }
@@ -268,8 +364,6 @@ SpecificWorker::SetsType SpecificWorker::group_by_angular_sectors(bool draw)
 {
     int num_ang_bins = 360;
     const double ang_bin = 2.0*M_PI/num_ang_bins;
-    //auto compare = [](auto &a, auto &b){ return std::get<Eigen::Vector3f>(a).norm() < std::get<Eigen::Vector3f>(b).norm();};
-    //std::vector<std::set<std::tuple<Eigen::Vector3f, std::tuple<float, float, float>>, decltype(compare)>> sets(num_ang_bins);
     SetsType sets(num_ang_bins);
     for(const auto &[point, color] : iter::zip(*points, *colors))
     {
@@ -316,12 +410,46 @@ vector<Eigen::Vector2f> SpecificWorker::compute_floor_line(SpecificWorker::SetsT
 }
 cv::RotatedRect SpecificWorker::estimate_floor_object(const vector<Eigen::Vector2f> &floor_line) const
 {
+    if(floor_line.empty()) return cv::RotatedRect();
+
+    // computer min area rect including all points
     std::vector<cv::Point2f> cv_points(floor_line.size());
     for(size_t i=0; const auto &p : floor_line)
         cv_points[i++] = cv::Point2f{p.x(), p.y()};
-    cv::RotatedRect ro = cv::minAreaRect(cv_points);
-    qInfo() << __FUNCTION__ << ro.size.height << ro.size.width << ro.angle;
-    return ro;
+    cv::RotatedRect floor = cv::minAreaRect(cv_points);
+
+    // emplace floor plane
+    planes->clear();
+    cv::Point2f pts[4];
+    floor.points(pts);
+    planes->emplace_back(std::make_tuple(std::make_tuple(pts[0].x, pts[0].y, 0.f),
+                                         std::make_tuple(pts[1].x, pts[1].y, 0.f),
+                                         std::make_tuple(pts[2].x, pts[2].y, 0.f),
+                                         std::make_tuple(pts[3].x, pts[3].y, 0.f)));
+    //colors_cog->emplace_back(std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0));
+
+    // create walls
+    planes->emplace_back(std::make_tuple(std::make_tuple(pts[0].x, pts[0].y, 0.f),
+                                         std::make_tuple(pts[0].x, pts[0].y, 1.5f),
+                                         std::make_tuple(pts[1].x, pts[1].y, 1.5f),
+                                         std::make_tuple(pts[1].x, pts[1].y, 0.f)));
+
+    planes->emplace_back(std::make_tuple(std::make_tuple(pts[1].x, pts[1].y, 0.f),
+                                         std::make_tuple(pts[1].x, pts[1].y, 1.5f),
+                                         std::make_tuple(pts[2].x, pts[2].y, 1.5f),
+                                         std::make_tuple(pts[2].x, pts[2].y, 0.f)));
+
+    planes->emplace_back(std::make_tuple(std::make_tuple(pts[2].x, pts[2].y, 0.f),
+                                         std::make_tuple(pts[2].x, pts[2].y, 1.5f),
+                                         std::make_tuple(pts[3].x, pts[3].y, 1.5f),
+                                         std::make_tuple(pts[3].x, pts[3].y, 0.f)));
+
+    planes->emplace_back(std::make_tuple(std::make_tuple(pts[3].x, pts[3].y, 0.f),
+                                         std::make_tuple(pts[3].x, pts[3].y, 1.5f),
+                                         std::make_tuple(pts[0].x, pts[0].y, 1.5f),
+                                         std::make_tuple(pts[0].x, pts[0].y, 0.f)));
+
+    return floor;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

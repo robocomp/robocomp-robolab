@@ -1,12 +1,13 @@
 import "CameraRGBDSimple.idsl";
 import "Laser.idsl";
 import "AprilTags.idsl";
+import "YoloObjects.idsl";
 
 Component local_grid
 {
     Communications
     {
-        requires CameraRGBDSimple, Laser, AprilTags;
+        requires CameraRGBDSimple, Laser, AprilTags, YoloObjects;
     };
     language Cpp11;
     gui Qt(QWidget);

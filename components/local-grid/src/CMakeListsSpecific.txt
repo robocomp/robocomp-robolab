@@ -21,6 +21,6 @@ set(CMAKE_CXX_STANDARD 20)
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
 add_definitions(-O3 -march=native -fmax-errors=2 -fno-char8_t)
 
-SET (LIBS ${LIBS} QGLViewer-qt5 GL ceres)
+SET (LIBS ${LIBS} QGLViewer-qt5 GL )
 
 

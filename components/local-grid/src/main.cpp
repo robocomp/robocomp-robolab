@@ -133,6 +133,7 @@ int ::local_grid::run(int argc, char* argv[])
 	RoboCompAprilTags::AprilTagsPrxPtr apriltags_proxy;
 	RoboCompCameraRGBDSimple::CameraRGBDSimplePrxPtr camerargbdsimple_proxy;
 	RoboCompLaser::LaserPrxPtr laser_proxy;
+	RoboCompYoloObjects::YoloObjectsPrxPtr yoloobjects_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -185,7 +186,23 @@ int ::local_grid::run(int argc, char* argv[])
 	rInfo("LaserProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(apriltags_proxy,camerargbdsimple_proxy,laser_proxy);
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "YoloObjectsProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy YoloObjectsProxy\n";
+		}
+		yoloobjects_proxy = Ice::uncheckedCast<RoboCompYoloObjects::YoloObjectsPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy YoloObjects: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("YoloObjectsProxy initialized Ok!");
+
+
+	tprx = std::make_tuple(apriltags_proxy,camerargbdsimple_proxy,laser_proxy,yoloobjects_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

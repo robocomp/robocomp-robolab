@@ -3,7 +3,7 @@ import "CameraRGBDSimplePub.idsl";
 import "HumanCameraBody.idsl";
 import "HumanCameraBodyPub.idsl";
 
-Component jetson_detector
+Component jetson_trtpose_detector
 {
     Communications
     {

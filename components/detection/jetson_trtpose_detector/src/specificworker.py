@@ -18,6 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+import sys
 
 from PySide2.QtCore import QTimer
 from PySide2.QtWidgets import QApplication
@@ -60,6 +61,17 @@ class SpecificWorker(GenericWorker):
             self.model = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
             self.optimized_model = 'densenet121_baseline_att_256x256_B_epoch_160_trt.pth'
 
+            # camera
+            try:
+                rgb = self.camerargbdsimple_proxy.getImage(self.camera_name)
+                self.image_focalx = rgb.focalx
+                self.image_focaly = rgb.focaly
+                print("CameraRGBDSimple contacted: rows:", rgb.height, " cols:", rgb.width)
+            except:
+                print("No connection to CameraRGBDSimple. Aborting")
+                sys.exit()
+            self.image_captured_time = 0
+
             # Hz
             self.cont = 0
             self.last_time = time.time()
@@ -73,14 +85,14 @@ class SpecificWorker(GenericWorker):
             self.mean = torch.Tensor([0.485, 0.456, 0.406]).cuda()
             self.std = torch.Tensor([0.229, 0.224, 0.225]).cuda()
 
-
             # camera read thread
-            self.read_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_rgb_thread, args=["camera_top"], name="read_queue")
+            self.read_image_queue = queue.Queue(1)
+            self.write_image_queue = queue.Queue(1)
+            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name], name="read_queue")
             self.read_thread.start()
 
             # result data
-            self.write_queue = queue.Queue(1)
+            self.write_pose_queue = queue.Queue(1)
             #######################################
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
@@ -104,19 +116,24 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        rgb = self.read_queue.get()
+        rgb = self.read_image_queue.get()
         people_data = self.trtpose(rgb)
         try:
-            self.write_queue.put_nowait(people_data)
+            self.write_pose_queue.put_nowait(people_data)
         except:
             pass
 
-        cv2.imshow("trt_pose", rgb)
-        cv2.waitKey(1)
+        try:
+            self.write_image_queue.put_nowait(rgb)
+        except:
+            pass
+        
+        #cv2.imshow("trt_pose", rgb)
+        #cv2.waitKey(1)
 
         # FPS
         self.show_fps()
-
+        
         return True
 
 ####################################################################################################
@@ -124,9 +141,10 @@ class SpecificWorker(GenericWorker):
         while True:
             try:
                 rgb = self.camerargbdsimple_proxy.getImage(camera_name)
+                self.image_captured_time = time.time()
                 frame = np.frombuffer(rgb.image, dtype=np.uint8)
                 frame = frame.reshape((rgb.height, rgb.width, 3))
-                self.read_queue.put(frame)
+                self.read_image_queue.put(frame)
             except:
                 print("Error communicating with CameraRGBDSimple")
                 return
@@ -149,14 +167,6 @@ class SpecificWorker(GenericWorker):
                     x = keypoints[j][2] * 640
                     y = keypoints[j][1] * 640
                     cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
-
-    # def preprocess(self, image):
-    #     global _device
-    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    #     image = PIL.Image.fromarray(image)
-    #     image = transforms.functional.to_tensor(image).to(_device)
-    #     image.sub_(self.mean[:, None, None]).div_(self.std[:, None, None])
-    #     return image[None, ...]
 
     def get_keypoint(self, humans, hnum, peaks):
         kpoint = []
@@ -235,20 +245,48 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getImage method from CameraRGBDSimple interface
     #
     def CameraRGBDSimple_getImage(self, camera):
-        ret = ifaces.RoboCompCameraRGBDSimple.TImage()
-        #
-        # write your CODE here
-        #
+
+        img = self.write_image_queue.get()
+        ret = ifaces.RoboCompCameraRGBDSimple.TImage(
+            compressed=False,
+            cameraID=0,
+            width=img.shape[0],
+            height=img.shape[1],
+            depth=img.shape[2],
+            focalx=self.image_focalx,
+            focaly=self.image_focaly,
+            alivetime=self.image_captured_time - time.time(),
+            image=img.tobytes()
+        )
         return ret
     #
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface
     #
     def HumanCameraBody_newPeopleData(self):
-        ret = ifaces.RoboCompHumanCameraBody.PeopleData()
-        #
-        # write your CODE here
-        #
-        return ret
+        if self.peoplelist == None:
+            return None
+
+        people = ifaces.RoboCompHumanCameraBody.PeopleData()
+        new_people_list = []
+        for i, p in enumerate(self.peoplelist):
+            new_person = RoboCompHumanCameraBody.Person()
+            new_person.id = i
+            joints = {}
+            for key in p:
+                dict_joint = p[key]
+                key_point = ifaces.RoboCompHumanCameraBody.KeyPoint()
+                key_point.i = dict_joint[2][0]
+                key_point.j = dict_joint[2][1]
+                # Camera coordinates
+                #key_point.x = dict_joint[3][0]
+                #key_point.y = dict_joint[3][1]
+                #key_point.z = dict_joint[3][2]
+                joints[str(key)] = key_point
+
+            new_person.joints = joints
+            new_people_list.append(new_person)
+        people.peoplelist = new_people_list
+        return people
     # ===================================================================
     # ===================================================================
 

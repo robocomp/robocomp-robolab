@@ -2,13 +2,11 @@
 CameraRGBDSimple.Endpoints=tcp -p 10096
 HumanCameraBody.Endpoints=tcp -p 14213
 
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10095
-
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h robex.local -p 10095
 
 display = true
 human_parts_file = human_pose.json
 camera_name = camera_top
-
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

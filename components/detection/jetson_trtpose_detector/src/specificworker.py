@@ -46,6 +46,17 @@ from trt_pose.parse_objects import ParseObjects
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
+# _CONNECTIONS = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 8], [7, 9], [8, 10], [9, 11],
+#                 [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [18, 1], [18, 6], [18, 7],
+#                 [18, 12], [18, 13]]
+_CONNECTIONS = [[15, 13], [13, 11], [16, 14], [14, 12], [11, 12], [5, 7], [6, 8], [7, 9], [8, 10],
+                [1, 2], [0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [17, 0], [17, 5], [17, 6],
+                [17, 11], [17, 12]]
+
+_JOINT_NAMES = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder",
+                "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist",
+                "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "neck"]
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
@@ -94,6 +105,7 @@ class SpecificWorker(GenericWorker):
             # result data
             self.write_pose_queue = queue.Queue(1)
             #######################################
+            
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
@@ -108,6 +120,7 @@ class SpecificWorker(GenericWorker):
             self.human_pose = json.load(f)
         topology = trt_pose.coco.coco_category_to_topology(self.human_pose)
         self.parse_objects = ParseObjects(topology)
+
 
         self.camera_name = params["camera_name"]
         print("Params read. Starting...")
@@ -155,18 +168,23 @@ class SpecificWorker(GenericWorker):
         img = transforms.functional.to_tensor(img).to(torch.device('cuda'))
         img.sub_(self.mean[:, None, None]).div_(self.std[:, None, None])
         data = img[None, ...]
-        #data = self.preprocess(img)
         cmap, paf = self.model_trt(data)
         cmap, paf = cmap.detach().cpu(), paf.detach().cpu()
         counts, objects, peaks = self.parse_objects(cmap, paf)  # , cmap_threshold=0.15, link_threshold=0.15)
         rgb_rows, rgb_cols, _ = rgb.shape
+        people_data = ifaces.RoboCompHumanCameraBody.PeopleData(timestamp=time.time())
+        people_data.peoplelist = []
         for i in range(counts[0]):
             keypoints = self.get_keypoint(objects, i, peaks)
-            for j in range(len(keypoints)):
-                if keypoints[j][1]:
-                    x = keypoints[j][2] * 640
-                    y = keypoints[j][1] * 640
+            joints = dict()
+            for id in range(len(keypoints)):
+                if keypoints[id][1] and keypoints[id][2]:
+                    x = keypoints[id][2] * 640
+                    y = keypoints[id][1] * 640
                     cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
+                    joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=x, j=y)
+            people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
+        return people_data
 
     def get_keypoint(self, humans, hnum, peaks):
         kpoint = []
@@ -263,33 +281,25 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface
     #
     def HumanCameraBody_newPeopleData(self):
-        if self.peoplelist == None:
-            return None
+        return self.write_pose_queue.get()
 
-        people = ifaces.RoboCompHumanCameraBody.PeopleData()
-        new_people_list = []
-        for i, p in enumerate(self.peoplelist):
-            new_person = RoboCompHumanCameraBody.Person()
-            new_person.id = i
-            joints = {}
-            for key in p:
-                dict_joint = p[key]
-                key_point = ifaces.RoboCompHumanCameraBody.KeyPoint()
-                key_point.i = dict_joint[2][0]
-                key_point.j = dict_joint[2][1]
-                # Camera coordinates
-                #key_point.x = dict_joint[3][0]
-                #key_point.y = dict_joint[3][1]
-                #key_point.z = dict_joint[3][2]
-                joints[str(key)] = key_point
+    # IMPLEMENTATION of getJointData method from HumanCameraBody interface
+    #######################################################################
 
-            new_person.joints = joints
-            new_people_list.append(new_person)
-        people.peoplelist = new_people_list
-        return people
+    def HumanCameraBody_getJointData(self):
+        print("Returning joint data")
+        ret = ifaces.RoboCompHumanCameraBody.TJointData()
+        ret.jointNames = {}
+        for i, jnt in enumerate(_JOINT_NAMES):
+            ret.jointNames[i] = jnt
+        ret.connections = []
+        for a, b in _CONNECTIONS:
+            conn = ifaces.RoboCompHumanCameraBody.TConnection(first=a, second=b)
+            ret.connections.append(conn)
+
+        return ret
     # ===================================================================
     # ===================================================================
-
 
     ######################
     # From the RoboCompCameraRGBDSimplePub you can publish calling this methods:

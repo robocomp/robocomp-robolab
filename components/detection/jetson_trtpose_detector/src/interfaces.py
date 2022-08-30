@@ -176,6 +176,24 @@ class People(list):
         super(People, self).insert(index, item)
 
 setattr(RoboCompHumanCameraBody, "People", People)
+class TConnections(list):
+    def __init__(self, iterable=list()):
+        super(TConnections, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TConnection)
+        super(TConnections, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.TConnection)
+        super(TConnections, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TConnection)
+        super(TConnections, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "TConnections", TConnections)
 class DescriptorFloat(list):
     def __init__(self, iterable=list()):
         super(DescriptorFloat, self).__init__(iterable)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-PROJECT(  jetson_detector )
+PROJECT(  jetson_trtpose_detector )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 

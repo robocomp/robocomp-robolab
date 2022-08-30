@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-PROJECT(  jetson_detector )
+PROJECT(  jetson_trtpose_detector )
 
 SET(RC_COMPONENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "component base path")
 SET(RC_COMPONENT_DEVEL_PATH ${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "component binary path")

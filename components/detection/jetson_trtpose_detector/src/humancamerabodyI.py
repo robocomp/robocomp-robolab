@@ -38,8 +38,8 @@ class HumanCameraBodyI(HumanCameraBody):
         self.worker = worker
 
 
-    def getYoloJointData(self, c):
-        return self.worker.HumanCameraBody_getYoloJointData()
+    def getJointData(self, c):
+        return self.worker.HumanCameraBody_getJointData()
 
     def newPeopleData(self, c):
         return self.worker.HumanCameraBody_newPeopleData()

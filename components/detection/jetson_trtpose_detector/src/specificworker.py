@@ -46,9 +46,6 @@ from trt_pose.parse_objects import ParseObjects
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
-# _CONNECTIONS = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 8], [7, 9], [8, 10], [9, 11],
-#                 [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [18, 1], [18, 6], [18, 7],
-#                 [18, 12], [18, 13]]
 _CONNECTIONS = [[15, 13], [13, 11], [16, 14], [14, 12], [11, 12], [5, 7], [6, 8], [7, 9], [8, 10],
                 [1, 2], [0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [17, 0], [17, 5], [17, 6],
                 [17, 11], [17, 12]]
@@ -131,6 +128,7 @@ class SpecificWorker(GenericWorker):
     def compute(self):
         rgb = self.read_image_queue.get()
         people_data = self.trtpose(rgb)
+        
         try:
             self.write_pose_queue.put_nowait(people_data)
         except:
@@ -181,7 +179,7 @@ class SpecificWorker(GenericWorker):
                 if keypoints[id][1] and keypoints[id][2]:
                     x = keypoints[id][2] * 640
                     y = keypoints[id][1] * 640
-                    cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
+                    #cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
                     joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=x, j=y)
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
         return people_data
@@ -263,7 +261,6 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getImage method from CameraRGBDSimple interface
     #
     def CameraRGBDSimple_getImage(self, camera):
-
         img = self.write_image_queue.get()
         ret = ifaces.RoboCompCameraRGBDSimple.TImage(
             compressed=False,

@@ -7,12 +7,10 @@ console = Console()
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
-Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimplePub.ice")
-import RoboCompCameraRGBDSimplePub
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
-Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBodyPub.ice")
-import RoboCompHumanCameraBodyPub
+Ice.loadSlice("-I ./src/ --all ./src/YoloObjects.ice")
+import RoboCompYoloObjects
 
 class ImgType(list):
     def __init__(self, iterable=list()):
@@ -194,132 +192,78 @@ class TConnections(list):
         super(TConnections, self).insert(index, item)
 
 setattr(RoboCompHumanCameraBody, "TConnections", TConnections)
-class DescriptorFloat(list):
+class TObjects(list):
     def __init__(self, iterable=list()):
-        super(DescriptorFloat, self).__init__(iterable)
+        super(TObjects, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, float)
-        super(DescriptorFloat, self).append(item)
+        assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, float)
-        super(DescriptorFloat, self).extend(iterable)
+            assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, float)
-        super(DescriptorFloat, self).insert(index, item)
+        assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).insert(index, item)
 
-setattr(RoboCompHumanCameraBodyPub, "DescriptorFloat", DescriptorFloat)
-class DescriptorByte(list):
+setattr(RoboCompYoloObjects, "TObjects", TObjects)
+class TObjectNames(list):
     def __init__(self, iterable=list()):
-        super(DescriptorByte, self).__init__(iterable)
+        super(TObjectNames, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, byte)
-        super(DescriptorByte, self).append(item)
+        assert isinstance(item, str)
+        super(TObjectNames, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, byte)
-        super(DescriptorByte, self).extend(iterable)
+            assert isinstance(item, str)
+        super(TObjectNames, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, byte)
-        super(DescriptorByte, self).insert(index, item)
+        assert isinstance(item, str)
+        super(TObjectNames, self).insert(index, item)
 
-setattr(RoboCompHumanCameraBodyPub, "DescriptorByte", DescriptorByte)
-class DescByteList(list):
+setattr(RoboCompYoloObjects, "TObjectNames", TObjectNames)
+class TPeople(list):
     def __init__(self, iterable=list()):
-        super(DescByteList, self).__init__(iterable)
+        super(TPeople, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorByte)
-        super(DescByteList, self).append(item)
+        assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorByte)
-        super(DescByteList, self).extend(iterable)
+            assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorByte)
-        super(DescByteList, self).insert(index, item)
+        assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).insert(index, item)
 
-setattr(RoboCompHumanCameraBodyPub, "DescByteList", DescByteList)
-class DescFloatList(list):
+setattr(RoboCompYoloObjects, "TPeople", TPeople)
+class TConnections(list):
     def __init__(self, iterable=list()):
-        super(DescFloatList, self).__init__(iterable)
+        super(TConnections, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorFloat)
-        super(DescFloatList, self).append(item)
+        assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorFloat)
-        super(DescFloatList, self).extend(iterable)
+            assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.DescriptorFloat)
-        super(DescFloatList, self).insert(index, item)
+        assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).insert(index, item)
 
-setattr(RoboCompHumanCameraBodyPub, "DescFloatList", DescFloatList)
-class ImgType(list):
-    def __init__(self, iterable=list()):
-        super(ImgType, self).__init__(iterable)
-
-    def append(self, item):
-        assert isinstance(item, byte)
-        super(ImgType, self).append(item)
-
-    def extend(self, iterable):
-        for item in iterable:
-            assert isinstance(item, byte)
-        super(ImgType, self).extend(iterable)
-
-    def insert(self, index, item):
-        assert isinstance(item, byte)
-        super(ImgType, self).insert(index, item)
-
-setattr(RoboCompHumanCameraBodyPub, "ImgType", ImgType)
-class GroundTruth(list):
-    def __init__(self, iterable=list()):
-        super(GroundTruth, self).__init__(iterable)
-
-    def append(self, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.TGroundTruth)
-        super(GroundTruth, self).append(item)
-
-    def extend(self, iterable):
-        for item in iterable:
-            assert isinstance(item, RoboCompHumanCameraBodyPub.TGroundTruth)
-        super(GroundTruth, self).extend(iterable)
-
-    def insert(self, index, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.TGroundTruth)
-        super(GroundTruth, self).insert(index, item)
-
-setattr(RoboCompHumanCameraBodyPub, "GroundTruth", GroundTruth)
-class People(list):
-    def __init__(self, iterable=list()):
-        super(People, self).__init__(iterable)
-
-    def append(self, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.Person)
-        super(People, self).append(item)
-
-    def extend(self, iterable):
-        for item in iterable:
-            assert isinstance(item, RoboCompHumanCameraBodyPub.Person)
-        super(People, self).extend(iterable)
-
-    def insert(self, index, item):
-        assert isinstance(item, RoboCompHumanCameraBodyPub.Person)
-        super(People, self).insert(index, item)
-
-setattr(RoboCompHumanCameraBodyPub, "People", People)
+setattr(RoboCompYoloObjects, "TConnections", TConnections)
 
 import camerargbdsimpleI
 import humancamerabodyI
@@ -331,10 +275,6 @@ class Publishes:
         self.ice_connector = ice_connector
         self.mprx={}
         self.topic_manager = topic_manager
-
-        self.camerargbdsimplepub = self.create_topic("CameraRGBDSimplePub", RoboCompCameraRGBDSimplePub.CameraRGBDSimplePubPrx)
-
-        self.humancamerabodypub = self.create_topic("HumanCameraBodyPub", RoboCompHumanCameraBodyPub.HumanCameraBodyPubPrx)
 
 
     def create_topic(self, topic_name, ice_proxy):
@@ -367,6 +307,8 @@ class Requires:
         self.mprx={}
 
         self.CameraRGBDSimple = self.create_proxy("CameraRGBDSimpleProxy", RoboCompCameraRGBDSimple.CameraRGBDSimplePrx)
+
+        self.YoloObjects = self.create_proxy("YoloObjectsProxy", RoboCompYoloObjects.YoloObjectsPrx)
 
     def get_proxies_map(self):
         return self.mprx
@@ -437,7 +379,7 @@ class InterfaceManager:
         # TODO: Make ice connector singleton
         self.ice_config_file = ice_config_file
         self.ice_connector = Ice.initialize(self.ice_config_file)
-        needs_rcnode = True
+        needs_rcnode = False
         self.topic_manager = self.init_topic_manager() if needs_rcnode else None
 
         self.status = 0

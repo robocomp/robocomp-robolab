@@ -1,15 +1,13 @@
 import "CameraRGBDSimple.idsl";
-import "CameraRGBDSimplePub.idsl";
 import "HumanCameraBody.idsl";
-import "HumanCameraBodyPub.idsl";
+import "YoloObjects.idsl";
 
 Component jetson_trtpose_detector
 {
     Communications
     {
-        requires CameraRGBDSimple;
+        requires CameraRGBDSimple, YoloObjects;
         implements CameraRGBDSimple, HumanCameraBody;
-        publishes CameraRGBDSimplePub, HumanCameraBodyPub;
     };
     language python;
 };

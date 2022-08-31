@@ -3,4 +3,4 @@ PROJECT(  jetson_trtpose_detector )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple CameraRGBDSimple CameraRGBDSimplePub HumanCameraBody HumanCameraBodyPub )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple CameraRGBDSimple HumanCameraBody YoloObjects )

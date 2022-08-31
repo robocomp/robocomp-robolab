@@ -57,7 +57,7 @@ _JOINT_NAMES = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 20
+        self.Period = 5
         if startup_check:
             self.startup_check()
         else:
@@ -110,6 +110,7 @@ class SpecificWorker(GenericWorker):
         """Destructor"""
 
     def setParams(self, params):
+        # TODO: move to init
         self.display = params["display"] == "true" or params["display"] == "True"
 
         self.human_parts_file = params["human_parts_file"]
@@ -118,17 +119,15 @@ class SpecificWorker(GenericWorker):
         topology = trt_pose.coco.coco_category_to_topology(self.human_pose)
         self.parse_objects = ParseObjects(topology)
 
-
         self.camera_name = params["camera_name"]
         print("Params read. Starting...")
         return True
-
 
     @QtCore.Slot()
     def compute(self):
         rgb = self.read_image_queue.get()
         people_data = self.trtpose(rgb)
-        
+
         try:
             self.write_pose_queue.put_nowait(people_data)
         except:

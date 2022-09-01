@@ -2,6 +2,7 @@
 CameraRGBDSimple.Endpoints=tcp -p 10096
 HumanCameraBody.Endpoints=tcp -p 14213
 
+YoloObjectsProxy = yoloobjects:tcp -p 10054
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -h robex.local -p 10095
 
 display = true

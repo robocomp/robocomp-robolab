@@ -26,7 +26,6 @@ from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
 import numpy as np
-from numpy.random import choice as CColor # ChooseColor
 import os
 import time
 import cv2
@@ -126,7 +125,22 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         rgb = self.read_image_queue.get()
-        people_data = self.trtpose(rgb)
+        try:
+            data = self.yoloobjects_proxy.getYoloObjects()
+        except Ice.Exception as e:
+            traceback.print_exc()
+            return False
+
+        # get person's rois from data.objects and copy on black image
+        black = np.zeros(rgb.shape, dtype=np.uint8)
+        person_rois = []
+        for object in data.objects:
+            if object.type == 0:  #person
+                black[object.top:object.bot, object.left: object.right, :] = \
+                    rgb[object.top:object.bot, object.left: object.right, :]
+                person_rois.append([object.left, object.top, object.right-object.left, object.bot-object.top, object.id])
+
+        people_data = self.trtpose(black, person_rois)
 
         try:
             self.write_pose_queue.put_nowait(people_data)
@@ -159,8 +173,9 @@ class SpecificWorker(GenericWorker):
                 print("Error communicating with CameraRGBDSimple")
                 return
 
-    def trtpose(self, rgb):  # should be RGB
-        img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)), interpolation=cv2.INTER_AREA)
+    def trtpose(self, rgb, rois):  # should be RGB 416x416
+        img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)),
+                         interpolation=cv2.INTER_AREA)
         img = PIL.Image.fromarray(img)
         img = transforms.functional.to_tensor(img).to(torch.device('cuda'))
         img.sub_(self.mean[:, None, None]).div_(self.std[:, None, None])
@@ -171,6 +186,7 @@ class SpecificWorker(GenericWorker):
         rgb_rows, rgb_cols, _ = rgb.shape
         people_data = ifaces.RoboCompHumanCameraBody.PeopleData(timestamp=time.time())
         people_data.peoplelist = []
+        votes = np.zeros((counts[0], len(rois)), dtype=float)   # vote accumulator
         for i in range(counts[0]):
             keypoints = self.get_keypoint(objects, i, peaks)
             joints = dict()
@@ -180,8 +196,20 @@ class SpecificWorker(GenericWorker):
                     y = keypoints[id][1] * 640
                     #cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
                     joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=x, j=y)
+                    self.vote_for_roi(rois, (x, y), votes[i])
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
+
+        # select the most voted ROI
+        roi_winners = np.argmax(votes, axis=1)
+        for k, person in enumerate(people_data.peoplelist):
+            person.id = rois[roi_winners[k]][4]
+
         return people_data
+
+    def vote_for_roi(self, rois, pt, person_votes):
+        for k, rect in enumerate(rois):
+            if rect[0] < pt[0] <= rect[0] + rect[2] and rect[1] <= pt[1] < rect[1] + rect[3]:
+                person_votes[k] += 1
 
     def get_keypoint(self, humans, hnum, peaks):
         kpoint = []
@@ -264,8 +292,8 @@ class SpecificWorker(GenericWorker):
         ret = ifaces.RoboCompCameraRGBDSimple.TImage(
             compressed=False,
             cameraID=0,
-            width=img.shape[0],
-            height=img.shape[1],
+            height=img.shape[0],
+            width=img.shape[1],
             depth=img.shape[2],
             focalx=self.image_focalx,
             focaly=self.image_focaly,

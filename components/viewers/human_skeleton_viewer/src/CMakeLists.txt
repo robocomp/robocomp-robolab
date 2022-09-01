@@ -3,4 +3,4 @@ PROJECT(  human_skeleton_viewer )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple HumanCameraBody )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple HumanCameraBody YoloObjects )

@@ -1,6 +1,8 @@
 # Proxies for required interfaces
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -h jetson-nx-0.local -p 10096
 HumanCameraBodyProxy = humancamerabody:tcp -h jetson-nx-0.local -p 14213
+YoloObjectsProxy = yoloobjects:tcp -h jetson-nx-0.local -p 10054
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

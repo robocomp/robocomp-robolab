@@ -43,6 +43,7 @@ class GenericWorker(QtCore.QObject):
 
         self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
         self.humancamerabody_proxy = mprx["HumanCameraBodyProxy"]
+        self.yoloobjects_proxy = mprx["YoloObjectsProxy"]
 
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
         self.Period = 30

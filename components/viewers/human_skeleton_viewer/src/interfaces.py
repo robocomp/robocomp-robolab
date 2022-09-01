@@ -9,6 +9,8 @@ Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
+Ice.loadSlice("-I ./src/ --all ./src/YoloObjects.ice")
+import RoboCompYoloObjects
 
 class ImgType(list):
     def __init__(self, iterable=list()):
@@ -190,6 +192,78 @@ class TConnections(list):
         super(TConnections, self).insert(index, item)
 
 setattr(RoboCompHumanCameraBody, "TConnections", TConnections)
+class TObjects(list):
+    def __init__(self, iterable=list()):
+        super(TObjects, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompYoloObjects.TBox)
+        super(TObjects, self).insert(index, item)
+
+setattr(RoboCompYoloObjects, "TObjects", TObjects)
+class TObjectNames(list):
+    def __init__(self, iterable=list()):
+        super(TObjectNames, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, str)
+        super(TObjectNames, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, str)
+        super(TObjectNames, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, str)
+        super(TObjectNames, self).insert(index, item)
+
+setattr(RoboCompYoloObjects, "TObjectNames", TObjectNames)
+class TPeople(list):
+    def __init__(self, iterable=list()):
+        super(TPeople, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompYoloObjects.TPerson)
+        super(TPeople, self).insert(index, item)
+
+setattr(RoboCompYoloObjects, "TPeople", TPeople)
+class TConnections(list):
+    def __init__(self, iterable=list()):
+        super(TConnections, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompYoloObjects.TConnection)
+        super(TConnections, self).insert(index, item)
+
+setattr(RoboCompYoloObjects, "TConnections", TConnections)
 
 
 
@@ -233,6 +307,8 @@ class Requires:
         self.CameraRGBDSimple = self.create_proxy("CameraRGBDSimpleProxy", RoboCompCameraRGBDSimple.CameraRGBDSimplePrx)
 
         self.HumanCameraBody = self.create_proxy("HumanCameraBodyProxy", RoboCompHumanCameraBody.HumanCameraBodyPrx)
+
+        self.YoloObjects = self.create_proxy("YoloObjectsProxy", RoboCompYoloObjects.YoloObjectsPrx)
 
     def get_proxies_map(self):
         return self.mprx

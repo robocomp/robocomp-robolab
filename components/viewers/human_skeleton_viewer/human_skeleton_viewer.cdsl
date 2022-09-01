@@ -1,11 +1,12 @@
 import "CameraRGBDSimple.idsl";
 import "HumanCameraBody.idsl";
+import "YoloObjects.idsl";
 
 Component human_skeleton_viewer
 {
     Communications
     {
-        requires CameraRGBDSimple, HumanCameraBody;
+        requires CameraRGBDSimple, HumanCameraBody, YoloObjects;
     };
     language python;
 };

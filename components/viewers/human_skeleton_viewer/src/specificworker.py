@@ -18,6 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+import itertools
 
 from PySide2.QtCore import QTimer
 from PySide2.QtWidgets import QApplication
@@ -28,9 +29,97 @@ import cv2
 import traceback
 import numpy as np
 import time
+from numpy.random import choice as CColor # ChooseColor
+from shapely.geometry import box
+from collections import defaultdict
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
+
+_COLORS = np.array(
+    [
+        0.000, 0.447, 0.741,
+        0.850, 0.325, 0.098,
+        0.929, 0.694, 0.125,
+        0.494, 0.184, 0.556,
+        0.466, 0.674, 0.188,
+        0.301, 0.745, 0.933,
+        0.635, 0.078, 0.184,
+        0.300, 0.300, 0.300,
+        0.600, 0.600, 0.600,
+        1.000, 0.000, 0.000,
+        1.000, 0.500, 0.000,
+        0.749, 0.749, 0.000,
+        0.000, 1.000, 0.000,
+        0.000, 0.000, 1.000,
+        0.667, 0.000, 1.000,
+        0.333, 0.333, 0.000,
+        0.333, 0.667, 0.000,
+        0.333, 1.000, 0.000,
+        0.667, 0.333, 0.000,
+        0.667, 0.667, 0.000,
+        0.667, 1.000, 0.000,
+        1.000, 0.333, 0.000,
+        1.000, 0.667, 0.000,
+        1.000, 1.000, 0.000,
+        0.000, 0.333, 0.500,
+        0.000, 0.667, 0.500,
+        0.000, 1.000, 0.500,
+        0.333, 0.000, 0.500,
+        0.333, 0.333, 0.500,
+        0.333, 0.667, 0.500,
+        0.333, 1.000, 0.500,
+        0.667, 0.000, 0.500,
+        0.667, 0.333, 0.500,
+        0.667, 0.667, 0.500,
+        0.667, 1.000, 0.500,
+        1.000, 0.000, 0.500,
+        1.000, 0.333, 0.500,
+        1.000, 0.667, 0.500,
+        1.000, 1.000, 0.500,
+        0.000, 0.333, 1.000,
+        0.000, 0.667, 1.000,
+        0.000, 1.000, 1.000,
+        0.333, 0.000, 1.000,
+        0.333, 0.333, 1.000,
+        0.333, 0.667, 1.000,
+        0.333, 1.000, 1.000,
+        0.667, 0.000, 1.000,
+        0.667, 0.333, 1.000,
+        0.667, 0.667, 1.000,
+        0.667, 1.000, 1.000,
+        1.000, 0.000, 1.000,
+        1.000, 0.333, 1.000,
+        1.000, 0.667, 1.000,
+        0.333, 0.000, 0.000,
+        0.500, 0.000, 0.000,
+        0.667, 0.000, 0.000,
+        0.833, 0.000, 0.000,
+        1.000, 0.000, 0.000,
+        0.000, 0.167, 0.000,
+        0.000, 0.333, 0.000,
+        0.000, 0.500, 0.000,
+        0.000, 0.667, 0.000,
+        0.000, 0.833, 0.000,
+        0.000, 1.000, 0.000,
+        0.000, 0.000, 0.167,
+        0.000, 0.000, 0.333,
+        0.000, 0.000, 0.500,
+        0.000, 0.000, 0.667,
+        0.000, 0.000, 0.833,
+        0.000, 0.000, 1.000,
+        0.000, 0.000, 0.000,
+        0.143, 0.143, 0.143,
+        0.286, 0.286, 0.286,
+        0.429, 0.429, 0.429,
+        0.571, 0.571, 0.571,
+        0.714, 0.714, 0.714,
+        0.857, 0.857, 0.857,
+        0.000, 0.447, 0.741,
+        0.314, 0.717, 0.741,
+        0.50, 0.5, 0
+    ]
+).astype(np.float32).reshape(-1, 3)
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
@@ -53,6 +142,15 @@ class SpecificWorker(GenericWorker):
             print("Connected to HumanCameraBody")
             print("Joint names: ", self.joint_data.jointNames)
             #print("Connections:", self.joint_data.connections)
+
+            try:
+                self.object_names = self.yoloobjects_proxy.getYoloObjectNames()
+                print("Connected to YoloObjects")
+                print(self.object_names)
+
+            except Ice.Exception as e:
+                traceback.print_exc()
+
             ######################################
 
             self.timer.timeout.connect(self.compute)
@@ -81,6 +179,14 @@ class SpecificWorker(GenericWorker):
         except Ice.Exception as e:
             traceback.print_exc()
 
+        try:
+            data = self.yoloobjects_proxy.getYoloObjects()
+            nms = self.nms(data.objects)
+            print("lens", len(data.objects), len(nms))
+            self.draw_objects(nms, people, color)
+        except Ice.Exception as e:
+            traceback.print_exc()
+
         cv2.imshow("Jetson", color)
         cv2.waitKey(1)  # 1 millisecond
 
@@ -89,6 +195,56 @@ class SpecificWorker(GenericWorker):
         return True
 
     ##############################################################################################
+    # Non-maximum supression
+    def nms(self, objects):
+        d = defaultdict(list)
+        for obj in objects:
+            d[obj.type].append(obj)
+        removed = []
+        for typ, same_type_objs in d.items():
+            power_set = itertools.combinations(same_type_objs, 2)   # possible combs of same type
+            # compute IOU
+            for a, b in power_set:
+                p1 = box(a.left, a.top, a.right, a.bot)  # shapely object
+                p2 = box(b.left, b.top, b.right, b.bot)
+                intersect = p1.intersection(p2).area / p1.union(p2).area
+                if intersect > 0.65:
+                    removed.append(a.id if abs(a.prob) > abs(b.prob) else b.id)
+        ret = []
+        for obj in objects:
+            if obj.id not in removed:
+                ret.append(obj)
+        return ret
+
+    def draw_objects(self, objects, people, img):
+        for box in objects:
+            tl = round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
+            color = (_COLORS[box.type] * 255).astype(np.uint8).tolist()
+            c1 = (box.left, box.top)
+            c2 = (box.right, box.bot)
+            cv2.rectangle(img, c1, c2, color, tl, cv2.LINE_AA)
+
+            txt_color = (0, 0, 0) if np.mean(_COLORS[box.type]) > 0.5 else (255, 255, 255)
+            txt_bk_color = (_COLORS[box.type] * 255 * 0.7).astype(np.uint8).tolist()
+            tf = int(max(tl - 1, 1))
+            if box.type == 0:
+                hid = -1
+                #print("box", box.id)
+                for person in people.peoplelist:
+                    #print("person", person.id)
+                    if person.id == box.id:
+                        hid = box.id
+                        break
+                #print("------------------")
+                label = self.object_names[box.type] + "_" + str(box.id) + "_H" + str(hid) + " " + str(int((-box.prob * 100))) + '%'
+            else:
+               label = self.object_names[box.type] + "_" + str(box.id) + " " + str(int((box.prob * 100))) + '%'
+
+            t_size, _ = cv2.getTextSize(label, 0, tl/3.0, tf)
+            c2 = (c1[0] + t_size[0], c1[1] - t_size[1] - 3)
+            cv2.rectangle(img, c1, c2, txt_bk_color, -1, cv2.LINE_AA)  #filled
+            cv2.putText(img, label, (c1[0], c1[1]-2), 0, tl/3, txt_color, tf, cv2.LINE_AA)
+
     def draw_people(self, people, img: np.ndarray):
         for person in people.peoplelist:
             for conn in self.joint_data.connections:

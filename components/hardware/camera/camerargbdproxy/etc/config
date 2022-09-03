@@ -1,0 +1,17 @@
+# Endpoints for implements interfaces
+CameraRGBDSimple.Endpoints=tcp -p 10096
+
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10095
+
+camera_name = camera_top
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

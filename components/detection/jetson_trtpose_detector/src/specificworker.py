@@ -57,7 +57,7 @@ _JOINT_NAMES = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 5
+        self.Period = 33
         if startup_check:
             self.startup_check()
         else:
@@ -135,16 +135,16 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         rgb = self.read_image_queue.get()
-
         person_rois = []
         if self.with_objects:
             data = self.read_objects_queue.get()
-            #     try:
-            #         data = self.yoloobjects_proxy.getYoloObjects()
-            #     except Ice.Exception as e:
-            #         traceback.print_exc()
-            #         return False
-            #     # get person's rois from data.objects and copy on black image
+            try:
+                data = self.yoloobjects_proxy.getYoloObjects()
+            except Ice.Exception as e:
+                traceback.print_exc()
+                return False
+
+            # get person's rois from data.objects and copy on black image
             black = np.zeros(rgb.shape, dtype=np.uint8)
             for object in data.objects:
                 if object.type == 0:  #person
@@ -158,16 +158,6 @@ class SpecificWorker(GenericWorker):
 
         self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
 
-        # try:
-        #     self.write_pose_queue.put_nowait(people_data)
-        # except:
-        #     pass
-
-        # try:
-        #     self.write_image_queue.put_nowait(rgb)
-        # except:
-        #     pass
-        
         #cv2.imshow("trt_pose", rgb)
         #cv2.waitKey(1)
 
@@ -317,18 +307,19 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getImage method from CameraRGBDSimple interface
     #
     def CameraRGBDSimple_getImage(self, camera):
-        img = self.write_image_queue.get()
-        ret = ifaces.RoboCompCameraRGBDSimple.TImage(
-            compressed=False,
-            cameraID=0,
-            height=img.shape[0],
-            width=img.shape[1],
-            depth=img.shape[2],
-            focalx=self.image_focalx,
-            focaly=self.image_focaly,
-            alivetime=self.image_captured_time - time.time(),
-            image=img.tobytes()
-        )
+        ret = ifaces.RoboCompCameraRGBDSimple.TImage()
+        #img = self.write_image_queue.get()
+        #ret = ifaces.RoboCompCameraRGBDSimple.TImage(
+            #compressed=False,
+            #cameraID=0,
+            #height=img.shape[0],
+            #width=img.shape[1],
+            #depth=img.shape[2],
+            #focalx=self.image_focalx,
+            #focaly=self.image_focaly,
+            #alivetime=self.image_captured_time - time.time(),
+            #image=img.tobytes()
+        #)
         return ret
     #
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface

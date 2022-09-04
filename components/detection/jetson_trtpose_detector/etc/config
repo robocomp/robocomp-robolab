@@ -3,7 +3,7 @@ CameraRGBDSimple.Endpoints=tcp -p 10098
 HumanCameraBody.Endpoints=tcp -p 14213
 
 YoloObjectsProxy = yoloobjects:tcp -p 10054
-CameraRGBDSimpleProxy = camerargbdsimple:tcp  -p 10096
+CameraRGBDSimpleProxy = camerargbdsimple:tcp  -h robex.local -p 10095
 
 display = true
 human_parts_file = human_pose.json

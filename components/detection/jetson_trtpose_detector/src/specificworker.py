@@ -30,6 +30,7 @@ import os
 import time
 import cv2
 import queue
+import traceback
 from threading import Thread
 import json
 import trt_pose.coco
@@ -63,6 +64,7 @@ class SpecificWorker(GenericWorker):
             ########## user code ##################
             # config vars
             self.display = False
+            self.with_objects = True
             self.human_parts_file = "human_pose.json"
             self.camera_name = "camera_top"
             self.model = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
@@ -95,7 +97,15 @@ class SpecificWorker(GenericWorker):
             # camera read thread
             self.read_image_queue = queue.Queue(1)
             self.write_image_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name], name="read_queue")
+            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name], name="read_camera_queue")
+            self.read_thread.start()
+            self.people_data_write = ifaces.RoboCompHumanCameraBody.PeopleData()
+            self.people_data_read = ifaces.RoboCompHumanCameraBody.PeopleData()
+
+            # objects read thread
+            self.read_objects_queue = queue.Queue(1)
+            self.write_objects_queue = queue.Queue(1)
+            self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
             self.read_thread.start()
 
             # result data
@@ -111,7 +121,7 @@ class SpecificWorker(GenericWorker):
     def setParams(self, params):
         # TODO: move to init
         self.display = params["display"] == "true" or params["display"] == "True"
-
+        self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
         self.human_parts_file = params["human_parts_file"]
         with open(self.human_parts_file, 'r') as f:
             self.human_pose = json.load(f)
@@ -125,32 +135,38 @@ class SpecificWorker(GenericWorker):
     @QtCore.Slot()
     def compute(self):
         rgb = self.read_image_queue.get()
-        try:
-            data = self.yoloobjects_proxy.getYoloObjects()
-        except Ice.Exception as e:
-            traceback.print_exc()
-            return False
 
-        # get person's rois from data.objects and copy on black image
-        black = np.zeros(rgb.shape, dtype=np.uint8)
         person_rois = []
-        for object in data.objects:
-            if object.type == 0:  #person
-                black[object.top:object.bot, object.left: object.right, :] = \
-                    rgb[object.top:object.bot, object.left: object.right, :]
-                person_rois.append([object.left, object.top, object.right-object.left, object.bot-object.top, object.id])
+        if self.with_objects:
+            data = self.read_objects_queue.get()
+            #     try:
+            #         data = self.yoloobjects_proxy.getYoloObjects()
+            #     except Ice.Exception as e:
+            #         traceback.print_exc()
+            #         return False
+            #     # get person's rois from data.objects and copy on black image
+            black = np.zeros(rgb.shape, dtype=np.uint8)
+            for object in data.objects:
+                if object.type == 0:  #person
+                    black[object.top:object.bot, object.left: object.right, :] = \
+                        rgb[object.top:object.bot, object.left: object.right, :]
+                    person_rois.append([object.left, object.top, object.right-object.left, object.bot-object.top, object.id])
+            self.people_data_write = self.trtpose(black, person_rois)
 
-        people_data = self.trtpose(black, person_rois)
+        else:
+            self.people_data_write = self.trtpose(rgb, person_rois)
 
-        try:
-            self.write_pose_queue.put_nowait(people_data)
-        except:
-            pass
+        self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
 
-        try:
-            self.write_image_queue.put_nowait(rgb)
-        except:
-            pass
+        # try:
+        #     self.write_pose_queue.put_nowait(people_data)
+        # except:
+        #     pass
+
+        # try:
+        #     self.write_image_queue.put_nowait(rgb)
+        # except:
+        #     pass
         
         #cv2.imshow("trt_pose", rgb)
         #cv2.waitKey(1)
@@ -171,7 +187,18 @@ class SpecificWorker(GenericWorker):
                 self.read_image_queue.put(frame)
             except:
                 print("Error communicating with CameraRGBDSimple")
-                return
+                traceback.print_exc()
+                break
+
+    def get_objects_thread(self):
+        while True:
+            try:
+                data = self.yoloobjects_proxy.getYoloObjects()
+                self.read_objects_queue.put(data)
+            except:
+                print("Error communicating with YoloObjects")
+                traceback.print_exc()
+                break
 
     def trtpose(self, rgb, rois):  # should be RGB 416x416
         img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)),
@@ -196,13 +223,15 @@ class SpecificWorker(GenericWorker):
                     y = keypoints[id][1] * 640
                     #cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
                     joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=x, j=y)
-                    self.vote_for_roi(rois, (x, y), votes[i])
+                    if self.with_objects:
+                        self.vote_for_roi(rois, (x, y), votes[i])
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
 
         # select the most voted ROI
-        roi_winners = np.argmax(votes, axis=1)
-        for k, person in enumerate(people_data.peoplelist):
-            person.id = rois[roi_winners[k]][4]
+        if self.with_objects:
+            roi_winners = np.argmax(votes, axis=1)
+            for k, person in enumerate(people_data.peoplelist):
+                person.id = rois[roi_winners[k]][4]
 
         return people_data
 
@@ -305,7 +334,7 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface
     #
     def HumanCameraBody_newPeopleData(self):
-        return self.write_pose_queue.get()
+        return self.people_data_read
 
     # IMPLEMENTATION of getJointData method from HumanCameraBody interface
     #######################################################################

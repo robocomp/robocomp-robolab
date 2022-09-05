@@ -80,8 +80,8 @@ if __name__ == '__main__':
     interface_manager = interfaces.InterfaceManager(args.iceconfigfile)
 
     if interface_manager.status == 0:
-        worker = SpecificWorker(interface_manager.get_proxies_map(), args.startup_check)
-        worker.setParams(interface_manager.parameters)
+        worker = SpecificWorker(interface_manager.get_proxies_map(), interface_manager.parameters, args.startup_check)
+        #worker.setParams(interface_manager.parameters)
     else:
         print("Error getting required connections, check config file")
         sys.exit(-1)

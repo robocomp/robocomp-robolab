@@ -5,7 +5,7 @@ CameraRGBDSimple.Endpoints=tcp -p 10096
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 10095
 
 camera_name = camera_top
-
+fps = 30
 
 
 Ice.Warn.Connections=0

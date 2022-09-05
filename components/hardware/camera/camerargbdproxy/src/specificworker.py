@@ -30,11 +30,23 @@ import time
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
-
 class SpecificWorker(GenericWorker):
-    def __init__(self, proxy_map, startup_check=False):
+    def __init__(self, proxy_map, params, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
         self.Period = 33
+        self.fps = 30
+        self.camera_name = 'camera_top'
+
+        # params
+        try:
+            self.camera_name = params["camera_name"]
+            self.fps = int(params["fps"])
+            self.Period = int(1000.0/self.fps)
+            print("Config params:", params)
+        except:
+            print("Error reading config params")
+            traceback.print_exc()
+
         if startup_check:
             self.startup_check()
         else:
@@ -49,23 +61,27 @@ class SpecificWorker(GenericWorker):
             # self.read_thread.start()
             self.rgb_read = None
             self.rgb_write = None
-            self.camera_name = 'camera_top'
 
+            print("Component initialized")
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
     def __del__(self):
         """Destructor"""
 
-    def setParams(self, params):
-        self.camera_name = params["camera_name"]
-        return True
-
+    # def setParams(self, params):
+    #     try:
+    #         self.camera_name = params["camera_name"]
+    #         self.fps = params["fps"]
+    #     except:
+    #         print("Error reading config params")
+    #         traceback.print_exc()
+    #     return True
 
     @QtCore.Slot()
     def compute(self):
         try:
-            self.rgb_read = self.camerargbdsimple_proxy.getImage('camera_top')
+            self.rgb_read = self.camerargbdsimple_proxy.getImage(self.camera_name)
         except:
             print("Error communicating with CameraRGBDSimple")
             traceback.print_exc()

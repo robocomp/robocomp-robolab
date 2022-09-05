@@ -93,7 +93,21 @@ class SpecificWorker(GenericWorker):
         self.show_fps()
 
         return True
+
     #####################################################################################
+    # def get_rgb_thread(self, camera_name: str):
+    #     while True:
+    #         try:
+    #             rgb = self.camerargbdsimple_proxy.getImage(camera_name)
+    #             self.image_captured_time = time.time()
+    #             frame = np.frombuffer(rgb.image, dtype=np.uint8)
+    #             frame = frame.reshape((rgb.height, rgb.width, 3))
+    #             self.read_image_queue.put(frame)
+    #         except:
+    #             print("Error communicating with CameraRGBDSimple")
+    #             traceback.print_exc()
+    #             break
+
     def show_fps(self):
         if time.time() - self.last_time > 1:
             self.last_time = time.time()

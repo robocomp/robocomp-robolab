@@ -9,6 +9,7 @@ display = false
 human_parts_file = human_pose.json
 camera_name = camera_top
 with_objects = false
+min_number_of_joints = 3
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

@@ -143,7 +143,7 @@ class SpecificWorker(GenericWorker):
             self.read_thread.start()
 
         self.camera_name = params["camera_name"]
-        self.min_number_of_joints = params["min_number_of_joints"]
+        self.min_number_of_joints = int(params["min_number_of_joints"])
         print("Params read. Starting...", params)
         return True
 

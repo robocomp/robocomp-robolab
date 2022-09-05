@@ -72,12 +72,15 @@ class SpecificWorker(GenericWorker):
 
             # camera
             try:
-                rgb = self.camerargbdsimple_proxy.getImage(self.camera_name)
-                self.image_focalx = rgb.focalx
-                self.image_focaly = rgb.focaly
-                print("CameraRGBDSimple contacted: rows:", rgb.height, " cols:", rgb.width)
+                rgbd = self.camerargbdsimple_proxy.getAll(self.camera_name)
+                self.image_focalx = rgbd.image.focalx
+                self.image_focaly = rgbd.image.focaly
+                self.depth_focalx = rgbd.depth.focalx
+                self.depth_focaly = rgbd.depth.focaly
+                print("CameraRGBDSimple contacted. Image size rows:", rgbd.image.height, " cols:", rgbd.image.width)
             except:
                 print("No connection to CameraRGBDSimple. Aborting")
+                traceback.print_exc()
                 sys.exit()
             self.image_captured_time = 0
 
@@ -144,35 +147,35 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        rgb = self.read_image_queue.get()
+        color, depth = self.read_image_queue.get()
         person_rois = []
-        if self.with_objects:       # get person's rois from data.objects and copy on black image
+        if self.with_objects:  # get person's rois from data.objects and copy on black image
             data = self.read_objects_queue.get()
             black, person_rois = self.get_person_rois(data)
-            self.people_data_write = self.trtpose(black, person_rois)       # get people from masked image
+            self.people_data_write = self.trtpose(black, depth, person_rois)  # get people from masked image
 
         else:
-            self.people_data_write = self.trtpose(rgb, person_rois)     # get people from image
+            self.people_data_write = self.trtpose(color, depth, person_rois)  # get people from image
 
         if self.display:
-            self.show_data(rgb, self.people_data_write)
+            self.show_data(color, self.people_data_write)
 
         self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
 
         # FPS
         self.show_fps()
-        
+
         return True
 
-####################################################################################################
+    ####################################################################################################
     def get_rgb_thread(self, camera_name: str):
         while True:
             try:
-                rgb = self.camerargbdsimple_proxy.getImage(camera_name)
+                rgbd = self.camerargbdsimple_proxy.getAll(camera_name)
                 self.image_captured_time = time.time()
-                frame = np.frombuffer(rgb.image, dtype=np.uint8)
-                frame = frame.reshape((rgb.height, rgb.width, 3))
-                self.read_image_queue.put(frame)
+                color = np.frombuffer(rgbd.image.image, dtype=np.uint8).reshape(rgbd.image.height, rgbd.image.width, 3)
+                depth = np.frombuffer(rgbd.depth.depth, dtype=np.float32).reshape(rgbd.depth.height, rgbd.depth.width, 1)
+                self.read_image_queue.put([color, depth])
             except:
                 print("Error communicating with CameraRGBDSimple")
                 traceback.print_exc()
@@ -198,7 +201,7 @@ class SpecificWorker(GenericWorker):
                 person_rois.append([obj.left, obj.top, obj.right - obj.left, obj.bot - obj.top, obj.id])
         return black, person_rois
 
-    def trtpose(self, rgb, rois):  # should be RGB 416x416
+    def trtpose(self, rgb, depth, rois):  # should be RGB 416x416
         img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)),
                          interpolation=cv2.INTER_AREA)
         img = PIL.Image.fromarray(img)
@@ -209,19 +212,30 @@ class SpecificWorker(GenericWorker):
         cmap, paf = cmap.detach().cpu(), paf.detach().cpu()
         counts, objects, peaks = self.parse_objects(cmap, paf)  # , cmap_threshold=0.15, link_threshold=0.15)
         rgb_rows, rgb_cols, _ = rgb.shape
+        center_x = rgb_cols / 2
+        center_y = rgb_rows / 2
         people_data = ifaces.RoboCompHumanCameraBody.PeopleData(timestamp=time.time())
         people_data.peoplelist = []
         votes = np.zeros((counts[0], len(rois)), dtype=float)   # vote accumulator
         for i in range(counts[0]):
+            available_joints_counter = 0
             keypoints = self.get_keypoint(objects, i, peaks)
             joints = dict()
-            for id in range(len(keypoints)):
-                if keypoints[id][1] and keypoints[id][2]:
-                    x = keypoints[id][2] * 640
-                    y = keypoints[id][1] * 640
-                    joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=int(x), j=int(y))
+            for ids in range(len(keypoints)):
+                if keypoints[ids][1] and keypoints[ids][2]:
+                    available_joints_counter += 1
+                    cx = int(keypoints[ids][2] * rgb_cols)
+                    cy = int(keypoints[ids][1] * rgb_rows)
+                    y = float(depth[cy, cx])
+                    z = -(cy / self.depth_focalx) * (cy - center_y)
+                    x = (cy / self.depth_focaly) * (cx - center_x)
+                    joints[_JOINT_NAMES[ids]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=int(cx),
+                                                                                        j=int(cy),
+                                                                                        x=x, y=y, z=z)
                     if self.with_objects:
                         self.vote_for_roi(rois, (x, y), votes[i])
+            if available_joints_counter < 3:     # self.min_number_of_joints:
+                continue
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
 
         # select the most voted ROI

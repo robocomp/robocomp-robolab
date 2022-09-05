@@ -67,6 +67,7 @@ class SpecificWorker(GenericWorker):
             self.with_objects = True
             self.human_parts_file = "human_pose.json"
             self.camera_name = "camera_top"
+            self.min_number_of_joints = 3
             torch_model = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
             optimized_model = 'densenet121_baseline_att_256x256_B_epoch_160_trt.pth'
 
@@ -142,7 +143,8 @@ class SpecificWorker(GenericWorker):
             self.read_thread.start()
 
         self.camera_name = params["camera_name"]
-        print("Params read. Starting...")
+        self.min_number_of_joints = params["min_number_of_joints"]
+        print("Params read. Starting...", params)
         return True
 
     @QtCore.Slot()
@@ -234,7 +236,7 @@ class SpecificWorker(GenericWorker):
                                                                                         x=x, y=y, z=z)
                     if self.with_objects:
                         self.vote_for_roi(rois, (x, y), votes[i])
-            if available_joints_counter < 3:     # self.min_number_of_joints:
+            if available_joints_counter < self.min_number_of_joints:
                 continue
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
 

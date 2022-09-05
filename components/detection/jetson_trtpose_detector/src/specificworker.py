@@ -102,12 +102,6 @@ class SpecificWorker(GenericWorker):
             self.people_data_write = ifaces.RoboCompHumanCameraBody.PeopleData()
             self.people_data_read = ifaces.RoboCompHumanCameraBody.PeopleData()
 
-            # objects read thread
-            self.read_objects_queue = queue.Queue(1)
-            self.write_objects_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
-            self.read_thread.start()
-
             # result data
             self.write_pose_queue = queue.Queue(1)
             #######################################
@@ -120,8 +114,16 @@ class SpecificWorker(GenericWorker):
 
     def setParams(self, params):
         # TODO: move to init
+        
         self.display = params["display"] == "true" or params["display"] == "True"
+
         self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
+        if self.with_objects:       # objects read thread
+            self.read_objects_queue = queue.Queue(1)
+            self.write_objects_queue = queue.Queue(1)
+            self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
+            self.read_thread.start()
+
         self.human_parts_file = params["human_parts_file"]
         with open(self.human_parts_file, 'r') as f:
             self.human_pose = json.load(f)
@@ -136,30 +138,18 @@ class SpecificWorker(GenericWorker):
     def compute(self):
         rgb = self.read_image_queue.get()
         person_rois = []
-        if self.with_objects:
+        if self.with_objects:       # get person's rois from data.objects and copy on black image
             data = self.read_objects_queue.get()
-            try:
-                data = self.yoloobjects_proxy.getYoloObjects()
-            except Ice.Exception as e:
-                traceback.print_exc()
-                return False
-
-            # get person's rois from data.objects and copy on black image
-            black = np.zeros(rgb.shape, dtype=np.uint8)
-            for object in data.objects:
-                if object.type == 0:  #person
-                    black[object.top:object.bot, object.left: object.right, :] = \
-                        rgb[object.top:object.bot, object.left: object.right, :]
-                    person_rois.append([object.left, object.top, object.right-object.left, object.bot-object.top, object.id])
-            self.people_data_write = self.trtpose(black, person_rois)
+            black, person_rois = self.get_person_rois(data)
+            self.people_data_write = self.trtpose(black, person_rois)       # get people from masked image
 
         else:
-            self.people_data_write = self.trtpose(rgb, person_rois)
+            self.people_data_write = self.trtpose(rgb, person_rois)     # get people from image
+
+        if self.display:
+            self.show_data(rgb, self.people_data_write)
 
         self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
-
-        #cv2.imshow("trt_pose", rgb)
-        #cv2.waitKey(1)
 
         # FPS
         self.show_fps()
@@ -188,7 +178,17 @@ class SpecificWorker(GenericWorker):
             except:
                 print("Error communicating with YoloObjects")
                 traceback.print_exc()
-                break
+                sys.exit()
+
+    def get_person_rois(self, data, rgb):    # reads objects from Yolo and computes masked image
+        person_rois = []
+        black = np.zeros(rgb.shape, dtype=np.uint8)
+        for obj in data.objects:
+            if obj.type == 0:  # person
+                black[obj.top:obj.bot, obj.left: obj.right, :] = \
+                    rgb[obj.top:obj.bot, obj.left: obj.right, :]
+                person_rois.append([obj.left, obj.top, obj.right - obj.left, obj.bot - obj.top, obj.id])
+        return black, person_rois
 
     def trtpose(self, rgb, rois):  # should be RGB 416x416
         img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)),
@@ -211,8 +211,7 @@ class SpecificWorker(GenericWorker):
                 if keypoints[id][1] and keypoints[id][2]:
                     x = keypoints[id][2] * 640
                     y = keypoints[id][1] * 640
-                    #cv2.circle(rgb, (int(x), int(y)), 1, [0, 0, 255], 2)
-                    joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=x, j=y)
+                    joints[_JOINT_NAMES[id]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=int(x), j=int(y))
                     if self.with_objects:
                         self.vote_for_roi(rois, (x, y), votes[i])
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
@@ -244,7 +243,15 @@ class SpecificWorker(GenericWorker):
                 peak = (j, None, None)
                 kpoint.append(peak)
         return kpoint
-####################################################################################################
+
+    def show_data(self, rgb, people_data):
+        for person in people_data.peoplelist:
+            for cls, jnt in person.joints.items():
+                cv2.circle(rgb, (jnt.i, jnt.j), 1, [0, 0, 255], 2)
+        cv2.imshow('trtpose', rgb)
+        cv2.waitKey(1)
+
+    ####################################################################################################
     def show_fps(self):
         if time.time() - self.last_time > 1:
             self.last_time = time.time()
@@ -307,19 +314,18 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getImage method from CameraRGBDSimple interface
     #
     def CameraRGBDSimple_getImage(self, camera):
-        ret = ifaces.RoboCompCameraRGBDSimple.TImage()
         #img = self.write_image_queue.get()
-        #ret = ifaces.RoboCompCameraRGBDSimple.TImage(
-            #compressed=False,
-            #cameraID=0,
-            #height=img.shape[0],
-            #width=img.shape[1],
-            #depth=img.shape[2],
-            #focalx=self.image_focalx,
-            #focaly=self.image_focaly,
-            #alivetime=self.image_captured_time - time.time(),
-            #image=img.tobytes()
-        #)
+        ret = ifaces.RoboCompCameraRGBDSimple.TImage()
+        #     compressed=False,
+        #     cameraID=0,
+        #     height=img.shape[0],
+        #     width=img.shape[1],
+        #     depth=img.shape[2],
+        #     focalx=self.image_focalx,
+        #     focaly=self.image_focaly,
+        #     alivetime=self.image_captured_time - time.time(),
+        #     image=img.tobytes()
+        # )
         return ret
     #
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface

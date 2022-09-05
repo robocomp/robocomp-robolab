@@ -5,10 +5,10 @@ HumanCameraBody.Endpoints=tcp -p 14213
 YoloObjectsProxy = yoloobjects:tcp -p 10054
 CameraRGBDSimpleProxy = camerargbdsimple:tcp  -h robex.local -p 10095
 
-display = true
+display = false
 human_parts_file = human_pose.json
 camera_name = camera_top
-with_objects = true
+with_objects = false
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999

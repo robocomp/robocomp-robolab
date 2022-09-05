@@ -67,8 +67,8 @@ class SpecificWorker(GenericWorker):
             self.with_objects = True
             self.human_parts_file = "human_pose.json"
             self.camera_name = "camera_top"
-            self.model = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
-            self.optimized_model = 'densenet121_baseline_att_256x256_B_epoch_160_trt.pth'
+            torch_model = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
+            optimized_model = 'densenet121_baseline_att_256x256_B_epoch_160_trt.pth'
 
             # camera
             try:
@@ -87,10 +87,24 @@ class SpecificWorker(GenericWorker):
             self.fps = 0
 
             # trt
+            with open(self.human_parts_file, 'r') as f:
+                self.human_pose = json.load(f)
+            topology = trt_pose.coco.coco_category_to_topology(self.human_pose)
+            self.parse_objects = ParseObjects(topology)
             self.TRT_MODEL_WIDTH = 256.
             self.TRT_MODEL_HEIGHT = 256.
+            if os.path.exists(optimized_model) == False:
+                print("Creating optimized model. Wait...")
+                data = torch.zeros((1, 3, int(self.TRT_MODEL_HEIGHT), int(self.TRT_MODEL_WIDTH))).cuda()
+                num_parts = len(self.human_pose['keypoints'])
+                num_links = len(self.human_pose['skeleton'])
+                model = trt_pose.models.densenet121_baseline_att(num_parts, 2 * num_links).cuda().eval()
+                model.load_state_dict(torch.load(torch_model))
+                self.model_trt = torch2trt.torch2trt(model, [data], fp16_mode=True, max_workspace_size=1 << 25)
+                torch.save(self.model_trt.state_dict(), optimized_model)
+                
             self.model_trt = TRTModule()
-            self.model_trt.load_state_dict(torch.load(self.optimized_model))
+            self.model_trt.load_state_dict(torch.load(optimized_model))
             self.mean = torch.Tensor([0.485, 0.456, 0.406]).cuda()
             self.std = torch.Tensor([0.229, 0.224, 0.225]).cuda()
 
@@ -123,12 +137,6 @@ class SpecificWorker(GenericWorker):
             self.write_objects_queue = queue.Queue(1)
             self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
             self.read_thread.start()
-
-        self.human_parts_file = params["human_parts_file"]
-        with open(self.human_parts_file, 'r') as f:
-            self.human_pose = json.load(f)
-        topology = trt_pose.coco.coco_category_to_topology(self.human_pose)
-        self.parse_objects = ParseObjects(topology)
 
         self.camera_name = params["camera_name"]
         print("Params read. Starting...")

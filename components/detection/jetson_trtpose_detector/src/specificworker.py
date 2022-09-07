@@ -114,14 +114,13 @@ class SpecificWorker(GenericWorker):
 
             # camera read thread
             self.read_image_queue = queue.Queue(1)
-            self.write_image_queue = queue.Queue(1)
             self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name], name="read_camera_queue")
             self.read_thread.start()
+
+            # result data
             self.people_data_write = ifaces.RoboCompHumanCameraBody.PeopleData()
             self.people_data_read = ifaces.RoboCompHumanCameraBody.PeopleData()
 
-            # result data
-            self.write_pose_queue = queue.Queue(1)
             #######################################
             
             self.timer.timeout.connect(self.compute)
@@ -138,7 +137,6 @@ class SpecificWorker(GenericWorker):
         self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
         if self.with_objects:       # objects read thread
             self.read_objects_queue = queue.Queue(1)
-            self.write_objects_queue = queue.Queue(1)
             self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
             self.read_thread.start()
 
@@ -153,7 +151,7 @@ class SpecificWorker(GenericWorker):
         person_rois = []
         if self.with_objects:  # get person's rois from data.objects and copy on black image
             data = self.read_objects_queue.get()
-            black, person_rois = self.get_person_rois(data)
+            black, person_rois = self.get_person_rois(data, color)
             self.people_data_write = self.trtpose(black, depth, person_rois)  # get people from masked image
 
         else:

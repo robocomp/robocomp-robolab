@@ -45,56 +45,56 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::initialize(int period)
 {
-	std::cout << "Initialize worker" << std::endl;
-
-    compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params_image.push_back(50);
-    compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params_depth.push_back(100);
-    /*
-
-    compression_params_image.push_back(cv::IMWRITE_PNG_COMPRESSION);//PNG
-    compression_params_depth.push_back(cv::IMWRITE_PNG_COMPRESSION);
-
-    compression_params_image.push_back(9); //cambiar abajo
-    compression_params_depth.push_back(9);//cambiar abajo*/
-
-
-    try
+    std::cout << "Initialize worker" << std::endl;
+    this->Period = 1;
+    if (this->startup_check_flag)
+        this->startup_check();
+    else
     {
-        cfg.enable_device(serial);
-        cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
-        cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
-        profile = pipe.start(cfg);
+        compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params_image.push_back(50);
+        compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params_depth.push_back(100);
+        /*
 
-        // Each depth camera might have different units for depth pixels, so we get it here
-        // Using the pipeline's profile, we can retrieve the device that the pipeline uses
-        depth_scale = get_depth_scale(profile.get_device());
+        compression_params_image.push_back(cv::IMWRITE_PNG_COMPRESSION);//PNG
+        compression_params_depth.push_back(cv::IMWRITE_PNG_COMPRESSION);
 
-        // Create a rs2::align object.
-        align_to_rgb = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).stream_type();
-        align = std::make_unique<rs2::align>(align_to_rgb);
+        compression_params_image.push_back(9); //cambiar abajo
+        compression_params_depth.push_back(9);//cambiar abajo*/
 
-        // Define a variable for controlling the distance to clip
-        float depth_clipping_distance = 10000.f;
+        try
+        {
+            cfg.enable_device(serial);
+            cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+            cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+            profile = pipe.start(cfg);
 
-        cam_intr = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
-        depth_intr = pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+            // Each depth camera might have different units for depth pixels, so we get it here
+            // Using the pipeline's profile, we can retrieve the device that the pipeline uses
+            depth_scale = get_depth_scale(profile.get_device());
 
-        // filters.emplace_back("Decimate", dec_filter);
-        // filters.emplace_back(disparity_filter_name, depth_to_disparity);
-        filters.emplace_back("Spatial", spat_filter);
-        filters.emplace_back("Temporal", temp_filter);
-        filters.emplace_back("HFilling", holef_filter);
+            // Create a rs2::align object.
+            align_to_rgb = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).stream_type();
+            align = std::make_unique<rs2::align>(align_to_rgb);
+
+            // Define a variable for controlling the distance to clip
+            float depth_clipping_distance = 10000.f;
+
+            cam_intr = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
+            depth_intr = pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+
+            // filters.emplace_back("Decimate", dec_filter);
+            // filters.emplace_back(disparity_filter_name, depth_to_disparity);
+//            filters.emplace_back("Spatial", spat_filter);
+//            filters.emplace_back("Temporal", temp_filter);
+//            filters.emplace_back("HFilling", holef_filter);
+        }
+        catch (std::exception &e)
+        { std::cout << e.what() << std::endl; }
+
+        timer.start(this->Period);
     }
-    catch(std::exception &e)
-    { std::cout<<e.what()<<std::endl; }
-
-	this->Period = period;
-	if(this->startup_check_flag)
-		this->startup_check();
-	else
-		timer.start(Period);
 }
 
 void SpecificWorker::compute()
@@ -109,46 +109,27 @@ void SpecificWorker::compute()
     depth_frame = processed.get_depth_frame();
 
     //If one of them is unavailable, continue iteration
-    if (not depth_frame or not rgb_frame)
-        return;
+    //if (not depth_frame or not rgb_frame)
+    //    return;
 
-    for (auto &&filter : filters)
-        if (filter.is_enabled)
-            depth_frame = filter.filter.process(depth_frame);
+    //for (auto &&filter : filters)
+    //    if (filter.is_enabled)
+    //        depth_frame = filter.filter.process(depth_frame);
 
     //if (!display_compressed) //si no está comprimida creo la rgbd porque es la que devuelvo cuando no comprimo
-    rgbd = create_trgbd();
+    //rgbd = create_trgbd();
 
-    if (display_rgb)
-    {
-        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame.get_data(), cv::Mat::AUTO_STEP);
-        cv::imshow("RGB image", frame);
-        cv::waitKey(1);
-    }
-
-    if (display_depth)
-    {
-        rs2::frame depth_color = depth_frame.apply_filter(color_map);
-
-        // Query frame size (width and height)
-        const int w = depth_frame.as<rs2::video_frame>().get_width();
-        const int h = depth_frame.as<rs2::video_frame>().get_height();
-
-        cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
-        cv::imshow("DEPTH image", frame_depth);
-        cv::waitKey(1);
-    }
-
-//    if (display_all)
+//    if (display_rgb)
 //    {
-//     //Si no comprimo, mando la imagen directamente pero no la del buffer
 //        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame.get_data(), cv::Mat::AUTO_STEP);
 //        cv::imshow("RGB image", frame);
 //        cv::waitKey(1);
+//    }
 //
+//    if (display_depth)
+//    {
 //        rs2::frame depth_color = depth_frame.apply_filter(color_map);
 //
-//        //std::cout<<"hola"<<std::endl;
 //        // Query frame size (width and height)
 //        const int w = depth_frame.as<rs2::video_frame>().get_width();
 //        const int h = depth_frame.as<rs2::video_frame>().get_height();
@@ -156,9 +137,9 @@ void SpecificWorker::compute()
 //        cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
 //        cv::imshow("DEPTH image", frame_depth);
 //        cv::waitKey(1);
-//
 //    }
 
+    fps.print("FPS:");
 }
 
 float SpecificWorker::get_depth_scale(rs2::device dev)

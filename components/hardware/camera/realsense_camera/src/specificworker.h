@@ -23,8 +23,6 @@
 	@author authorname
 */
 
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
@@ -33,6 +31,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <fps/fps.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -54,7 +53,6 @@ public slots:
 private:
 	bool startup_check_flag;
 
-
 	// camera
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     std::string serial;
@@ -70,8 +68,6 @@ private:
     vector<int> compression_params_image;
     vector<int> compression_params_depth;
     vector<uchar> buffer;
-
-    //FPSCounter fps;
 
     // filters
     struct filter_options
@@ -127,6 +123,9 @@ private:
     RoboCompCameraRGBDSimple::TRGBD create_trgbd();
     mutable std::mutex swap_mutex;
     RoboCompCameraRGBDSimple::TRGBD rgbd;
+
+    // fps
+    FPSCounter fps;
 };
 
 #endif

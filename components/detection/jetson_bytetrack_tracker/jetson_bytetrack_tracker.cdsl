@@ -1,0 +1,14 @@
+import "CameraRGBDSimple.idsl";
+import "YoloObjects.idsl";
+
+Component jetson_bytetracker_tracker
+{
+    Communications
+    {
+        implements YoloObjects;
+        requires CameraRGBDSimple;
+    };
+    language python;
+};
+
+nvidia

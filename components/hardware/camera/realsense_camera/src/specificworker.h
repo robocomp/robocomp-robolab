@@ -59,6 +59,7 @@ private:
     bool display_rgb = false;
     bool display_depth = false;
     bool display_compressed = false;
+    bool align_frames = false;
     rs2::pipeline  pipeline;
 
     // Create a configuration for configuring the pipeline with a non default profile
@@ -112,11 +113,11 @@ private:
     const std::string disparity_filter_name = "Disparity";
 
     rs2::pipeline  pipe;
-    rs2::frame rgb_frame, depth_frame;
+    rs2::frame rgb_frame_write, rgb_frame_read, depth_frame_write, depth_frame_read;
 
-    std::unique_ptr<rs2::align> align;
+    std::unique_ptr<rs2::align> align_to_rgb, align_to_depth;
     rs2::pipeline_profile profile;
-    rs2_stream align_to_rgb;
+    // rs2_stream align_to_rgb;
     float depth_scale;
 
     float get_depth_scale(rs2::device dev);

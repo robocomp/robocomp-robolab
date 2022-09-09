@@ -1,13 +1,14 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implements interfaces
-CameraRGBDSimple.Endpoints=tcp -p 10095
+CameraRGBDSimple.Endpoints=tcp -p 10096
 
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-display_rgb = false 
+display_rgb = false
+align_frames = false
 display_depth = false
 display_compressed = false
 

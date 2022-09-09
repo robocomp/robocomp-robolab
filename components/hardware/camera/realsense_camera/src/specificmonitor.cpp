@@ -98,6 +98,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","display_compressed", aux.value, "false");
     params["display_compressed"] = aux;
 
+	configGetString( "","align_frames", aux.value, "false");
+	params["align_frames"] = aux;
 }
 
 //Check parameters and transform them to worker structure

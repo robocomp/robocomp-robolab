@@ -201,7 +201,8 @@ class SpecificWorker(GenericWorker):
                 person_rois.append([obj.left, obj.top, obj.right - obj.left, obj.bot - obj.top, obj.id])
         return black, person_rois
 
-    def trtpose(self, rgb, depth, rois):  # should be RGB 416x416
+    def trtpose(self, rgb, depth, rois):
+        # change to a padding
         img = cv2.resize(rgb, dsize=(int(self.TRT_MODEL_WIDTH), int(self.TRT_MODEL_HEIGHT)),
                          interpolation=cv2.INTER_AREA)
         img = PIL.Image.fromarray(img)
@@ -217,6 +218,7 @@ class SpecificWorker(GenericWorker):
         people_data = ifaces.RoboCompHumanCameraBody.PeopleData(timestamp=time.time())
         people_data.peoplelist = []
         votes = np.zeros((counts[0], len(rois)), dtype=float)   # vote accumulator
+        depth_to_rgb_factor = rgb_rows // depth.shape[0]
         for i in range(counts[0]):
             available_joints_counter = 0
             keypoints = self.get_keypoint(objects, i, peaks)
@@ -226,7 +228,7 @@ class SpecificWorker(GenericWorker):
                     available_joints_counter += 1
                     cx = int(keypoints[ids][2] * rgb_cols)
                     cy = int(keypoints[ids][1] * rgb_rows)
-                    y = float(depth[cy, cx])
+                    y = float(depth[cy//depth_to_rgb_factor, cx//depth_to_rgb_factor])
                     z = -(cy / self.depth_focalx) * (cy - center_y)
                     x = (cy / self.depth_focaly) * (cx - center_x)
                     joints[_JOINT_NAMES[ids]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=int(cx),

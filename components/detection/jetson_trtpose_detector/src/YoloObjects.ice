@@ -22,7 +22,7 @@ module RoboCompYoloObjects
 		float prob;
 	};
 	sequence <TBox> TObjects;
-	dictionary <string, int> TObjectNames;
+	sequence <string> TObjectNames;
 	struct TKeyPoint
 	{
 		float x;
@@ -40,8 +40,13 @@ module RoboCompYoloObjects
 		TJoints joints;
 	};
 	sequence <TPerson> TPeople;
-	dictionary <string, int> TJointNames;
-	dictionary <int, int> TConnections;
+	dictionary <int, string> TJointNames;
+	struct TConnection
+	{
+		int first;
+		int second;
+	};
+	sequence <TConnection> TConnections;
 	struct TJointData
 	{
 		TJointNames jointNames;
@@ -51,6 +56,7 @@ module RoboCompYoloObjects
 	{
 		TObjects objects;
 		TPeople people;
+		int timestamp;
 	};
 	interface YoloObjects
 	{

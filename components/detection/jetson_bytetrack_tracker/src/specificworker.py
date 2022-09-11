@@ -25,6 +25,7 @@ from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
 import queue
+import itertools
 import traceback
 from threading import Thread
 import os
@@ -45,6 +46,19 @@ from yolox.tracking_utils.timer import Timer
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
+
+_OBJECT_NAMES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+                 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
+                 'sheep',
+                 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase',
+                 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard',
+                 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
+                 'banana', 'apple',
+                 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+                 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
+                 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+                 'scissors',
+                 'teddy bear', 'hair drier', 'toothbrush']
 
 class Predictor(object):
     def __init__(
@@ -81,18 +95,23 @@ class Predictor(object):
         img_info["width"] = width
         img_info["raw_img"] = img
 
+        t0 = time.time()
         img, ratio = preproc(img, self.test_size, self.rgb_means, self.std)
+        t1 = time.time()
         img_info["ratio"] = ratio
         img = torch.from_numpy(img).unsqueeze(0).float().to(self.device)
         if self.fp16:
             img = img.half()  # to FP16
-
+        t2 = time.time()
         with torch.no_grad():
             timer.tic()
             outputs = self.model(img)
+            t3 = time.time()
             if self.decoder is not None:
                 outputs = self.decoder(outputs, dtype=outputs.type())
             outputs = postprocess(outputs, self.num_classes, self.confthre, self.nmsthre)
+            t4 = time.time()
+        print(1000.0*(t1-t0), 1000.0*(t2-t1), 1000.0*(t3-t2), 1000.0*(t4-t3))
         return outputs, img_info
 
 
@@ -103,6 +122,8 @@ class SpecificWorker(GenericWorker):
         if startup_check:
             self.startup_check()
         else:
+
+            self.time_init = time.time()
 
             self.exp = get_exp('/home/robocomp/software/ByteTrack/exps/example/mot/yolox_s_mix_det.py', "")
             device = torch.device("cuda")
@@ -125,61 +146,45 @@ class SpecificWorker(GenericWorker):
             # result data
             self.objects_write = ifaces.RoboCompYoloObjects.TData()
             self.objects_read = ifaces.RoboCompYoloObjects.TData()
-            
-            self.timer.timeout.connect(self.compute)
-            self.timer.start(self.Period)
 
             # Hz
             self.cont = 0
             self.last_time = time.time()
             self.fps = 0
 
+            self.timer.timeout.connect(self.compute)
+            self.timer.start(self.Period)
+
     def __del__(self):
         """Destructor"""
 
     def setParams(self, params):
-        # try:
-        #	self.innermodel = InnerModel(params["InnerModelPath"])
-        # except:
-        #	traceback.print_exc()
-        #	print("Error reading config params")
+        try:
+            self.display = params["display"] == "true" or params["display"] == "True"
+        except:
+            traceback.print_exc()
+            print("Error reading config params")
         print("Config params: ", params)
         return True
 
 
     @QtCore.Slot()
     def compute(self):
+        self.time_init = time.time()
         frame = self.read_queue.get()
+        t1 = time.time()
+        outputs, img_info = self.predictor.inference(frame, Timer())
+        t2 = time.time()
+        self.objects_write = self.post_process(outputs, img_info)
+        #print(1000.0*(t1-self.time_init), 1000.0*(t2-t1), 1000.0*(time.time()-t2))
+        #
+        # if self.display:
+        #     self.display_data(outputs, frame, img_info)
+        #
+        # self.objects_write, self.objects_read = self.objects_read, self.objects_write
 
-        timer = Timer()
-        frame_id = 0
-        results = []
-        outputs, img_info = self.predictor.inference(frame, timer)
-        if outputs[0] is not None:
-            online_targets = self.tracker.update(outputs[0], [frame.shape[0], frame.shape[1]], self.exp.test_size)
-            online_tlwhs = []
-            online_ids = []
-            online_scores = []
-            for t in online_targets:
-                tlwh = t.tlwh
-                tid = t.track_id
-                vertical = tlwh[2] / tlwh[3] > 1.6
-                if tlwh[2] * tlwh[3] > 10 and not vertical:
-                    online_tlwhs.append(tlwh)
-                    online_ids.append(tid)
-                    online_scores.append(t.score)
-                    results.append(
-                        f"{frame_id},{tid},{tlwh[0]:.2f},{tlwh[1]:.2f},{tlwh[2]:.2f},{tlwh[3]:.2f},{t.score:.2f},-1,-1,-1\n"
-                    )
-            timer.toc()
-            frame = plot_tracking(frame, online_tlwhs, online_ids, frame_id=frame_id + 1, fps=1. / timer.average_time)
-        else:
-            timer.toc()
-
-        cv2.imshow('ByteTrack', frame)
-        cv2.waitKey(1)
-        
-        return True
+        # FPS
+        self.show_fps()
 
     ##########################################################################################
     def get_rgb_thread(self, camera_name: str):
@@ -193,6 +198,58 @@ class SpecificWorker(GenericWorker):
                 print("Error communicating with CameraRGBDSimple")
                 traceback.print_exc()
                 return
+
+    def post_process(self, outputs, img_info):
+        if outputs[0] is not None:
+            data = ifaces.RoboCompYoloObjects.TData()
+            data.objects = []
+            data.people = []
+            online_targets = self.tracker.update(outputs[0], [img_info['height'], img_info['width']], self.exp.test_size)
+            for t in online_targets:
+                tlwh = t.tlwh
+                tid = t.track_id
+                vertical = tlwh[2] / tlwh[3] > 1.6
+                if tlwh[2] * tlwh[3] > 10 and not vertical:
+                    ibox = ifaces.RoboCompYoloObjects.TBox()
+                    ibox.type = 0
+                    ibox.id = tid
+                    ibox.score = t.score
+                    ibox.left = int(tlwh[0])
+                    ibox.top = int(tlwh[1])
+                    ibox.right = int(tlwh[0]+tlwh[2])
+                    ibox.bot = int(tlwh[1]+tlwh[3])
+                    data.objects.append(ibox)
+        return data
+
+    def display_data(self, outputs, frame, img_info):
+        frame_id = 0
+        online_tlwhs = []
+        online_ids = []
+        online_scores = []
+        if outputs[0] is not None:
+            online_targets = self.tracker.update(outputs[0], [img_info['height'], img_info['width']], self.exp.test_size)
+            for t in online_targets:
+                tlwh = t.tlwh
+                tid = t.track_id
+                vertical = tlwh[2] / tlwh[3] > 1.6
+                if tlwh[2] * tlwh[3] > 10 and not vertical:
+                    online_tlwhs.append(tlwh)
+                    online_ids.append(tid)
+                    online_scores.append(t.score)
+            frame = plot_tracking(img_info["raw_img"], online_tlwhs, online_ids, frame_id=frame_id + 1,
+                                  fps=1./(time.time()-self.time_init))
+        else:
+            timer.toc()
+        cv2.imshow('ByteTrack', frame)
+        cv2.waitKey(1)
+
+    def show_fps(self):
+        if time.time() - self.last_time > 1:
+            self.last_time = time.time()
+            print("Freq: ", self.cont, "Hz. Waiting for image")
+            self.cont = 0
+        else:
+            self.cont += 1
 
     ###########################################################################################
     def startup_check(self):
@@ -243,20 +300,12 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getYoloObjectNames method from YoloObjects interface
     #
     def YoloObjects_getYoloObjectNames(self):
-        ret = ifaces.RoboCompYoloObjects.TObjectNames()
-        #
-        # write your CODE here
-        #
-        return ret
+        return _OBJECT_NAMES
     #
     # IMPLEMENTATION of getYoloObjects method from YoloObjects interface
     #
     def YoloObjects_getYoloObjects(self):
-        ret = ifaces.RoboCompYoloObjects.TData()
-        #
-        # write your CODE here
-        #
-        return ret
+        return self.objects_read
     # ===================================================================
     # ===================================================================
 

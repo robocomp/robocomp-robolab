@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implements interfaces
-CameraRGBDSimple.Endpoints=tcp -p 10096
+CameraRGBDSimple.Endpoints=tcp -h robex.local -p 10095
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -13,7 +13,7 @@ display_depth = false
 display_compressed = false
 img_width = 640
 img_height = 480
-fps = 60
+fps = 30
 serial_number = ""
 
 Ice.Warn.Connections=0

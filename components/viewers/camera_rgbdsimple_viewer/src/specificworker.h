@@ -22,8 +22,6 @@
 	@author authorname
 */
 
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
@@ -43,8 +41,6 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-
-
 public slots:
 	void compute();
 	int startup_check();
@@ -58,13 +54,10 @@ private:
     rs2::colorizer color_map;
     std::unique_ptr<rs2::align> align;
     rs2::pipeline_profile profile;
-    rs2_stream align_to_rgb;
     rs2::frame rgb_frame, depth_frame;
     bool display_rgb = false;
     bool display_depth = false;
     bool display_compressed = false;
-
-
 
     FPSCounter fps;
 

@@ -182,7 +182,7 @@ class SpecificWorker(GenericWorker):
         try:
             data = self.yoloobjects_proxy.getYoloObjects()
             nms = self.nms(data.objects)
-            print("lens", len(data.objects), len(nms))
+            #print("lens", len(data.objects), len(nms))
             self.draw_objects(nms, people, color)
         except Ice.Exception as e:
             traceback.print_exc()

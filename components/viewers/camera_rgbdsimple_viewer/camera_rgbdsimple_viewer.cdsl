@@ -1,7 +1,7 @@
 
 import "CameraRGBDSimple.idsl";
 
-Component Camera_RGBDSimple_viewer
+Component camera_rgbdsimple_viewer
 {
     Communications
     {

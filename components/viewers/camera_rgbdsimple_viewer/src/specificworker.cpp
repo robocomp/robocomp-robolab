@@ -62,113 +62,62 @@ void SpecificWorker::compute()
 {
    if (display_rgb)
    {
-       try {
-           std::string nada = "nada"; //test
-           auto image = this->camerargbdsimple_proxy->getImage(nada);
-           if (image.width !=0 and image.height !=0) {
-               if (image.compressed) //Si quiero la imagen comprimida
+       try
+       {
+           auto image = this->camerargbdsimple_proxy->getImage("");
+           if (image.width !=0 and image.height !=0)
+           {
+               if (image.compressed)
                {
-                   //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
                    cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
                    cv::Mat frameCompr = cv::imdecode(image.image, -1);
                    cv::imshow("RGB image compress", frameCompr);
                    cv::waitKey(1);
-               } else {
-                   std::string nada = "nada"; //test
-                   auto image = this->camerargbdsimple_proxy->getImage(nada);
-                   //std::cout << image.width << "x" << image.height << " size " << image.image.size()<<std::endl;
+               } else
+               {
                    cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
                    cv::imshow("RGB image", frame);
                    cv::waitKey(1);
                }
            }
            else
-           qInfo() << "I dont have rgb image";
+               qInfo() << "No image received";
        }
        catch(const std::exception &e)
-       { std::cout << e.what() << "Fault in rgb image"<< std::endl;}
-
-       
+       { std::cout << e.what() << "Error connecting to CameraRGBDSimple"<< std::endl;}
    }
 
    if (display_depth)
    {
-       try {
-           std::string nada = "nada"; //test
-           auto depth = this->camerargbdsimple_proxy->getDepth(nada);
-           if (depth.width != 0 and depth.height != 0) {
+       try
+       {
+           auto depth = this->camerargbdsimple_proxy->getDepth("");
+           if (depth.width != 0 and depth.height != 0)
+           {
                if (depth.compressed) //Si quiero la imagen comprimida
                {
                    cv::Mat frame_depth = cv::imdecode(depth.depth, -1);
-
-                   //           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.elemSize() <<std::endl;
-
-                   //           Voy a probar a mostrar los valores de todas las filas en la columna 300
-                   //           for (int i = 0; i < 480; i++) {
-                   //               std::cout << frame_depth.at<float>(i, 300) << std::endl;
-                   //           }
-
                    frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
                    applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
                    cv::imshow("Depth image compress", frame_depth);
                    cv::waitKey(1);
-               } else {
-                   std::string nada = "nada"; //test
-                   auto depth = this->camerargbdsimple_proxy->getDepth(nada);
-                   cv::Mat frame_depth(cv::Size(depth.width, depth.height), CV_32FC1, &depth.depth[0],
-                                       cv::Mat::AUTO_STEP);
-
-                   //           std::cout<< "Widht:" << frame_depth.rows << ", heigh: "<< frame_depth.cols<< ", size: " << frame_depth.size <<std::endl;
-
-                   //           Voy a probar a mostrar los valores de todas las filas en la columna 300
-                   //           for (int i = 0; i < 480; i++) {
-                   //               std::cout << frame_depth.at<float>(i, 300) << std::endl;
-                   //           }
-
+               } else
+               {
+                   cv::Mat frame_depth(cv::Size(depth.width, depth.height), CV_32FC1, &depth.depth[0], cv::Mat::AUTO_STEP);
                    frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
                    applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
-                   //std::cout<<"Depth factor"<< depth.depthFactor<<std::endl;
                    cv::imshow("Depth image ", frame_depth);
                    cv::waitKey(1);
                }
            }
            else
-               qInfo() << "I dont have depth image";
+               qWarning() << "Warning. Empty depth frame";
        }
        catch(const std::exception &e)
-       { std::cout << e.what() << "Fault in depth image"<< std::endl;}
+       { std::cout << e.what() << "Error connecting to CameraRGBDSimple"<< std::endl;}
    }
 
-//   if (display_all) {
-//           std::string nada = "nada"; //test
-//
-//           auto all = this->camerargbdsimple_proxy->getAll(nada);
-//
-//           cv::Mat frame_all(cv::Size(all.image.width, all.image.height), CV_8UC3, &all.image.image[0],
-//                             cv::Mat::AUTO_STEP);
-////           cv::Mat frameCompr_all = cv::imdecode(all.image.image, -1);
-////           cv::imshow("RGB image", frameCompr_all);
-//           cv::imshow("RGB image sin compr", frame_all);
-//           cv::waitKey(1);
-//
-//           cv::Mat frame_depth_all(cv::Size(all.image.width, all.image.height), CV_32F, &all.image.image[0],
-//                      cv::Mat::AUTO_STEP);
-////           cv::Mat frame_depth_all = cv::imdecode(all.depth.depth, -1);
-//           frame_depth_all.convertTo(frame_depth_all, CV_8UC3, 255. / 10, 0);
-//           applyColorMap(frame_depth_all, frame_depth_all, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
-//           cv::imshow("Depth image sin compr", frame_depth_all);
-//           cv::waitKey(1);
-//
-//   }
-
-
-//    catch(const std::exception& e)
-//    {
-//        std::cerr << e.what() << '\n';
-//    }
-
     fps.print("FPS: ");
-
 }
 
 int SpecificWorker::startup_check()

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2022 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::Camera_RGBDSimple_viewer
+/** \mainpage RoboComp::camera_rgbdsimple_viewer
  *
  * \section intro_sec Introduction
  *
- * The Camera_RGBDSimple_viewer component...
+ * The camera_rgbdsimple_viewer component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd Camera_RGBDSimple_viewer
+ * cd camera_rgbdsimple_viewer
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/Camera_RGBDSimple_viewer --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/camera_rgbdsimple_viewer --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -85,10 +85,10 @@
 
 
 
-class Camera_RGBDSimple_viewer : public RoboComp::Application
+class camera_rgbdsimple_viewer : public RoboComp::Application
 {
 public:
-	Camera_RGBDSimple_viewer (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
+	camera_rgbdsimple_viewer (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
@@ -99,14 +99,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::Camera_RGBDSimple_viewer::initialize()
+void ::camera_rgbdsimple_viewer::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::Camera_RGBDSimple_viewer::run(int argc, char* argv[])
+int ::camera_rgbdsimple_viewer::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::Camera_RGBDSimple_viewer app(prefix, startup_check_flag);
+	::camera_rgbdsimple_viewer app(prefix, startup_check_flag);
 
 	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }

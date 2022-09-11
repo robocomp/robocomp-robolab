@@ -28,10 +28,13 @@
 
 #include <genericworker.h>
 #include <librealsense2/rs.hpp>
+#include <librealsense2/hpp/rs_context.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <fps/fps.h>
+
+using namespace std::chrono;
 
 class SpecificWorker : public GenericWorker
 {
@@ -55,13 +58,18 @@ private:
 
 	// camera
     // Declare RealSense pipeline, encapsulating the actual device and sensors
-    std::string serial;
+    std::string serial_number = "";
     bool display_rgb = false;
     bool display_depth = false;
     bool display_compressed = false;
     bool align_frames = false;
-    rs2::pipeline  pipeline;
+    int img_width = 640;      // img size
+    int img_height = 480;
+    int img_freq = 30;
+    std::atomic_bool ready_to_go = false;
 
+    // realsense
+    rs2::pipeline  pipeline;
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
     rs2_intrinsics cam_intr, depth_intr;
@@ -83,14 +91,14 @@ private:
                             filter(flt),
                             is_enabled(true)
             {
-                const std::array<rs2_option, 5> possible_filter_options =
-                {
-                        RS2_OPTION_FILTER_MAGNITUDE,
-                        RS2_OPTION_FILTER_SMOOTH_ALPHA,
-                        RS2_OPTION_MIN_DISTANCE,
-                        RS2_OPTION_MAX_DISTANCE,
-                        RS2_OPTION_FILTER_SMOOTH_DELTA
-                };
+//                const std::array<rs2_option, 5> possible_filter_options =
+//                {
+//                        RS2_OPTION_FILTER_MAGNITUDE,
+//                        RS2_OPTION_FILTER_SMOOTH_ALPHA,
+//                        RS2_OPTION_MIN_DISTANCE,
+//                        RS2_OPTION_MAX_DISTANCE,
+//                        RS2_OPTION_FILTER_SMOOTH_DELTA
+//                };
             }
             filter_options(filter_options&& other) :
                     filter_name(std::move(other.filter_name)),
@@ -113,15 +121,14 @@ private:
     const std::string disparity_filter_name = "Disparity";
 
     rs2::pipeline  pipe;
-    rs2::frame rgb_frame_write, rgb_frame_read, depth_frame_write, depth_frame_read;
+    //rs2::frame rgb_frame_write, rgb_frame_read, depth_frame_write, depth_frame_read;
+    std::tuple<rs2::frame, long int> rgb_frame_write, rgb_frame_read, depth_frame_write, depth_frame_read;
 
     std::unique_ptr<rs2::align> align_to_rgb, align_to_depth;
     rs2::pipeline_profile profile;
-    // rs2_stream align_to_rgb;
     float depth_scale;
 
     float get_depth_scale(rs2::device dev);
-    RoboCompCameraRGBDSimple::TRGBD create_trgbd();
     mutable std::mutex swap_mutex;
     RoboCompCameraRGBDSimple::TRGBD rgbd;
 

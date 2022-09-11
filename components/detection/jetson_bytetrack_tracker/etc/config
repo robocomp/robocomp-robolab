@@ -1,13 +1,8 @@
 # Endpoints for implements interfaces
 YoloObjects.Endpoints=tcp -p 10610
 
-
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -h localhost -p 16321
-
-
-
-
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h robex.local -p 10095
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

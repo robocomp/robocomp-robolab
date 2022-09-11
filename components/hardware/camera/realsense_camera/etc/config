@@ -11,6 +11,10 @@ display_rgb = false
 align_frames = false
 display_depth = false
 display_compressed = false
+img_width = 640
+img_height = 480
+fps = 60
+serial_number = ""
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

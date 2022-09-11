@@ -41,10 +41,23 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         display_rgb = (params.at("display_rgb").value == "true") or (params.at("display_rgb").value == "True");
         align_frames = (params["align_frames"].value == "true") or (params["align_frames"].value == "True");
         display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
+        img_width = std::stoi(params["img_width"].value);
+        img_height = std::stoi(params["img_height"].value);
+        if(img_width < 0 or img_width > 1500 or img_height < 0 or img_height > 1500)
+        { qWarning() << "Illegal image size. Terminating"; std::terminate();}
+        img_freq = std::stoi(params["fps"].value);
+        if(img_freq < 0 or img_freq > 200)
+        { qWarning() << "Illegal fps value. Terminating"; std::terminate();}
+        serial_number = params["serial_number"].value;
+
         display_compressed = (params["display_compressed"].value == "true") or (params["display_compressed"].value == "True");
-        std::cout << std::boolalpha << "Config params: display_rgb " << display_rgb << " display_depth " <<
-                  display_depth << " display_compressed " << display_compressed <<
-                  " align_frames " << align_frames << std::endl;
+        std::cout << std::boolalpha << "Config params: display_rgb " << display_rgb <<
+                                       " display_depth " << display_depth <<
+                                       " display_compressed " << display_compressed <<
+                                       " align_frames " << align_frames <<
+                                       " fps " << img_freq <<
+                                       " serial_number " << serial_number <<
+                                       std::endl;
     }
     catch (const std::exception &e){std::cout << e.what() << std::endl;}
     return true;
@@ -62,19 +75,39 @@ void SpecificWorker::initialize(int period)
         compression_params_image.push_back(50);
         compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params_depth.push_back(100);
-        /*
 
-        compression_params_image.push_back(cv::IMWRITE_PNG_COMPRESSION);//PNG
-        compression_params_depth.push_back(cv::IMWRITE_PNG_COMPRESSION);
-
-        compression_params_image.push_back(9); //cambiar abajo
-        compression_params_depth.push_back(9);//cambiar abajo*/
+        //compression_params_image.push_back(cv::IMWRITE_PNG_COMPRESSION);//PNG
+        //compression_params_depth.push_back(cv::IMWRITE_PNG_COMPRESSION);
+        //compression_params_image.push_back(9);
+        //compression_params_depth.push_back(9);
 
         try
         {
-            cfg.enable_device(serial);
-            cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
-            cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+            rs2::context context;
+            auto devices = context.query_devices();
+            std::set<std::string> cameras;
+            std::cout << "Detected cameras:" << std::endl;
+            for (const auto dev: devices)
+            {
+                std::cout << dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << std::endl;
+                cameras.insert(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
+            }
+            if(not cameras.contains(serial_number))
+            {
+                std::cout << "Unspecified serial number or unavailable camera with number: " << serial_number << std::endl;
+                serial_number = *cameras.begin();
+                std::cout << "Selecting the first one detected: " << serial_number <<
+                             " at port: " << devices.front().get_info(RS2_CAMERA_INFO_PHYSICAL_PORT) << std::endl;
+            }
+            else
+            {
+                for(const auto d : devices)
+                    if(d.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) == serial_number)
+                        std::cout << "Opening camera: " << serial_number << " at port: " << d.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT) << std::endl;
+            }
+            cfg.enable_device(serial_number);
+            cfg.enable_stream(RS2_STREAM_DEPTH, img_width, img_height, RS2_FORMAT_Z16, img_freq);
+            cfg.enable_stream(RS2_STREAM_COLOR, img_width, img_height, RS2_FORMAT_BGR8, img_freq);
             profile = pipe.start(cfg);
 
             // Each depth camera might have different units for depth pixels, so we get it here
@@ -82,14 +115,16 @@ void SpecificWorker::initialize(int period)
             depth_scale = get_depth_scale(profile.get_device());
 
             // Create a rs2::align object.
-            align_to_rgb = std::make_unique<rs2::align>(RS2_STREAM_COLOR);
-            align_to_depth = std::make_unique<rs2::align>(RS2_STREAM_DEPTH);
+            //align_to_rgb = std::make_unique<rs2::align>(RS2_STREAM_COLOR);
+            //align_to_depth = std::make_unique<rs2::align>(RS2_STREAM_DEPTH);
 
             // Define a variable for controlling the distance to clip
             //float depth_clipping_distance = 10000.f;
 
             cam_intr = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
             depth_intr = pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+
+            qInfo() << __FUNCTION__ << "    Camera opened with img size: [" << cam_intr.width << cam_intr.height << "] and FPS:" << img_freq;
 
             filters.emplace_back("Decimate", dec_filter);
             // filters.emplace_back(disparity_filter_name, depth_to_disparity);
@@ -107,46 +142,44 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     rs2::frameset frameset = pipe.wait_for_frames();
-
-    // optionally align depth frame to rgb frame. FPS drops to 6
-    //if(align_frames)
-    //    frameset = align_to_rgb->process(frameset);
-
-    rgb_frame_write = frameset.get_color_frame();
-    depth_frame_write = frameset.get_depth_frame();
+    auto now = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
+    const auto &color = frameset.get_color_frame();
+    auto depth = frameset.get_depth_frame();
 
     //If one of them is unavailable, continue iteration
-    if (not depth_frame_write or not rgb_frame_write)
+    if (not depth or not color)
         return;
 
     for (auto &&filter : filters)
         if (filter.is_enabled)
-            depth_frame_write = filter.filter.process(depth_frame_write);
+            depth = filter.filter.process(depth);
 
     if (display_rgb)
     {
-        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)rgb_frame_write.get_data(), cv::Mat::AUTO_STEP);
+        cv::Mat frame(cv::Size(cam_intr.width, cam_intr.height), CV_8UC3, (void*)color.get_data(), cv::Mat::AUTO_STEP);
         cv::imshow("RGB image", frame);
         cv::waitKey(1);
     }
 
     if (display_depth)
     {
-        rs2::frame depth_color = depth_frame_write.apply_filter(color_map);
-        // Query frame size (width and height)
-        const int w = depth_frame_write.as<rs2::video_frame>().get_width();
-        const int h = depth_frame_write.as<rs2::video_frame>().get_height();
+        rs2::frame depth_color = depth.apply_filter(color_map);
+        const int w = depth.as<rs2::video_frame>().get_width();
+        const int h = depth.as<rs2::video_frame>().get_height();
         cv::Mat frame_depth(cv::Size(w, h), CV_8UC3, (void*)depth_color.get_data(), cv::Mat::AUTO_STEP);
         cv::imshow("DEPTH image", frame_depth);
         cv::waitKey(1);
     }
 
+    rgb_frame_write = std::make_tuple(color, now);
+    depth_frame_write = std::make_tuple(depth, now);
     swap_mutex.lock();
         rgb_frame_write.swap(rgb_frame_read);
         depth_frame_write.swap(depth_frame_read);
     swap_mutex.unlock();
 
     fps.print("FPS:");
+    ready_to_go = true;
 }
 
 float SpecificWorker::get_depth_scale(rs2::device dev)
@@ -164,57 +197,7 @@ float SpecificWorker::get_depth_scale(rs2::device dev)
     throw std::runtime_error("Device does not have a depth sensor");
 }
 
-RoboCompCameraRGBDSimple::TRGBD SpecificWorker::create_trgbd()
-{
-    RoboCompCameraRGBDSimple::TRGBD rgbd;
-    auto rgb = rgb_frame_read.as<rs2::video_frame>();
-    int width = rgb.get_width();
-    int height = rgb.get_height();
-    int rgb_bpp = rgb.get_bytes_per_pixel();
-    rgbd.image.image.resize(width*height*rgb_bpp);
-    rgbd.image.depth = rgb_bpp;
-    rgbd.image.width = width;
-    rgbd.image.height = height;
-    rgbd.image.cameraID = 0;
-    rgbd.image.focalx = cam_intr.fx;
-    rgbd.image.focaly = cam_intr.fy;
-    rgbd.image.alivetime = 0;
 
-    rgbd.depth.depth.resize(width*height*4);
-    rgbd.depth.width = width;
-    rgbd.depth.height = height;
-    rgbd.depth.cameraID = 0;
-    rgbd.depth.focalx = depth_intr.fx;
-    rgbd.depth.focaly = depth_intr.fy;
-    rgbd.depth.alivetime = 0;
-    rgbd.depth.depthFactor = depth_scale;
-
-    const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth_frame_read.get_data());
-    uint8_t* p_rgb_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(rgb_frame_read.get_data()));
-    int k=0;
-    for (int y = 0; y < height; y++)
-    {
-        auto depth_pixel_index = y * width;
-        for (int x = 0; x < width; x++, ++depth_pixel_index)
-        {
-            // Get the depth value of the current pixel
-            const float real_depth = depth_scale * p_depth_frame[depth_pixel_index];
-            const std::uint8_t *d = reinterpret_cast<uint8_t const *>(&real_depth);
-            rgbd.depth.depth[k] = d[0];
-            rgbd.depth.depth[k+1] = d[1];
-            rgbd.depth.depth[k+2] = d[2];
-            rgbd.depth.depth[k+3] = d[3];
-            k += 4;
-            // Calculate the offset in rgb frame's buffer to current pixel
-            auto offset = depth_pixel_index * rgb_bpp;
-            rgbd.image.image[offset] = p_rgb_frame[offset];
-            rgbd.image.image[offset+1] = p_rgb_frame[offset+1];
-            rgbd.image.image[offset+2] = p_rgb_frame[offset+2];
-        }
-    }
-    const std::lock_guard<std::mutex> lg(swap_mutex);
-    return rgbd;
-}
 //////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
@@ -227,8 +210,8 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
 {
     RoboCompCameraRGBDSimple::TRGBD rgbd;
     const std::lock_guard<std::mutex> lg(swap_mutex);
-
-    auto rgb = rgb_frame_read.as<rs2::video_frame>();
+    auto &[rgb_, timestamp] = rgb_frame_read;
+    auto rgb = rgb_.as<rs2::video_frame>();
     int width = rgb.get_width();
     int height = rgb.get_height();
     int rgb_bpp = rgb.get_bytes_per_pixel();
@@ -238,7 +221,7 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
     rgbd.image.cameraID = 0;
     rgbd.image.focalx = cam_intr.fx;
     rgbd.image.focaly = cam_intr.fy;
-    rgbd.image.alivetime = 0;
+    rgbd.image.alivetime = timestamp;
     rgbd.image.compressed = false;
     if (display_compressed)
     {
@@ -260,7 +243,9 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
     }
 
     // Depth
-    auto frame = depth_frame_read.as<rs2::depth_frame>();
+    //auto frame = depth_frame_read.as<rs2::depth_frame>();
+    auto &[frame_, dtimestamp] = depth_frame_read;
+    auto frame = frame_.as<rs2::video_frame>();
     int dwidth = frame.get_width();
     int dheight = frame.get_height();
     rgbd.depth.width = dwidth;
@@ -268,7 +253,7 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
     rgbd.depth.cameraID = 0;
     rgbd.depth.focalx = depth_intr.fx;
     rgbd.depth.focaly = depth_intr.fy;
-    rgbd.depth.alivetime = 0;
+    rgbd.depth.alivetime = dtimestamp;
     rgbd.depth.compressed = false;
     if (display_compressed)
     {
@@ -309,7 +294,9 @@ RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::
 {
     RoboCompCameraRGBDSimple::TDepth depth;
     const std::lock_guard<std::mutex> lg(swap_mutex);
-    auto frame = depth_frame_read.as<rs2::depth_frame>();
+    //auto frame = depth_frame_read.as<rs2::depth_frame>();
+    auto &[frame_, timestamp] = depth_frame_read;
+    auto frame = frame_.as<rs2::video_frame>();
     int width = frame.get_width();
     int height = frame.get_height();
     depth.width = width;
@@ -317,14 +304,14 @@ RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::
     depth.cameraID = 0;
     depth.focalx = depth_intr.fx;
     depth.focaly = depth_intr.fy;
-    depth.alivetime = 0;
+    depth.alivetime = timestamp;
     depth.compressed = false;
     if (display_compressed)
     {
         depth.cameraID = 0;
         depth.focalx = depth_intr.fx;
         depth.focaly = depth_intr.fy;
-        depth.alivetime = 0;
+        depth.alivetime = timestamp;
         depth.depthFactor = depth_scale;
         depth.compressed = true;
         cv::Mat frame_depth(cv::Size(rgbd.depth.width, rgbd.depth.height), CV_32F, &rgbd.depth.depth[0],
@@ -358,8 +345,11 @@ RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::
 RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
 {
     RoboCompCameraRGBDSimple::TImage image;
+    if(not ready_to_go) return image;
     const std::lock_guard<std::mutex> lg(swap_mutex);
-    auto rgb = rgb_frame_read.as<rs2::video_frame>();
+    //auto rgb = rgb_frame_read.as<rs2::video_frame>();
+    auto &[rgb_, timestamp] = rgb_frame_read;
+    auto rgb = rgb_.as<rs2::video_frame>();
     int width = rgb.get_width();
     int height = rgb.get_height();
     int rgb_bpp = rgb.get_bytes_per_pixel();
@@ -369,7 +359,8 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
     image.cameraID = 0;
     image.focalx = cam_intr.fx;
     image.focaly = cam_intr.fy;
-    image.alivetime = 0;
+    image.alivetime = timestamp;
+    image.period = fps.get_period();
     image.compressed = false;
     if (display_compressed)
     {
@@ -403,3 +394,6 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
 // RoboCompCameraRGBDSimple::TDepth
 // RoboCompCameraRGBDSimple::TRGBD
 
+// optionally align depth frame to rgb frame. FPS drops to 6
+//if(align_frames)
+//    frameset = align_to_rgb->process(frameset);

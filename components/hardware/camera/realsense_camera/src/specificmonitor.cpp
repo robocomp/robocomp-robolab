@@ -100,6 +100,18 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
 	configGetString( "","align_frames", aux.value, "false");
 	params["align_frames"] = aux;
+
+	configGetString( "","img_width", aux.value, "640");
+	params["img_width"] = aux;
+
+	configGetString( "","img_height", aux.value, "480");
+	params["img_height"] = aux;
+
+	configGetString( "","fps", aux.value, "30");
+	params["fps"] = aux;
+
+	configGetString( "","serial_number", aux.value, "");
+	params["serial_number"] = aux;
 }
 
 //Check parameters and transform them to worker structure

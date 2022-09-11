@@ -22,7 +22,8 @@ module RoboCompCameraRGBDSimple
 		int depth;
 		int focalx;
 		int focaly;
-		int alivetime;
+		long alivetime;
+		float period;
 		ImgType image;
 	};
 	struct TDepth
@@ -33,7 +34,8 @@ module RoboCompCameraRGBDSimple
 		int height;
 		int focalx;
 		int focaly;
-		int alivetime;
+		long alivetime;
+		float period;
 		float depthFactor;
 		DepthType depth;
 	};

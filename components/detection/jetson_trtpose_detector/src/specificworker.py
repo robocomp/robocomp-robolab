@@ -31,7 +31,7 @@ import time
 import cv2
 import queue
 import traceback
-from threading import Thread
+from threading import Thread, Event
 import json
 import trt_pose.coco
 import trt_pose.models
@@ -54,10 +54,12 @@ _JOINT_NAMES = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_
                 "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist",
                 "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "neck"]
 
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 33
+        self.Period = 1
+        self.thread_period = 10
         if startup_check:
             self.startup_check()
         else:
@@ -83,10 +85,9 @@ class SpecificWorker(GenericWorker):
                 print("No connection to CameraRGBDSimple. Aborting")
                 traceback.print_exc()
                 sys.exit()
-            self.image_captured_time = 0
 
             # Hz
-            self.cont = 0
+            self.cont = 0.01
             self.last_time = time.time()
             self.fps = 0
 
@@ -106,15 +107,17 @@ class SpecificWorker(GenericWorker):
                 model.load_state_dict(torch.load(torch_model))
                 self.model_trt = torch2trt.torch2trt(model, [data], fp16_mode=True, max_workspace_size=1 << 25)
                 torch.save(self.model_trt.state_dict(), optimized_model)
-                
+
             self.model_trt = TRTModule()
             self.model_trt.load_state_dict(torch.load(optimized_model))
             self.mean = torch.Tensor([0.485, 0.456, 0.406]).cuda()
             self.std = torch.Tensor([0.229, 0.224, 0.225]).cuda()
 
             # camera read thread
+            self.event = Event()
             self.read_image_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name], name="read_camera_queue")
+            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name, self.event],
+                                      name="read_camera_queue")
             self.read_thread.start()
 
             # result data
@@ -122,7 +125,7 @@ class SpecificWorker(GenericWorker):
             self.people_data_read = ifaces.RoboCompHumanCameraBody.PeopleData()
 
             #######################################
-            
+
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
@@ -130,28 +133,30 @@ class SpecificWorker(GenericWorker):
         """Destructor"""
 
     def setParams(self, params):
-        # TODO: move to init
-        
-        self.display = params["display"] == "true" or params["display"] == "True"
+        try:
+            self.display = params["display"] == "true" or params["display"] == "True"
+            self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
+            if self.with_objects:  # objects read thread
+                self.read_objects_queue = queue.Queue(1)
+                self.read_thread = Thread(target=self.get_objects_thread, args=[self.event],
+                                          name="read_objects_queue", daemon=True)
+                self.read_thread.start()
 
-        self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
-        if self.with_objects:       # objects read thread
-            self.read_objects_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_objects_thread, name="read_objects_queue", daemon=True)
-            self.read_thread.start()
-
-        self.camera_name = params["camera_name"]
-        self.min_number_of_joints = int(params["min_number_of_joints"])
-        print("Params read. Starting...", params)
+            self.camera_name = params["camera_name"]
+            self.min_number_of_joints = int(params["min_number_of_joints"])
+            print("Params read. Starting...", params)
+        except:
+            print("Error reading config params")
+            traceback.print_exc()
         return True
 
     @QtCore.Slot()
     def compute(self):
-        color, depth = self.read_image_queue.get()
+        color, depth, alive_time, period = self.read_image_queue.get()
         person_rois = []
         if self.with_objects:  # get person's rois from data.objects and copy on black image
             data = self.read_objects_queue.get()
-            black, person_rois = self.get_person_rois(data, color)
+            black, person_rois = self.get_person_rois(data, color)  # MOVE THIS TO CAM THREAD
             self.people_data_write = self.trtpose(black, depth, person_rois)  # get people from masked image
 
         else:
@@ -163,35 +168,37 @@ class SpecificWorker(GenericWorker):
         self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
 
         # FPS
-        self.show_fps()
-
-        return True
+        try:
+            self.show_fps(alive_time, period)
+        except KeyboardInterrupt:
+            event.set()
 
     ####################################################################################################
-    def get_rgb_thread(self, camera_name: str):
-        while True:
+    def get_rgb_thread(self, camera_name: str, event: Event):
+        while not event.isSet():
             try:
                 rgbd = self.camerargbdsimple_proxy.getAll(camera_name)
-                self.image_captured_time = time.time()
                 color = np.frombuffer(rgbd.image.image, dtype=np.uint8).reshape(rgbd.image.height, rgbd.image.width, 3)
-                depth = np.frombuffer(rgbd.depth.depth, dtype=np.float32).reshape(rgbd.depth.height, rgbd.depth.width, 1)
-                self.read_image_queue.put([color, depth])
+                depth = np.frombuffer(rgbd.depth.depth, dtype=np.float32).reshape(rgbd.depth.height, rgbd.depth.width,
+                                                                                  1)
+                delta = int(1000 * time.time() - rgbd.image.alivetime)
+                self.read_image_queue.put([color, depth, delta, rgbd.image.period])
+                event.wait(self.thread_period / 1000)
             except:
                 print("Error communicating with CameraRGBDSimple")
                 traceback.print_exc()
-                break
 
-    def get_objects_thread(self):
-        while True:
+    def get_objects_thread(self, event: Event):
+        while not event.isSet():
             try:
                 data = self.yoloobjects_proxy.getYoloObjects()
                 self.read_objects_queue.put(data)
+                event.wait(self.thread_period / 1000)
             except:
                 print("Error communicating with YoloObjects")
                 traceback.print_exc()
-                sys.exit()
 
-    def get_person_rois(self, data, rgb):    # reads objects from Yolo and computes masked image
+    def get_person_rois(self, data, rgb):  # reads objects from Yolo and computes masked image
         person_rois = []
         black = np.zeros(rgb.shape, dtype=np.uint8)
         for obj in data.objects:
@@ -217,7 +224,7 @@ class SpecificWorker(GenericWorker):
         center_y = rgb_rows / 2
         people_data = ifaces.RoboCompHumanCameraBody.PeopleData(timestamp=time.time())
         people_data.peoplelist = []
-        votes = np.zeros((counts[0], len(rois)), dtype=float)   # vote accumulator
+        votes = np.zeros((counts[0], len(rois)), dtype=float)  # vote accumulator
         depth_to_rgb_factor = rgb_rows // depth.shape[0]
         for i in range(counts[0]):
             available_joints_counter = 0
@@ -228,7 +235,7 @@ class SpecificWorker(GenericWorker):
                     available_joints_counter += 1
                     cx = int(keypoints[ids][2] * rgb_cols)
                     cy = int(keypoints[ids][1] * rgb_rows)
-                    y = float(depth[cy//depth_to_rgb_factor, cx//depth_to_rgb_factor])
+                    y = float(depth[cy // depth_to_rgb_factor, cx // depth_to_rgb_factor])
                     z = -(cy / self.depth_focalx) * (cy - center_y)
                     x = (cy / self.depth_focaly) * (cx - center_x)
                     joints[_JOINT_NAMES[ids]] = ifaces.RoboCompHumanCameraBody.KeyPoint(i=int(cx),
@@ -260,7 +267,7 @@ class SpecificWorker(GenericWorker):
         for j in range(C):
             k = int(human[j])
             if k >= 0:
-                peak = peaks[0][j][k]   # peak[1]:width, peak[0]:height
+                peak = peaks[0][j][k]  # peak[1]:width, peak[0]:height
                 peak = (j, float(peak[0]), float(peak[1]))
                 kpoint.append(peak)
             else:
@@ -276,10 +283,14 @@ class SpecificWorker(GenericWorker):
         cv2.waitKey(1)
 
     ####################################################################################################
-    def show_fps(self):
+    def show_fps(self, alive_time, period):
         if time.time() - self.last_time > 1:
             self.last_time = time.time()
-            print("Freq: ", self.cont, "Hz. Waiting for image")
+            cur_period = int(1000. / self.cont)
+            delta = (-1 if (period - cur_period) < -1 else (1 if (period - cur_period) > 1 else 0))
+            print("Freq:", self.cont, "Hz. Alive_time:", alive_time, "ms. Img period:", int(period),
+                  "ms. Curr period:", cur_period, "ms. Inc:", delta, "Timer:", self.thread_period)
+            self.thread_period = np.clip(self.thread_period + delta, 0, 200)
             self.cont = 0
         else:
             self.cont += 1
@@ -325,6 +336,7 @@ class SpecificWorker(GenericWorker):
         # write your CODE here
         #
         return ret
+
     #
     # IMPLEMENTATION of getDepth method from CameraRGBDSimple interface
     #
@@ -334,11 +346,12 @@ class SpecificWorker(GenericWorker):
         # write your CODE here
         #
         return ret
+
     #
     # IMPLEMENTATION of getImage method from CameraRGBDSimple interface
     #
     def CameraRGBDSimple_getImage(self, camera):
-        #img = self.write_image_queue.get()
+        # img = self.write_image_queue.get()
         ret = ifaces.RoboCompCameraRGBDSimple.TImage()
         #     compressed=False,
         #     cameraID=0,
@@ -351,6 +364,7 @@ class SpecificWorker(GenericWorker):
         #     image=img.tobytes()
         # )
         return ret
+
     #
     # IMPLEMENTATION of newPeopleData method from HumanCameraBody interface
     #

@@ -222,6 +222,7 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
     rgbd.image.focalx = cam_intr.fx;
     rgbd.image.focaly = cam_intr.fy;
     rgbd.image.alivetime = timestamp;
+    rgbd.image.period = fps.get_period();
     rgbd.image.compressed = false;
     if (display_compressed)
     {
@@ -254,6 +255,7 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
     rgbd.depth.focalx = depth_intr.fx;
     rgbd.depth.focaly = depth_intr.fy;
     rgbd.depth.alivetime = dtimestamp;
+    rgbd.image.period = fps.get_period();
     rgbd.depth.compressed = false;
     if (display_compressed)
     {
@@ -293,8 +295,8 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
 RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
 {
     RoboCompCameraRGBDSimple::TDepth depth;
+    if(not ready_to_go) return depth;
     const std::lock_guard<std::mutex> lg(swap_mutex);
-    //auto frame = depth_frame_read.as<rs2::depth_frame>();
     auto &[frame_, timestamp] = depth_frame_read;
     auto frame = frame_.as<rs2::video_frame>();
     int width = frame.get_width();
@@ -305,6 +307,7 @@ RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::
     depth.focalx = depth_intr.fx;
     depth.focaly = depth_intr.fy;
     depth.alivetime = timestamp;
+    depth.period = fps.get_period();
     depth.compressed = false;
     if (display_compressed)
     {
@@ -347,7 +350,6 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
     RoboCompCameraRGBDSimple::TImage image;
     if(not ready_to_go) return image;
     const std::lock_guard<std::mutex> lg(swap_mutex);
-    //auto rgb = rgb_frame_read.as<rs2::video_frame>();
     auto &[rgb_, timestamp] = rgb_frame_read;
     auto rgb = rgb_.as<rs2::video_frame>();
     int width = rgb.get_width();

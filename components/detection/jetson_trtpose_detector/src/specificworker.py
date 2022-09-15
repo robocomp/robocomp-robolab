@@ -43,6 +43,12 @@ import torchvision.transforms as transforms
 import PIL.Image
 from trt_pose.parse_objects import ParseObjects
 
+# face
+sys.path.append('/home/robocomp/software/tensorrt_demos')
+from utils.camera import add_camera_args, Camera
+from utils.display import open_window, set_display, show_fps
+from utils.mtcnn import TrtMtcnn
+
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
 
@@ -54,6 +60,8 @@ _JOINT_NAMES = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_
                 "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist",
                 "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "neck"]
 
+_HEAD_PARTS = ["nose", "left_eye", "right_eye"]
+               
 
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
@@ -113,12 +121,16 @@ class SpecificWorker(GenericWorker):
             self.mean = torch.Tensor([0.485, 0.456, 0.406]).cuda()
             self.std = torch.Tensor([0.229, 0.224, 0.225]).cuda()
 
+            # faces
+            #self.mtcnn = TrtMtcnn()
+            
             # camera read thread
             self.event = Event()
             self.read_image_queue = queue.Queue(1)
-            self.read_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name, self.event],
+            self.read_camera_thread = Thread(target=self.get_rgb_thread, args=[self.camera_name, self.event],
                                       name="read_camera_queue")
-            self.read_thread.start()
+            self.read_camera_thread.start()
+
 
             # result data
             self.people_data_write = ifaces.RoboCompHumanCameraBody.PeopleData()
@@ -138,9 +150,9 @@ class SpecificWorker(GenericWorker):
             self.with_objects = params["with_objects"] == "true" or params["with_objects"] == "True"
             if self.with_objects:  # objects read thread
                 self.read_objects_queue = queue.Queue(1)
-                self.read_thread = Thread(target=self.get_objects_thread, args=[self.event],
+                self.read_objects_thread = Thread(target=self.get_objects_thread, args=[self.event],
                                           name="read_objects_queue", daemon=True)
-                self.read_thread.start()
+                self.read_objects_thread.start()
 
             self.camera_name = params["camera_name"]
             self.min_number_of_joints = int(params["min_number_of_joints"])
@@ -152,19 +164,31 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        color, depth, alive_time, period = self.read_image_queue.get()
+        color, depth, black, alive_time, period = self.read_image_queue.get()
         person_rois = []
-        if self.with_objects:  # get person's rois from data.objects and copy on black image
-            data = self.read_objects_queue.get()
-            black, person_rois = self.get_person_rois(data, color)  # MOVE THIS TO CAM THREAD
-            self.people_data_write = self.trtpose(black, depth, person_rois)  # get people from masked image
-
-        else:
-            self.people_data_write = self.trtpose(color, depth, person_rois)  # get people from image
+        
+        self.people_data_write = self.trtpose(black, depth, person_rois)  # get people from image
+        
+        # faces
+        #dets, landmarks = self.mtcnn.detect(img, minsize=40)
+        #print('{} face(s) found'.format(len(dets)))
+        
+        pad = 40
+        for person in self.people_data_write.peoplelist:
+            x_coor = []
+            y_coor = []
+            for k,v in person.joints.items():
+                if k in _HEAD_PARTS:
+                    x_coor.append(v.i)
+                    y_coor.append(v.j)
+            if x_coor and y_coor:
+                r =  (min(x_coor), min(y_coor)), (max(x_coor), max(y_coor))
+                cv2.rectangle(color, (r[0][0]-pad,r[0][1]-pad), (r[1][0]+pad, r[1][1]+pad), [255,0,0], 2)
+                
 
         if self.display:
             self.show_data(color, self.people_data_write)
-
+            
         self.people_data_write, self.people_data_read = self.people_data_read, self.people_data_write
 
         # FPS
@@ -172,6 +196,7 @@ class SpecificWorker(GenericWorker):
             self.show_fps(alive_time, period)
         except KeyboardInterrupt:
             event.set()
+            sys.exit()
 
     ####################################################################################################
     def get_rgb_thread(self, camera_name: str, event: Event):
@@ -179,14 +204,20 @@ class SpecificWorker(GenericWorker):
             try:
                 rgbd = self.camerargbdsimple_proxy.getAll(camera_name)
                 color = np.frombuffer(rgbd.image.image, dtype=np.uint8).reshape(rgbd.image.height, rgbd.image.width, 3)
-                depth = np.frombuffer(rgbd.depth.depth, dtype=np.float32).reshape(rgbd.depth.height, rgbd.depth.width,
-                                                                                  1)
+                depth = np.frombuffer(rgbd.depth.depth, dtype=np.float32).reshape(rgbd.depth.height, rgbd.depth.width, 1)
+                black = color
+                
+                if self.with_objects:  # get person's rois from data.objects and copy on black image
+                    data = self.read_objects_queue.get()
+                    black, person_rois = self.get_person_rois(data, color)
+     
                 delta = int(1000 * time.time() - rgbd.image.alivetime)
-                self.read_image_queue.put([color, depth, delta, rgbd.image.period])
+                self.read_image_queue.put([color, depth, black, delta, rgbd.image.period])
                 event.wait(self.thread_period / 1000)
             except:
                 print("Error communicating with CameraRGBDSimple")
                 traceback.print_exc()
+                return
 
     def get_objects_thread(self, event: Event):
         while not event.isSet():
@@ -197,6 +228,7 @@ class SpecificWorker(GenericWorker):
             except:
                 print("Error communicating with YoloObjects")
                 traceback.print_exc()
+                return
 
     def get_person_rois(self, data, rgb):  # reads objects from Yolo and computes masked image
         person_rois = []
@@ -242,13 +274,19 @@ class SpecificWorker(GenericWorker):
                                                                                         j=int(cy),
                                                                                         x=x, y=y, z=z)
                     if self.with_objects:
-                        self.vote_for_roi(rois, (x, y), votes[i])
+                        self.vote_for_roi(rois, (cx, cy), votes[i])
             if available_joints_counter < self.min_number_of_joints:
                 continue
+            
+            for k,v in joints.items():
+                if k in _HEAD_PARTS:
+                    # build face's boundingbox
+                    break
+            
             people_data.peoplelist.append(ifaces.RoboCompHumanCameraBody.Person(id=i, joints=joints))
 
         # select the most voted ROI
-        if self.with_objects:
+        if self.with_objects and votes.size>0:
             roi_winners = np.argmax(votes, axis=1)
             for k, person in enumerate(people_data.peoplelist):
                 person.id = rois[roi_winners[k]][4]

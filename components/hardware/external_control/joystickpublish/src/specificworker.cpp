@@ -34,8 +34,6 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-	active = false;
-
 	qDebug() <<"joystickUniversalComp::Worker::setParams(): "+QString::fromStdString(params["joystickUniversal.Device"].value)+" - "+QString::fromStdString(joystickParams.device);
 
 	if( params["joystickUniversal.Device"].value != joystickParams.device)
@@ -60,8 +58,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		axesParams aux;
 		aux.name = apar.name;
         aux.axis = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Axis"].value).toInt();
-		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toInt();
-		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toInt();
+		aux.minRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MinRange"].value).toFloat();
+		aux.maxRange = QString::fromStdString(params["joystickUniversal.Axis_" + s +".MaxRange"].value).toFloat();
 		aux.inverted = QString::fromStdString(params["joystickUniversal.Axis_" + s +".Inverted"].value).contains("true");
 		aux.dead_zone = QString::fromStdString(params["joystickUniversal.Axis_" + s +".DeadZone"].value).toFloat();
 		qDebug() << __FUNCTION__ << "axes" << QString::fromStdString(aux.name) << aux.minRange << aux.maxRange << aux.inverted;
@@ -82,8 +80,14 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         qDebug() << __FUNCTION__ << "buttons" << QString::fromStdString(aux.name) << aux.number << aux.step;
         joystickParams.buttons.push_back(aux);
     }
-	active = true;
-	return true;
+    qInfo() << __FUNCTION__ << "========================= PARAMS ============================";
+    for(auto a : joystickParams.axes)
+        qInfo() << QString::fromStdString(a.name) << a.axis << a.minRange << a.maxRange << a.inverted << a.dead_zone;
+
+    for(auto a : joystickParams.buttons)
+        qInfo() << QString::fromStdString(a.name) << a.number << a.step ;
+    qInfo() << __FUNCTION__ << "=============================================================";
+    return true;
 };
 
 
@@ -165,12 +169,18 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 float normalized_value;
                 if (fabs(value) > JOYSTICK_CENTER)
                 {
-                    normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
+                    if(number == 2 or number == 5)
+                    {
+                        normalized_value = normalize(value, 0, 1024, axis.minRange, axis.maxRange, axis.dead_zone);
+                        qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
+                    }
+                    else
+                        normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
                     if (axis.inverted) normalized_value *= -1;
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
                     {
                         dr->value = normalized_value;
-                        //qInfo() << "Axis:" << number << "Value:" << normalized_value;
+                        qInfo() << "Axis:" << number << "Value:" << value << "Normalize value:" << normalized_value;
                         sendEvent = true;
                     }
                     break;
@@ -203,14 +213,13 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 }
 
 // X value, min X value, max X value, min Y value, max y value, dead_zone in Y domain
-float SpecificWorker::normalize(float X, float A, float B, float C, float D, float dead_zone)
+float SpecificWorker::normalize(float old_value, float old_min, float old_max, float new_min, float new_max, float dead_zone)
 {
-	QList<QPair<QPointF,QPointF> > intervals;
-	intervals.append(QPair<QPointF,QPointF>(QPointF(A,B),QPointF(C,D)));
-	QMat m = QMat::afinTransformFromIntervals( intervals );
-	auto res = (m * QVec::vec2(X,1))[0];
-	if(res < dead_zone and res > -dead_zone) res = 0;
-	return res;
+    float old_range = (old_max - old_min);
+    float new_range = (new_max - new_min);
+    float new_value = (((old_value - old_min) * new_range) / old_range) + new_min;
+    if(fabs(new_value) < dead_zone) new_value = 0.0;
+	return new_value;
 }
 
 ////////////////////////////////////////////////////////777

@@ -21,8 +21,8 @@
 
 #include <genericworker.h>
 #include <qjoystick/qjoystick.h>
-#include <qmat/QMatAll>
 #include <QHBoxLayout>
+
 
 #define CHECK_PERIOD 5000
 #define JOYSTICK_PRECISION 0.05
@@ -66,8 +66,8 @@ private:
     {
 		std::string name;
 		int axis;
-		int minRange;
-		int maxRange;
+		float minRange;
+		float maxRange;
 		bool inverted;
         float dead_zone;
 	};
@@ -86,14 +86,12 @@ private:
 		std::vector<buttonsParams> buttons;
 	};
 	
-	QTimer *jtimer; // Resend joy data to client
 	RoboCompJoystickAdapter::TData data;
 	RoboCompJoystickAdapter::JoystickAdapterPrx joyAdapterPrx;
 	QJoyStick *joystick;
 	bool sendEvent;
-	bool active;
-	float normalize(float X, float A, float B, float C, float D, float dead_zone);
-	joystickData joystickParams;
+	float normalize(float old_value, float old_min, float old_max, float new_min, float new_max, float dead_zone);
+    joystickData joystickParams;
 };
 
 #endif

@@ -104,11 +104,11 @@ void SpecificWorker::initialize(int period)
 			qDebug() << "JOYSTICK STARTED";
 			if (joystickParams.basicPeriod < 1)
 				joystickParams.basicPeriod = 1;
-			timer.start(Period);
 		}
 		else
 		{
 			qDebug() << "FAILED TO START JOYSTICK";
+            std::terminate();
 		}
 
 		// Connect signals
@@ -129,23 +129,14 @@ void SpecificWorker::compute( )
     {
         if(sendEvent)
         {
-            //rDebug("trying to send event. NumAxes="+QString::number(joystickParams.numAxes));
-            //for(int x=0; x < joystickParams.numAxes; x++)
-            //{
-                //qDebug() << "axes "+QString::fromStdString(data.axes[x].name)+" = "+QString::number(data.axes[x].value);
-                //~ sendEvent &= (fabs(joystickParams.data.axes[x].value)<0.1);
-            //}
             sendEvent = false;
-//            for(auto a: data.axes)
-//                qInfo() << a.value << QString::fromStdString(a.name);
-//            qInfo() << "---------------";
             joystickadapter_pubproxy->sendData(data);
         }
     }
     catch(const Ice::Exception& ex)
     {
-        cout << "[joystickUniversalComp ]: Fallo la comunicacion a traves del proxy (base). Waiting" << endl;
-        cout << "[joystickUniversalComp]: Motivo: " << endl << ex << endl;
+        cout << "[joystickUniversalComp ]: Unable to publish event" << endl;
+        cout << "[joystickUniversalComp]: Reason: " << endl << ex << endl;
     }
 }
 
@@ -160,9 +151,9 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
 {
     switch( type)
 	{
-		case  JOYSTICK_EVENT_TYPE_AXIS:
+        case  JOYSTICK_EVENT_TYPE_AXIS:
 		{
-		    if(auto r=std::find_if(joystickParams.axes.begin(), joystickParams.axes.end(), [number](axesParams &a)
+            if(auto r=std::find_if(joystickParams.axes.begin(), joystickParams.axes.end(), [number](axesParams &a)
 		                    { return (a.axis == number);}) ; r==joystickParams.axes.end())
 			{
 				qDebug() << "ERROR: Event received for not configured axis:" << QString::number(number);
@@ -179,7 +170,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
                     {
                         dr->value = normalized_value;
-                        //qDebug() << "Axis:" << number << "Value:" << normalized_value;
+                        //qInfo() << "Axis:" << number << "Value:" << normalized_value;
                         sendEvent = true;
                     }
                     break;

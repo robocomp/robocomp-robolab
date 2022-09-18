@@ -88,11 +88,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = true;
-	configGetString( "","InnerModelPath", aux.value, "nofile");
-	params["InnerModelPath"] = aux;
 
-    configGetString( "","InnerModelPath", aux.value, "nofile");
-    params["InnerModelPath"] = aux;
+    configGetString( "","camera_name", aux.value, "no_camera");
+    params["camera_name"] = aux;
 
     configGetString( "","display_rgb", aux.value, "false");
     params["display_rgb"] = aux;

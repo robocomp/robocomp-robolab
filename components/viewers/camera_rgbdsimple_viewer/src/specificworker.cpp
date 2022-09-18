@@ -36,6 +36,7 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+    camera_name = params["camera_name"].value;
     display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
     display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
     display_compressed = (params["display_compressed"].value == "true") or (params["display_compressed"].value =="True");

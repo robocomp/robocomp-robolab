@@ -55,6 +55,7 @@ private:
     std::unique_ptr<rs2::align> align;
     rs2::pipeline_profile profile;
     rs2::frame rgb_frame, depth_frame;
+    std::string camera_name;
     bool display_rgb = false;
     bool display_depth = false;
     bool display_compressed = false;

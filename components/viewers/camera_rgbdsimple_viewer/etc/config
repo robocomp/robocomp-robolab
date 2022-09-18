@@ -2,6 +2,7 @@ CommonBehavior.Endpoints=tcp -p 13005
 # Proxies for required interfaces
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -h jetson-orin-0.local -p 10096
 
+camera_name = camera_top
 display_rgb = false
 display_depth = true
 display_compressed = false

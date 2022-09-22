@@ -17,7 +17,6 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
-#include <qmath.h>
 #include <cppitertools/enumerate.hpp>
 #include <cppitertools/range.hpp>
 #include <cppitertools/zip.hpp>
@@ -119,42 +118,42 @@ void SpecificWorker::compute()
     points->clear(); colors->clear(); colors_cog->clear(); planes->clear();
 
     // read raw sensors
-    const auto &[ldata, ldata_polar] = read_laser();
-    const auto &[omni_rgb_frame, _] = read_rgb("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorRGB");
+    //const auto &[ldata, ldata_polar] = read_laser();
+    const auto &[omni_rgb_frame, _] = read_rgb("/Shadow/omnicamera/sensorRGB");
     auto omni_depth_frame = read_depth_omni();
-    const auto &[central_rgb, central_rgb_focal] = read_rgb("camera_top");
-    const auto &[central_depth, central_depth_focal] = read_depth("camera_top");
+    //const auto &[central_rgb, central_rgb_focal] = read_rgb("camera_top");
+    //const auto &[central_depth, central_depth_focal] = read_depth("camera_top");
 
     // get 3D points from sensors
     get_omni_3d_points(omni_depth_frame, omni_rgb_frame);
-    get_laser_3d_points(ldata, std::make_tuple(0.0, 1.0, 0.0));
+    //get_laser_3d_points(ldata, std::make_tuple(0.0, 1.0, 0.0));
     //get_central_3d_points(central_depth, central_rgb, central_rgb_focal);
 
     // Group 3D points by angular sectors and sorted by minimum distance
     sets.clear();
-    sets = group_by_angular_sectors(true);
+    sets = group_by_angular_sectors(false);
 
     // update local_grid
-    local_grid.update_map_from_polar_data(ldata_polar, 4000);
+    //local_grid.update_map_from_polar_data(ldata_polar, 4000);
     //local_grid.update_map_from_3D_points(points);
 
     // compute floor line
     auto floor_line = compute_floor_line(sets);
 
     // estimate floor rectangle from floor_line
-    estimate_floor_object(floor_line);
+    //estimate_floor_object(floor_line);
 
     // get Yolo coordinates
-    try
-    {
-        auto yolo_data = yoloobjects_proxy->getYoloObjects();
-        draw_objects(yolo_data.objects, central_rgb);
-        draw_people(yolo_data.people, central_rgb);
-
-        cv::imshow("central camera", central_rgb);
-        cv::waitKey(1);
-    }
-    catch(const Ice::Exception &e){ std::cerr << e.what() << ". No response from YoloServer" << std::endl;};
+//    try
+//    {
+//        auto yolo_data = yoloobjects_proxy->getYoloObjects();
+//        draw_objects(yolo_data.objects, central_rgb);
+//        draw_people(yolo_data.people, central_rgb);
+//
+//        cv::imshow("central camera", central_rgb);
+//        cv::waitKey(1);
+//    }
+//    catch(const Ice::Exception &e){ std::cerr << e.what() << ". No response from YoloServer" << std::endl;};
 
     // update viewers
     viewer->viewport()->repaint();
@@ -163,19 +162,7 @@ void SpecificWorker::compute()
 
     fps.print("FPS:");
 }
-void SpecificWorker::compute_cog()
-{
-    // update, add, delete loop with existing objects in scene
-    // adding implies
-    //  - selecting a 3D model
-    //  - orienting and scaling it, and include it in the cog-rep
 
-    // compute floor line
-    auto floor_line = compute_floor_line(sets);
-
-    // estimate floor rectangle from floor_line
-    estimate_floor_object(floor_line);
-}
 ////////////////////////////////////////////////////////////////////////////////////////////
 void SpecificWorker::draw_objects(const RoboCompYoloObjects::TObjects &objects, cv::Mat img)
 {
@@ -278,13 +265,14 @@ cv::Mat SpecificWorker::read_depth_omni()
     try
     {
         // depth is coded in gray scale as 0-255  -> 0 - 500cm,  Eache gray level codes 2cm
-        auto image = camerargbdsimple_proxy->getImage("/Giraff/neck/frame_base/Cuboid_frame_top/sphericalVisionRGBAndDepth/sensorDepth");
+        auto image = camerargbdsimple_proxy->getImage("/Shadow/omnicamera/sensorDepth");
         if (image.width != 0 and image.height != 0)
         {
             cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
             if (image.compressed)
                 frame = cv::imdecode(image.image, -1);
             cv::cvtColor(frame, gray_frame, cv::COLOR_RGB2GRAY);
+            //qInfo() << gray_frame.ptr<uchar>(10)[20] << gray_frame.ptr<uchar>(100)[100] << gray_frame.ptr<uchar>(200)[200];
         }
         else qWarning() << __FUNCTION__ << "Empty image";
     }
@@ -304,11 +292,13 @@ void SpecificWorker::get_omni_3d_points(const cv::Mat &depth_frame, const cv::Ma
     colors->resize(points->size());
     int semi_height = depth_frame.rows/2;
     float hor_ang, dist, x, y, z, proy, ang_slope = 2*M_PI/depth_frame.cols;
-    for(int u=50; u<depth_frame.rows-20; u=u+1)
+    int cont = 0;
+    for(int u=50; u<depth_frame.rows-50; u=u+1)
         for(int v=0; v<depth_frame.cols; v++)
         {
             hor_ang = ang_slope * v - M_PI; // cols to radians
-            dist = (float)depth_frame.ptr<uchar>(u)[v] * 19.f;  // pixel to dist scaling factor
+            dist = (float)depth_frame.ptr<uchar>(u)[v] * 19.f;  // pixel to dist scaling factor -> to mm
+            //if(std::isnan(dist)) cont++;
             if(dist > consts.max_camera_depth_range) continue;
             if(dist < consts.min_camera_depth_range) continue;
             dist /= 1000.f; // to meters
@@ -320,7 +310,7 @@ void SpecificWorker::get_omni_3d_points(const cv::Mat &depth_frame, const cv::Ma
             points->operator[](i) = std::make_tuple(x,y,z);
             auto rgb = rgb_frame.ptr<cv::Vec3b>(u)[v];
             colors->operator[](i++) = std::make_tuple(rgb[0]/255.0, rgb[1]/255.0, rgb[2]/255.0);
-            // colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
+            colors->operator[](i++) = std::make_tuple(1.0,0.0,0.6);
         };
 }
 void SpecificWorker::get_laser_3d_points(const RoboCompLaser::TLaserData &ldata, const std::tuple<float, float, float> &color)
@@ -371,7 +361,7 @@ SpecificWorker::SetsType SpecificWorker::group_by_angular_sectors(bool draw)
         int ang_index = floor((M_PI + atan2(x, y))/ang_bin);
         float dist = sqrt(x*x+y*y+z*z);
         if(dist < 0.1 or dist > 4) continue;
-        if(fabs(z) < 0.15 ) continue;
+        if(z < 0.4 or fabs(z)>2) continue;
         sets[ang_index].emplace(std::make_tuple(Eigen::Vector3f(x,y,z), color));
     }
 
@@ -395,9 +385,11 @@ SpecificWorker::SetsType SpecificWorker::group_by_angular_sectors(bool draw)
 }
 vector<Eigen::Vector2f> SpecificWorker::compute_floor_line(SpecificWorker::SetsType &sets, bool draw)
 {
+    points->clear(); colors->clear();
     vector<Eigen::Vector2f> floor_line;
     for(const auto &s: sets)
     {
+        if(s.empty()) continue;
         Eigen::Vector3f p = get<Eigen::Vector3f>(*s.cbegin());
         floor_line.emplace_back(Eigen::Vector2f(p.x(), p.y()));
         if(draw)
@@ -405,7 +397,9 @@ vector<Eigen::Vector2f> SpecificWorker::compute_floor_line(SpecificWorker::SetsT
             points->emplace_back(make_tuple(p.x(), p.y(), p.z()));
             colors->push_back({1.0, 1.0, 0.0});
         }
+        //qInfo() << __FUNCTION__ << "[" << p.x()*1000 << p.y()*1000 << "]";
     }
+    //qInfo() << __FUNCTION__ << "--------------------------------------";
     return floor_line;
 }
 cv::RotatedRect SpecificWorker::estimate_floor_object(const vector<Eigen::Vector2f> &floor_line) const

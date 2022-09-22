@@ -156,7 +156,6 @@ class SpecificWorker : public GenericWorker
 
     public slots:
         void compute();
-        void compute_cog();
         int startup_check();
         void initialize(int period);
 

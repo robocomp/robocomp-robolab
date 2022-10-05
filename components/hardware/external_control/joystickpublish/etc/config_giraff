@@ -6,6 +6,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 InnerModelPath = innermodel.xml
 
+joystickUniversal.robot_id = 2
 
 JoystickAdapter=JoystickAdapter
 joystickUniversal.Device = /dev/input/js0

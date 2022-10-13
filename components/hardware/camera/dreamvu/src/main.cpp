@@ -180,7 +180,7 @@ int ::Dreamvu::run(int argc, char* argv[])
 	}
 
 	auto camerargbdsimplepub_pub = camerargbdsimplepub_topic->getPublisher()->ice_oneway();
-	camerargbdsimplepub_pubproxy = Ice::uncheckedCast<CameraRGBDSimplePubPrx>(camerargbdsimplepub_pub);
+	camerargbdsimplepub_pubproxy = Ice::uncheckedCast<RoboCompCameraRGBDSimplePub::CameraRGBDSimplePubPrx>(camerargbdsimplepub_pub);
 
 	tprx = std::make_tuple(camerargbdsimplepub_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);

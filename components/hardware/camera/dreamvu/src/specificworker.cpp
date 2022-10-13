@@ -125,8 +125,9 @@ void SpecificWorker::compute()
 	}
 
 	// get image from camera
-//	PAL::Image left_img, right_img, depth_img;
-//	PAL::GrabFrames(&left_img, &right_img, &depth_img);
+	//PAL::Image left_img, right_img, depth_img;
+	//PAL::GrabFrames(&left_img, &right_img);
+
 //
 //	//std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //	//std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
@@ -166,11 +167,12 @@ RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::str
 {
 	auto img = image_buffer.try_get();
 	auto depth = depth_buffer.try_get();
-	RoboCompCameraRGBDSimple::TRGBD all;
 	if(img.has_value() and depth.has_value())
 	{
+		RoboCompCameraRGBDSimple::TRGBD all;
 		all.image.image.swap(img.value().image);
 		all.depth.depth.swap(depth.value().depth);
+		// faltan los puntos
 		return all;
 	}
 	else

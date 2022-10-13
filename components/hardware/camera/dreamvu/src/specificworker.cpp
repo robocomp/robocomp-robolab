@@ -77,15 +77,15 @@ void SpecificWorker::initialize(int period)
 			printf("Error Loading settings\n");
 		}
 
-        PAL::CameraProperties prop;
-        unsigned int flag = PAL::RESOLUTION | PAL::MODE | PAL::FD | PAL::NR | PAL::FILTER_SPOTS | PAL::VERTICAL_FLIP ;
-        //prop.mode = PAL::Mode::FAST_DEPTH; // The other available option is PAL::Mode::HIGH_QUALITY_DEPTH
+		PAL::CameraProperties prop;
+		unsigned int flag = PAL::RESOLUTION | PAL::MODE | PAL::FD | PAL::NR | PAL::FILTER_SPOTS | PAL::VERTICAL_FLIP ;
+		//prop.mode = PAL::Mode::FAST_DEPTH; // The other available option is PAL::Mode::HIGH_QUALITY_DEPTH
 		prop.resolution = {1120, 384};
 		prop.mode = PAL::Mode::POINT_CLOUD_25D;
-        prop.fd = 1;
-        prop.nr = 1;
-        prop.filter_spots = 1;
-        prop.vertical_flip =0;
+		prop.fd = 1;
+		prop.nr = 1;
+		prop.filter_spots = 1;
+		prop.vertical_flip =0;
 		PAL::SetCameraProperties(&prop, &flag);
 
 //        p.resolution = {1280,448};
@@ -110,12 +110,21 @@ void SpecificWorker::compute()
 	//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	std::vector<PAL::Point> pc;
-	if (PAL::GetPointCloud(&pc) == PAL::SUCCESS)
+	if (PAL::GetPointCloud(&pc) == PAL::SUCCESS)	// 384*128 points that come from a 640x224 depth map
 	{
-		std::cout << "points" << pc.size() << std::endl;
+		std::cout << "points " << pc.size() << std::endl;
+		points_buffer.put(std::move(pc), [pc](auto &&input, auto &output)
+		{
+			output.points.reserve(pc.size());
+			std::transform(pc.begin(), pc.end(), std::back_inserter(output.points), [](auto &p)
+				{ return RoboCompCameraRGBDSimple::Point3D{p.x, p.y, p.z};});
+			output.alivetime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			output.period = 50;
+			output.compressed = false;
+		});
 	}
 
-    // get image from camera
+	// get image from camera
 //	PAL::Image left_img, right_img, depth_img;
 //	PAL::GrabFrames(&left_img, &right_img, &depth_img);
 //
@@ -149,7 +158,7 @@ void SpecificWorker::compute()
 //		output.depth.insert(output.depth.end(), ptr, ptr+depth_img.cols*depth_img.rows*4);
 //	});
 
-    fps.print("FPS: ");
+	fps.print("FPS: ");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +193,13 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
 		return RoboCompCameraRGBDSimple::TImage();
 }
 
+RoboCompCameraRGBDSimple::TPoints SpecificWorker::CameraRGBDSimple_getPoints(std::string camera)
+{
+	if(auto points = points_buffer.try_get(); points.has_value())
+		return points.value();
+	else
+		return RoboCompCameraRGBDSimple::TPoints();
+}
 
 
 /**************************************/

@@ -6,6 +6,8 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
 joystickUniversal.robot_id = 2
+
+JoystickAdapter=JoystickAdapter
 joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 4
 joystickUniversal.Axis_0 = turn, 0, -1, 1, false, 0.2  # degrees per second

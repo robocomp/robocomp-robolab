@@ -56,8 +56,10 @@ class SpecificWorker : public GenericWorker
 		RoboCompCameraRGBDSimple::TRGBD CameraRGBDSimple_getAll(std::string camera);
 		RoboCompCameraRGBDSimple::TDepth CameraRGBDSimple_getDepth(std::string camera);
 		RoboCompCameraRGBDSimple::TImage CameraRGBDSimple_getImage(std::string camera);
+		RoboCompCameraRGBDSimple::TPoints CameraRGBDSimple_getPoints(std::string camera);
 
-	public slots:
+
+public slots:
 		void compute();
 		int startup_check();
 		void initialize(int period);
@@ -71,6 +73,7 @@ class SpecificWorker : public GenericWorker
 		int sc_width ;
 		DoubleBuffer<PAL::Image, RoboCompCameraRGBDSimple::TImage> image_buffer;
 		DoubleBuffer<PAL::Image, RoboCompCameraRGBDSimple::TDepth> depth_buffer;
+		DoubleBuffer<std::vector<PAL::Point>, RoboCompCameraRGBDSimple::TPoints> points_buffer;
 		FPSCounter fps;
 
 };

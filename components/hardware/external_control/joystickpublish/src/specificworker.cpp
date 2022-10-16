@@ -34,6 +34,8 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+    auto robot_id = params["joystickUniversal.robot_id"].value;
+    data.id = robot_id;
 	qDebug() <<"joystickUniversalComp::Worker::setParams(): "+QString::fromStdString(params["joystickUniversal.Device"].value)+" - "+QString::fromStdString(joystickParams.device);
 
     data.id = params["joystickUniversal.robot_id"].value;

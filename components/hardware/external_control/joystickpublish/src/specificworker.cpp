@@ -204,7 +204,8 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 if (auto dr = std::find_if(data.buttons.begin(), data.buttons.end(), [button](auto &a) { return a.name == button.name; }); dr !=
                                                                                                                                            data.buttons.end())
                 {
-                    dr->step = button.step;
+                    (value == button.step)?  dr->step = 1 : dr->step = 0;
+                    //dr->step = value == button.step;
                     //qDebug() << "Button " + QString::number(number) + ": " << value << "name: " + QString::fromStdString(button.name);
                     sendEvent = true;
                 }

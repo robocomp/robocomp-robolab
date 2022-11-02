@@ -173,12 +173,12 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 float normalized_value;
                 if (fabs(value) > JOYSTICK_CENTER)
                 {
-                    if(number == 2 or number == 5)
-                    {
-                        normalized_value = normalize(value, 0, 1024, axis.minRange, axis.maxRange, axis.dead_zone);
-                        qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
-                    }
-                    else
+                    //if(number == 2 or number == 5)
+                    //{
+                    //    normalized_value = normalize(value, 0, 1024, axis.minRange, axis.maxRange, axis.dead_zone);
+                    //    qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
+                    //}
+                    //else
                         normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
                     if (axis.inverted) normalized_value *= -1;
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())

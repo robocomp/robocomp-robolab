@@ -36,18 +36,24 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-    camera_name = params["camera_name"].value;
-    display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
-    display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
-    display_compressed = (params["display_compressed"].value == "true") or (params["display_compressed"].value =="True");
-    std::cout << "display_rgb " << display_rgb << " display_depth " << display_depth <<" display_compressed " << display_compressed << std::endl;
+    try
+    {
+        camera_name = params["camera_name"].value;
+        this->Period = std::stoi(params.at("display_period").value);
+        display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
+        display_depth = (params["display_depth"].value == "true") or (params["display_depth"].value == "True");
+        display_compressed =
+                (params["display_compressed"].value == "true") or (params["display_compressed"].value == "True");
+        std::cout << "display_rgb " << display_rgb << " display_depth " << display_depth << " display_compressed "
+                  << display_compressed << std::endl;
+    }
+    catch(const std::exception &e){ std::cout << e.what() << " Error reading params" << std::endl;};
     return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-    this->Period = 33;
     std::cout <<"Period compute(ms): "<<this->Period<< " Frequency compute(Hz): " << (1.0/this->Period*1000)<<std::endl;
 	if(this->startup_check_flag)
 	{
@@ -61,6 +67,7 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+   static int ant_period = 0;
    if (display_rgb)
    {
        try
@@ -85,7 +92,7 @@ void SpecificWorker::compute()
                qInfo() << "No image received";
        }
        catch(const std::exception &e)
-       { std::cout << e.what() << "Error connecting to CameraRGBDSimple"<< std::endl;}
+       { std::cout << e.what() << "Error connecting to CameraRGBDSimple::getImage"<< std::endl;}
    }
 
    if (display_depth)
@@ -95,6 +102,11 @@ void SpecificWorker::compute()
            auto depth = this->camerargbdsimple_proxy->getDepth("");
            if (depth.width != 0 and depth.height != 0)
            {
+               if(ant_period != depth.period and depth.period > 0 and depth.period < 1000)
+               {
+                   timer.setInterval(depth.period);
+                   ant_period = depth.period;
+               }
                if (depth.compressed) //Si quiero la imagen comprimida
                {
                    cv::Mat frame_depth = cv::imdecode(depth.depth, -1);
@@ -115,7 +127,7 @@ void SpecificWorker::compute()
                qWarning() << "Warning. Empty depth frame";
        }
        catch(const std::exception &e)
-       { std::cout << e.what() << "Error connecting to CameraRGBDSimple"<< std::endl;}
+       { std::cout << e.what() << "Error connecting to CameraRGBDSimple::getDepth"<< std::endl;}
    }
 
     fps.print("FPS: ");
@@ -127,9 +139,6 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
-
-
-
 
 /**************************************/
 // From the RoboCompCameraRGBDSimple you can call this methods:

@@ -68,16 +68,28 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
    static int ant_period = 0;
+
+   // Check if the image should be displayed or not.
    if (display_rgb)
    {
        try
        {
+           // Retrieve the image from the camera
            auto image = this->camerargbdsimple_proxy->getImage("");
            if (image.width !=0 and image.height !=0)
            {
+               // Check if the period of image has changed and update the timer if necessary
+               if(ant_period != image.period and image.period > 0 and image.period < 1000)
+               {
+                   timer.setInterval(image.period);
+                   ant_period = image.period;
+               }
+
+               // Check if the image is compressed
                if (image.compressed)
                {
                    cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+                   // Decode the compressed image
                    cv::Mat frameCompr = cv::imdecode(image.image, -1);
                    cv::imshow("RGB image compress", frameCompr);
                    cv::waitKey(1);
@@ -99,26 +111,35 @@ void SpecificWorker::compute()
    {
        try
        {
+           // Retrieve the image from the camera
            auto depth = this->camerargbdsimple_proxy->getDepth("");
            if (depth.width != 0 and depth.height != 0)
            {
+               // Check if the period of image has changed and update the timer if necessary
                if(ant_period != depth.period and depth.period > 0 and depth.period < 1000)
                {
                    timer.setInterval(depth.period);
                    ant_period = depth.period;
                }
+
                if (depth.compressed) //Si quiero la imagen comprimida
                {
+                   // Se descomprime la imagen y se aplica un mapa de colores
                    cv::Mat frame_depth = cv::imdecode(depth.depth, -1);
                    frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
                    applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
+
+                   // Se muestra la imagen en una ventana
                    cv::imshow("Depth image compress", frame_depth);
                    cv::waitKey(1);
                } else
                {
+                   // Se crea una matriz de la imagen de profundidad y se aplica un mapa de colores
                    cv::Mat frame_depth(cv::Size(depth.width, depth.height), CV_32FC1, &depth.depth[0], cv::Mat::AUTO_STEP);
                    frame_depth.convertTo(frame_depth, CV_8UC3, 255. / 10, 0);
                    applyColorMap(frame_depth, frame_depth, cv::COLORMAP_RAINBOW); //COLORMAP_HSV tb
+
+                   // Se muestra la imagen en una ventana
                    cv::imshow("Depth image ", frame_depth);
                    cv::waitKey(1);
                }

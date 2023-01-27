@@ -70,7 +70,8 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
     // Check if laser data is empty
     if(ldata.empty()) { qWarning() << "Laser empty"; return;}
-    
+
+
     // Create an 8-bit 3-channel image with the specified size
     cv::Mat laser_img(cv::Size(lado, lado), CV_8UC3);
     // Set the color for the laser image
@@ -85,6 +86,9 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
     // Iterate through the laser data
     for(auto &&l : ldata)
     {
+        // Check if dist and angle has valid values
+        if(!(isfinite(l.dist) && isfinite(l.angle))) continue;
+
         // Calculate the x and y coordinates for the point
         int x = l.dist * sin(l.angle) * scale + semilado;
         int y = semilado - l.dist * cos(l.angle) * scale;
@@ -101,7 +105,7 @@ void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
     fillContAll.push_back(fillContSingle);
     // Fill the laser image with the points and color
     cv::fillPoly( laser_img, fillContAll, laser_color);
-    
+
     // Copy the robot image to the laser image
     robot_image.copyTo(laser_img(cv::Rect(semilado - robot_image.cols/2, semilado - robot_image.rows/2, robot_image.cols, robot_image.rows)));
 

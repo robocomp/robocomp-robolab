@@ -386,6 +386,12 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::
     }
 }
 
+RoboCompCameraRGBDSimple::TPoints SpecificWorker::CameraRGBDSimple_getPoints(std::string camera)
+{
+	return RoboCompCameraRGBDSimple::TPoints();
+
+}
+
 /**************************************/
 // From the RoboCompCameraRGBDSimplePub you can publish calling this methods:
 // this->camerargbdsimplepub_pubproxy->pushRGBD(...)

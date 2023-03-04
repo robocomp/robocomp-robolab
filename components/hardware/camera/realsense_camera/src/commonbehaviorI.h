@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2022 by RoboLab - University of Extremadura
+ *    Copyright (C) 2023 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *

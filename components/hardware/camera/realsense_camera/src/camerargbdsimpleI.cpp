@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2022 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -42,5 +42,10 @@ RoboCompCameraRGBDSimple::TDepth CameraRGBDSimpleI::getDepth(std::string camera,
 RoboCompCameraRGBDSimple::TImage CameraRGBDSimpleI::getImage(std::string camera, const Ice::Current&)
 {
 	return worker->CameraRGBDSimple_getImage(camera);
+}
+
+RoboCompCameraRGBDSimple::TPoints CameraRGBDSimpleI::getPoints(std::string camera, const Ice::Current&)
+{
+	return worker->CameraRGBDSimple_getPoints(camera);
 }
 

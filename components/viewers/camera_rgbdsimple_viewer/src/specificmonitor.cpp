@@ -101,7 +101,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","display_compressed", aux.value, "false");
     params["display_compressed"] = aux;
 
-
+    configGetString( "","display_period", aux.value, "100");
+    params["display_period"] = aux;
 
 }
 

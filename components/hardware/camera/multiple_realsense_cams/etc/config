@@ -1,0 +1,29 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+# Proxies for required interfaces
+
+
+serial_center = 146222252950
+serial_left = 151422254838
+serial_right = 049522250171
+display_depth = false
+display_rgb = false
+display_laser = false
+compressed = true
+view = true
+
+height = 720
+
+
+max_up_height = -0,15 #0.4  # meters #Cielo
+max_down_height = 1,4 #0.1 #Suelo
+
+InnerModelPath = innermodel.xml
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

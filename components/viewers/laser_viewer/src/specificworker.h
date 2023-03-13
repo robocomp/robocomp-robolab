@@ -38,6 +38,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cppitertools/range.hpp>
 #include <fps/fps.h>
+#include <cmath>
 
 class SpecificWorker : public GenericWorker
 {

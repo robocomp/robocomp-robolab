@@ -1,0 +1,11 @@
+import "BatteryStatus.idsl";
+
+Component victron
+{
+    Communications
+    {
+        implements BatteryStatus;
+    };
+    language python;
+};
+

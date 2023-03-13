@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2022 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -36,6 +36,7 @@ public:
 	RoboCompCameraRGBDSimple::TRGBD getAll(std::string camera, const Ice::Current&);
 	RoboCompCameraRGBDSimple::TDepth getDepth(std::string camera, const Ice::Current&);
 	RoboCompCameraRGBDSimple::TImage getImage(std::string camera, const Ice::Current&);
+	RoboCompCameraRGBDSimple::TPoints getPoints(std::string camera, const Ice::Current&);
 
 private:
 

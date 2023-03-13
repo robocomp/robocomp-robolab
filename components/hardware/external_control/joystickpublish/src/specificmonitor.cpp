@@ -89,9 +89,12 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	//Read params from config file
-	//Example
 	RoboCompCommonBehavior::Parameter aux;
-	aux.editable = false;
+
+    aux.editable = false;
+    configGetString( "","joystickUniversal.robot_id", aux.value,"0");
+    params["joystickUniversal.robot_id"] = aux;
+
 	configGetString( "","joystickUniversal.Device", aux.value,"/dev/input/js0");
 	params["joystickUniversal.Device"] = aux;
 	

@@ -36,7 +36,7 @@ public:
 	RoboCompCameraRGBDSimple::TRGBD getAll(std::string camera, const Ice::Current&);
 	RoboCompCameraRGBDSimple::TDepth getDepth(std::string camera, const Ice::Current&);
 	RoboCompCameraRGBDSimple::TImage getImage(std::string camera, const Ice::Current&);
-
+	RoboCompCameraRGBDSimple::TPoints getPoints(std::string camera, const Ice::Current&);
 private:
 
 	GenericWorker *worker;

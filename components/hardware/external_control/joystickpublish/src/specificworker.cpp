@@ -34,7 +34,11 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+    auto robot_id = params["joystickUniversal.robot_id"].value;
+    data.id = robot_id;
 	qDebug() <<"joystickUniversalComp::Worker::setParams(): "+QString::fromStdString(params["joystickUniversal.Device"].value)+" - "+QString::fromStdString(joystickParams.device);
+
+    data.id = params["joystickUniversal.robot_id"].value;
 
 	if( params["joystickUniversal.Device"].value != joystickParams.device)
 	{
@@ -169,12 +173,12 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 float normalized_value;
                 if (fabs(value) > JOYSTICK_CENTER)
                 {
-                    if(number == 2 or number == 5)
-                    {
-                        normalized_value = normalize(value, 0, 1024, axis.minRange, axis.maxRange, axis.dead_zone);
-                        qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
-                    }
-                    else
+                    //if(number == 2 or number == 5)
+                    //{
+                    //    normalized_value = normalize(value, 0, 1024, axis.minRange, axis.maxRange, axis.dead_zone);
+                    //    qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
+                    //}
+                    //else
                         normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
                     if (axis.inverted) normalized_value *= -1;
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
@@ -200,7 +204,8 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                 if (auto dr = std::find_if(data.buttons.begin(), data.buttons.end(), [button](auto &a) { return a.name == button.name; }); dr !=
                                                                                                                                            data.buttons.end())
                 {
-                    dr->step = button.step;
+                    (value == button.step)?  dr->step = 1 : dr->step = 0;
+                    //dr->step = value == button.step;
                     //qDebug() << "Button " + QString::number(number) + ": " << value << "name: " + QString::fromStdString(button.name);
                     sendEvent = true;
                 }

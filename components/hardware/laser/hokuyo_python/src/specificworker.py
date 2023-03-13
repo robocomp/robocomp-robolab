@@ -36,14 +36,13 @@ console = Console(highlight=False)
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 50
+        self.Period = 20
         # time
         self.start = time.time()
         self.counter = 0
         self.mutex = QMutex()
         self.ldata_write = []
         self.ldata_read = []
-
         if startup_check:
             self.startup_check()
         else:
@@ -54,9 +53,10 @@ class SpecificWorker(GenericWorker):
         """Destructor"""
 
     def setParams(self, params):
-        uart_port = '/dev/ttyACM1'
-        uart_speed = 115200
-        laser_serial = serial.Serial(port=uart_port, baudrate=uart_speed, timeout=0.5)
+        uart_port = params["uart_port"]
+        uart_speed = params["uart_speed"]
+        print(uart_port, uart_speed)
+        laser_serial = serial.Serial(port=uart_port, baudrate=uart_speed, timeout=2)
         port = serial_port.SerialPort(laser_serial)
 
         self.laser = hokuyo.Hokuyo(port)
@@ -73,6 +73,9 @@ class SpecificWorker(GenericWorker):
 
         self.ldata_write = []
         for angle, dist in scan.items():
+            print(angle, dist)
+            if dist < 25:
+                dist = 5000
             self.ldata_write.append(RoboCompLaser.TData(np.radians(angle), dist))
 
         if time.time() - self.start > 1:

@@ -1,10 +1,8 @@
 # Endpoints for implements interfaces
-Laser.Endpoints=tcp -p 10003
+Laser.Endpoints=tcp -p 10101
 
-
-
-
-
+uart_port = /dev/ttyACM0
+uart_speed = 115200
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

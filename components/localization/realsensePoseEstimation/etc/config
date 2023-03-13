@@ -13,37 +13,28 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 origen_rx=0,0
 origen_ry=0,0
-origen_rz=1,57
+origen_rz=0,0
 #origen_tx=-6300,0 #residencia
 #origen_ty=7800,0 #residencia
-origen_tx = 3880,0 #corralgiraff
-origen_ty = -22387,0 #corralgiraff
+origen_tx = 0,0 #corralgiraff
+origen_ty = 0,0 #corralgiraff
 origen_tz=0,0
 
-num_cameras=2
+num_cameras=1
 odometry=false
 
 #serial number is a string, but in config file should appear without quotes
 
 #Camara con etiqueta verde ID=925122110585
 
-device_serial_0=121222110830
-name_0=camera_side
+device_serial_0=905312110667
+name_0=camera_front
 rx_0=0,0
 ry_0=0,0
-rz_0=3,1416
-tx_0=300,0
+rz_0=0,0
+tx_0=0,0
 ty_0=0,0
-tz_0=100,0
-
-device_serial_1=925122110585
-name_1=camera_front
-rx_1=0,0
-ry_1=0,0
-rz_1=0,0
-tx_1=0,0
-ty_1=30,0
-tz_1=75,0
+tz_0=0,0
 
 print=true
 

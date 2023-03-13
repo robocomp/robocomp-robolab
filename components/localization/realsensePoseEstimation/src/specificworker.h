@@ -86,6 +86,8 @@ public slots:
 
 		std::shared_ptr < InnerModel > innerModel;
 		bool startup_check_flag;
+        float init_rotation = 0;
+        float act_rotation_pose = 0;
 };
 
 #endif

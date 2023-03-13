@@ -75,7 +75,6 @@ public:
 	RoboCompRealSenseFaceID::UserDataList RealSenseFaceID_getQueryUsers();
 	bool RealSenseFaceID_startPreview();
 	bool RealSenseFaceID_stopPreview();
-    vector<vector<cv::Point2i>>  face_bounding_box_spec;
 
 //    int top_l, top_r, bottom_l, bottom_r;
 
@@ -120,6 +119,8 @@ public:
         string name;
         int x;
         int y;
+        int w;
+        int h;
         float angle;
     };
     vector<UserData> users_data;
@@ -129,15 +130,17 @@ public:
     void OnResult(const RealSenseID::AuthenticateStatus status, const char* user_id) override
     {
         std::cout << "\n******* OnResult #" << _result_idx << "*******" << std::endl;
-        users_data.resize(_result_idx+1);
+
         std::cout << "Status: " << status << std::endl;
         if (status == RealSenseID::AuthenticateStatus::Success)
         {
+            users_data.resize(_result_idx+1);
             std::cout << "******* Authenticate success.  user_id: " << user_id << " *******" << std::endl;
 			std::string tmp_string(user_id);
 			this->userAuthenticated=tmp_string;
             auto act_face_pose = _faces[_result_idx];
-            UserData personData {.name=tmp_string, .x = act_face_pose.x + act_face_pose.w/2, .y = act_face_pose.y + act_face_pose.h/2};
+//            UserData personData {.name=tmp_string, .x = int(round((act_face_pose.x + act_face_pose.w/2)/2.2)), .y = int(round(act_face_pose.y + act_face_pose.h/2)/2.2)};
+            UserData personData {.name=tmp_string, .x = int(round(act_face_pose.x/2.2)) , .y = int(round(act_face_pose.y/2.2)), .w = int(round(act_face_pose.w/2.2)), .h = int(round(act_face_pose.h/2.2))};
             users_data[_result_idx] = personData;
 //            act_bb.push_back(cv::Point2i(face.x, face.y));
 //            act_bb.push_back(cv::Point2i(face.x + face.w, face.y));
@@ -145,6 +148,7 @@ public:
 //            act_bb.push_back(cv::Point2i(face.x + face.w, face.y + face.h));
 //            face_bounding_box.push_back(act_bb);
             std::cout << "Face: " << "x: " << act_face_pose.x << " y: " << act_face_pose.y << " " << act_face_pose.w << "x" << act_face_pose.h << std::endl;
+            _result_idx += 1;
         }
         else
         {

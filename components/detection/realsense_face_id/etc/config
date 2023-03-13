@@ -1,10 +1,10 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implements interfaces
-CameraSimple.Endpoints=tcp -p 11060
+CameraSimple.Endpoints=tcp -p 10005
 RealSenseFaceID.Endpoints=tcp -p 11070
 
-device = /dev/ttyACM0
+device = /dev/ttyACM1
 display = false
 compressed = false
 

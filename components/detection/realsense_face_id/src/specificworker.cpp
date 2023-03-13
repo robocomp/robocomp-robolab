@@ -168,7 +168,8 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
             frame.compressed=pars.compressed;
             my_mutex.lock();
                 cv::Mat auxMat(preview_callback->frame.height, preview_callback->frame.width, CV_8UC3, preview_callback->frame.buffer);
-//
+                cv::resize(auxMat,auxMat,cv::Size(480,870));
+                cv::cvtColor(auxMat, auxMat, cv::COLOR_BGR2RGB);
                 if(pars.display){   
                     cv::imshow("F455", matResize);
                     //cv::waitKey(1);
@@ -211,9 +212,11 @@ RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_authenticate()
 {
 	RoboCompRealSenseFaceID::UserDataList dataList;
-
+    int pixels_added = 25;
 	auto authenticator = CreateAuthenticator(pars.device.c_str());
     MyAuthClbk auth_clbk;
+//    auto act_image = CameraSimple_getImage();
+//    cv::Mat act_image_mat = cv::Mat(act_image.height, act_image.width, CV_8UC3, &act_image.image[0]);
     auto status = authenticator->Authenticate(auth_clbk);
 	if (status != RealSenseID::Status::Ok)
     {
@@ -225,10 +228,17 @@ RoboCompRealSenseFaceID::UserDataList SpecificWorker::RealSenseFaceID_authentica
 //    }
     if (auth_clbk.users_data.size() > 0)
     {
+
         for(auto user : auth_clbk.users_data)
         {
+//            auto personROI = act_image_mat(cv::Rect(user.x, user.y, user.w, user.h));
+            RoboCompRealSenseFaceID::UserData data{.name = user.name, .x = int(round((user.x + user.w/2)/2.2)), .y = int(round((user.x + user.w/2)/2.2))};
+
+            data.faceROI.width = user.w + pixels_added;
+            data.faceROI.height = user.h + pixels_added;
+            data.faceROI.x = user.x - pixels_added/2;
+            data.faceROI.y = user.y - pixels_added/2;
             std::cout << "USER NAME: " << user.name << " X POSITION: " << user.x << " y POSITION: " << user.y << std::endl;
-            RoboCompRealSenseFaceID::UserData data{.name = user.name, .x = user.x, .y = user.y};
             dataList.emplace_back(data);
         }
     }

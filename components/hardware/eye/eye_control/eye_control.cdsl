@@ -3,13 +3,11 @@ import "CameraRGBDSimple.idsl";
 import "HumanCameraBody.idsl";
 import "DifferentialRobot.idsl";
 import "SoundRotation.idsl";
-import "Follower.idsl";
 
 Component eye_control
 {
     Communications
     {
-    	implements Follower;
         requires JointMotorSimple, CameraRGBDSimple, HumanCameraBody, DifferentialRobot, SoundRotation;
     };
     language python;

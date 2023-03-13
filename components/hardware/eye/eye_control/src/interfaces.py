@@ -9,8 +9,6 @@ Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
 Ice.loadSlice("-I ./src/ --all ./src/DifferentialRobot.ice")
 import RoboCompDifferentialRobot
-Ice.loadSlice("-I ./src/ --all ./src/Follower.ice")
-import RoboCompFollower
 Ice.loadSlice("-I ./src/ --all ./src/GenericBase.ice")
 import RoboCompGenericBase
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
@@ -183,7 +181,6 @@ class People(list):
 
 setattr(RoboCompHumanCameraBody, "People", People)
 
-import followerI
 
 
 
@@ -288,7 +285,6 @@ class Subscribes:
 class Implements:
     def __init__(self, ice_connector, default_handler):
         self.ice_connector = ice_connector
-        self.follower = self.create_adapter("Follower", followerI.FollowerI(default_handler))
 
     def create_adapter(self, property_name, interface_handler):
         adapter = self.ice_connector.createObjectAdapter(property_name)

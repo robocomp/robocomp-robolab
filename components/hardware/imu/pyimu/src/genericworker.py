@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+#    Copyright (C) 2023 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -23,81 +23,40 @@ from PySide2 import QtWidgets, QtCore
 
 ROBOCOMP = ''
 try:
-	ROBOCOMP = os.environ['ROBOCOMP']
+    ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
-	ROBOCOMP = '/opt/robocomp'
+    print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+    ROBOCOMP = '/opt/robocomp'
 
-preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
-Ice.loadSlice(preStr+"CommonBehavior.ice")
+Ice.loadSlice("-I ./src/ --all ./src/CommonBehavior.ice")
 import RoboCompCommonBehavior
 
-additionalPathStr = ''
-icePaths = [ '/opt/robocomp/interfaces' ]
-try:
-	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
-	for p in SLICE_PATH:
-		icePaths.append(p)
-		additionalPathStr += ' -I' + p + ' '
-	icePaths.append('/opt/robocomp/interfaces')
-except:
-	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
-	pass
 
-ice_IMUPub = False
-for p in icePaths:
-	if os.path.isfile(p+'/IMUPub.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMUPub.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMUPub = True
-		break
-if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
-	sys.exit(-1)
-from RoboCompIMUPub import *
-ice_IMUPub = False
-for p in icePaths:
-	if os.path.isfile(p+'/IMUPub.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMUPub.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMUPub = True
-		break
-if not ice_IMUPub:
-	print 'Couln\'t load IMUPub'
-	sys.exit(-1)
-from RoboCompIMUPub import *
-
-
-from imuI import *
 
 
 class GenericWorker(QtCore.QObject):
 
-	kill = QtCore.Signal()
+    kill = QtCore.Signal()
 
-	def __init__(self, mprx):
-		super(GenericWorker, self).__init__()
+    def __init__(self, mprx):
+        super(GenericWorker, self).__init__()
 
+        self.imupub_proxy = mprx["IMUPub"]
 
-		self.imupub_proxy = mprx["IMUPubPub"]
-
-		
-		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-		self.Period = 30
-		self.timer = QtCore.QTimer(self)
+        self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
+        self.Period = 30
+        self.timer = QtCore.QTimer(self)
 
 
-	@QtCore.Slot()
-	def killYourSelf(self):
-		rDebug("Killing myself")
-		self.kill.emit()
+    @QtCore.Slot()
+    def killYourSelf(self):
+        rDebug("Killing myself")
+        self.kill.emit()
 
-	# \brief Change compute period
-	# @param per Period in ms
-	@QtCore.Slot(int)
-	def setPeriod(self, p):
-		print "Period changed", p
-		Period = p
-		timer.start(Period)
+    # \brief Change compute period
+    # @param per Period in ms
+    @QtCore.Slot(int)
+    def setPeriod(self, p):
+        print("Period changed", p)
+        self.Period = p
+        self.timer.start(self.Period)

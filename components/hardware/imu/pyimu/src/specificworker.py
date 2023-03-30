@@ -18,6 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 from PySide2.QtCore import QTimer
 from PySide2.QtWidgets import QApplication
 from rich.console import Console
@@ -38,12 +39,12 @@ console = Console(highlight=False)
 
 
 class SpecificWorker(GenericWorker):
-	def __init__(self, proxy_map,startup_check=False):
+	def __init__(self, proxy_map, startup_check=False):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
 		self.imu = ifaces.RoboCompIMU.DataImu()
-		self.Period = 40
-		self.t1 = time.time()
+		self.Period = 20
+		#self.t1 = time.time()
 		if startup_check:
 			self.startup_check()
 		else:
@@ -66,7 +67,6 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print ('SpecificWorker.compute...')
 		try:
 			# format read`s (Yaw, Roll, Pich, XAcc, YAcc, ZAcc, XGyr, YGyr, ZGyr, XMag, YMag, ZMag, "comp", angle)
 			line = self.puerto.readline()
@@ -79,11 +79,12 @@ class SpecificWorker(GenericWorker):
 				self.imu.acc.YAcc = float(values[4])
 				self.imu.acc.ZAcc = float(values[5])
 
-				print ("Data imu: \n second:",time.time()-self.t1, self.imu)
+				#print ("Data imu: \n second:",time.time()-self.t1)
+				#print(self.imu)
 				self.imupub_proxy.publish(self.imu)
-				self.t1 = time.time()
+				#self.t1 = time.time()
 			
-		except Ice.Exception as e:
+		except Exception as e:
 			traceback.print_exc()
 			print(e)
 		return True
@@ -101,43 +102,40 @@ class SpecificWorker(GenericWorker):
 		test = ifaces.RoboCompIMU.DataImu()
 		QTimer.singleShot(200, QApplication.instance().quit)
 
-# IMU implementation
+    # =============== Methods for Component Implements ==================
+    # ===================================================================
 
-	# resetImu
-	#
-	def resetImu(self):
-		print("ERROR: not implemented yet")
-
-	#
-	# getAngularVel
-	#
-	def getAngularVel(self):
-		return self.imu.gyro
-
-	#
-	# getOrientation
-	#
-	def getOrientation(self):
-		return self.imu.rot
-
-	#
-	# getDataImu
-	#
-	def getDataImu(self):
-		return self.imu
-
-	#
-	# getMagneticFields
-	#
-	def getMagneticFields(self):
-		return self.imu.mag
-
-	#
-	# getAcceleration
-	#
-	def getAcceleration(self):
+    #
+    # IMPLEMENTATION of getAcceleration method from IMU interface
+    #
+	def IMU_getAcceleration(self):
 		return self.imu.acc
-
+    #
+    # IMPLEMENTATION of getAngularVel method from IMU interface
+    #
+	def IMU_getAngularVel(self):
+		return self.imu.gyro
+    #
+    # IMPLEMENTATION of getDataImu method from IMU interface
+    #
+	def IMU_getDataImu(self):
+		return self.imu
+    #
+    # IMPLEMENTATION of getMagneticFields method from IMU interface
+    #
+	def IMU_getMagneticFields(self):
+		return self.imu.mag
+    #
+    # IMPLEMENTATION of getOrientation method from IMU interface
+    #
+	def IMU_getOrientation(self):
+		return self.imu.rot
+    #
+    # IMPLEMENTATION of resetImu method from IMU interface
+    #
+	def IMU_resetImu(self):
+		print("No implementado")
+		pass
     # ===================================================================
     # ===================================================================
 

@@ -23,7 +23,7 @@ while True:
 	#print('Linear acceleration (m/s^2): {}'.format(sensor.linear_acceleration))
 	#print('Gravity (m/s^2): {}'.format(sensor.gravity))
     angle = (math.atan2(YMag, XMag) - 0.01989675)*180/math.pi
-    print (Yaw, Roll, Pich, XAcc, YAcc, ZAcc, XGyr, YGyr, ZGyr, XMag, YMag, ZMag, "comp", angle)
+    print (Yaw, Roll, Pich, XAcc, YAcc, ZAcc, XGyr, YGyr, ZGyr, XMag, YMag, ZMag, "comp", angle, flush=True)
     
     
     

@@ -4,7 +4,7 @@ IMU.Endpoints=tcp -p 10020
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 
-device=/dev/ttyACM1
+device=/dev/ttyACM0
 
 
 Ice.Warn.Connections=0

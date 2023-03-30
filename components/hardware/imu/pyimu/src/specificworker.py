@@ -42,7 +42,8 @@ class SpecificWorker(GenericWorker):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
 		self.imu = ifaces.RoboCompIMU.DataImu()
-		self.Period = 500
+		self.Period = 40
+		self.t1 = time.time()
 		if startup_check:
 			self.startup_check()
 		else:
@@ -52,6 +53,7 @@ class SpecificWorker(GenericWorker):
 
 	def __del__(self):
 		"""Destructor"""
+		self.puerto.close()
 
 	def setParams(self, params):
 		try:
@@ -66,15 +68,20 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		print ('SpecificWorker.compute...')
 		try:
+			# format read`s (Yaw, Roll, Pich, XAcc, YAcc, ZAcc, XGyr, YGyr, ZGyr, XMag, YMag, ZMag, "comp", angle)
 			line = self.puerto.readline()
 			values = line.strip().split(' ')
-			print(values)
-			if len(values)>3:
-				self.imu.rot.Yaw = float(values[0])
-				self.imu.rot.Roll = float(values[1])
-				self.imu.rot.Pitch = float(values[2])
-				print ("Data(y,r,p):", self.imu.rot.Yaw, self.imu.rot.Roll, self.imu.rot.Pitch)
+			if len(values) == 14:
+				#self.imu.rot.Yaw = float(values[0])
+				#self.imu.rot.Roll = float(values[1])
+				#self.imu.rot.Pitch = float(values[2])
+				self.imu.acc.XAcc = float(values[3])
+				self.imu.acc.YAcc = float(values[4])
+				self.imu.acc.ZAcc = float(values[5])
+
+				print ("Data imu: \n second:",time.time()-self.t1, self.imu)
 				self.imupub_proxy.publish(self.imu)
+				self.t1 = time.time()
 			
 		except Ice.Exception as e:
 			traceback.print_exc()
@@ -96,43 +103,40 @@ class SpecificWorker(GenericWorker):
 
 # IMU implementation
 
-		# resetImu
-		#
-		def resetImu(self):
-				print("ERROR: not implemented yet")
+	# resetImu
+	#
+	def resetImu(self):
+		print("ERROR: not implemented yet")
 
-		#
-		# getAngularVel
-		#
-		def getAngularVel(self):
-				ret = Gyroscope()
-				return ret
+	#
+	# getAngularVel
+	#
+	def getAngularVel(self):
+		return self.imu.gyro
 
-		#
-		# getOrientation
-		#
-		def getOrientation(self):
-				ret = Orientation()
-				return ret
+	#
+	# getOrientation
+	#
+	def getOrientation(self):
+		return self.imu.rot
 
-		#
-		# getDataImu
-		#
-		def getDataImu(self):
-				return self.imu
+	#
+	# getDataImu
+	#
+	def getDataImu(self):
+		return self.imu
 
-		#
-		# getMagneticFields
-		#
-		def getMagneticFields(self):
-				ret = Magnetic()
-				return ret
+	#
+	# getMagneticFields
+	#
+	def getMagneticFields(self):
+		return self.imu.mag
 
-		#
-		# getAcceleration
-		#
-		def getAcceleration(self):
-				ret = Acceleration()
+	#
+	# getAcceleration
+	#
+	def getAcceleration(self):
+		return self.imu.acc
 
     # ===================================================================
     # ===================================================================

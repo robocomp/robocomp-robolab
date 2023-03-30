@@ -14,7 +14,7 @@ sensor = adafruit_bno055.BNO055(i2c)
 
 while True:
     Temperature = sensor.temperature
-    XAcc, YAcc, ZAcc = sensor.accelerometer
+    XAcc, YAcc, ZAcc = sensor.linear_acceleration
     XMag, YMag, ZMag = sensor.magnetometer
     XGyr, YGyr, ZGyr = sensor.gyroscope
     Yaw, Roll, Pich = sensor.euler
@@ -23,7 +23,7 @@ while True:
 	#print('Linear acceleration (m/s^2): {}'.format(sensor.linear_acceleration))
 	#print('Gravity (m/s^2): {}'.format(sensor.gravity))
     angle = (math.atan2(YMag, XMag) - 0.01989675)*180/math.pi
-    print (Yaw, Roll, Pich, XMag, YMag, ZMag, "comp", angle)
+    print (Yaw, Roll, Pich, XAcc, YAcc, ZAcc, XGyr, YGyr, ZGyr, XMag, YMag, ZMag, "comp", angle)
     
     
     
@@ -42,4 +42,4 @@ while True:
 #    print (Roll)
 #    print (Pich)    
     #print (Temperature)    
-    time.sleep(0.5)
+    time.sleep(0.004)

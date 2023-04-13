@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+import "SemanticSegmentation.idsl";
+
+Component Semantic_Segmentation
+{
+    Communications
+    {
+        implements SemanticSegmentation;
+        requires CameraRGBDSimple;
+    };
+    language python;
+};
+

@@ -1,0 +1,17 @@
+# Endpoints for implements interfaces
+BatteryStatus.Endpoints=tcp -p 14498
+
+
+serialPort=/dev/ttyUSB0
+vMaxCharging = 54.0
+vMax = 52.6
+vMin = 45.0
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

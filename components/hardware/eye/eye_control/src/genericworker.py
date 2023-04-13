@@ -58,10 +58,8 @@ class GenericWorker(QtWidgets.QWidget):
         self.show()
 
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-        self.Period_camera = 70
-        self.Period_base = 1000
-        self.timer_camera = QtCore.QTimer(self)
-        self.timer_base = QtCore.QTimer(self)
+        self.Period = 30
+        self.timer = QtCore.QTimer(self)
 
 
     @QtCore.Slot()

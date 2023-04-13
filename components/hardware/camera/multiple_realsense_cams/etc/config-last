@@ -1,0 +1,34 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+LaserProxy = laser:tcp -h localhost -p 9995
+agent_id = 21 # Change id
+agent_name = agent_three_cameras
+tree_view = false
+graph_view = true
+2d_view = false
+3d_view = false
+
+serial_center = 114122250668
+serial_left = 105322252279
+serial_right = 049522250171
+display_depth = false
+display_rgb = false
+display_laser = false
+compressed = true
+view = true
+
+max_up_height = -0,15 #0.4  # meters #Cielo
+max_down_height = 1,4 #0.1 #Suelo
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
+
+#Ice.MessageSizeMax=20004800
+
+InnerModelPath = innermodel.xml
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+

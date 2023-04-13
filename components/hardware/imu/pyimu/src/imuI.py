@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 by YOUR NAME HERE
+#    Copyright (C) 2023 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -21,68 +21,37 @@ import sys, os, Ice
 
 ROBOCOMP = ''
 try:
-	ROBOCOMP = os.environ['ROBOCOMP']
+    ROBOCOMP = os.environ['ROBOCOMP']
 except:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
-	ROBOCOMP = '/opt/robocomp'
+    print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+    ROBOCOMP = '/opt/robocomp'
 if len(ROBOCOMP)<1:
-	print 'ROBOCOMP environment variable not set! Exiting.'
-	sys.exit()
+    raise RuntimeError('ROBOCOMP environment variable not set! Exiting.')
 
-additionalPathStr = ''
-icePaths = []
-try:
-	icePaths.append('/opt/robocomp/interfaces')
-	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
-	for p in SLICE_PATH:
-		icePaths.append(p)
-		additionalPathStr += ' -I' + p + ' '
-except:
-	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
-	pass
 
-ice_IMU = False
-for p in icePaths:
-	print 'Trying', p, 'to load IMU.ice'
-	if os.path.isfile(p+'/IMU.ice'):
-		print 'Using', p, 'to load IMU.ice'
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMU.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMU = True
-		break
-if not ice_IMU:
-	print 'Couldn\'t load IMU'
-	sys.exit(-1)
+Ice.loadSlice("-I ./src/ --all ./src/IMU.ice")
+
 from RoboCompIMU import *
-ice_IMUPub = False
-for p in icePaths:
-	print 'Trying', p, 'to load IMUPub.ice'
-	if os.path.isfile(p+'/IMUPub.ice'):
-		print 'Using', p, 'to load IMUPub.ice'
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"IMUPub.ice"
-		Ice.loadSlice(wholeStr)
-		ice_IMUPub = True
-		break
-if not ice_IMUPub:
-	print 'Couldn\'t load IMUPub'
-	sys.exit(-1)
-from RoboCompIMUPub import *
 
 class IMUI(IMU):
-	def __init__(self, worker):
-		self.worker = worker
+    def __init__(self, worker):
+        self.worker = worker
 
-	def resetImu(self, c):
-		return self.worker.resetImu()
-	def getAngularVel(self, c):
-		return self.worker.getAngularVel()
-	def getOrientation(self, c):
-		return self.worker.getOrientation()
-	def getDataImu(self, c):
-		return self.worker.getDataImu()
-	def getMagneticFields(self, c):
-		return self.worker.getMagneticFields()
-	def getAcceleration(self, c):
-		return self.worker.getAcceleration()
+
+    def getAcceleration(self, c):
+        return self.worker.IMU_getAcceleration()
+
+    def getAngularVel(self, c):
+        return self.worker.IMU_getAngularVel()
+
+    def getDataImu(self, c):
+        return self.worker.IMU_getDataImu()
+
+    def getMagneticFields(self, c):
+        return self.worker.IMU_getMagneticFields()
+
+    def getOrientation(self, c):
+        return self.worker.IMU_getOrientation()
+
+    def resetImu(self, c):
+        return self.worker.IMU_resetImu()

@@ -3,4 +3,4 @@ PROJECT(  eye_control )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple DifferentialRobot Follower GenericBase HumanCameraBody JointMotorSimple SoundRotation )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple DifferentialRobot GenericBase HumanCameraBody JointMotorSimple SoundRotation )

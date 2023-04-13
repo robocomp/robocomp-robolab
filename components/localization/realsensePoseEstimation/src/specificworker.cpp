@@ -42,6 +42,7 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+    qInfo() << "ASDF";
 	num_cameras = std::stoi(params["num_cameras"].value);
 	print_output = (params["print"].value == "true") or (params["print"].value == "True");
     float rx, ry, rz, tx, ty, tz;
@@ -296,6 +297,10 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
     ret.rx = addAng180(ang.x(),initAngles.x());
     ret.ry = addAng180(ang.y(),initAngles.y());
     ret.rz = addAng180(ang.z(),initAngles.z());
+    act_rotation_pose = ret.rz;
+    qInfo() << "ACT ROTATION POSE" << act_rotation_pose;
+    qInfo() << "INIT ROTATION" << init_rotation;
+    ret.rz -= init_rotation;
     ret.confidence = sigmaAcu;
 
     if(print_output)
@@ -350,7 +355,7 @@ void SpecificWorker::FullPoseEstimation_setInitialPose(float x, float y, float z
     initAngles.x() = rx;
 	initAngles.y() = ry;
 	initAngles.z() = rz;
-
+    init_rotation = act_rotation_pose;
     ///Matriz de origen
     this->origen_robot=Eigen::Translation3f(Eigen::Vector3f(x/1000,y/1000,z/1000));
     this->origen_robot.rotate(Eigen::AngleAxisf (initAngles.x(), Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (initAngles.y(), Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(initAngles.z(), Eigen::Vector3f::UnitZ()));

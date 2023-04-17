@@ -32,6 +32,7 @@ from transformers import AutoImageProcessor, Mask2FormerForUniversalSegmentation
 import time
 import cv2
 import numpy as np
+import itertools
 
 console = Console(highlight=False)
 
@@ -49,7 +50,7 @@ class SpecificWorker(GenericWorker):
             self.z = z_
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 15
+        self.Period = 100
         if startup_check:
             self.startup_check()
         else:
@@ -296,6 +297,11 @@ class SpecificWorker(GenericWorker):
             self.winname = "Path Concept"
             cv2.namedWindow(self.winname)
 
+            self.segmented_img = None
+            self.instance_img = None
+            self.mask_image = None
+            self.rois = None
+
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
@@ -332,21 +338,20 @@ class SpecificWorker(GenericWorker):
             # masks_queries_logits = outputs.masks_queries_logits
 
             # you can pass them to processor for postprocessing
-            segmented_img = self.processor.post_process_semantic_segmentation(outputs, target_sizes=[im_pil.size[::-1]])[
+            self.segmented_img = self.processor.post_process_semantic_segmentation(outputs, target_sizes=[im_pil.size[::-1]])[
                 0].cpu()
-            instance_img = self.processor.post_process_instance_segmentation(outputs)[0]
-            mask = self.create_mask(segmented_img)
-            rois = self.extract_roi_instances(instance_img, depth_frame, rgbd.depth.focalx, rgbd.depth.focaly)
+            self.instance_img = self.processor.post_process_instance_segmentation(outputs)[0]
+            self.mask_image = self.create_mask(self.segmented_img)
+            self.rois = self.extract_roi_instances(self.instance_img, depth_frame, rgbd.depth.focalx, rgbd.depth.focaly)
 
             #self.objects_write, self.objects_read = self.objects_read, self.objects_write
-            frame = self.draw_semantic_segmentation(self.winname, rgb_frame, segmented_img, rois)
-            cv2.imshow(self.winname, frame)
-            cv2.waitKey(2)
+            #frame = self.draw_semantic_segmentation(self.winname, rgb_frame, self.segmented_img, self.rois)
+            #cv2.imshow(self.winname, frame)
+            #cv2.waitKey(2)
 
         except:
             print("Error communicating with CameraRGBDSimple")
             traceback.print_exc()
-
 
         print("Elapsed:", int((time.time() - now)*1000), " msecs")
 
@@ -376,13 +381,7 @@ class SpecificWorker(GenericWorker):
         mask = np.zeros((seg.shape[0], seg.shape[1], 1), dtype=np.uint8)  # height, width, 3
         #mask[(seg == 3) | (seg == 91) | (seg == 52), :] = 255
         mask[(seg == 3), :] = 255
-
-        # labels_ids = torch.unique(seg).tolist()
-        # for label_id in labels_ids:
-        #     label = self.model.config.id2label[label_id]
-        #     print(label, label_id)
         return mask
-
 
     def extract_roi_instances(self, instance_img, depth, dfocalx, dfocaly):
         inst = instance_img['segments_info']
@@ -415,15 +414,15 @@ class SpecificWorker(GenericWorker):
             box_depth = np.min(roi) * 1000
         else:
             box_depth = -1
-        y = box_depth
+        y = float(box_depth)
         cx_i = int(box[0] + box[2]/2)
         cy_i = int(box[1] + box[3]/2)
         cx = cx_i - depth.shape[1] / 2
         cy = cy_i - depth.shape[0] / 2
-        x = cx * depth / dfocalx
-        z = -cy * depth / dfocaly  # Z upwards
-
-        return self.TBox(id_, type_, box, 0.7, box_depth, x, y, z)
+        x = float(cx * box_depth / dfocalx)
+        z = float(-cy * box_depth / dfocaly)  # Z upwards
+        return ifaces.RoboCompSemanticSegmentation.TBox(id_, str(type_), box[0], box[1], box[2], box[3], 0.7, box_depth, x, y, z)
+        #return self.TBox(id_, type_, box, 0.7, box_depth, x, y, z)
     ##############################################################################################3
     def startup_check(self):
         print(f"Testing RoboCompCameraRGBDSimple.Point3D from ifaces.RoboCompCameraRGBDSimple")
@@ -440,50 +439,51 @@ class SpecificWorker(GenericWorker):
         test = ifaces.RoboCompSemanticSegmentation.TBox()
         QTimer.singleShot(200, QApplication.instance().quit)
 
-
-
     # =============== Methods for Component Implements ==================
     # ===================================================================
-
     #
     # IMPLEMENTATION of getInstances method from SemanticSegmentation interface
     #
     def SemanticSegmentation_getInstances(self):
-        ret = ifaces.RoboCompSemanticSegmentation.TObjects()
-        #
-        # write your CODE here
-        #
-        return ret
+        return self.rois
     #
     # IMPLEMENTATION of getInstancesImage method from SemanticSegmentation interface
     #
     def SemanticSegmentation_getInstancesImage(self):
-        ret = RoboCompSemanticSegmentation.RoboCompCameraRGBDSimple.TImage()
-        #
-        # write your CODE here
-        #
-        return ret
+        img = ifaces.RoboCompCameraSimple.TImage()
+        img.image = self.instance_img
+        img.height, img.width = self.instance_img.shape
+        img.depth = 1
+        return img
     #
     # IMPLEMENTATION of getNamesofCategories method from SemanticSegmentation interface
     #
     def SemanticSegmentation_getNamesofCategories(self):
-        ret = ifaces.RoboCompSemanticSegmentation.TNames()
-        #
-        # write your CODE here
-        #
-        return ret
+        return self.labels
     #
     # IMPLEMENTATION of getSegmentedImage method from SemanticSegmentation interface
     #
     def SemanticSegmentation_getSegmentedImage(self):
-        ret = RoboCompSemanticSegmentation.RoboCompCameraRGBDSimple.TImage()
-        #
-        # write your CODE here
-        #
-        return ret
-    # ===================================================================
-    # ===================================================================
+        if self.segmented_img is not None:
+            img = ifaces.RoboCompCameraSimple.TImage()
+            img.image = bytes(list(itertools.chain(*self.segmented_img.tolist())))
+            img.height, img.width = self.segmented_img.shape
+            img.depth = 1
+            return img
+        else:
+            print("Segmented image is None")
+            return ifaces.RoboCompCameraSimple.TImage()
 
+    def SemanticSegmentation_getMaskedImage(self, category):
+        if self.mask_image is not None:
+            img = ifaces.RoboCompCameraSimple.TImage()
+            img.image = self.mask_image
+            img.height, img.width, img.depth = self.mask_image.shape
+            return img
+        else:
+            return ifaces.RoboCompCameraSimple.TImage()
+    # ===================================================================
+    # ===================================================================
 
     ######################
     # From the RoboCompCameraRGBDSimple you can call this methods:

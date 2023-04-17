@@ -44,6 +44,9 @@ class SemanticSegmentationI(SemanticSegmentation):
     def getInstancesImage(self, c):
         return self.worker.SemanticSegmentation_getInstancesImage()
 
+    def getMaskedImage(self, categ, c):
+        return self.worker.SemanticSegmentation_getMaskedImage(categ)
+
     def getNamesofCategories(self, c):
         return self.worker.SemanticSegmentation_getNamesofCategories()
 

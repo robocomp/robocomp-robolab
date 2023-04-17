@@ -7,6 +7,8 @@ console = Console()
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/CameraSimple.ice")
+import RoboCompCameraSimple
 Ice.loadSlice("-I ./src/ --all ./src/SemanticSegmentation.ice")
 import RoboCompSemanticSegmentation
 
@@ -64,6 +66,24 @@ class PointsType(list):
         super(PointsType, self).insert(index, item)
 
 setattr(RoboCompCameraRGBDSimple, "PointsType", PointsType)
+class ImgType(list):
+    def __init__(self, iterable=list()):
+        super(ImgType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(ImgType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).insert(index, item)
+
+setattr(RoboCompCameraSimple, "ImgType", ImgType)
 class TObjects(list):
     def __init__(self, iterable=list()):
         super(TObjects, self).__init__(iterable)
@@ -82,24 +102,6 @@ class TObjects(list):
         super(TObjects, self).insert(index, item)
 
 setattr(RoboCompSemanticSegmentation, "TObjects", TObjects)
-class TNames(list):
-    def __init__(self, iterable=list()):
-        super(TNames, self).__init__(iterable)
-
-    def append(self, item):
-        assert isinstance(item, str)
-        super(TNames, self).append(item)
-
-    def extend(self, iterable):
-        for item in iterable:
-            assert isinstance(item, str)
-        super(TNames, self).extend(iterable)
-
-    def insert(self, index, item):
-        assert isinstance(item, str)
-        super(TNames, self).insert(index, item)
-
-setattr(RoboCompSemanticSegmentation, "TNames", TNames)
 
 import semanticsegmentationI
 

@@ -1,0 +1,12 @@
+import "Lidar3D.idsl";
+
+Component lidar3dviewer
+{
+    Communications
+    {
+        requires Lidar3D;
+    };
+    language Cpp11;
+    gui Qt(QWidget);
+};
+

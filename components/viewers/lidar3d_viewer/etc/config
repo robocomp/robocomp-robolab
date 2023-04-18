@@ -1,0 +1,9 @@
+CommonBehavior.Endpoints=tcp -p 11985
+
+# Proxies for required interfaces
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11987
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

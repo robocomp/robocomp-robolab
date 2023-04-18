@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.10)
+
+IF ( NOT DEFINED $ENV{ROBOCOMP})
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /home/robocomp/robocomp")
+  SET (ENV{ROBOCOMP} "/home/robocomp/robocomp")
+ENDIF ( NOT DEFINED $ENV{ROBOCOMP})
+
+IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+  MESSAGE(FATAL_ERROR "Couldn't find RoboComp in $ENV{ROBOCOMP}! Exiting...")
+ENDIF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
+
+INCLUDE( $ENV{ROBOCOMP}/cmake/robocomp.cmake )
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/qt.cmake )
+INCLUDE ( CMakeListsSpecific.txt)
+
+# Sources set
+SET ( SOURCES
+  ${SOURCES}
+  $ENV{ROBOCOMP}/classes/rapplication/rapplication.cpp
+  $ENV{ROBOCOMP}/classes/sigwatch/sigwatch.cpp
+  $ENV{ROBOCOMP}/classes/qlog/qlog.cpp
+  main.cpp
+  genericmonitor.cpp
+  commonbehaviorI.cpp
+  genericworker.cpp
+)
+
+
+
+ADD_DEFINITIONS ("-DICE_CPP11_MAPPING")
+FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
+
+
+#ROBOCOMP
+ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior Lidar3D)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior Lidar3D)
+SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
+
+QT_WRAP_UI( UI_HEADERS mainUI.ui )
+
+# no-char8_t to avoid a problem with ICE Connection lib.
+#add_definitions(-g  -fmax-errors=1 -fno-char8_t)
+
+# Specify construction and link process
+ADD_EXECUTABLE( lidar3dviewer ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
+TARGET_LINK_LIBRARIES( lidar3dviewer ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS} ${QT_LIBRARIES} ${Ice_LIBRARIES})
+SET_TARGET_PROPERTIES(lidar3dviewer
+        PROPERTIES
+        CXX_STANDARD 20
+        )
+INSTALL(FILES ${EXECUTABLE_OUTPUT_PATH}/lidar3dviewer DESTINATION ${RC_COMPONENT_INSTALL_PATH}/bin/ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )

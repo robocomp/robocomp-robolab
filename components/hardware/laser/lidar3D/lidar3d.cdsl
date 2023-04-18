@@ -1,0 +1,11 @@
+import "Lidar3D.idsl";
+
+Component Lidar3D
+{
+    Communications
+    {
+        implements Lidar3D;
+    };
+    language Cpp11;
+};
+

@@ -45,13 +45,12 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     //	THE FOLLOWING IS JUST AN EXAMPLE
     //	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-    //	try
-    //	{
-    //		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-    //		std::string innermodel_path = par.value;
-    //		innerModel = std::make_shared(innermodel_path);
-    //	}
-    //	catch(const std::exception &e) { qFatal("Error reading config params"); }
+    	try
+    	{
+    		RoboCompCommonBehavior::Parameter par = params.at("IPpc");
+    		this->IP = par.value;
+    	}
+    	catch(const std::exception &e) { qFatal("Error reading config params"); }
 	return true;
 }
 
@@ -66,7 +65,7 @@ void SpecificWorker::initialize(int period)
 	else
 	{
 		param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
-		param.input_param.host_address = "192.168.1.101"; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
+		param.input_param.host_address = "192.168.1.100"; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
 		//param.input_param.group_address = "192.168.1.200";
 		param.input_param.msop_port = 6699;   ///< Set the lidar msop port number, the default is 6699
 		param.input_param.difop_port = 7788;  ///< Set the lidar difop port number, the default is 7788

@@ -24,6 +24,8 @@ SET ( SOURCES
   genericmonitor.cpp
   commonbehaviorI.cpp
   genericworker.cpp
+  camerargbdsimpleI.cpp
+  laserI.cpp
 )
 
 

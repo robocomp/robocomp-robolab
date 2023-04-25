@@ -1,10 +1,13 @@
 import "LaserPub.idsl";
 import "CameraRGBDSimplePub.idsl";
+import "Laser.idsl";
+import "CameraRGBDSimple.idsl";
 
 Component multiple_cameras
 {
     Communications
     {
+        implements CameraRGBDSimple, Laser;
     	publishes CameraRGBDSimplePub, LaserPub;
     };
     language Cpp11;

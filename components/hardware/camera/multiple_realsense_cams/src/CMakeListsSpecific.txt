@@ -12,8 +12,7 @@ SET ( HEADERS
 )
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
-
-add_definitions(-g  -fmax-errors=1 -std=c++2a -fno-char8_t -O3 -march=native -fmax-errors=5 )
-SET (LIBS ${LIBS}   dsr_core dsr_gui dsr_api fastcdr fastrtps osgDB OpenThreads Eigen3::Eigen realsense2)
+add_definitions(-O3  -fmax-errors=1 -std=c++2a -fno-char8_t -march=native -fmax-errors=5 )
+SET (LIBS ${LIBS}  OpenThreads Eigen3::Eigen realsense2)
 
 

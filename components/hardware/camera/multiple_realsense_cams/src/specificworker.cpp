@@ -25,10 +25,7 @@
 SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
 	this->startup_check_flag = startup_check;
-	// Uncomment if there's too many debug messages
-	// but it removes the possibility to see the messages
-	// shown in the console with qDebug()
-//	QLoggingCategory::setFilterRules("*.debug=false\n");
+    //QLoggingCategory::setFilterRules("*.debug=false\n");
 }
 
 /**
@@ -48,21 +45,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     display_rgb = (params["display_rgb"].value == "true") or (params["display_rgb"].value == "True");
     display_laser = (params["display_laser"].value == "true") or (params["display_laser"].value == "True");
     compressed = (params["compressed"].value == "true") or (params["compressed"].value == "True");
-    view = (params["view"].value == "true") or (params["view"].value == "True");
+    publish = (params["publish"].value == "true") or (params["publish"].value == "True");
     consts.max_up_height = std::stof(params.at("max_up_height").value);
     consts.max_down_height = std::stof(params.at("max_down_height").value);
-
-//    agent_name = params["agent_name"].value;
-//    agent_id = stoi(params["agent_id"].value);
-//    tree_view = params["tree_view"].value == "true";
-//    graph_view = params["graph_view"].value == "true";
-//    qscene_2d_view = params["2d_view"].value == "true";
-//    osg_3d_view = params["3d_view"].value == "true";
-
-
-
-
-
 
 	return true;
 }
@@ -77,41 +62,39 @@ void SpecificWorker::initialize(int period)
 	}
 	else
 	{
-		timer.start(Period);
-	}
-	   compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params_image.push_back(75);
-    compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params_depth.push_back(75);
+        compression_params_image.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params_image.push_back(75);
+        compression_params_depth.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params_depth.push_back(75);
 
-    int fps_depth = 60;
-    int fps_color = 30;
-    // center camera
-    try
-    {
-        std::cout << "serial_center" << serial_center;
-        cfg_center.enable_device(serial_center);
-        cfg_center.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, fps_depth);
-        cfg_center.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
-        rs2::pipeline center_pipe;
-        rs2::pipeline_profile profile_center = center_pipe.start(cfg_center);
-        center_depth_intr = center_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> center_tr(0., 0.,  -0.020);
-        Eigen::Matrix3f center_m;
-        center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
-                   * Eigen::AngleAxisf(0.244346, Eigen::Vector3f::UnitY())  //60 degrees
-                   * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
-        Eigen::Transform<float, 3, Eigen::Affine> center_depth_extrinsics;;
-        center_depth_extrinsics = center_tr;
-        center_depth_extrinsics.rotate(center_m);
-        cam_map[serial_center] = std::make_tuple(center_pipe, center_depth_intr, center_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
-        print_camera_params(serial_center, profile_center);
-        qInfo() << __FUNCTION__ << " center-camera started";
-    }
-    catch(const std::exception &e)
-    { std::cout << e.what()<< " Serial number:" << serial_center << std::endl; std::terminate();}
+        int fps_depth = 30;
+        int fps_color = 30;
+        // center camera
+        try
+        {
+            std::cout << "Opening center camera " << serial_center;
+            cfg_center.enable_device(serial_center);
+            cfg_center.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, fps_depth);
+            cfg_center.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
+            rs2::pipeline center_pipe;
+            rs2::pipeline_profile profile_center = center_pipe.start(cfg_center);
+            center_depth_intr = center_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+            Eigen::Translation<float, 3> center_tr(0., 0.,  -0.020);
+            Eigen::Matrix3f center_m;
+            center_m = Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitX())
+                       * Eigen::AngleAxisf(0.244346, Eigen::Vector3f::UnitY())  //60 degrees
+                       * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
+            Eigen::Transform<float, 3, Eigen::Affine> center_depth_extrinsics;;
+            center_depth_extrinsics = center_tr;
+            center_depth_extrinsics.rotate(center_m);
+            cam_map[serial_center] = std::make_tuple(center_pipe, center_depth_intr, center_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
+            print_camera_params(serial_center, profile_center);
+            qInfo() << __FUNCTION__ << " center-camera started";
+        }
+        catch(const std::exception &e)
+        { std::cout << e.what()<< " Serial number:" << serial_center << std::endl; std::terminate();}
 
-    // right camera
+        // right camera
 //    try
 //    {
 //        cfg_right.enable_device(serial_right);
@@ -138,79 +121,101 @@ void SpecificWorker::initialize(int period)
 //    catch(const std::exception &e)
 //    { std::cout << e.what()<< " Serial number:" << serial_right << std::endl; std::terminate();}
 
-    // left camera
-    try
-    {
-        cfg_left.enable_device(serial_left);
-        cfg_left.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, fps_depth);
-        cfg_left.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
-        rs2::pipeline left_pipe;
-        rs2::pipeline_profile profile_left = left_pipe.start(cfg_left);
-        left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-        Eigen::Translation<float, 3> left_tr(0, 0.020, 0.0);
-        // Eigen::Translation<float, 3> left_tr(-0.0963, 0., 0.0578);
-        Eigen::Matrix3f left_m;
-        left_m = Eigen::AngleAxisf(-M_PI/3., Eigen::Vector3f::UnitX())
-                 * Eigen::AngleAxisf(0.244346, Eigen::Vector3f::UnitY())  //60 degrees
-                 * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
-        Eigen::Transform<float, 3, Eigen::Affine> left_depth_extrinsics;;
-        left_depth_extrinsics = left_tr;
-        left_depth_extrinsics.rotate(left_m);
-        cam_map[serial_left] = std::make_tuple(left_pipe, left_depth_intr, left_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
+        // left camera
+        try
+        {
+            std::cout << "Opening right camera " << serial_left;
+            cfg_left.enable_device(serial_left);
+            cfg_left.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, fps_depth);
+            cfg_left.enable_stream(RS2_STREAM_COLOR, consts.width, consts.height, RS2_FORMAT_BGR8, fps_color);
+            rs2::pipeline left_pipe;
+            rs2::pipeline_profile profile_left = left_pipe.start(cfg_left);
+            left_depth_intr = left_pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+            Eigen::Translation<float, 3> left_tr(0, 0.020, 0.0);
+            // Eigen::Translation<float, 3> left_tr(-0.0963, 0., 0.0578);
+            Eigen::Matrix3f left_m;
+            left_m = Eigen::AngleAxisf(-M_PI/3., Eigen::Vector3f::UnitX())
+                     * Eigen::AngleAxisf(0.244346, Eigen::Vector3f::UnitY())  //60 degrees
+                     * Eigen::AngleAxisf(0.0, Eigen::Vector3f::UnitZ());
+            Eigen::Transform<float, 3, Eigen::Affine> left_depth_extrinsics;;
+            left_depth_extrinsics = left_tr;
+            left_depth_extrinsics.rotate(left_m);
+            cam_map[serial_left] = std::make_tuple(left_pipe, left_depth_intr, left_depth_extrinsics, rs2::frame(), rs2::points(), rs2::frame());
 //        print_camera_params(serial_left, profile_left);
-        qInfo() << __FUNCTION__ << " left-camera started";
-    }
-    catch(const std::exception &e)
-   { std::cout << e.what()<< " Serial number:" << serial_left << std::endl; std::terminate();}
+            qInfo() << __FUNCTION__ << " left-camera started";
+        }
+        catch(const std::exception &e)
+        { std::cout << e.what()<< " Serial number:" << serial_left << std::endl; std::terminate();}
 
-    // Filters
-    rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 8, error);
-    filters.emplace_back("Decimate", dec_filter);
-    filters.emplace_back("Spatial", spat_filter);
-    filters.emplace_back("Temporal", temp_filter);
-    filters.emplace_back("HFilling", holef_filter);
+        // Filters
+        rs2_set_option(dec_filter, RS2_OPTION_FILTER_MAGNITUDE, 8, error);
+        filters.emplace_back("Decimate", dec_filter);
+        filters.emplace_back("Spatial", spat_filter);
+        filters.emplace_back("Temporal", temp_filter);
+        filters.emplace_back("HFilling", holef_filter);
 
-    //compression params
-    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(50);
+        //compression params
+        compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(50);
+
+        timer.start(33);
+	}
 
     //PATH LOADING
 }
 
 void SpecificWorker::compute()
 {
-
-
     auto &cam_map_extended = read_and_filter(cam_map);   // USE OPTIONAL
+    auto ldata_local = compute_laser(cam_map_extended);
+    auto virtual_frame = mosaic(cam_map_extended);
 
-     auto ldata_local = compute_laser(cam_map_extended);
+    if(display_rgb)
+    {
+        cv::imshow("Dual Camera", virtual_frame),
+        cv::waitKey(1);
+    }
 
-    auto &&[v_f] = mosaic(cam_map_extended);
+    RoboCompCameraRGBDSimple::TImage im;
+    im.width = virtual_frame.cols; im.height = virtual_frame.rows;
+    if(compressed)
+    {
+        cv::imencode(".jpg", virtual_frame, buffer, compression_params);
+        im.image = buffer;
+        im.compressed = true;
+     }
+     else
+     {
+        int img_size = virtual_frame.rows*virtual_frame.cols*3;  // TODO: cambiar
+        im.image.resize(img_size);
+        memcpy(&im.image[0], virtual_frame.data, img_size);
+        im.compressed = false;
+     }
+    RoboCompCameraRGBDSimple::TDepth depth;
+//    depth.width = virtual_frame.cols; depth.height = virtual_frame.rows;  // CAMBIAR !!!!!!!!!!!!!!1
+//    int depth_size = virtual_frame.rows*virtual_frame.cols*sizeof(float);  // CAMBIAR !!!!!!!!!!!!!!1
+//
+//    depth.depth.resize(depth_size);
+//    memcpy(&depth.depth[0], virtual_frame_depth.data, depth_size);
+//    depth.compressed = false;
 
-
-    cv::imshow("ASDF", v_f),
-    cv::waitKey(1);
-
-    cv::imencode(".jpg", v_f, buffer, compression_params);
-
-    im.width = v_f.cols;
-    im.height = v_f.rows;
-
-    im.image = buffer;
-    this->camerargbdsimplepub_pubproxy->pushRGBD(im, dep);
-
-    this->laserpub_pubproxy->pushLaserData(ldata_local);
-	fps.print("FPS: ");
+    if(publish)
+    {
+        this->camerargbdsimplepub_pubproxy->pushRGBD(im, depth);
+        this->laserpub_pubproxy->pushLaserData(ldata_local);
+    }
+    // copy to output buffers
+    buffer_image.put(std::move(im));
+    buffer_depth.put(std::move(depth));
+    fps.print("FPS: ");
 }
 
-
-
+//////////////////////////////////////////////////////////////////////////////////////////
 SpecificWorker::Camera_Map& SpecificWorker::read_and_filter(Camera_Map &cam_map)
 {
     for (auto &[key, value] : cam_map)
     {
         //if(key != serial_center and key != serial_right) continue;
-
         auto &[my_pipe, intr, extr, depth_frame, points, color_frame] = value;
         rs2::frameset data = my_pipe.wait_for_frames();
         depth_frame = data.get_depth_frame(); // Find and colorize the depth dat
@@ -219,59 +224,45 @@ SpecificWorker::Camera_Map& SpecificWorker::read_and_filter(Camera_Map &cam_map)
         for (auto &&filter : filters)
             depth_frame = filter.filter.process(depth_frame);
 
-//         rgb_list[i] = data.get_color_frame(); // Find the color data
-        rs2::pointcloud pointcloud;
-       //pointcloud.map_to(color_frame);
-        points = pointcloud.calculate(depth_frame);
+//      rgb_list[i] = data.get_color_frame(); // Find the color data
+        //rs2::pointcloud pointcloud;
+        //pointcloud.map_to(color_frame);
+        //points = pointcloud.calculate(depth_frame);
     }
     return cam_map;
 }
 
-
 ////////////////// MOSAIC  WITHOUT PROCESSING //////////////////////////////////////////
-std::tuple<cv::Mat> SpecificWorker::mosaic(const Camera_Map &cam_map)
+cv::Mat SpecificWorker::mosaic(const Camera_Map &cam_map)
 {
     // virtual frame
-//    cv::Mat frame_virtual = cv::Mat::zeros(consts.width, consts.height*3, CV_8UC3);
-//    cv::Mat winLeftR = frame_virtual(cv::Rect(0,0,consts.height, consts.width));
-//    cv::Mat winCenterR = frame_virtual(cv::Rect(consts.height,0,consts.height, consts.width));
-//    cv::Mat winRightR = frame_virtual(cv::Rect(2*consts.height,0,consts.height,consts.width));
+    cv::Mat frame_virtual = cv::Mat::zeros(consts.width, consts.height*3, CV_8UC3);
+    cv::Mat winLeftR = frame_virtual(cv::Rect(0,0,consts.height, consts.width));
+    cv::Mat winRightR = frame_virtual(cv::Rect(consts.height,0,consts.height,consts.width));
+
+    cv::Mat frame_virtual_depth = cv::Mat::zeros(consts.width, consts.height*2, CV_8UC3);
+    cv::Mat winLeftR_depth = frame_virtual_depth(cv::Rect(0, 0, consts.height, consts.width));
+    cv::Mat winRightR_depth = frame_virtual_depth(cv::Rect(consts.height, 0, consts.height,consts.width));
 
     const auto &[pipeL, intrL, extrL, depth_frameL, pointsL, color_frameL] = cam_map.at(serial_left);
     cv::Mat imgLeft(consts.height, consts.width, CV_8UC3, (char *) color_frameL.get_data());
-//    cv::Mat hsv;
-//    cv::cvtColor(imgLeft, hsv, cv::COLOR_RGB2HSV);
-//    std::vector<cv::Mat> channels;
-//    cv::split(hsv, channels);
-//    cv::equalizeHist(channels[2], channels[2]);
-//    cv::merge(channels, hsv);
-//    cv::cvtColor(hsv, imgLeft, cv::COLOR_HSV2RGB);
     cv::rotate(imgLeft, winLeftR, cv::ROTATE_90_CLOCKWISE);
+    cv::Mat depthLeft(consts.height, consts.width, CV_32FC1, (float *) depth_frameL.get_data());
+    cv::rotate(depthLeft, winLeftR_depth, cv::ROTATE_90_CLOCKWISE);
 
-    const auto &[pipeC, intrC, extrC, depth_frameC, pointsC, color_frameC] = cam_map.at(serial_center);
-    cv::Mat imgCenter(consts.height, consts.width, CV_8UC3, (char *) color_frameC.get_data());
-//    cv::Mat hsv2;
-//    cv::cvtColor(imgCenter, hsv2, cv::COLOR_RGB2HSV);
-//    cv::split(hsv2, channels);
-//    cv::equalizeHist(channels[2], channels[2]);
-//    cv::merge(channels, hsv2);
-//    cv::cvtColor(hsv2, imgCenter, cv::COLOR_HSV2RGB);
-    cv::rotate(imgCenter, winCenterR, cv::ROTATE_90_CLOCKWISE);
+    const auto &[pipeR, intrR, extrR, depth_frameR, pointsR, color_frameR] = cam_map.at(serial_center);
+    cv::Mat imgRight(consts.height, consts.width, CV_8UC3, (char *) color_frameR.get_data());
+    cv::rotate(imgRight, winRightR, cv::ROTATE_90_CLOCKWISE);
+    cv::Mat depthRight(consts.height, consts.width, CV_32FC1, (float *) depth_frameR.get_data());
+    cv::rotate(depthRight, winRightR_depth, cv::ROTATE_90_CLOCKWISE);
 
-//    const auto &[pipeR, intrR, extrR, depth_frameR, pointsR, color_frameR] = cam_map.at(serial_right);
-//    cv::Mat imgRight(consts.height, consts.width, CV_8UC3, (char *) color_frameR.get_data());
-//    cv::Mat hsv3;
-//    cv::cvtColor(imgRight, hsv3, cv::COLOR_RGB2HSV);
-//    cv::split(hsv3, channels);
-//    cv::equalizeHist(channels[2], channels[2]);
-//    cv::merge(channels, hsv3);
-//    cv::cvtColor(hsv3, imgRight, cv::COLOR_HSV2RGB);
-//    cv::rotate(imgRight, winRightR, cv::ROTATE_90_CLOCKWISE);
-
-    return std::make_tuple(frame_virtual);
+    return frame_virtual;
 }
 
-///////////////////// DISPLAY ////////////////////////////////////77
+/////////////////////////////////////////////////////////////////////
+///////////////////// DISPLAY //////////////////////////////////////
+////////////////////////////////////////////////////////////////////
+
 void SpecificWorker::show_depth_images(Camera_Map &cam_map)
 {
     std::map<std::string,cv::Mat> image_stack;
@@ -302,7 +293,6 @@ void SpecificWorker::show_depth_images(Camera_Map &cam_map)
     }
 }
 
-
 void SpecificWorker::print_camera_params(const std::string &serial, const rs2::pipeline_profile &profile)
 {
     float center_fov[2]; // X, Y fov
@@ -318,7 +308,6 @@ void SpecificWorker::print_camera_params(const std::string &serial, const rs2::p
 //    std::cout << "  horizontal angle: " << center_fov[0] << std::endl;
 //    std::cout << "  vertical angle: " << center_fov[1] << std::endl;
 //    std::cout << "  extrinsics: " << extr.matrix() << std::endl;
-
 }
 
 RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_map_extended)
@@ -387,7 +376,6 @@ RoboCompLaser::TLaserData SpecificWorker::compute_laser(const Camera_Map &cam_ma
     return ldata;
 }
 
-
 void SpecificWorker::draw_laser(const RoboCompLaser::TLaserData &ldata)
 {
     if(ldata.empty()) return;
@@ -425,9 +413,6 @@ int SpecificWorker::startup_check()
 	return 0;
 }
 
-
-
-
 /**************************************/
 // From the RoboCompCameraRGBDSimplePub you can publish calling this methods:
 // this->camerargbdsimplepub_pubproxy->pushRGBD(...)
@@ -435,4 +420,62 @@ int SpecificWorker::startup_check()
 /**************************************/
 // From the RoboCompLaserPub you can publish calling this methods:
 // this->laserpub_pubproxy->pushLaserData(...)
+
+RoboCompCameraRGBDSimple::TRGBD SpecificWorker::CameraRGBDSimple_getAll(std::string camera)
+{
+    RoboCompCameraRGBDSimple::TRGBD rgbd;
+    rgbd.image = buffer_image.get();
+    return rgbd;
+}
+
+RoboCompCameraRGBDSimple::TDepth SpecificWorker::CameraRGBDSimple_getDepth(std::string camera)
+{
+    return RoboCompCameraRGBDSimple::TDepth();
+}
+
+RoboCompCameraRGBDSimple::TImage SpecificWorker::CameraRGBDSimple_getImage(std::string camera)
+{
+    return buffer_image.get();
+}
+
+RoboCompCameraRGBDSimple::TPoints SpecificWorker::CameraRGBDSimple_getPoints(std::string camera)
+{
+    return RoboCompCameraRGBDSimple::TPoints();
+}
+
+RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState)
+{
+    return RoboCompLaser::TLaserData();
+}
+
+RoboCompLaser::LaserConfData SpecificWorker::Laser_getLaserConfData()
+{
+    return RoboCompLaser::LaserConfData();
+}
+
+RoboCompLaser::TLaserData SpecificWorker::Laser_getLaserData()
+{
+    return RoboCompLaser::TLaserData();
+
+}
+/**************************************/
+// From the RoboCompCameraRGBDSimplePub you can publish calling this methods:
+// this->camerargbdsimplepub_pubproxy->pushRGBD(...)
+
+/**************************************/
+// From the RoboCompLaserPub you can publish calling this methods:
+// this->laserpub_pubproxy->pushLaserData(...)
+
+/**************************************/
+// From the RoboCompCameraRGBDSimple you can use this types:
+// RoboCompCameraRGBDSimple::Point3D
+// RoboCompCameraRGBDSimple::TPoints
+// RoboCompCameraRGBDSimple::TImage
+// RoboCompCameraRGBDSimple::TDepth
+// RoboCompCameraRGBDSimple::TRGBD
+
+/**************************************/
+// From the RoboCompLaser you can use this types:
+// RoboCompLaser::LaserConfData
+// RoboCompLaser::TData
 

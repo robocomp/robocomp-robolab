@@ -81,10 +81,10 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <camerargbdsimpleI.h>
+#include <laserI.h>
 
-#include <CameraRGBDSimple.h>
 #include <GenericBase.h>
-#include <Laser.h>
 
 
 
@@ -116,8 +116,6 @@ int ::multiple_cameras::run(int argc, char* argv[])
 #else
 	QCoreApplication a(argc, argv);  // NON-GUI application
 #endif
-
-
 	sigset_t sigs;
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIGHUP);
@@ -184,8 +182,8 @@ int ::multiple_cameras::run(int argc, char* argv[])
 
 	auto camerargbdsimplepub_pub = camerargbdsimplepub_topic->getPublisher()->ice_oneway();
 	camerargbdsimplepub_pubproxy = Ice::uncheckedCast<RoboCompCameraRGBDSimplePub::CameraRGBDSimplePubPrx>(camerargbdsimplepub_pub);
-	std::shared_ptr<IceStorm::TopicPrx> laserpub_topic;
 
+    std::shared_ptr<IceStorm::TopicPrx> laserpub_topic;
 	while (!laserpub_topic)
 	{
 		try
@@ -252,6 +250,42 @@ int ::multiple_cameras::run(int argc, char* argv[])
 
 		}
 
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "CameraRGBDSimple.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraRGBDSimple";
+			}
+			Ice::ObjectAdapterPtr adapterCameraRGBDSimple = communicator()->createObjectAdapterWithEndpoints("CameraRGBDSimple", tmp);
+			auto camerargbdsimple = std::make_shared<CameraRGBDSimpleI>(worker);
+			adapterCameraRGBDSimple->add(camerargbdsimple, Ice::stringToIdentity("camerargbdsimple"));
+			adapterCameraRGBDSimple->activate();
+			cout << "[" << PROGRAM_NAME << "]: CameraRGBDSimple adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for CameraRGBDSimple\n";
+		}
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "Laser.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Laser";
+			}
+			Ice::ObjectAdapterPtr adapterLaser = communicator()->createObjectAdapterWithEndpoints("Laser", tmp);
+			auto laser = std::make_shared<LaserI>(worker);
+			adapterLaser->add(laser, Ice::stringToIdentity("laser"));
+			adapterLaser->activate();
+			cout << "[" << PROGRAM_NAME << "]: Laser adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Laser\n";
+		}
 
 
 		// Server adapter creation and publication
@@ -322,7 +356,7 @@ int main(int argc, char* argv[])
 			else if (arg.find(initIC.toStdString(), 0) != std::string::npos)
 			{
 				configFile = QString::fromStdString(arg).remove(0, initIC.size());
-				qDebug()<<__LINE__<<"Starting with config file:"<<configFile;
+				qDebug() << __LINE__ << "Starting with config file:" << configFile;
 			}
 			else if (i==1 and argc==2 and arg.find("--", 0) == std::string::npos)
 			{

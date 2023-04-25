@@ -110,8 +110,8 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","compressed", aux.value, "true");
     params["compressed"] = aux;
 
-    configGetString( "","view", aux.value, "false");
-    params["view"] = aux;
+    configGetString( "","publish", aux.value, "false");
+    params["publish"] = aux;
 
     configGetString( "","max_up_height", aux.value, "1");  // + meters
     params["max_up_height"] = aux;

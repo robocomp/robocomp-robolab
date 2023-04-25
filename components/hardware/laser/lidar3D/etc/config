@@ -3,6 +3,7 @@ CommonBehavior.Endpoints=tcp -p 11986
 # Endpoints for implements interfaces
 Lidar3D.Endpoints=tcp -p 11987
 
+IPpc = 192.168.1.100
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

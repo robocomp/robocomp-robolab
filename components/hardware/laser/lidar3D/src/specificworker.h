@@ -54,6 +54,7 @@ class SpecificWorker : public GenericWorker
 
     private:
         bool startup_check_flag;
+        string IP;
 
         robosense::lidar::RSDriverParam param;                  ///< Create a parameter object
         robosense::lidar::LidarDriver<PointCloudMsg> driver;               ///< Declare the driver object

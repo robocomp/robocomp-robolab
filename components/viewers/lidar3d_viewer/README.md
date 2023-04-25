@@ -1,6 +1,17 @@
 # lidar3dviewer
 Intro to component here
 
+# Installation
+## Install QGLViewer
+    sudo apt install libqglviewer-dev-qt5
+
+## Install cppitertools
+    sudo git clone https://github.com/ryanhaining/cppitertools /usr/local/include/cppitertools
+    cd /usr/local/include/cppitertools
+    sudo mkdir build
+    cd build
+    sudo cmake ..
+    sudo make install
 
 ## Configuration parameters
 As any other component, *lidar3dviewer* needs a configuration file to start. In

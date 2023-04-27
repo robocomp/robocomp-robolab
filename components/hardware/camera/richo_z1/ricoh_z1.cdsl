@@ -1,0 +1,11 @@
+import "CameraSimple.idsl";
+
+Component ricoh_z1
+{
+    Communications
+    {
+        implements CameraSimple;
+    };
+    language Cpp11;
+};
+

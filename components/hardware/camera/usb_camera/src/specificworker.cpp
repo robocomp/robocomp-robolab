@@ -81,8 +81,10 @@ void SpecificWorker::compute()
         cv::waitKey(2); // waits to display frame
     }
 
-    fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
-    //fps.print("");
+    if(pars.compressed)
+        fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
+    else
+        fps.print(" ");
 
 }
 /////////////////////////////////////////////////////////////////////

@@ -32,44 +32,42 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <fps/fps.h>
-#include <innermodel/innermodel.h>
+#include <doublebuffer/DoubleBuffer.h>
 
 class SpecificWorker : public GenericWorker
 {
-Q_OBJECT
-public:
-	SpecificWorker(TuplePrx tprx, bool startup_check);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
+    Q_OBJECT
+    public:
+        SpecificWorker(TuplePrx tprx, bool startup_check);
+        ~SpecificWorker();
+        bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-    RoboCompCameraSimple::TImage CameraSimple_getImage();
+        RoboCompCameraSimple::TImage CameraSimple_getImage();
 
-public slots:
-	void compute();
-	int startup_check();
-	void initialize(int period);
+    public slots:
+        void compute();
+        int startup_check();
+        void initialize(int period);
 
-private:
-	std::shared_ptr < InnerModel > innerModel;
-	bool startup_check_flag;
-	std::mutex my_mutex;
+    private:
+        bool startup_check_flag;
+        cv::Mat cv_frame;
+        cv::VideoCapture capture;
 
-	cv::VideoCapture capture;
-	cv::Mat frame;
+        vector<int> compression_params;
+        //vector<uchar> buffer;
 
-    vector<int> compression_params;
-    vector<uchar> buffer;
+        FPSCounter fps;
 
-    FPSCounter fps;
+        struct PARAMS
+        {
+            std::string device = "/dev/video0";
+            bool display = false;
+            bool compressed = false;
+        };
+        PARAMS pars;
 
-    struct PARAMS
-    {
-        std::string device = "/dev/video0";
-        bool display = false;
-        bool compressed = false;
-    };
-    PARAMS pars;
-
+        DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
 };
 
 #endif

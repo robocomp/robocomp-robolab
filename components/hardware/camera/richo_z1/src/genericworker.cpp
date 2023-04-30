@@ -22,13 +22,9 @@
 */
 GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
-
-
-	mutex = new QMutex(QMutex::Recursive);
-
+	mutex = new QMutex();
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
-
 }
 
 /**

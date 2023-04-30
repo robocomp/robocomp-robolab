@@ -27,7 +27,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 	// Uncomment if there's too many debug messages
 	// but it removes the possibility to see the messages
 	// shown in the console with qDebug()
-//	QLoggingCategory::setFilterRules("*.debug=false\n");
+    //	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
 
 /**
@@ -54,60 +54,59 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::initialize(int period)
 {
-	std::cout << "Initialize worker" << std::endl;
-	if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink"); success != true)
-    {
-	    qWarning() << __FUNCTION__ << " No camera found";
-	    std::terminate();
-    }
-    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(50);
+    std::cout << "Initialize worker" << std::endl;
 
-	this->Period = 33;
+    this->Period = 33;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
-		timer.start(Period);
+    {
+        if (auto success = capture.open(
+                    "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink");
+                success != true)
+        {
+            qWarning() << __FUNCTION__ << " Error connecting. No camera found";
+            std::terminate();
+        }
+        compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(50);
+        timer.start(Period);
+    }
 }
 
 void SpecificWorker::compute()
 {
-    my_mutex.lock();
-        capture >> frame;
-        //cv::resize(frame, frame,cv::Size(), 0.25, 0.25, cv::INTER_AREA);
-        if(pars.compressed)
-            cv::imencode(".jpg", frame, buffer, compression_params);
-    my_mutex.unlock();
+    capture >> cv_frame;
+    //cv::resize(frame, frame,cv::Size(), 0.25, 0.25, cv::INTER_AREA);
 
     if(pars.display)
     {
-        cv::imshow("USB Camera", frame);
+        cv::imshow("USB Camera", cv_frame);
         cv::waitKey(1); // waits to display frame
     }
 
-    if(pars.compressed)
-        fps.print("Compression: " + std::to_string(frame.total() * frame.elemSize()/buffer.size()));
-    else
-        fps.print(" ");
-    //fps.print("");
+    buffer_image.put(std::move(cv_frame), [comp = pars.compressed, cp = compression_params](auto &&I, auto &O)
+                { if(comp)
+                  {
+                      std::vector<uchar> buffer;
+                      cv::imencode(".jpg", I, buffer, cp);
+                      O.image = buffer;
+                  }
+                  else
+                      O.image.assign(I.data, I.data + (I.total() * I.elemSize()));
+                  O.depth = I.channels();
+                  O.height = I.rows;
+                  O.width = I.cols;
+                });
 
+    fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
 
 RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
 {
     qInfo() << __FUNCTION__;
-    std::lock_guard<std::mutex> lg(my_mutex);
-    RoboCompCameraSimple::TImage res;
-    res.depth = frame.channels();
-    res.height = frame.rows;
-    res.width = frame.cols;
-    res.compressed = pars.compressed;
-    if(res.compressed)
-        res.image = buffer;
-    else
-        res.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
-    return res;
+    return buffer_image.get();
 }
 
 ///////////////////////////////////////////////////////////////////77

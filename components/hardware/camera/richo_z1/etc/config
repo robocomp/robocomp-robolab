@@ -5,9 +5,8 @@ CameraSimple.Endpoints=tcp -p 10195
 
 
 display = true
-compressed = true
+compressed = false
 
-InnerModelPath = innermodel.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

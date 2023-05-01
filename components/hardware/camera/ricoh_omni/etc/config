@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 12096
 
 # Endpoints for implements interfaces
-CameraSimple.Endpoints=tcp -p 10195
+Camera360RGB.Endpoints=tcp -p 10196
 
 
 display = true

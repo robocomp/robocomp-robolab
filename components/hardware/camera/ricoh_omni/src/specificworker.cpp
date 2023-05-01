@@ -61,9 +61,10 @@ void SpecificWorker::initialize(int period)
 		this->startup_check();
 	else
     {
-        if (auto success = capture.open(
-                    "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink");
-                success != true)
+//        if (auto success = capture.open(
+//                    "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink");
+//                success != true)
+        if(auto success = capture.open(0); success)
         {
             qWarning() << __FUNCTION__ << " Error connecting. No camera found";
             std::terminate();
@@ -84,28 +85,43 @@ void SpecificWorker::compute()
         cv::imshow("USB Camera", cv_frame);
         cv::waitKey(1); // waits to display frame
     }
-
-    buffer_image.put(std::move(cv_frame), [comp = pars.compressed, cp = compression_params](auto &&I, auto &O)
-                { if(comp)
-                  {
-                      std::vector<uchar> buffer;
-                      cv::imencode(".jpg", I, buffer, cp);
-                      O.image = buffer;
-                  }
-                  else
-                      O.image.assign(I.data, I.data + (I.total() * I.elemSize()));
-                  O.depth = I.channels();
-                  O.height = I.rows;
-                  O.width = I.cols;
-                });
+    buffer_image.put(std::move(cv_frame));
+//    buffer_image.put(std::move(cv_frame), [comp = pars.compressed, cp = compression_params](auto &&I, auto &O)
+//                { if(comp)
+//                  {
+//                      std::vector<uchar> buffer;
+//                      cv::imencode(".jpg", I, buffer, cp);
+//                      O.image = buffer;
+//                  }
+//                  else
+//                      O.image.assign(I.data, I.data + (I.total() * I.elemSize()));
+//                  O.depth = I.channels();
+//                  O.height = I.rows;
+//                  O.width = I.cols;
+//                });
 
     fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
-RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(float angle, int x, int y, int width, int height)
+RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight)
 {
     qInfo() << __FUNCTION__;
-    return buffer_image.get();
+    auto img = buffer_image.get();
+    cv::Mat dst;
+    img(cv::Rect(roidx + cx, roidy + cy, sx, sy)).copyTo(dst);
+    cv::resize(dst, dst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
+    RoboCompCameraSimple::TImage res;
+    if(pars.compressed)
+    {
+        std::vector<uchar> buffer;
+        cv::imencode(".jpg", dst, buffer, compression_params);
+        res.image = buffer;
+    }
+    else
+        res.image.assign(dst.data, dst.data + (dst.total() * dst.elemSize()));
+    res.depth = dst.channels();
+    res.height = dst.rows;
+    res.width = dst.cols;
 }
 
 ///////////////////////////////////////////////////////////////////77

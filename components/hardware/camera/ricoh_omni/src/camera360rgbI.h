@@ -33,7 +33,7 @@ public:
 	Camera360RGBI(GenericWorker *_worker);
 	~Camera360RGBI();
 
-	RoboCompCameraSimple::TImage getROI(float angle, int x, int y, int width, int height, const Ice::Current&);
+	RoboCompCameraSimple::TImage getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight, const Ice::Current&);
 
 private:
 

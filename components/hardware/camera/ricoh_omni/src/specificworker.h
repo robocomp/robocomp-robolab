@@ -41,8 +41,7 @@ class SpecificWorker : public GenericWorker
         SpecificWorker(TuplePrx tprx, bool startup_check);
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
-
-        RoboCompCameraSimple::TImage Camera360RGB_getROI(float angle, int x, int y, int width, int height);
+        RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight);
 
 public slots:
         void compute();
@@ -67,7 +66,8 @@ public slots:
         };
         PARAMS pars;
 
-        DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
+        //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
+        DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 };
 
 #endif

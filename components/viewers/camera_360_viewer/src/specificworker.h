@@ -28,26 +28,24 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <innermodel/innermodel.h>
+#include <fps/fps.h>
 
 class SpecificWorker : public GenericWorker
 {
-Q_OBJECT
-public:
-	SpecificWorker(TuplePrx tprx, bool startup_check);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
+    Q_OBJECT
+    public:
+        SpecificWorker(TuplePrx tprx, bool startup_check);
+        ~SpecificWorker();
+        bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+    public slots:
+        void compute();
+        int startup_check();
+        void initialize(int period);
 
-
-public slots:
-	void compute();
-	int startup_check();
-	void initialize(int period);
-private:
-	std::shared_ptr < InnerModel > innerModel;
-	bool startup_check_flag;
-
+    private:
+        bool startup_check_flag;
+        FPSCounter fps;
 };
 
 #endif

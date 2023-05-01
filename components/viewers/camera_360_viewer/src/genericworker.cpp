@@ -23,9 +23,9 @@
 GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
 
-	camerasimple_proxy = std::get<0>(tprx);
+	camera360rgb_proxy = std::get<0>(tprx);
 
-	mutex = new QMutex(QMutex::Recursive);
+	mutex = new QMutex();
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

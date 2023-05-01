@@ -10,6 +10,8 @@ SET ( HEADERS
   specificmonitor.h
 )
 
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
+
 
 SET (LIBS ${LIBS}  )
 

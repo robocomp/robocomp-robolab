@@ -1,10 +1,10 @@
-import "CameraSimple.idsl";
+import "Camera360RGB.idsl";
 
 Component Camera360Viewer
 {
     Communications
     {
-        requires CameraSimple;
+        requires Camera360RGB;
     };
     language Cpp11;
 };

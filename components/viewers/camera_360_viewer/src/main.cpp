@@ -82,6 +82,7 @@
 #include "commonbehaviorI.h"
 
 
+#include <CameraSimple.h>
 
 
 
@@ -129,28 +130,28 @@ int ::Camera360Viewer::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	RoboCompCameraSimple::CameraSimplePrxPtr camerasimple_proxy;
+	RoboCompCamera360RGB::Camera360RGBPrxPtr camera360rgb_proxy;
 
 	string proxy, tmp;
 	initialize();
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimpleProxy", proxy, ""))
+		if (not GenericMonitor::configGetString(communicator(), prefix, "Camera360RGBProxy", proxy, ""))
 		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimpleProxy\n";
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Camera360RGBProxy\n";
 		}
-		camerasimple_proxy = Ice::uncheckedCast<RoboCompCameraSimple::CameraSimplePrx>( communicator()->stringToProxy( proxy ) );
+		camera360rgb_proxy = Ice::uncheckedCast<RoboCompCamera360RGB::Camera360RGBPrx>( communicator()->stringToProxy( proxy ) );
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy CameraSimple: " << ex;
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Camera360RGB: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("CameraSimpleProxy initialized Ok!");
+	rInfo("Camera360RGBProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(camerasimple_proxy);
+	tprx = std::make_tuple(camera360rgb_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

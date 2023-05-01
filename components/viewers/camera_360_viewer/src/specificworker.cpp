@@ -17,7 +17,8 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
-
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 /**
 * \brief Default constructor
 */
@@ -50,11 +51,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //	}
 //	catch(const std::exception &e) { qFatal("Error reading config params"); }
 
-
-
-
-
-
 	return true;
 }
 
@@ -70,27 +66,39 @@ void SpecificWorker::initialize(int period)
 	{
 		timer.start(Period);
 	}
-
 }
 
 void SpecificWorker::compute()
 {
-	//computeCODE
-	//QMutexLocker locker(mutex);
-	//try
-	//{
-	//  camera_proxy->getYImage(0,img, cState, bState);
-	//  memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-	//  searchTags(image_gray);
-	//}
-	//catch(const Ice::Exception &e)
-	//{
-	//  std::cout << "Error reading from Camera" << e << std::endl;
-	//}
-	
-	
+    try
+    {
+        auto image = this->camera360rgb_proxy->getROI(1000, 1000, 800, 800, 1000-500, 1000-500, 640, 640);
+        if (not image.image.empty() and image.width !=0 and image.height !=0)
+        {
+            qInfo() << image.width << "x" << image.height << " Size: " << image.image.size();
+            if (image.compressed)
+            {
+                cv::Mat frameCompr = cv::imdecode(image.image, -1);
+                cv::imshow("RGB image", frameCompr);
+            }
+            else
+            {
+                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
+                cv::imshow("RGB image", frame);
+            }
+            cv::waitKey(1);
+        }
+        else
+            qInfo() << "I dont have image";
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    fps.print("FPS:");
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
 	std::cout << "Startup check" << std::endl;

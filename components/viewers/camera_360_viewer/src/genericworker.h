@@ -24,6 +24,7 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
+#include <Camera360RGB.h>
 #include <CameraSimple.h>
 
 
@@ -31,7 +32,7 @@
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompCameraSimple::CameraSimplePrxPtr>;
+using TuplePrx = std::tuple<RoboCompCamera360RGB::Camera360RGBPrxPtr>;
 
 
 class GenericWorker : public QObject
@@ -47,7 +48,7 @@ public:
 	QMutex *mutex;
 
 
-	RoboCompCameraSimple::CameraSimplePrxPtr camerasimple_proxy;
+	RoboCompCamera360RGB::Camera360RGBPrxPtr camera360rgb_proxy;
 
 
 protected:

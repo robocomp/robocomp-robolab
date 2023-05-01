@@ -16,36 +16,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "genericworker.h"
-/**
-* \brief Default constructor
-*/
-GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
+#include "camera360rgbI.h"
+
+Camera360RGBI::Camera360RGBI(GenericWorker *_worker)
 {
-	mutex = new QMutex();
-	Period = BASIC_PERIOD;
-	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));
+	worker = _worker;
 }
 
-/**
-* \brief Default destructor
-*/
-GenericWorker::~GenericWorker()
-{
 
-}
-void GenericWorker::killYourSelf()
+Camera360RGBI::~Camera360RGBI()
 {
-	rDebug("Killing myself");
-	emit kill();
 }
-/**
-* \brief Change compute period
-* @param per Period in ms
-*/
-void GenericWorker::setPeriod(int p)
+
+
+RoboCompCameraSimple::TImage Camera360RGBI::getROI(float angle, int x, int y, int width, int height, const Ice::Current&)
 {
-	rDebug("Period changed"+QString::number(p));
-	Period = p;
-	timer.start(Period);
+	return worker->Camera360RGB_getROI(angle, x, y, width, height);
 }
+

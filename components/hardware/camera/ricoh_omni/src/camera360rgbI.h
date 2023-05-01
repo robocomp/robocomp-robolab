@@ -16,21 +16,29 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "camerasimpleI.h"
+#ifndef CAMERA360RGB_H
+#define CAMERA360RGB_H
 
-CameraSimpleI::CameraSimpleI(GenericWorker *_worker)
+// Ice includes
+#include <Ice/Ice.h>
+#include <Camera360RGB.h>
+
+#include <config.h>
+#include "genericworker.h"
+
+
+class Camera360RGBI : public virtual RoboCompCamera360RGB::Camera360RGB
 {
-	worker = _worker;
-}
+public:
+	Camera360RGBI(GenericWorker *_worker);
+	~Camera360RGBI();
 
+	RoboCompCameraSimple::TImage getROI(float angle, int x, int y, int width, int height, const Ice::Current&);
 
-CameraSimpleI::~CameraSimpleI()
-{
-}
+private:
 
+	GenericWorker *worker;
 
-RoboCompCameraSimple::TImage CameraSimpleI::getImage(const Ice::Current&)
-{
-	return worker->CameraSimple_getImage();
-}
+};
 
+#endif

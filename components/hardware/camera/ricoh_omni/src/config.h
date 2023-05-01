@@ -5,7 +5,7 @@
 //#define USE_QTGUI
 
 
-#define PROGRAM_NAME    "ricoh_z1"
-#define SERVER_FULL_NAME   "RoboComp ricoh_z1:: ricoh_z1"
+#define PROGRAM_NAME    "RicohOmni"
+#define SERVER_FULL_NAME   "RoboComp RicohOmni:: RicohOmni"
 
 #endif

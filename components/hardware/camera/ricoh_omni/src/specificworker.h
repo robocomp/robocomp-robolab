@@ -42,9 +42,9 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompCameraSimple::TImage CameraSimple_getImage();
+        RoboCompCameraSimple::TImage Camera360RGB_getROI(float angle, int x, int y, int width, int height);
 
-    public slots:
+public slots:
         void compute();
         int startup_check();
         void initialize(int period);

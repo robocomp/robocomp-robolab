@@ -1,0 +1,11 @@
+import "Camera360RGB.idsl";
+
+Component RicohOmni
+{
+    Communications
+    {
+        implements Camera360RGB;
+    };
+    language Cpp11;
+};
+

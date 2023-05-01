@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::ricoh_z1
+/** \mainpage RoboComp::RicohOmni
  *
  * \section intro_sec Introduction
  *
- * The ricoh_z1 component...
+ * The RicohOmni component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd ricoh_z1
+ * cd RicohOmni
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/ricoh_z1 --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/RicohOmni --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,15 +81,16 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <camerasimpleI.h>
+#include <camera360rgbI.h>
+
+#include <CameraSimple.h>
 
 
 
-
-class ricoh_z1 : public RoboComp::Application
+class RicohOmni : public RoboComp::Application
 {
 public:
-	ricoh_z1 (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
+	RicohOmni (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
 private:
 	void initialize();
 	std::string prefix;
@@ -100,14 +101,14 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::ricoh_z1::initialize()
+void ::RicohOmni::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::ricoh_z1::run(int argc, char* argv[])
+int ::RicohOmni::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -176,18 +177,18 @@ int ::ricoh_z1::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimple.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "Camera360RGB.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimple";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Camera360RGB";
 			}
-			Ice::ObjectAdapterPtr adapterCameraSimple = communicator()->createObjectAdapterWithEndpoints("CameraSimple", tmp);
-			auto camerasimple = std::make_shared<CameraSimpleI>(worker);
-			adapterCameraSimple->add(camerasimple, Ice::stringToIdentity("camerasimple"));
-			adapterCameraSimple->activate();
-			cout << "[" << PROGRAM_NAME << "]: CameraSimple adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr adapterCamera360RGB = communicator()->createObjectAdapterWithEndpoints("Camera360RGB", tmp);
+			auto camera360rgb = std::make_shared<Camera360RGBI>(worker);
+			adapterCamera360RGB->add(camera360rgb, Ice::stringToIdentity("camera360rgb"));
+			adapterCamera360RGB->activate();
+			cout << "[" << PROGRAM_NAME << "]: Camera360RGB adapter created in port " << tmp << endl;
 		}
 		catch (const IceStorm::TopicExists&){
-			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for CameraSimple\n";
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Camera360RGB\n";
 		}
 
 
@@ -269,7 +270,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::ricoh_z1 app(prefix, startup_check_flag);
+	::RicohOmni app(prefix, startup_check_flag);
 
 	return app.main(argc, argv, configFile.toLocal8Bit().data());
 }

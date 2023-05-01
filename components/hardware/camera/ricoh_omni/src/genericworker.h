@@ -24,6 +24,7 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
+#include <Camera360RGB.h>
 #include <CameraSimple.h>
 
 
@@ -48,7 +49,7 @@ public:
 
 
 
-	virtual RoboCompCameraSimple::TImage CameraSimple_getImage() = 0;
+	virtual RoboCompCameraSimple::TImage Camera360RGB_getROI(float angle, int x, int y, int width, int height) = 0;
 
 protected:
 

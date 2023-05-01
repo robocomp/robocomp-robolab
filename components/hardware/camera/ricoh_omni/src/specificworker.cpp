@@ -102,8 +102,7 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
-
-RoboCompCameraSimple::TImage SpecificWorker::CameraSimple_getImage()
+RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(float angle, int x, int y, int width, int height)
 {
     qInfo() << __FUNCTION__;
     return buffer_image.get();

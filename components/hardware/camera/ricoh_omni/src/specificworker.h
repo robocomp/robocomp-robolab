@@ -22,8 +22,6 @@
 	@author authorname
 */
 
-
-
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
@@ -41,7 +39,7 @@ class SpecificWorker : public GenericWorker
         SpecificWorker(TuplePrx tprx, bool startup_check);
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
-        RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight);
+        RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight);
 
 public slots:
         void compute();

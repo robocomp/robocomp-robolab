@@ -24,7 +24,7 @@ GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
 
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

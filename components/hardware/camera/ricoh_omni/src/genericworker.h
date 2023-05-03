@@ -47,7 +47,9 @@ public:
 	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
 	QMutex *mutex;
 
-	virtual RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight) = 0;
+
+
+	virtual RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
 
 protected:
 

@@ -61,14 +61,15 @@ void SpecificWorker::initialize(int period)
 		this->startup_check();
 	else
     {
-//        if (auto success = capture.open(
-//                    "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink");
-//                success != true)
-        if(auto success = capture.open(0); success)
+        if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=0 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
+                success != true)
+
+        //if(auto success = capture.open(0); success)
         {
             qWarning() << __FUNCTION__ << " Error connecting. No camera found";
             std::terminate();
         }
+        qInfo() << __FUNCTION__ << "HOLA";
         compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params.push_back(50);
         timer.start(Period);
@@ -78,8 +79,6 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     capture >> cv_frame;
-    //cv::resize(frame, frame,cv::Size(), 0.25, 0.25, cv::INTER_AREA);
-
     if(pars.display)
     {
         cv::imshow("USB Camera", cv_frame);
@@ -103,12 +102,12 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
-RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roidx, int roidy, int roiwidth, int roiheight)
+RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
     qInfo() << __FUNCTION__;
     auto img = buffer_image.get();
     cv::Mat dst;
-    img(cv::Rect(roidx + cx, roidy + cy, sx, sy)).copyTo(dst);
+    img(cv::Rect(cx - (int)(sx/2), cy - (int)(cy/2), sx, sy)).copyTo(dst);
     cv::resize(dst, dst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
     RoboCompCameraSimple::TImage res;
     if(pars.compressed)
@@ -122,6 +121,7 @@ RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
     res.depth = dst.channels();
     res.height = dst.rows;
     res.width = dst.cols;
+    return res;
 }
 
 ///////////////////////////////////////////////////////////////////77

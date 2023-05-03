@@ -1,11 +1,8 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 13300
 
 # Proxies for required interfaces
-CameraSimpleProxy = camerasimple:tcp -h localhost -p 0
+Camera360RGBProxy = camera360rgb:tcp -h localhost -p 10097
 
-
-
-InnerModelPath = innermodel.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

@@ -46,6 +46,8 @@ class SpecificWorker : public GenericWorker
     private:
         bool startup_check_flag;
         FPSCounter fps;
+        int slider_width, slider_height, slider_x, slider_y;
+        RoboCompCamera360RGB::TImageParams img_params;
 };
 
 #endif

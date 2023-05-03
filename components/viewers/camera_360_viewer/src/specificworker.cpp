@@ -64,7 +64,31 @@ void SpecificWorker::initialize(int period)
 	}
 	else
 	{
-		timer.start(Period);
+        try
+        {
+            img_params = this->camera360rgb_proxy->getImageParams();
+        }
+        catch(const Ice::Exception &ex) { qFatal("Error reading camera image");}
+
+        // Create a window
+        cv::namedWindow("ROI 360", 1);
+        //Create trackbar to change width
+        slider_width = 300;
+        cv::createTrackbar("width", "ROI 360", &slider_width, img_params.width);
+
+        //Create trackbar to change height
+        slider_height = 300;
+        cv::createTrackbar("height", "ROI 360", &slider_height, img_params.height);
+
+        //Create trackbar to change x position
+        slider_x = 300;
+        cv::createTrackbar("x pos", "ROI 360", &slider_x, img_params.width);
+
+        //Create trackbar to change y position
+        slider_y = 300;
+        cv::createTrackbar("y pos", "ROI 360", &slider_y, img_params.height);
+
+        timer.start(Period);
 	}
 }
 
@@ -72,24 +96,23 @@ void SpecificWorker::compute()
 {
     try
     {
-        auto image = this->camera360rgb_proxy->getROI(1000, 1000, 800, 800, 1000-500, 1000-500, 640, 640);
+        auto image = this->camera360rgb_proxy->getROI(slider_x, slider_y, slider_width, slider_height, 640, 640);
         if (not image.image.empty() and image.width !=0 and image.height !=0)
         {
-            qInfo() << image.width << "x" << image.height << " Size: " << image.image.size();
             if (image.compressed)
             {
                 cv::Mat frameCompr = cv::imdecode(image.image, -1);
-                cv::imshow("RGB image", frameCompr);
+                cv::imshow("ROI 360", frameCompr);
             }
             else
             {
-                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0], cv::Mat::AUTO_STEP);
-                cv::imshow("RGB image", frame);
+                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+                cv::imshow("ROI 360", frame);
             }
             cv::waitKey(1);
         }
         else
-            qInfo() << "I dont have image";
+            qWarning() << "No image received";
     }
     catch(const std::exception& e)
     {

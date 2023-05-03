@@ -1,5 +1,17 @@
 # RicohOmni
-Intro to component here
+
+Installation of Ricoh drivers
+
+Goto: https://codetricity.github.io/theta-linux/software/  and choose the
+
+    Using gstreamer and OpenCV without v4l2loopback
+
+option, and install https://github.com/nickel110/gstthetauvc
+
+Install de NVidia GStreamer plugin with: https://gist.github.com/corenel/a615b6f7eb5b5425aa49343a7b409200
+
+Add to .bashrc and source:
+    export GST_PLUGIN_PATH=/home/robocomp/software/gstthetauvc/thetauvc
 
 
 ## Configuration parameters

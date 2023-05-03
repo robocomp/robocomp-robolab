@@ -49,6 +49,7 @@ public:
 
 
 
+	virtual RoboCompCamera360RGB::TImageParams Camera360RGB_getImageParams() = 0;
 	virtual RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
 
 protected:

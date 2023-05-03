@@ -40,6 +40,8 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
         RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight);
+        RoboCompCamera360RGB::TImageParams Camera360RGB_getImageParams();
+
 
 public slots:
         void compute();
@@ -63,6 +65,7 @@ public slots:
             bool compressed = false;
         };
         PARAMS pars;
+        int MAX_WIDTH, MAX_HEIGHT, DEPTH;
 
         //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
         DoubleBuffer<cv::Mat, cv::Mat> buffer_image;

@@ -82,7 +82,7 @@
 #include "commonbehaviorI.h"
 
 
-#include <CameraSimple.h>
+#include <CameraRGBDSimple.h>
 
 
 

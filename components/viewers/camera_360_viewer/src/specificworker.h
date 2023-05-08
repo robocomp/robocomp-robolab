@@ -29,6 +29,9 @@
 
 #include <genericworker.h>
 #include <fps/fps.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 class SpecificWorker : public GenericWorker
 {
@@ -37,17 +40,31 @@ class SpecificWorker : public GenericWorker
         SpecificWorker(TuplePrx tprx, bool startup_check);
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
+        struct Fovea
+        {
+            int cx; int cy; int width=300; int height=300;
+            int max_width; int max_height;
+            float r2full_x, r2full_y;
+        };
 
     public slots:
         void compute();
         int startup_check();
         void initialize(int period);
 
+
     private:
         bool startup_check_flag;
         FPSCounter fps;
-        int slider_width, slider_height, slider_x, slider_y;
-        RoboCompCamera360RGB::TImageParams img_params;
+        static int slider_width, slider_height, slider_x, slider_y;
+        RoboCompCameraRGBDSimple::TImage initial_img;
+        int MAIN_IMAGE_WIDTH = 640;
+        int MAIN_IMAGE_HEIGHT = 640;
+        static Fovea fovea;
+        static void on_cx(int pos, void *data);
+        static void on_cy(int pos, void *data);
+        static void on_width(int pos, void *data);
+        static void on_height(int pos, void *data);
 };
 
 #endif

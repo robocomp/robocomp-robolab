@@ -19,6 +19,13 @@
 #include "specificworker.h"
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+
+int SpecificWorker::slider_width;
+int SpecificWorker::slider_height;
+int SpecificWorker::slider_x;
+int SpecificWorker::slider_y;
+SpecificWorker::Fovea SpecificWorker::fovea;
+
 /**
 * \brief Default constructor
 */
@@ -66,27 +73,31 @@ void SpecificWorker::initialize(int period)
 	{
         try
         {
-            img_params = this->camera360rgb_proxy->getImageParams();
+            initial_img = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+            // Create a window
+            cv::namedWindow("ROI 360", 1);
+            fovea.max_height = initial_img.height;
+            fovea.max_width = initial_img.width;
+            fovea.r2full_x = (float)MAIN_IMAGE_WIDTH/fovea.max_width;
+            fovea.r2full_y = (float)MAIN_IMAGE_HEIGHT/fovea.max_height;
+
+            //Create trackbar to change width
+            slider_width = 300;
+            cv::createTrackbar("width", "ROI 360", &slider_width, initial_img.width,&SpecificWorker::on_width, this);
+
+            //Create trackbar to change height
+            slider_height = 300;
+            cv::createTrackbar("height", "ROI 360", &slider_height, initial_img.height, &SpecificWorker::on_height, this );
+
+            //Create trackbar to change x position
+            slider_x = initial_img.width/2;
+            cv::createTrackbar("x pos", "ROI 360", &slider_x, initial_img.width, &SpecificWorker::on_cx, this);
+
+            //Create trackbar to change y position
+            slider_y = initial_img.height/2;
+            cv::createTrackbar("y pos", "ROI 360", &slider_y, initial_img.height, &SpecificWorker::on_cy, this);
         }
-        catch(const Ice::Exception &ex) { qFatal("Error reading camera image");}
-
-        // Create a window
-        cv::namedWindow("ROI 360", 1);
-        //Create trackbar to change width
-        slider_width = 300;
-        cv::createTrackbar("width", "ROI 360", &slider_width, img_params.width);
-
-        //Create trackbar to change height
-        slider_height = 300;
-        cv::createTrackbar("height", "ROI 360", &slider_height, img_params.height);
-
-        //Create trackbar to change x position
-        slider_x = 300;
-        cv::createTrackbar("x pos", "ROI 360", &slider_x, img_params.width);
-
-        //Create trackbar to change y position
-        slider_y = 300;
-        cv::createTrackbar("y pos", "ROI 360", &slider_y, img_params.height);
+        catch(const Ice::Exception &ex) { qFatal("Error reading camera image in Initialize");}
 
         timer.start(Period);
 	}
@@ -96,39 +107,88 @@ void SpecificWorker::compute()
 {
     try
     {
-        auto image = this->camera360rgb_proxy->getROI(slider_x, slider_y, slider_width, slider_height, 640, 640);
-        if (not image.image.empty() and image.width !=0 and image.height !=0)
-        {
-            if (image.compressed)
-            {
-                cv::Mat frameCompr = cv::imdecode(image.image, -1);
-                cv::imshow("ROI 360", frameCompr);
-            }
-            else
-            {
-                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
-                cv::imshow("ROI 360", frame);
-            }
-            cv::waitKey(1);
-        }
-        else
-            qWarning() << "No image received";
+        auto full = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, MAIN_IMAGE_WIDTH, MAIN_IMAGE_HEIGHT);
+        cv::Mat full_mat(cv::Size(full.width, full.height), CV_8UC3, &full.image[0]);
+        auto roi = this->camera360rgb_proxy->getROI(slider_x, slider_y, slider_width, slider_height, 320, 320);
+        cv::Mat roi_mat(cv::Size(roi.width, roi.height), CV_8UC3, &roi.image[0]);
+        cv::rectangle(full_mat, cv::Rect((int)(fovea.r2full_x*(slider_x-slider_width/2)),
+                                                  (int)(fovea.r2full_y*(slider_y-slider_height/2)),
+                                                     (int)(fovea.r2full_x*slider_width),
+                                                     (int)(fovea.r2full_y*slider_height)),
+                                                     cv::Scalar(255, 0, 0),
+                                            3);
+
+        cv::imshow("Full View", full_mat);
+        cv::imshow("ROI 360", roi_mat);
+        cv::waitKey(1);
     }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+    catch(const Ice::Exception& e)
+    {  std::cout << e.what() << std::endl;   }
+
+//    try
+//    {
+//        auto image = this->camera360rgb_proxy->getROI(slider_x, slider_y, slider_width, slider_height, 640, 640);
+//        if (not image.image.empty() and image.width !=0 and image.height !=0)
+//        {
+//            if (image.compressed)
+//            {
+//                cv::Mat frameCompr = cv::imdecode(image.image, -1);
+//                cv::imshow("ROI 360", frameCompr);
+//            }
+//            else
+//            {
+//                cv::Mat frame(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+//                cv::imshow("ROI 360", frame);
+//            }
+//            cv::waitKey(1);
+//        }
+//        else
+//            qWarning() << "No image received";
+//    }
+//    catch(const std::exception& e)
+//    {
+//        std::cerr << e.what() << '\n';
+//    }
     fps.print("FPS:");
+}
+
+
+void SpecificWorker::on_cx(int pos, void *data)
+{
+    if(slider_x + slider_width/2 > fovea.max_width or slider_x - slider_width/2 < 0)
+        slider_x = fovea.cx;
+    else
+        fovea.cx = slider_x;
+}
+void SpecificWorker::on_cy(int pos, void *data)
+{
+    if(slider_y + slider_height/2 > fovea.max_height or slider_y - slider_height/2 < 0)
+        slider_y = fovea.cy;
+    else
+        fovea.cy = slider_y;
+}
+void SpecificWorker::on_height(int pos, void *data)
+{
+    if(slider_y + slider_height/2 > fovea.max_height or slider_y - slider_height/2 < 0)
+        slider_height = fovea.height;
+    else
+        fovea.height = slider_height;
+}
+void SpecificWorker::on_width(int pos, void *data)
+{
+    if(slider_x + slider_width/2 > fovea.max_width or slider_x - slider_width/2 < 0)
+        slider_width = fovea.width;
+    else
+        fovea.width = slider_width;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
-	std::cout << "Startup check" << std::endl;
-	QTimer::singleShot(200, qApp, SLOT(quit()));
-	return 0;
+    std::cout << "Startup check" << std::endl;
+    QTimer::singleShot(200, qApp, SLOT(quit()));
+    return 0;
 }
-
 
 
 

@@ -54,20 +54,19 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::initialize(int period)
 {
-    std::cout << "Initialize worker" << std::endl;
+    std::cout << "Initializing worker" << std::endl;
 
     this->Period = 33;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
     {
-        if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=4 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
+        if( auto success = capture.open("thetauvcsrc mode=4K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
                 success != true)
         {
             qWarning() << __FUNCTION__ << " Error connecting. No camera found";
             std::terminate();
         }
-        qInfo() << __FUNCTION__ << "HOLA";
         compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params.push_back(50);
         capture >> cv_frame;
@@ -90,12 +89,27 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
-RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) {
+RoboCompCameraRGBDSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
+{
+    if(sx == -1)
+        sx = MAX_WIDTH;
+    if(sy == -1)
+        sy = MAX_HEIGHT;
+    if(cx == -1)
+        cx = (int)(MAX_WIDTH/2);
+    if(cy == -1)
+        cy = int(MAX_HEIGHT/2);
+    if(roiwidth == -1)
+        roiwidth = MAX_WIDTH;
+    if(roiheight == -1)
+        roiheight = MAX_HEIGHT;
+
     auto img = buffer_image.get();
     cv::Mat dst, rdst;
-    img(cv::Rect(cx - (int) (sx / 2), cy - (int) (cy / 2), sx, sy)).copyTo(dst);
+    img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
     cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
-    RoboCompCameraSimple::TImage res;
+    //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
+    RoboCompCameraRGBDSimple::TImage res;
     if (pars.compressed)
     {
         std::vector<uchar> buffer;
@@ -111,14 +125,6 @@ RoboCompCameraSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
     res.height = rdst.rows;
     res.width = rdst.cols;
     return res;
-}
-
-
-RoboCompCamera360RGB::TImageParams SpecificWorker::Camera360RGB_getImageParams()
-{
-    RoboCompCamera360RGB::TImageParams params{.width=MAX_WIDTH, .height=MAX_HEIGHT, .depth=DEPTH};
-    qInfo() << "Requested camera params (WHD):" << MAX_WIDTH << MAX_HEIGHT << DEPTH;
-    return params;
 }
 
 ///////////////////////////////////////////////////////////////////77

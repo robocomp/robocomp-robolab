@@ -25,7 +25,7 @@
 #include <CommonBehavior.h>
 
 #include <Camera360RGB.h>
-#include <CameraSimple.h>
+#include <CameraRGBDSimple.h>
 
 
 #define CHECK_PERIOD 5000
@@ -49,8 +49,7 @@ public:
 
 
 
-	virtual RoboCompCamera360RGB::TImageParams Camera360RGB_getImageParams() = 0;
-	virtual RoboCompCameraSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
+	virtual RoboCompCameraRGBDSimple::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
 
 protected:
 

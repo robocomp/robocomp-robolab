@@ -23,7 +23,6 @@
 #include <qjoystick/qjoystick.h>
 #include <QHBoxLayout>
 
-
 #define CHECK_PERIOD 5000
 #define JOYSTICK_PRECISION 0.05
 #define MAX_AXIS 15

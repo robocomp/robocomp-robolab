@@ -25,7 +25,7 @@ GenericWorker::GenericWorker(MapPrx& mprx) : QObject()
 
 	joystickadapter_pubproxy = (*(RoboCompJoystickAdapter::JoystickAdapterPrx*)mprx["JoystickAdapterPub"]);
 
-	mutex = new QMutex(QMutex::Recursive);
+	mutex = new QMutex();
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

@@ -23,7 +23,7 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx, bool startup_check) : GenericWorker(mprx)
 {
-	mutex = new QMutex(QMutex::Recursive);
+	mutex = new QMutex();
 	buttonPressed = false;
 
 	// Set the base joystick axis initial data

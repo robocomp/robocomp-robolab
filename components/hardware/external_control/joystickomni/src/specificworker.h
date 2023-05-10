@@ -28,7 +28,6 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <innermodel/innermodel.h>
 #include <const.h>
 #include <qjoystick/qjoystick.h>
 
@@ -38,7 +37,6 @@ Q_OBJECT
 private:
 	RoboCompJoyStick::JoyStickBufferedData joystickBufferedData; 
 	RoboCompCommonBehavior::ParameterList params;
-	std::shared_ptr<InnerModel> innerModel;
 	QMutex *mutex;
 	struct qjh_cfg_t
 	{

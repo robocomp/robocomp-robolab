@@ -25,7 +25,7 @@ GenericWorker::GenericWorker(MapPrx& mprx) : QObject()
 
 	omnirobot_proxy = (*(RoboCompOmniRobot::OmniRobotPrx*)mprx["OmniRobotProxy"]);
 
-	mutex = new QMutex(QMutex::Recursive);
+	mutex = new QMutex();
 
 	Period = BASIC_PERIOD;
 	connect(&timer, SIGNAL(timeout()), this, SLOT(compute()));

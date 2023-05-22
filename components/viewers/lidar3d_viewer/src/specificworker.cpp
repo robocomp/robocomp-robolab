@@ -71,7 +71,7 @@ void SpecificWorker::initialize(int period)
         viewer_3d = new Viewer(this, points, colors);
         viewer_3d->show();
 
-		timer.start(Period);
+		timer.start(100);
 	}
 }
 
@@ -81,7 +81,7 @@ void SpecificWorker::compute()
 	{
 		points->clear(); colors->clear();
 		auto ldata = lidar3d_proxy->getLidarData();
-		qInfo() << ldata.size();
+		//qInfo() << ldata.size();
 		points->resize(ldata.size());
 		colors->resize(points->size());
 		
@@ -91,7 +91,7 @@ void SpecificWorker::compute()
 			colors->operator[](i) = std::make_tuple(0, 0, 1);
 		}
 
-		viewer_3d->updateGL();
+		viewer_3d->update();
 
 	}
 	catch(const Ice::Exception &e)

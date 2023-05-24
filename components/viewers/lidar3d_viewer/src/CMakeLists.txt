@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-IF ( NOT DEFINED $ENV{ROBOCOMP})
-  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /home/robocomp/robocomp")
-  SET (ENV{ROBOCOMP} "/home/robocomp/robocomp")
-ENDIF ( NOT DEFINED $ENV{ROBOCOMP})
+
+IF ( "$ENV{ROBOCOMP}" STREQUAL "")
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
+  SET (ENV{ROBOCOMP} "/opt/robocomp/")
+ENDIF ( "$ENV{ROBOCOMP}" STREQUAL "")
 
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)
   MESSAGE(FATAL_ERROR "Couldn't find RoboComp in $ENV{ROBOCOMP}! Exiting...")
@@ -40,7 +41,7 @@ SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 QT_WRAP_UI( UI_HEADERS mainUI.ui )
 
 # no-char8_t to avoid a problem with ICE Connection lib.
-#add_definitions(-g  -fmax-errors=1 -fno-char8_t)
+add_definitions(-g  -fmax-errors=1 -fno-char8_t)
 
 # Specify construction and link process
 ADD_EXECUTABLE( lidar3dviewer ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

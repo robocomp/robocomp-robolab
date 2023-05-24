@@ -28,7 +28,7 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <QOpenGLWidget>
+#include <QtOpenGLWidgets/QOpenGLWidget>
 #include <QGLViewer/qglviewer.h>
 #include <cppitertools/zip.hpp>
 

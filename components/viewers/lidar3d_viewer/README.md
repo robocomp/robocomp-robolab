@@ -5,8 +5,12 @@ Intro to component here
 ## Install QGLViewer
     For Qt5 (deprecated in RoboComp) 
         sudo apt install libqglviewer-dev-qt5
-    For Qt6 download and compile from https://libqglviewer.com/ the library from sources
-        remore Makefiles in root and QGlViewer folders and regenerate them with qmake6 *.pro
+    For Qt6
+        install Qt6 including qtdeclarative6-dev  
+        download the sources from from https://libqglviewer.com/ 
+        Generate Makefile with qmake6 *.pro
+        sudo ldconfig
+    
 
 ## Install cppitertools
     sudo git clone https://github.com/ryanhaining/cppitertools /usr/local/include/cppitertools

@@ -61,12 +61,17 @@ void SpecificWorker::initialize(int period)
 		this->startup_check();
 	else
     {
-        if( auto success = capture.open("thetauvcsrc mode=4K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
-                success != true)
+        bool activated_camera = false;
+        while(!activated_camera)
         {
-            qWarning() << __FUNCTION__ << " Error connecting. No camera found";
-            std::terminate();
+            if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
+                    success != true)
+            {
+                qWarning() << __FUNCTION__ << " Error connecting. No camera found";
+            }
+            else{activated_camera = true;}
         }
+
         compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params.push_back(50);
         capture >> cv_frame;
@@ -85,12 +90,20 @@ void SpecificWorker::compute()
         cv::imshow("USB Camera", cv_frame);
         cv::waitKey(1); // waits to display frame
     }
-    buffer_image.put(std::move(cv_frame));
+    buffer_image.put(std::move(cv_frame)); // TODO: Replace by tuple with timestamp
     fps.print("FPS:");
 }
 /////////////////////////////////////////////////////////////////////
 RoboCompCameraRGBDSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
+    RoboCompCameraRGBDSimple::TImage res;
+    std::cout << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
+    if(sx == 0 || sy == 0)
+    {
+        std::cout << "No size. Sending complete image" << std::endl;
+        sx = MAX_WIDTH; sy = MAX_HEIGHT;
+        cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+    }
     if(sx == -1)
         sx = MAX_WIDTH;
     if(sy == -1)
@@ -104,12 +117,45 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int
     if(roiheight == -1)
         roiheight = MAX_HEIGHT;
 
+    // Get image from doublebuffer
     auto img = buffer_image.get();
-    cv::Mat dst, rdst;
-    img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
+
+    // Check if y is out of range. Get max or min values in that case
+    if((cy - (int) (sy / 2)) < 0)
+    {
+        std::cout << "CASO 1" << std::endl;
+        sx = (int) ((float) sx / (float) sy * 2 * cy );
+        sy = 2*cy;
+    }
+    else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
+    {
+        std::cout << "CASO 2" << std::endl;
+        std::cout << (float)(sy / sx) << " " << (MAX_HEIGHT - cy) << std::endl;
+        sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
+        sy = 2 * (MAX_HEIGHT - cy);
+    }
+
+    // Check if x is out of range. Add proportional image section in that case
+    cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
+    if((cx - (int) (sx / 2)) < 0)
+    {
+        img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
+        img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
+        cv::hconcat(x_out_image_left, x_out_image_right, dst);
+    }
+
+    else if((cx + (int) (sx / 2)) > MAX_WIDTH)
+    {
+        img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
+        img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
+        cv::hconcat(x_out_image_left, x_out_image_right, dst);
+    }
+
+    else{ img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst); }
+
     cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
     //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
-    RoboCompCameraRGBDSimple::TImage res;
+
     if (pars.compressed)
     {
         std::vector<uchar> buffer;
@@ -121,6 +167,8 @@ RoboCompCameraRGBDSimple::TImage SpecificWorker::Camera360RGB_getROI(int cx, int
         res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
         res.compressed = false;
     }
+    res.period = fps.get_period();
+    res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
     res.depth = rdst.channels();
     res.height = rdst.rows;
     res.width = rdst.cols;

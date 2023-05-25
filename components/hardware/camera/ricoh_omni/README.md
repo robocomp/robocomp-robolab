@@ -6,7 +6,8 @@ sudo aptitude install libgstreamer1.0-dev
 sudo aptitude install libusb-1.0-0-dev
 sudo aptitude install autopoint
 sudo aptitude install gtk-doc-tools
-sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev 
+#gstreamer1.0-plugins-bad
 
 Install de NVidia GStreamer plugin with: https://gist.github.com/corenel/a615b6f7eb5b5425aa49343a7b409200
 or
@@ -17,6 +18,9 @@ Goto: https://codetricity.github.io/theta-linux/software/  and choose the
     Using gstreamer and OpenCV without v4l2loopback
 
 option, and install https://github.com/nickel110/gstthetauvc
+
+Install libuvc-theta from this repo https://github.com/ricohapi/libuvc-theta
+Remove system version
 
 Add to .bashrc and source:
     export GST_PLUGIN_PATH=/home/robocomp/software/gstthetauvc/thetauvc

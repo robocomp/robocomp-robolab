@@ -10,10 +10,10 @@ SET ( HEADERS
   specificmonitor.h
 )
 
-add_definitions(-O3  -fmax-errors=1 -fno-char8_t)
+add_definitions(-O3  -fmax-errors=1 -fno-char8_t -I/usr/include/x86_64-linux-gnu/qt6/QtOpenGLWidgets/)
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
 
-SET (LIBS ${LIBS} QGLViewer-qt5 GL)
+SET (LIBS ${LIBS} QGLViewer-qt6 Qt6OpenGLWidgets GL)
 
 

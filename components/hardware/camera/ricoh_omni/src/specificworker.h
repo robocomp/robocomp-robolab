@@ -50,6 +50,8 @@ Add to .bashrc and source:
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
 
+using namespace std::chrono;
+
 class SpecificWorker : public GenericWorker
 {
     Q_OBJECT

@@ -25,7 +25,7 @@ GenericWorker::GenericWorker(TuplePrx tprx) : Ui_guiDlg()
 
 	lidar3d_proxy = std::get<0>(tprx);
 
-	mutex = new QMutex();
+	mutex = new QMutex(QMutex::Recursive);
 
 
 	#ifdef USE_QTGUI

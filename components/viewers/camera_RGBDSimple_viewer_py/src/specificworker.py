@@ -52,12 +52,13 @@ class SpecificWorker(GenericWorker):
             both = self.camerargbdsimple_proxy.getAll(self.camera_name)
             color = both.image
             depth = both.depth
-            cvdepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
-            cvdepth_norm = cv2.normalize(src=cvdepth, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-            cvdepth_norm_color = cv2.applyColorMap(cvdepth_norm, cv2.COLORMAP_HOT)
+            #cvdepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
+            #cvdepth_norm = cv2.normalize(src=cvdepth, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            #cvdepth_norm_color = cv2.applyColorMap(cvdepth_norm, cv2.COLORMAP_HOT)
             cvcolor = np.frombuffer(color.image, np.uint8).reshape(color.height, color.width, color.depth)
-            mosaic = self.make_mosaic([cvcolor, cvdepth_norm_color])
-            cv2.imshow('CameraRGBDViewer', mosaic)
+            #mosaic = self.make_mosaic([cvcolor, cvdepth_norm_color])
+            cv2.imshow('CameraRGBDViewer', cvcolor)
+            cv2.waitKey(1)
             #cv2.imshow('CameraRGBDViewer - Depth', cvdepth_norm)
         except Ice.Exception as e:
             print(e)

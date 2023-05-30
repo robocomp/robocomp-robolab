@@ -18,7 +18,11 @@
  */
 #include "specificworker.h"
 #include <cppitertools/enumerate.hpp>
-
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+int SpecificWorker::slider_start;
+int SpecificWorker::slider_len;
+//int SpecificWorker::slider_len;
 /**
 * \brief Default constructor
 */
@@ -41,15 +45,13 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//	THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
+	try
+    {
+        pc_red = std::stod(params.at("pc_red").value);
+        pc_green = std::stod(params.at("pc_green").value);
+        pc_blue = std::stod(params.at("pc_blue").value);
+    }
+    catch(const std::exception &e){ std::cout << e.what() << std::endl;}
 
 	return true;
 }
@@ -71,8 +73,14 @@ void SpecificWorker::initialize(int period)
         viewer_3d = new Viewer(this, points, colors);
         viewer_3d->show();
 
-		timer.start(100);
+		timer.start(50);
 	}
+    cv::namedWindow("LIDAR VARIABLE", cv::WINDOW_AUTOSIZE);
+    slider_start = 300;
+    slider_len = 100;
+//    auto src1 = cv::imread( "LinuxLogo.png");
+    cv::createTrackbar("start", "LIDAR VARIABLE", &slider_start, 900 , &SpecificWorker::on_start, this);
+    cv::createTrackbar("len", "LIDAR VARIABLE", &slider_len, 900 , &SpecificWorker::on_len, this);
 }
 
 void SpecificWorker::compute()
@@ -80,25 +88,38 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(0, 2*M_PI);
-		//qInfo() << ldata.size();
+		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len);
+		qInfo() << ldata.size();
 		points->resize(ldata.size());
 		colors->resize(points->size());
 		
 	    for(const auto &[i, p]: ldata | iter::enumerate)
 		{
-			points->operator[](i) = std::make_tuple(p.x/1000., p.y/1000., p.z/1000.);
-			colors->operator[](i) = std::make_tuple(0, 0, 1);
+			points->operator[](i) = std::make_tuple(p.x, p.y, p.z);
+			colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
 		}
 
-		viewer_3d->update();
+		viewer_3d->updateGL();
 
 	}
+
 	catch(const Ice::Exception &e)
 	{
 	  std::cout << "Error reading from Lidar3D" << e << std::endl;
 	}
+//    cv::imshow("LIDAR VARIABLE", src1);
+    cout << "VALOR SLIDER START: " << slider_start << std::endl;
+    cv::waitKey(1);
 
+}
+
+void SpecificWorker::on_start(int pos, void *data)
+{
+    slider_start = slider_start;
+}
+void SpecificWorker::on_len(int pos, void *data)
+{
+    slider_len = slider_len;
 }
 
 int SpecificWorker::startup_check()
@@ -107,6 +128,9 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
+
+
+
 
 
 

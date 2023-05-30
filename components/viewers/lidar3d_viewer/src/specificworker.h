@@ -28,7 +28,6 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <QtOpenGLWidgets/QOpenGLWidget>
 #include <QGLViewer/qglviewer.h>
 #include <cppitertools/zip.hpp>
 
@@ -68,8 +67,8 @@ class Viewer : public QGLViewer
         {
             restoreStateFromFile();
             glDisable(GL_LIGHTING);
-            glPointSize(3.0);
-            setSceneRadius(5.0);
+            glPointSize(5.0);
+            setSceneRadius(100.0);
         };
         virtual void animate(){};
         virtual QString helpString() const { return QString();};
@@ -77,6 +76,7 @@ class Viewer : public QGLViewer
     private:
         std::shared_ptr<std::vector<std::tuple<float, float, float>>> points, colors;
         QWidget *parent;
+
 };
 
 
@@ -97,12 +97,18 @@ class SpecificWorker : public GenericWorker
         void initialize(int period);
     private:
         bool startup_check_flag;
+        double pc_red;
+        double pc_green;
+        double pc_blue;
+        
 
         Viewer *viewer_3d;
         std::shared_ptr<std::vector<point3f>> points, colors;
         std::shared_ptr<std::vector<std::tuple<point3f, point3f, point3f, point3f>>> planes;
 
-
+    static int slider_start, slider_len;
+    static void on_start(int pos,void *data);
+    static void on_len(int pos,void *data);
 
 };
 

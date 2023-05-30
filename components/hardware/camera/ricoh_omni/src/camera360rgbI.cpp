@@ -29,7 +29,7 @@ Camera360RGBI::~Camera360RGBI()
 }
 
 
-RoboCompCameraRGBDSimple::TImage Camera360RGBI::getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight, const Ice::Current&)
+RoboCompCamera360RGB::TImage Camera360RGBI::getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight, const Ice::Current&)
 {
 	return worker->Camera360RGB_getROI(cx, cy, sx, sy, roiwidth, roiheight);
 }

@@ -83,7 +83,6 @@
 
 #include <camera360rgbI.h>
 
-#include <CameraRGBDSimple.h>
 
 
 

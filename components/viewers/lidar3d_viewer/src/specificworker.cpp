@@ -99,7 +99,7 @@ void SpecificWorker::compute()
 			colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
 		}
 
-		viewer_3d->updateGL();
+		viewer_3d->update();
 
 	}
 

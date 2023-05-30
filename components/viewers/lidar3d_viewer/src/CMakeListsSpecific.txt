@@ -14,6 +14,6 @@ add_definitions(-O3  -fmax-errors=1 -fno-char8_t)
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
 
-SET (LIBS ${LIBS} QGLViewer-qt5 GL)
+SET (LIBS ${LIBS} QGLViewer-qt6 )
 
 

@@ -1,0 +1,12 @@
+import "Camera360RGB.idsl";
+import "Lidar3D.idsl";
+
+Component camera_lidar_fusion
+{
+    Communications
+    {
+	requires Camera360RGB, Lidar3D;
+    };
+    language python;
+};
+

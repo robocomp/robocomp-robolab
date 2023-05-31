@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 11990
 
 # Proxies for required interfaces
-Lidar3DProxy = lidar3d:tcp -h localhost -p 11988
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11987
 
 ### Pointcloud color ###
 # 0.0-1.0

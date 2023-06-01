@@ -92,6 +92,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","display", aux.value, "false");
     params["display"] = aux;
 
+    configGetString( "","simulator", aux.value, "false");
+    params["simulator"] = aux;
+
     configGetString( "","compressed", aux.value, "false");
     params["compressed"] = aux;
 }

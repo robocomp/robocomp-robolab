@@ -23,6 +23,7 @@
 GenericWorker::GenericWorker(TuplePrx tprx) : QObject()
 {
 
+	camera360rgb_proxy = std::get<0>(tprx);
 
 	mutex = new QMutex();
 

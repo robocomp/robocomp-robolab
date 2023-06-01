@@ -31,7 +31,7 @@
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<>;
+using TuplePrx = std::tuple<RoboCompCamera360RGB::Camera360RGBPrxPtr>;
 
 
 class GenericWorker : public QObject
@@ -47,6 +47,7 @@ public:
 	QMutex *mutex;
 
 
+	RoboCompCamera360RGB::Camera360RGBPrxPtr camera360rgb_proxy;
 
 	virtual RoboCompCamera360RGB::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
 

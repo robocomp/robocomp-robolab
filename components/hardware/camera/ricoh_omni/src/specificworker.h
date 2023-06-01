@@ -81,9 +81,11 @@ public slots:
             std::string device = "/dev/video0";
             bool display = false;
             bool compressed = false;
+            bool simulator = false;
         };
         PARAMS pars;
         int MAX_WIDTH, MAX_HEIGHT, DEPTH;
+        RoboCompCamera360RGB::TImage image;
 
         //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
         DoubleBuffer<cv::Mat, cv::Mat> buffer_image;

@@ -44,8 +44,9 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     {
         //Parametros por el config
         pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
+        pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
-        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << std::endl;
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << std::endl;
     }
     catch(const std::exception &e)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
@@ -64,19 +65,37 @@ void SpecificWorker::initialize(int period)
         bool activated_camera = false;
         while(!activated_camera)
         {
-            if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
-                    success != true)
+            if(!pars.simulator)
             {
-                qWarning() << __FUNCTION__ << " Error connecting. No camera found";
+                if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
+                        success != true)
+                {
+                    qWarning() << __FUNCTION__ << " Error connecting. No camera found";
+                }
+                else
+                {
+                    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+                    compression_params.push_back(50);
+                    capture >> cv_frame;
+                    MAX_WIDTH = cv_frame.cols;
+                    MAX_HEIGHT = cv_frame.rows;
+                    activated_camera = true;
+                }
             }
-            else{activated_camera = true;}
+            else
+            {
+                try
+                {
+                    image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+                    cv_frame = cv::Mat (cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+                    MAX_WIDTH = image.width;
+                    MAX_HEIGHT = image.height;
+                    activated_camera = true;
+                }
+                catch(const std::exception &e){ std::cout << e.what() << std::endl;};
+            }
         }
 
-        compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
-        compression_params.push_back(50);
-        capture >> cv_frame;
-        MAX_WIDTH = cv_frame.cols;
-        MAX_HEIGHT = cv_frame.rows;
         DEPTH = cv_frame.elemSize();
         timer.start(Period);
     }
@@ -84,7 +103,13 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    capture >> cv_frame;
+    if(!pars.simulator) capture >> cv_frame;
+    else
+    {
+        image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+        cv_frame = cv::Mat (cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+    }
+
     if(pars.display)
     {
         cv::imshow("USB Camera", cv_frame);

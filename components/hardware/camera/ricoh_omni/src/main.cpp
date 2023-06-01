@@ -130,11 +130,28 @@ int ::RicohOmni::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	RoboCompCamera360RGB::Camera360RGBPrxPtr camera360rgb_proxy;
 
 	string proxy, tmp;
 	initialize();
 
-	tprx = std::tuple<>();
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "Camera360RGBProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Camera360RGBProxy\n";
+		}
+		camera360rgb_proxy = Ice::uncheckedCast<RoboCompCamera360RGB::Camera360RGBPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Camera360RGB: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("Camera360RGBProxy initialized Ok!");
+
+
+	tprx = std::make_tuple(camera360rgb_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());

@@ -2,13 +2,6 @@
 Intro to component here
 
 
-## Installation
-    Install repo [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver)
-
-## Run
-    Set ip of the running computer in config and in lidar, section Setting->Destination IP Address
-
-
 ## Configuration parameters
 As any other component, *lidar_3d* needs a configuration file to start. In
 ```

@@ -29,8 +29,8 @@ Lidar3DI::~Lidar3DI()
 }
 
 
-RoboCompLidar3D::TLidarData Lidar3DI::getLidarData(const Ice::Current&)
+RoboCompLidar3D::TLidarData Lidar3DI::getLidarData(int start, int len, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarData();
+	return worker->Lidar3D_getLidarData(start, len);
 }
 

@@ -88,8 +88,20 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = true;
-	configGetString( "","IPpc", aux.value, "192.168.1.100");
-	params["IPpc"] = aux;
+	configGetString( "","lidar_model", aux.value, "nofile");
+	params["lidar_model"] = aux;
+
+	configGetString( "","msop_port", aux.value, "nofile");
+	params["msop_port"] = aux;
+
+	configGetString( "","difop_port", aux.value, "nofile");
+	params["difop_port"] = aux;
+
+	configGetString( "","dest_pc_ip_addr", aux.value, "nofile");
+	params["dest_pc_ip_addr"] = aux;
+
+    configGetString( "","simulator", aux.value, "nofile");
+    params["simulator"] = aux;
 }
 
 //Check parameters and transform them to worker structure

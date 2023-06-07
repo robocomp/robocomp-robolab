@@ -31,6 +31,7 @@
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
 
+
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
 
@@ -45,7 +46,7 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompLidar3D::TLidarData Lidar3D_getLidarData();
+        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len);
 
     public slots:
         void compute();
@@ -54,15 +55,29 @@ class SpecificWorker : public GenericWorker
 
     private:
         bool startup_check_flag;
-        string IP;
+        int lidar_model;
+        bool simulator;
+        int msop_port;
+        int difop_port;
+        std::string dest_pc_ip_addr;
+        robosense::lidar::LidarType lidar_model_list[2] = {
+            robosense::lidar::LidarType::RSHELIOS,
+            robosense::lidar::LidarType::RSBP
+        };
 
         robosense::lidar::RSDriverParam param;                  ///< Create a parameter object
         robosense::lidar::LidarDriver<PointCloudMsg> driver;               ///< Declare the driver object
 
         static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
+        double remap_angle(double angle);
+        int remap_angle_real(int angle);
         static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
         static void exceptionCallback(const robosense::lidar::Error& code);
-
+        float angle_precision = 0.4;
+        int lenPoints= 28800;
+        int original_fov = 360;
+        int points_per_angle = 32;
+//        std::PointCloudT<PointXYZI>::VectorT getPointsInRange(const PointCloudT<PointXYZI>::VectorT, float centralAngle, float widthAngle);
         FPSCounter fps;
         DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_data;
 };

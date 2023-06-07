@@ -33,7 +33,7 @@ public:
 	Lidar3DI(GenericWorker *_worker);
 	~Lidar3DI();
 
-	RoboCompLidar3D::TLidarData getLidarData(const Ice::Current&);
+	RoboCompLidar3D::TLidarData getLidarData(int start, int len, const Ice::Current&);
 
 private:
 

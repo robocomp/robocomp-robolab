@@ -31,7 +31,6 @@
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
 
-
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
 
@@ -65,8 +64,8 @@ class SpecificWorker : public GenericWorker
             robosense::lidar::LidarType::RSBP
         };
 
-        robosense::lidar::RSDriverParam param;                  ///< Create a parameter object
-        robosense::lidar::LidarDriver<PointCloudMsg> driver;               ///< Declare the driver object
+        robosense::lidar::RSDriverParam param;                           ///< Create a parameter object
+        robosense::lidar::LidarDriver<PointCloudMsg> driver;             ///< Declare the driver object
 
         static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
         double remap_angle(double angle);
@@ -78,8 +77,10 @@ class SpecificWorker : public GenericWorker
         int original_fov = 360;
         int points_per_angle = 32;
 //        std::PointCloudT<PointXYZI>::VectorT getPointsInRange(const PointCloudT<PointXYZI>::VectorT, float centralAngle, float widthAngle);
-        FPSCounter fps;
         DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_data;
+
+        // FPS
+        FPSCounter fps;
 };
 
 #endif

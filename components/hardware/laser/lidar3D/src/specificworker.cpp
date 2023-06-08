@@ -19,18 +19,16 @@
 #include "specificworker.h"
 #include "cppitertools/slice.hpp"
 #include "math.h"
-robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> free_cloud_queue;
-robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
+
+robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> free_cloud_queue;
+robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
 
 /**
 * \brief Default constructor
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
-	this->startup_check_flag = startup_check;
-	// Uncomment if there's too many debug messages
-	// but it removes the possibility to see the messages
-	// shown in the console with qDebug()
+    this->startup_check_flag = startup_check;
 //	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
 
@@ -39,22 +37,11 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 */
 SpecificWorker::~SpecificWorker()
 {
-	std::cout << "Destroying SpecificWorker" << std::endl;
+    std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-    //	THE FOLLOWING IS JUST AN EXAMPLE
-    //	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-    //	try
-    //	{
-    //		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-    //		std::string innermodel_path = par.value;
-    //		innerModel = std::make_shared(innermodel_path);
-    //	}
-    //	catch(const std::exception &e) { qFatal("Error reading config params"); }
-
-
     try
     {
         lidar_model = std::stoi(params.at("lidar_model").value);
@@ -63,56 +50,59 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         dest_pc_ip_addr = params.at("dest_pc_ip_addr").value;
         simulator = params["simulator"].value == "true";
     }
-    catch(const std::exception &e){ std::cout << e.what() << std::endl;}
+    catch (const std::exception &e)
+    { std::cout << e.what() << std::endl; }
 
-	return true;
+    return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
-	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
-	if(this->startup_check_flag)
-	{
-		this->startup_check();
-	}
-	else
-	{
-		param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
-		param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
-		//param.input_param.group_address = "192.168.1.200";
-		param.input_param.msop_port = msop_port;   ///< Set the lidar msop port number, the default is 6699
-		param.input_param.difop_port = difop_port;  ///< Set the lidar difop port number, the default is 7788
-		param.lidar_type = lidar_model_list[lidar_model];   ///< Set the lidar type. Make sure this type is correct
-		param.print();
-        driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback, driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
-		driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function
+    std::cout << "Initialize worker" << std::endl;
+    this->Period = period;
+    if (this->startup_check_flag)
+    {
+        this->startup_check();
+    } else
+    {
+        if (not simulator)
+        {
+            param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
+            param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
+            //param.input_param.group_address = "192.168.1.200";
+            param.input_param.msop_port = msop_port;   ///< Set the lidar msop port number, the default is 6699
+            param.input_param.difop_port = difop_port;  ///< Set the lidar difop port number, the default is 7788
+            param.lidar_type = lidar_model_list[lidar_model];   ///< Set the lidar type. Make sure this type is correct
+            param.print();
+            driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback,
+                                         driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
+            driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function}
 
-
-		if (!driver.init(param))                         ///< Call the init function
-		{
-			std::cout << "Driver Initialize Error..." << std::endl;
-			return;
-		}
-        driver.start();
-        std::cout << "Driver initiated OK" << std::endl;
-
-		timer.start(50);
-	}
+            if (!driver.init(param))                         ///< Call the init function
+            {
+                std::cout << "Driver Initialize Error..." << std::endl;
+                return;
+            }
+            driver.start();
+            std::cout << "Driver initiated OK" << std::endl;
+        }
+        timer.start(50);
+    }
 }
 
 void SpecificWorker::compute()
 {
-    if (!simulator)
+    if (not simulator)  // REAL LIDAR
     {
         std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
         if (msg.get() == NULL)
             return;
 
-
-        buffer_data.put(std::move(*msg), [](auto &&I, auto &T) {
+        buffer_data.put(std::move(*msg), [](auto &&I, auto &T)
+        {
             cout << I.points.size() << endl;
-            if (I.points.size() == 28800) {
+            if (I.points.size() == 28800)
+            {
                 T.resize(I.points.size());
                 int i = 0;
 
@@ -123,20 +113,20 @@ void SpecificWorker::compute()
         //std::cout << "msg: " << msg->seq << " point cloud size: " << msg->points.size() << std::endl;
         fps.print(std::to_string(msg->points.size()));
     }
+    else
+        fps.print("Connected to simulator");
 }
-
-
 
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
 //        Via this fucntion, the driver gets an free/unused point cloud message from the caller.
 // @param msg  The free/unused point cloud message.
 //
-std::shared_ptr<PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCallback(void)
+std::shared_ptr <PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCallback(void)
 {
     // Note: This callback function runs in the packet-parsing/point-cloud-constructing thread of the driver,
     //       so please DO NOT do time-consuming task here.
-    std::shared_ptr<PointCloudMsg> msg = free_cloud_queue.pop();
+    std::shared_ptr <PointCloudMsg> msg = free_cloud_queue.pop();
     if (msg.get() != NULL)
     {
         return msg;
@@ -144,22 +134,26 @@ std::shared_ptr<PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCall
 
     return std::make_shared<PointCloudMsg>();
 }
-double SpecificWorker::remap_angle(double angle){
+
+double SpecificWorker::remap_angle(double angle)
+{
     if (angle >= 0)
         return 2.5 * angle;
     else
         return 900 + 2.5 * angle;
 }
 
-int SpecificWorker::remap_angle_real(int angle){
-        return (360 - (angle - 180)) % 360;
+int SpecificWorker::remap_angle_real(int angle)
+{
+    return (360 - (angle - 180)) % 360;
 }
+
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
 //        Via this function, the driver gets/returns a stuffed point cloud message to the caller.
 // @param msg  The stuffed point cloud message.
 //
-void SpecificWorker::driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg)
+void SpecificWorker::driverReturnPointCloudToCallerCallback(std::shared_ptr <PointCloudMsg> msg)
 {
     // Note: This callback function runs in the packet-parsing/point-cloud-constructing thread of the driver,
     //       so please DO NOT do time-consuming task here. Instead, process it in caller's own thread. (see processCloud() below)
@@ -172,7 +166,7 @@ void SpecificWorker::driverReturnPointCloudToCallerCallback(std::shared_ptr<Poin
 //        Via this function, the driver inform the caller that something happens.
 // @param code The error code to represent the error/warning/information
 //
-void SpecificWorker::exceptionCallback(const robosense::lidar::Error& code)
+void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
 {
     // Note: This callback function runs in the packet-receving and packet-parsing/point-cloud_constructing thread of the driver,
     //       so please DO NOT do time-consuming task here.
@@ -183,9 +177,9 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error& code)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()
 {
-	std::cout << "Startup check" << std::endl;
-	QTimer::singleShot(200, qApp, SLOT(quit()));
-	return 0;
+    std::cout << "Startup check" << std::endl;
+    QTimer::singleShot(200, qApp, SLOT(quit()));
+    return 0;
 }
 
 
@@ -231,7 +225,7 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
 
     const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
 
-    if (!simulator)
+    if (not simulator)
     {
         auto buffer = buffer_data.get();
         int start_angle = remap_angle_real(start);
@@ -240,13 +234,14 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
 
         data.reserve(eje_leng);  // pre-allocate memory
 
-        for (int i = 0; i < eje_leng; ++i){
-            data.push_back(RoboCompLidar3D::TPoint{.x=buffer[eje_start].x*1000, .y=buffer[eje_start].y*1000, .z=buffer[eje_start].z*1000, .intensity=buffer[eje_start].intensity});
+        for (int i = 0; i < eje_leng; ++i)
+        {
+            data.push_back(RoboCompLidar3D::TPoint{.x=buffer[eje_start].x * 1000, .y=buffer[eje_start].y * 1000, .z=
+            buffer[eje_start].z * 1000, .intensity=buffer[eje_start].intensity});
             eje_start++;
 
-            if (eje_start % 28800 == 0) {
+            if (eje_start % 28800 == 0)
                 eje_start = 1;
-            }
         }
     }
     else

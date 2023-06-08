@@ -103,11 +103,17 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-    if(!pars.simulator) capture >> cv_frame;
+    if(not pars.simulator)
+        capture >> cv_frame;
     else
     {
-        image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
-        cv_frame = cv::Mat (cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+        try
+        {
+            image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+        }
+        catch (const std::exception &e)
+        { std::cout << e.what() << " Error reading 360 camera " << std::endl; }
     }
 
     if(pars.display)

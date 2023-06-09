@@ -86,6 +86,7 @@ void SpecificWorker::initialize(int period)
             {
                 try
                 {
+                    qInfo() << "Trying to connect to Camera360RGB in simulator";
                     image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
                     cv_frame = cv::Mat (cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
                     MAX_WIDTH = image.width;

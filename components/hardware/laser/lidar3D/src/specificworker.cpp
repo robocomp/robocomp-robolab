@@ -228,6 +228,8 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
     if (not simulator)
     {
         auto buffer = buffer_data.get();
+        // TODO: replace by buffer_data.try_get_noempty() to read current value without emptying the buffer
+        //  or waiting until it has something. It can get several times the same value. Good for multiple accesses.
         int start_angle = remap_angle_real(start);
         auto eje_start = start_angle * FACTOR;
         auto eje_leng = len * FACTOR;

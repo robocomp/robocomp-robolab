@@ -1,7 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Proxies for required interfaces
-Lidar3DProxy = lidar3d:tcp -h localhost -p 0
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11988
 
 
 

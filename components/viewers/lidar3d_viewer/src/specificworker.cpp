@@ -89,26 +89,21 @@ void SpecificWorker::compute()
 	{
 		points->clear(); colors->clear();
 		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len);
-		qInfo() << ldata.size();
 		points->resize(ldata.size());
 		colors->resize(points->size());
 		
 	    for(const auto &[i, p]: ldata | iter::enumerate)
 		{
-			points->operator[](i) = std::make_tuple(p.x, p.y, p.z);
+			points->operator[](i) = std::make_tuple(p./1000, p.y/1000, p.z/1000);
 			colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
-		}
-
+ 		}
 		viewer_3d->update();
-
 	}
 
 	catch(const Ice::Exception &e)
 	{
 	  std::cout << "Error reading from Lidar3D" << e << std::endl;
 	}
-//    cv::imshow("LIDAR VARIABLE", src1);
-    cout << "VALOR SLIDER START: " << slider_start << std::endl;
     cv::waitKey(1);
 
 }

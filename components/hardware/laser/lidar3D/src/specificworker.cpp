@@ -248,9 +248,9 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
     }
     else
     {
-        double start_angle = remap_angle(start);
-        double len_angle = remap_angle(len);
-        data = this->lidar3d_proxy->getLidarData(static_cast<int>(start_angle), static_cast<int>(len_angle));
+        //double start_angle = remap_angle(start);
+        //double len_angle = remap_angle(len);
+        data = this->lidar3d_proxy->getLidarData(start, len);
     }
 
     return data;

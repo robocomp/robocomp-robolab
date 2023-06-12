@@ -67,7 +67,7 @@ class Viewer : public QGLViewer
         {
             restoreStateFromFile();
             glDisable(GL_LIGHTING);
-            glPointSize(5.0);
+            glPointSize(3.0);
             setSceneRadius(100.0);
         };
         virtual void animate(){};
@@ -95,21 +95,22 @@ class SpecificWorker : public GenericWorker
         void compute();
         int startup_check();
         void initialize(int period);
+
     private:
         bool startup_check_flag;
         double pc_red;
         double pc_green;
         double pc_blue;
-        
 
         Viewer *viewer_3d;
         std::shared_ptr<std::vector<point3f>> points, colors;
         std::shared_ptr<std::vector<std::tuple<point3f, point3f, point3f, point3f>>> planes;
+        std::string window_name;
 
-    static int slider_start, slider_len;
+    static int slider_start, slider_len, slider_z;
     static void on_start(int pos,void *data);
     static void on_len(int pos,void *data);
-
+    static void on_zfilter(int pos,void *data);
 };
 
 #endif

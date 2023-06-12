@@ -89,6 +89,9 @@ public slots:
 
         //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
         DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
+
+        // track image period
+        void self_adjust_period(int new_period);
 };
 
 #endif

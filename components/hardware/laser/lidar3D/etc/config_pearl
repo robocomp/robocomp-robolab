@@ -1,6 +1,6 @@
 CommonBehavior.Endpoints=tcp -p 11988
 
-# Endpoints for implements interfaces
+# Endpoints for implemented interfaces
 Lidar3D.Endpoints=tcp -p 11989
 
 ### Lidar params ###

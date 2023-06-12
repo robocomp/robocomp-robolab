@@ -59,7 +59,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initialize worker" << std::endl;
-    this->Period = period;
+    this->Period = 50;
     if (this->startup_check_flag)
     {
         this->startup_check();
@@ -86,7 +86,7 @@ void SpecificWorker::initialize(int period)
             driver.start();
             std::cout << "Driver initiated OK" << std::endl;
         }
-        timer.start(50);
+        timer.start(this->Period);
     }
 }
 
@@ -98,7 +98,7 @@ void SpecificWorker::compute()
         if (msg.get() == NULL)
             return;
 
-        buffer_data.put(std::move(*msg), [](auto &&I, auto &T)
+        buffer_real_data.put(std::move(*msg), [](auto &&I, auto &T)
         {
             cout << I.points.size() << endl;
             if (I.points.size() == 28800)
@@ -113,8 +113,15 @@ void SpecificWorker::compute()
         //std::cout << "msg: " << msg->seq << " point cloud size: " << msg->points.size() << std::endl;
         fps.print(std::to_string(msg->points.size()));
     }
-    else
-        fps.print("Connected to simulator");
+//    else
+//        try
+//        {
+//            auto data = this->lidar3d_proxy->getLidarData(0, 360);
+//            buffer_sim_data.put(std::move(data));
+//        }
+//        catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};
+
+    fps.print("Connected to simulator");
 }
 
 //
@@ -160,7 +167,6 @@ void SpecificWorker::driverReturnPointCloudToCallerCallback(std::shared_ptr <Poi
     stuffed_cloud_queue.push(msg);
 }
 
-
 //
 // @brief exception callback function. The caller should register it to the lidar driver.
 //        Via this function, the driver inform the caller that something happens.
@@ -173,8 +179,10 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
     std::cout << code.toString() << std::endl;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////// Interfaces                                                            //////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int SpecificWorker::startup_check()
 {
     std::cout << "Startup check" << std::endl;
@@ -227,7 +235,7 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
 
     if (not simulator)
     {
-        auto buffer = buffer_data.get();
+        auto buffer = buffer_real_data.get();
         // TODO: replace by buffer_data.try_get_noempty() to read current value without emptying the buffer
         //  or waiting until it has something. It can get several times the same value. Good for multiple accesses.
         int start_angle = remap_angle_real(start);
@@ -251,8 +259,8 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
         //double start_angle = remap_angle(start);
         //double len_angle = remap_angle(len);
         data = this->lidar3d_proxy->getLidarData(start, len);
+        //data = buffer_sim_data.get();
     }
-
     return data;
 }
 

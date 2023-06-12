@@ -20,19 +20,18 @@
 #include <cppitertools/enumerate.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+
 int SpecificWorker::slider_start;
 int SpecificWorker::slider_len;
-//int SpecificWorker::slider_len;
+int SpecificWorker::slider_z;
+
+
 /**
 * \brief Default constructor
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
 	this->startup_check_flag = startup_check;
-	// Uncomment if there's too many debug messages
-	// but it removes the possibility to see the messages
-	// shown in the console with qDebug()
-//	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
 
 /**
@@ -75,12 +74,13 @@ void SpecificWorker::initialize(int period)
 
 		timer.start(50);
 	}
-    cv::namedWindow("LIDAR VARIABLE", cv::WINDOW_AUTOSIZE);
+    window_name = "3D LIDAR Viewer";
+    cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
     slider_start = 300;
     slider_len = 100;
-//    auto src1 = cv::imread( "LinuxLogo.png");
-    cv::createTrackbar("start", "LIDAR VARIABLE", &slider_start, 900 , &SpecificWorker::on_start, this);
-    cv::createTrackbar("len", "LIDAR VARIABLE", &slider_len, 900 , &SpecificWorker::on_len, this);
+    cv::createTrackbar("start", window_name, &slider_start, 900 , &SpecificWorker::on_start, this);
+    cv::createTrackbar("len", window_name, &slider_len, 900 , &SpecificWorker::on_len, this);
+    cv::createTrackbar("z filter", window_name, &slider_z, 4000, &SpecificWorker::on_zfilter, this);
 }
 
 void SpecificWorker::compute()
@@ -94,8 +94,11 @@ void SpecificWorker::compute()
 		
 	    for(const auto &[i, p]: ldata | iter::enumerate)
 		{
-			points->operator[](i) = std::make_tuple(p./1000, p.y/1000, p.z/1000);
-			colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
+            if(p.z > (slider_z - 2000))
+            {
+                points->operator[](i) = std::make_tuple(p.x / 1000, p.y / 1000, p.z / 1000);
+                colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
+            }
  		}
 		viewer_3d->update();
 	}
@@ -110,11 +113,12 @@ void SpecificWorker::compute()
 
 void SpecificWorker::on_start(int pos, void *data)
 {
-    slider_start = slider_start;
 }
 void SpecificWorker::on_len(int pos, void *data)
 {
-    slider_len = slider_len;
+}
+void SpecificWorker::on_zfilter(int pos, void *data)
+{
 }
 
 int SpecificWorker::startup_check()

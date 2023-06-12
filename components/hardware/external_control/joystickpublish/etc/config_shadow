@@ -12,9 +12,9 @@ joystickUniversal.Device = /dev/input/js0
 joystickUniversal.NumAxes = 3
                           #name  axis min  max  inverted, dead_zone
 
-joystickUniversal.Axis_0 = rotate, 3, -2, 2, false, 0.05
-joystickUniversal.Axis_1 = advance, 1, -800, 800, true, 50
-joystickUniversal.Axis_2 = side, 0, -800, 800, false, 50
+joystickUniversal.Axis_0 = rotate, 3, -2, 2, false, 0.1
+joystickUniversal.Axis_1 = advance, 1, -800, 800, true, 80
+joystickUniversal.Axis_2 = side, 0, -800, 800, false, 80
 
 joystickUniversal.NumButtons = 4
 joystickUniversal.Button_0 =stop, 1, 1

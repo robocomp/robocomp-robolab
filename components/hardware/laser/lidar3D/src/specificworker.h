@@ -77,9 +77,10 @@ class SpecificWorker : public GenericWorker
         int original_fov = 360;
         int points_per_angle = 32;
 //        std::PointCloudT<PointXYZI>::VectorT getPointsInRange(const PointCloudT<PointXYZI>::VectorT, float centralAngle, float widthAngle);
-        DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_data;
+        DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_real_data;
+        DoubleBuffer<RoboCompLidar3D::TLidarData, RoboCompLidar3D::TLidarData> buffer_sim_data;
 
-        // FPS
+    // FPS
         FPSCounter fps;
 };
 

@@ -93,7 +93,7 @@ void SpecificWorker::initialize(int period)
                     MAX_HEIGHT = image.height;
                     activated_camera = true;
                 }
-                catch(const std::exception &e){ std::cout << e.what() << std::endl;};
+                catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;};
             }
         }
 
@@ -106,14 +106,16 @@ void SpecificWorker::compute()
 {
     if(not pars.simulator)
         capture >> cv_frame;
-    else
+    else        // Simulator
     {
         try
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+            // self adjusting period to remote image source
+            self_adjust_period(image.period);
         }
-        catch (const std::exception &e)
+        catch (const Ice::Exception &e)
         { std::cout << e.what() << " Error reading 360 camera " << std::endl; }
     }
 
@@ -125,7 +127,25 @@ void SpecificWorker::compute()
     buffer_image.put(std::move(cv_frame)); // TODO: Replace by tuple with timestamp
     fps.print("FPS:");
 }
+
+    void SpecificWorker::self_adjust_period(int new_period)
+    {
+        if(abs(new_period - this->Period) < 2)
+            return;
+        if(new_period > this->Period)
+        {
+            this->Period += 1;
+            timer.setInterval(this->Period);
+        } else
+        {
+            this->Period -= 1;
+            this->timer.setInterval(this->Period);
+        }
+    }
 /////////////////////////////////////////////////////////////////////
+////////////// Interface
+/////////////////////////////////////////////////////////////////////
+
 RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
     RoboCompCamera360RGB::TImage res;
@@ -150,7 +170,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
         roiheight = MAX_HEIGHT;
 
     // Get image from doublebuffer
-    auto img = buffer_image.get();
+    auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
 
     // Check if y is out of range. Get max or min values in that case
     if((cy - (int) (sy / 2)) < 0)
@@ -188,7 +208,11 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
         cv::hconcat(x_out_image_left, x_out_image_right, dst);
     }
 
-    else{ img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst); }
+    else
+    {
+        sx--;
+        img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
+    }
 
     cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
     //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;

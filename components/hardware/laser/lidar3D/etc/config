@@ -1,15 +1,17 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 11986
 
 # Endpoints for implements interfaces
-Lidar3D.Endpoints=tcp -p 0
+Lidar3D.Endpoints=tcp -p 11988
 
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11987
 
-# Proxies for required interfaces
-Lidar3DProxy = lidar3d:tcp -h localhost -p 0
-
-
-
-InnerModelPath = innermodel.xml
+### Lidar params ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 0
+dest_pc_ip_addr = 192.168.50.114
+msop_port = 6699
+difop_port = 7788
+simulator = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

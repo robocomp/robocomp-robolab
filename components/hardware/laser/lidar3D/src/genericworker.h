@@ -49,7 +49,7 @@ public:
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
-	virtual RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len) = 0;
+	virtual RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len, int decimationfactor) = 0;
 
 protected:
 

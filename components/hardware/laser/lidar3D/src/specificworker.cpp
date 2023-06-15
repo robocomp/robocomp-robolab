@@ -113,6 +113,16 @@ void SpecificWorker::compute()
         //std::cout << "msg: " << msg->seq << " point cloud size: " << msg->points.size() << std::endl;
         fps.print(std::to_string(msg->points.size()));
     }
+    else
+    {
+      try
+        {
+            auto data = this->lidar3d_proxy->getLidarData(0, 360, 1);
+            buffer_sim_data.put(std::move(data));
+        }
+        catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};  
+    }
+    
 //    else
 //        try
 //        {
@@ -227,41 +237,42 @@ int SpecificWorker::startup_check()
 //}
 
 
-RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int len)
+RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int len, int decimation_factor)
 {
-    RoboCompLidar3D::TLidarData data;
-
     const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
+    auto buffer = (not simulator) ? buffer_real_data.get() : buffer_sim_data.get();
+    
+    auto eje_start = start * FACTOR;
+    auto eje_leng = len * FACTOR;
+    
+    std::vector<RoboCompLidar3D::TPoint> data;  // Vector to store data
+    data.reserve(eje_leng);  // pre-allocate memory
 
-    if (not simulator)
+
+    // Calculate the actual length after decimation
+    int decimated_groups = len / decimation_factor;
+
+    data.reserve(decimated_groups * FACTOR);  // pre-allocate memory
+
+    for (int i = 0; i < decimated_groups; ++i)
     {
-        auto buffer = buffer_real_data.get();
-        // TODO: replace by buffer_data.try_get_noempty() to read current value without emptying the buffer
-        //  or waiting until it has something. It can get several times the same value. Good for multiple accesses.
-        int start_angle = remap_angle_real(start);
-        auto eje_start = start_angle * FACTOR;
-        auto eje_leng = len * FACTOR;
-
-        data.reserve(eje_leng);  // pre-allocate memory
-
-        for (int i = 0; i < eje_leng; ++i)
+        for (int j = 0; j < FACTOR; ++j) 
         {
-            data.push_back(RoboCompLidar3D::TPoint{.x=buffer[eje_start].x * 1000, .y=buffer[eje_start].y * 1000, .z=
-            buffer[eje_start].z * 1000, .intensity=buffer[eje_start].intensity});
-            eje_start++;
+            // Use modulo operation to ensure circular indexing
+            int index = (eje_start + j) % 28800;
+            if (index == 0) index = 28800;
 
-            if (eje_start % 28800 == 0)
-                eje_start = 1;
+            data.push_back(RoboCompLidar3D::TPoint{.x=buffer[index].x , .y=buffer[index].y, .z=buffer[index].z, .intensity=buffer[index].intensity});
         }
+
+        // Skip next (decimation_factor - 1) groups of points
+        eje_start += decimation_factor * FACTOR;
+
+        // Ensure eje_start is within valid range
+        if (eje_start > 28800) eje_start -= 28800;
     }
-    else
-    {
-        //double start_angle = remap_angle(start);
-        //double len_angle = remap_angle(len);
-        data = this->lidar3d_proxy->getLidarData(start, len);
-        //data = buffer_sim_data.get();
-    }
-    return data;
+        
+        return data;
 }
 
 

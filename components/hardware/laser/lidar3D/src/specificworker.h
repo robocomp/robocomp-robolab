@@ -45,7 +45,7 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len);
+        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len, int decimationfactor);
 
     public slots:
         void compute();

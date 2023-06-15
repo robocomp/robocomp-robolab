@@ -78,9 +78,12 @@ void SpecificWorker::initialize(int period)
     cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
     slider_start = 300;
     slider_len = 100;
-    cv::createTrackbar("start", window_name, &slider_start, 900 , &SpecificWorker::on_start, this);
-    cv::createTrackbar("len", window_name, &slider_len, 900 , &SpecificWorker::on_len, this);
+	slider_dec = 1;
+    cv::createTrackbar("start", window_name, &slider_start, 360 , &SpecificWorker::on_start, this);
+    cv::createTrackbar("len", window_name, &slider_len, 360 , &SpecificWorker::on_len, this);
     cv::createTrackbar("z filter", window_name, &slider_z, 4000, &SpecificWorker::on_zfilter, this);
+	cv::createTrackbar("decimation filter", window_name, &slider_dec, 5, &SpecificWorker::on_decfilter, this);
+	cv::setTrackbarMin("decimation filter", window_name, 1);
 }
 
 void SpecificWorker::compute()
@@ -88,7 +91,8 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len);
+		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len, slider_dec);
+		cout << ldata.size() << endl;
 		points->resize(ldata.size());
 		colors->resize(points->size());
 		
@@ -118,6 +122,9 @@ void SpecificWorker::on_len(int pos, void *data)
 {
 }
 void SpecificWorker::on_zfilter(int pos, void *data)
+{
+}
+void SpecificWorker::on_decfilter(int pos, void *data)
 {
 }
 

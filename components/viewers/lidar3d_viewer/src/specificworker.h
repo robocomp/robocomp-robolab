@@ -108,9 +108,11 @@ class SpecificWorker : public GenericWorker
         std::string window_name;
 
     static int slider_start, slider_len, slider_z;
+    int slider_dec;
     static void on_start(int pos,void *data);
     static void on_len(int pos,void *data);
     static void on_zfilter(int pos,void *data);
+    static void on_decfilter(int pos,void *data);
 };
 
 #endif

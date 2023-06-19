@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
-  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /opt/robocomp")
-  SET (ENV{ROBOCOMP} "/opt/robocomp/")
+  MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /home/robocomp/robocomp")
+  SET (ENV{ROBOCOMP} "/home/robocomp/robocomp/")
 ENDIF ( "$ENV{ROBOCOMP}" STREQUAL "")
 
 IF(NOT EXISTS $ENV{ROBOCOMP}/cmake)

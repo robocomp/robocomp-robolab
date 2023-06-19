@@ -45,7 +45,7 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(int start, int len, int decimationfactor);
+        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor);
 
     public slots:
         void compute();
@@ -76,9 +76,12 @@ class SpecificWorker : public GenericWorker
         int lenPoints= 28800;
         int original_fov = 360;
         int points_per_angle = 32;
-//        std::PointCloudT<PointXYZI>::VectorT getPointsInRange(const PointCloudT<PointXYZI>::VectorT, float centralAngle, float widthAngle);
+
         DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_real_data;
-        DoubleBuffer<RoboCompLidar3D::TLidarData, RoboCompLidar3D::TLidarData> buffer_sim_data;
+        DoubleBuffer<RoboCompLidar3D::TLidarData, RoboCompLidar3D::TLidarData> buffer_helios_data, buffer_bpearl_data;
+
+        std::string helios_name = "helios";
+        std::string bpearl_name = "bpearl";
 
     // FPS
         FPSCounter fps;

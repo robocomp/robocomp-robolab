@@ -92,7 +92,6 @@ void SpecificWorker::compute()
 	{
 		points->clear(); colors->clear();
 		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len, slider_dec);
-		cout << ldata.size() << endl;
 		points->resize(ldata.size());
 		colors->resize(points->size());
 		

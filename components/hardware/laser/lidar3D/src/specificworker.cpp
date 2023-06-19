@@ -111,27 +111,27 @@ void SpecificWorker::compute()
         });
 
         //std::cout << "msg: " << msg->seq << " point cloud size: " << msg->points.size() << std::endl;
-        fps.print(std::to_string(msg->points.size()));
+        fps.print("Connected to real device" + std::to_string(msg->points.size()));
     }
-    else
+    else      // Simulator
     {
+      int bpearl_size=0, helios_size=0;  
       try
         {
-            auto data = this->lidar3d_proxy->getLidarData(0, 360, 1);
-            buffer_sim_data.put(std::move(data));
+            auto data = this->lidar3d_proxy->getLidarData(helios_name, 0, 360, 1);
+            helios_size = data.size();
+            buffer_helios_data.put(std::move(data));
         }
         catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};  
+        try
+        {
+            auto data = this->lidar3d_proxy->getLidarData(bpearl_name, 0, 360, 1);
+            bpearl_size = data.size();
+            buffer_bpearl_data.put(std::move(data));
+        }
+        catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};  
+        fps.print("Connected to simulator. Helios size: " + std::to_string(helios_size) + " BPearl size: " + std::to_string(bpearl_size));
     }
-    
-//    else
-//        try
-//        {
-//            auto data = this->lidar3d_proxy->getLidarData(0, 360);
-//            buffer_sim_data.put(std::move(data));
-//        }
-//        catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};
-
-    fps.print("Connected to simulator");
 }
 
 //
@@ -237,23 +237,30 @@ int SpecificWorker::startup_check()
 //}
 
 
-RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int len, int decimation_factor)
+RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(std::string name, int start, int len, int decimation_factor)
 {
     const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
-    auto buffer = (not simulator) ? buffer_real_data.get() : buffer_sim_data.get();
-    
+    RoboCompLidar3D::TLidarData buffer;
+    if(not simulator)
+        buffer = buffer_real_data.get_idemp();
+    else if(name == "helios")
+        buffer = buffer_helios_data.get_idemp();
+    else if(name == "bpearl")
+        buffer = buffer_bpearl_data.get_idemp();    
+    else
+    {
+        qWarning() << "Exiting. No valid option for Lidar3D name:" << QString::fromStdString(name);
+        std::terminate();
+    }
     auto eje_start = start * FACTOR;
     auto eje_leng = len * FACTOR;
     
     std::vector<RoboCompLidar3D::TPoint> data;  // Vector to store data
     data.reserve(eje_leng);  // pre-allocate memory
 
-
     // Calculate the actual length after decimation
     int decimated_groups = len / decimation_factor;
-
     data.reserve(decimated_groups * FACTOR);  // pre-allocate memory
-
     for (int i = 0; i < decimated_groups; ++i)
     {
         for (int j = 0; j < FACTOR; ++j) 
@@ -264,14 +271,13 @@ RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int 
 
             data.push_back(RoboCompLidar3D::TPoint{.x=buffer[index].x , .y=buffer[index].y, .z=buffer[index].z, .intensity=buffer[index].intensity});
         }
-
         // Skip next (decimation_factor - 1) groups of points
         eje_start += decimation_factor * FACTOR;
 
         // Ensure eje_start is within valid range
         if (eje_start > 28800) eje_start -= 28800;
     }
-        
+
         return data;
 }
 

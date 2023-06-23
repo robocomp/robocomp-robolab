@@ -49,6 +49,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         pc_red = std::stod(params.at("pc_red").value);
         pc_green = std::stod(params.at("pc_green").value);
         pc_blue = std::stod(params.at("pc_blue").value);
+        lidar_name = params.at("lidar_name").value;
     }
     catch(const std::exception &e){ std::cout << e.what() << std::endl;}
 
@@ -91,11 +92,11 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(slider_start, slider_len, slider_dec);
-		points->resize(ldata.size());
+		auto ldata = lidar3d_proxy->getLidarData(lidar_name, slider_start, slider_len, slider_dec);
+		points->resize(ldata.points.size());
 		colors->resize(points->size());
 		
-	    for(const auto &[i, p]: ldata | iter::enumerate)
+	    for(const auto &[i, p]: ldata.points | iter::enumerate)
 		{
             if(p.z > (slider_z - 2000))
             {

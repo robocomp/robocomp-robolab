@@ -42,7 +42,6 @@ QT_WRAP_UI( UI_HEADERS mainUI.ui )
 
 # no-char8_t to avoid a problem with ICE Connection lib.
 
-
 # Specify construction and link process
 ADD_EXECUTABLE( lidar3dviewer ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )
 TARGET_LINK_LIBRARIES( lidar3dviewer ${LIBS} ${STATIC_LIBS} ${SPECIFIC_LIBS} ${QT_LIBRARIES} ${Ice_LIBRARIES})

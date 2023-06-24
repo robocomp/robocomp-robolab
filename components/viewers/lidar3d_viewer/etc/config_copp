@@ -8,7 +8,7 @@ Lidar3DProxy = lidar3d:tcp -h localhost -p 11988
 pc_red = 0
 pc_green = 1 
 pc_blue = 0
-lidar_name = helios
+lidar_name = bpearl
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

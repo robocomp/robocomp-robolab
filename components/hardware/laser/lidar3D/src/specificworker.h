@@ -30,6 +30,7 @@
 #include <rs_driver/msg/point_cloud_msg.hpp>
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
+#include <atomic>
 
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
@@ -45,15 +46,20 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompLidar3D::TLidarData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor);
+        RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor);
+
+        std::string helios_name = "helios";
+        std::string bpearl_name = "bpearl";
 
     public slots:
         void compute();
         int startup_check();
         void initialize(int period);
+        void self_adjust_period(int new_period);
 
     private:
         bool startup_check_flag;
+        std::atomic_bool ready_to_go = false;
         int lidar_model;
         bool simulator;
         int msop_port;
@@ -77,14 +83,11 @@ class SpecificWorker : public GenericWorker
         int original_fov = 360;
         int points_per_angle = 32;
 
-        DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TLidarData> buffer_real_data;
-        DoubleBuffer<RoboCompLidar3D::TLidarData, RoboCompLidar3D::TLidarData> buffer_helios_data, buffer_bpearl_data;
+        DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TData> buffer_real_data;
+        DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_helios_data, buffer_bpearl_data;
 
-        std::string helios_name = "helios";
-        std::string bpearl_name = "bpearl";
-
-    // FPS
-        FPSCounter fps;
+        // FPS
+            FPSCounter fps;
 };
 
 #endif

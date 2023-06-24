@@ -86,6 +86,7 @@ void SpecificWorker::initialize(int period)
             driver.start();
             std::cout << "Driver initiated OK" << std::endl;
         }
+        ready_to_go.store(true);
         timer.start(this->Period);
     }
 }
@@ -103,10 +104,10 @@ void SpecificWorker::compute()
             cout << I.points.size() << endl;
             if (I.points.size() == 28800)
             {
-                T.resize(I.points.size());
+                T.points.resize(I.points.size());
                 int i = 0;
-
-                for (auto &&p: I.points) T[i++] = RoboCompLidar3D::TPoint{.x=-p.y, .y=p.x, .z=p.z, .intensity=p.intensity};
+                for (auto &&p: I.points)
+                    T.points[i++] = RoboCompLidar3D::TPoint{.x=-p.y, .y=p.x, .z=p.z, .intensity=p.intensity};
             }
         });
 
@@ -115,18 +116,20 @@ void SpecificWorker::compute()
     }
     else      // Simulator
     {
-      int bpearl_size=0, helios_size=0;  
+      std::size_t bpearl_size=0, helios_size=0;
       try
         {
             auto data = this->lidar3d_proxy->getLidarData(helios_name, 0, 360, 1);
-            helios_size = data.size();
+            helios_size = data.points.size();
+            self_adjust_period((int)data.period);
             buffer_helios_data.put(std::move(data));
         }
         catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};  
         try
         {
             auto data = this->lidar3d_proxy->getLidarData(bpearl_name, 0, 360, 1);
-            bpearl_size = data.size();
+            bpearl_size = data.points.size();
+            self_adjust_period((int)data.period);
             buffer_bpearl_data.put(std::move(data));
         }
         catch(const Ice::Exception &e){ std::cout << e.what() << "Error reading Lidar3D interface" << std::endl;};  
@@ -200,6 +203,98 @@ int SpecificWorker::startup_check()
     return 0;
 }
 
+void SpecificWorker::self_adjust_period(int new_period)
+{
+    if(abs(new_period - this->Period) < 2)      // do it only if period changes
+        return;
+    if(new_period > this->Period)
+    {
+        this->Period += 1;
+        timer.setInterval(this->Period);
+    } else
+    {
+        this->Period -= 1;
+        this->timer.setInterval(this->Period);
+    }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, int start, int len, int decimation_factor)
+{
+    if( not ready_to_go)
+        return {};
+
+    const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
+    RoboCompLidar3D::TData buffer;
+    if(not simulator)
+        buffer = buffer_real_data.get_idemp();
+    else if(name == "helios")
+        buffer = buffer_helios_data.get_idemp();
+    else if(name == "bpearl")
+        buffer = buffer_bpearl_data.get_idemp();    
+    else
+    {
+        qWarning() << "Exiting. No valid option for Lidar3D name:" << QString::fromStdString(name);
+        std::terminate();
+    }
+
+    // check for nominal conditions
+    if(start == 1 and len == 360  and decimation_factor == 1)
+        return buffer;
+
+    // request implies sectorize or decimation
+    auto eje_start = start * FACTOR;
+    //auto eje_leng = len * FACTOR;
+    RoboCompLidar3D::TData data;
+    //data.points.reserve(eje_leng);  // pre-allocate memory
+
+    // Calculate the actual length after decimation
+    int decimated_groups = len / decimation_factor;
+    data.points.reserve(decimated_groups * FACTOR);  // pre-allocate memory
+    for (int i = 0; i < decimated_groups; ++i)
+    {
+        for (int j = 0; j < FACTOR; ++j) 
+        {
+            // Use modulo operation to ensure circular indexing
+            int index = (eje_start + j) % 28800;
+            if (index == 0) index = 28800;
+            data.points.emplace_back(RoboCompLidar3D::TPoint{.x=buffer.points[index].x ,
+                                                     .y=buffer.points[index].y,
+                                                     .z=buffer.points[index].z,
+                                                     .intensity=buffer.points[index].intensity});
+
+        }
+        // Skip next (decimation_factor - 1) groups of points
+        eje_start += decimation_factor * FACTOR;
+
+        // Ensure eje_start is within valid range
+        if (eje_start > 28800) eje_start -= 28800;
+    }
+    data.period = buffer.period;
+    data.timestamp = buffer.timestamp;
+    return data;
+}
+
+
+/**************************************/
+// From the RoboCompLaser you can use this types:
+// RoboCompLaser::LaserConfData
+// RoboCompLaser::TData
+
+
+
+/**************************************/
+// From the RoboCompLidar3D you can call this methods:
+// this->lidar3d_proxy->getLidarData(...)
+
+/**************************************/
+// From the RoboCompLidar3D you can use this types:
+// RoboCompLidar3D::TPoint
+
+/**************************************/
+// From the RoboCompLidar3D you can use this types:
+// RoboCompLidar3D::TPoint
+
+///  FUSCA
 
 //RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(int start, int len)
 //{
@@ -235,68 +330,3 @@ int SpecificWorker::startup_check()
 //    return data;
 //
 //}
-
-
-RoboCompLidar3D::TLidarData SpecificWorker::Lidar3D_getLidarData(std::string name, int start, int len, int decimation_factor)
-{
-    const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
-    RoboCompLidar3D::TLidarData buffer;
-    if(not simulator)
-        buffer = buffer_real_data.get_idemp();
-    else if(name == "helios")
-        buffer = buffer_helios_data.get_idemp();
-    else if(name == "bpearl")
-        buffer = buffer_bpearl_data.get_idemp();    
-    else
-    {
-        qWarning() << "Exiting. No valid option for Lidar3D name:" << QString::fromStdString(name);
-        std::terminate();
-    }
-    auto eje_start = start * FACTOR;
-    auto eje_leng = len * FACTOR;
-    
-    std::vector<RoboCompLidar3D::TPoint> data;  // Vector to store data
-    data.reserve(eje_leng);  // pre-allocate memory
-
-    // Calculate the actual length after decimation
-    int decimated_groups = len / decimation_factor;
-    data.reserve(decimated_groups * FACTOR);  // pre-allocate memory
-    for (int i = 0; i < decimated_groups; ++i)
-    {
-        for (int j = 0; j < FACTOR; ++j) 
-        {
-            // Use modulo operation to ensure circular indexing
-            int index = (eje_start + j) % 28800;
-            if (index == 0) index = 28800;
-
-            data.push_back(RoboCompLidar3D::TPoint{.x=buffer[index].x , .y=buffer[index].y, .z=buffer[index].z, .intensity=buffer[index].intensity});
-        }
-        // Skip next (decimation_factor - 1) groups of points
-        eje_start += decimation_factor * FACTOR;
-
-        // Ensure eje_start is within valid range
-        if (eje_start > 28800) eje_start -= 28800;
-    }
-
-        return data;
-}
-
-
-/**************************************/
-// From the RoboCompLaser you can use this types:
-// RoboCompLaser::LaserConfData
-// RoboCompLaser::TData
-
-
-
-/**************************************/
-// From the RoboCompLidar3D you can call this methods:
-// this->lidar3d_proxy->getLidarData(...)
-
-/**************************************/
-// From the RoboCompLidar3D you can use this types:
-// RoboCompLidar3D::TPoint
-
-/**************************************/
-// From the RoboCompLidar3D you can use this types:
-// RoboCompLidar3D::TPoint

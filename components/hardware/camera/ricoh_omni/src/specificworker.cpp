@@ -45,6 +45,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         //Parametros por el config
         pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
         pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
+        pars.orin = params.at("orin").value == "true" or (params.at("orin").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
         std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << std::endl;
     }
@@ -56,7 +57,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initializing worker" << std::endl;
-
+    
+    if (pars.orin)
+    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+    else
+    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+    //if (pars.orin)
+    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+    //else
+    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
     this->Period = 33;
 	if(this->startup_check_flag)
 		this->startup_check();
@@ -67,7 +76,7 @@ void SpecificWorker::initialize(int period)
         {
             if(!pars.simulator)
             {
-                if( auto success = capture.open("thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false", cv::CAP_GSTREAMER);
+                if( auto success = capture.open(pipeline, cv::CAP_GSTREAMER);
                         success != true)
                 {
                     qWarning() << __FUNCTION__ << " Error connecting. No camera found";

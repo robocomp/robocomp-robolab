@@ -72,6 +72,7 @@ public slots:
         cv::VideoCapture capture;
 
         vector<int> compression_params;
+        string pipeline;
         //vector<uchar> buffer;
 
         FPSCounter fps;
@@ -80,6 +81,7 @@ public slots:
         {
             std::string device = "/dev/video0";
             bool display = false;
+            bool orin = false;
             bool compressed = false;
             bool simulator = false;
         };

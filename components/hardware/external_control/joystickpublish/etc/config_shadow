@@ -14,13 +14,14 @@ joystickUniversal.NumAxes = 3
 
 joystickUniversal.Axis_0 = rotate, 3, -2, 2, false, 0.1
 joystickUniversal.Axis_1 = advance, 1, -800, 800, true, 80
-joystickUniversal.Axis_2 = side, 0, -800, 800, false, 80
+joystickUniversal.Axis_2 = side, 0, -800, 800, true, 80
 
-joystickUniversal.NumButtons = 4
-joystickUniversal.Button_0 =stop, 1, 1
+joystickUniversal.NumButtons = 5
+joystickUniversal.Button_0 = stop, 3, 1
 joystickUniversal.Button_1 = joystick_control, 2, 1
-joystickUniversal.Button_2 = block, 3, 1
-joystickUniversal.Button_3 = test, 0, 1
+joystickUniversal.Button_2 = block, 1, 1
+joystickUniversal.Button_3 = vibrator_test, 6, 1
+joystickUniversal.Button_4 = speed_test, 7, 1
 
 
 

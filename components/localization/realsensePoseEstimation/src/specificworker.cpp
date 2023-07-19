@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -42,7 +42,6 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-    qInfo() << "ASDF";
 	num_cameras = std::stoi(params["num_cameras"].value);
 	print_output = (params["print"].value == "true") or (params["print"].value == "True");
     float rx, ry, rz, tx, ty, tz;
@@ -148,12 +147,18 @@ rs2::device SpecificWorker::get_device(const std::string& serial_number) {
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	this->Period = 20;
+	this->Period = 4;
 	timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
+    // Obtener el tiempo actual
+    auto current_time = std::chrono::steady_clock::now();
+    // Definir una variable estática para el último tiempo
+    static auto last_time = current_time;
+
+
     RoboCompGenericBase::TBaseState Base;
     bool odometry_flag = false;
     if (has_odometry){
@@ -188,20 +193,59 @@ void SpecificWorker::compute()
         auto f = frames.first_or_default(RS2_STREAM_POSE);
         /// Cast the frame to pose_frame and get its data, params->(https://dev.intelrealsense.com/docs/rs-pose)
         auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
+
+        /*
+        std::cout << "Posición en el eje x: " << pose_data.translation.x << std::endl;
+        std::cout << "Posición en el eje y: " << pose_data.translation.y << std::endl;
+        std::cout << "Posición en el eje z: " << pose_data.translation.z << std::endl;
+
+        std::cout << "Velocidad en el eje x: " << pose_data.velocity.x << std::endl;
+        std::cout << "Velocidad en el eje y: " << pose_data.velocity.y << std::endl;
+        std::cout << "Velocidad en el eje z: " << pose_data.velocity.z << std::endl;
+
+        std::cout << "Aceleración en el eje x: " << pose_data.acceleration.x << std::endl;
+        std::cout << "Aceleración en el eje y: " << pose_data.acceleration.y << std::endl;
+        std::cout << "Aceleración en el eje z: " << pose_data.acceleration.z << std::endl;
+
+
+        std::cout << "Orientación quaternion w: " << pose_data.rotation.w << std::endl;
+        std::cout << "Orientación quaternion x: " << pose_data.rotation.x << std::endl;
+        std::cout << "Orientación quaternion y: " << pose_data.rotation.y << std::endl;
+        std::cout << "Orientación quaternion z: " << pose_data.rotation.z << std::endl;
+
+        std::cout << "Velocidad angular x: " << pose_data.angular_velocity.x << std::endl;
+        std::cout << "Velocidad angular y: " << pose_data.angular_velocity.y << std::endl;
+        std::cout << "Velocidad angular z: " << pose_data.angular_velocity.z << std::endl;
+
+        std::cout << "Aceleración angular x: " << pose_data.angular_acceleration.x << std::endl;
+        std::cout << "Aceleración angular y: " << pose_data.angular_acceleration.y << std::endl;
+        std::cout << "Aceleración angular z: " << pose_data.angular_acceleration.z << std::endl;
+
+
+        std::cout << "Tiempo de seguimiento: " << pose_data.tracker_confidence << std::endl;
+        std::cout << "Confianza del mapa: " << pose_data.mapper_confidence << std::endl<< std::flush;
         
-            Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);        
+        */
+
+        auto w = pose_data.rotation.w;
+        Eigen::Vector3f vecQuat(pose_data.rotation.x, -pose_data.rotation.z, pose_data.rotation.y);        
         Eigen::Affine3f camera_world(Eigen::Translation3f(Eigen::Vector3f(pose_data.translation.x,-1.0 * pose_data.translation.z,pose_data.translation.y)));
-        
+        vecQuat = cameras_dict[key].origen_camera.linear()*vecQuat;
+        Eigen::Quaternion<float> quatCam(w, vecQuat.x(), vecQuat.y(), vecQuat.z());
+
         ///Realizamos trasformación
         bufferMutex.lock();
 
-        ///Rotacion respecto al arranque
-        vecQuat = cameras_dict[key].origen_camera.linear()*vecQuat;
-        Eigen::Quaternion<float> quatCam(pose_data.rotation.w, vecQuat.x(), vecQuat.y(), vecQuat.z());
         cameras_dict[key].quatCam = quatCam;
-
-        ///Traslacion respecto al arranque
         cameras_dict[key].translation = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this -> origen_robot.translation();
+        Eigen::Vector3f aux_velocity(pose_data.velocity.x, -pose_data.velocity.z, pose_data.velocity.y);
+        cameras_dict[key].velocity = cameras_dict[key].origen_camera.linear() * aux_velocity;
+        Eigen::Vector3f aux_acceleration(pose_data.acceleration.x, -pose_data.acceleration.z, pose_data.acceleration.y);
+        cameras_dict[key].acceleration = cameras_dict[key].origen_camera.linear() * aux_acceleration;
+        Eigen::Vector3f aux_angular_velocity(pose_data.angular_velocity.x, -pose_data.angular_velocity.z, pose_data.angular_velocity.y);
+        cameras_dict[key].angular_velocity = cameras_dict[key].origen_camera.linear() * aux_angular_velocity;
+        Eigen::Vector3f aux_angular_acceleration(pose_data.angular_acceleration.x, -pose_data.angular_acceleration.z, pose_data.angular_acceleration.y);
+        cameras_dict[key].angular_acceleration = cameras_dict[key].origen_camera.linear() * aux_angular_acceleration;
         /*
         cameras_dict[key].origen_world.linear() = camera_world.linear();
         cameras_dict[key].origen_world.translation() = cameras_dict[key].origen_camera.linear() * camera_world.translation() + this -> origen_robot.translation();
@@ -214,6 +258,15 @@ void SpecificWorker::compute()
 
         bufferMutex.unlock();
     }
+    // Calcular la diferencia de tiempo
+    auto time_difference = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count();
+
+    // Imprimir la diferencia de tiempo
+    std::cout << "Tiempo desde la última llamada: " << time_difference << " ms" << std::endl;
+
+    // Actualizar el último tiempo
+    last_time = current_time;
+
      ///Muestra por consola si se ha solicitado en el config
         if(print_output)
         {
@@ -247,6 +300,10 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
  
 	Eigen::Vector3f trasAcu = it->second.translation;        //Traslación
     Eigen::Quaternion<float> quatAcu = it->second.quatCam; //Rotación
+    Eigen::Vector3f velAcu = it->second.velocity;
+    Eigen::Vector3f angVelAcu = it->second.angular_velocity;
+    Eigen::Vector3f accAcu = it->second.acceleration;
+    Eigen::Vector3f angAccAcu = it->second.angular_acceleration;
 	it++;
 
 	///Valores para normalizar sigma
@@ -268,20 +325,22 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
             sigmaNormCam = (sigmaDif - sigmaDifMin) / (sigmaDifMax - sigmaDifMin); ///esta es para el dos
             sigmaNormAcu = 1.0 - sigmaNormCam; ///esta para el uno
 
-            std::cout<< " Confianza cámara 1: " << sigmaAcu << std::endl;
-            std::cout<< " Confianza cámara 2: " << sigmaCam << std::endl;
-            std::cout<< " Diferencia entre confianzas (cámara 2 - cámara 1): " << sigmaDif << std::endl;
+            //std::cout<< " Confianza cámara 1: " << sigmaAcu << std::endl;
+            //std::cout<< " Confianza cámara 2: " << sigmaCam << std::endl;
+            //std::cout<< " Diferencia entre confianzas (cámara 2 - cámara 1): " << sigmaDif << std::endl;
 
-            ///Traslación
-            Eigen::Vector3f trasCam = it->second.translation;
-            std::cout << "Cam_acu" << std::endl << trasAcu << std::endl << it->first << std::endl << trasCam << std::endl;
             ///Media de traslaciones respecto a sigma
-            trasAcu = (trasCam * sigmaNormCam) + (trasAcu * sigmaNormAcu);
+            trasAcu = (it->second.translation * sigmaNormCam) + (trasAcu * sigmaNormAcu);
+            velAcu = (it->second.velocity * sigmaNormCam) + (velAcu * sigmaNormAcu);
+            angVelAcu = (it->second.angular_velocity * sigmaNormCam) + (angVelAcu * sigmaNormAcu);
+            accAcu = (it->second.acceleration * sigmaNormCam) + (accAcu * sigmaNormAcu);
+            angAccAcu = (it->second.angular_acceleration * sigmaNormCam) + (angAccAcu * sigmaNormAcu);
 
             ///Rotación
 
             Eigen::Quaternion<float> quatCam = it->second.quatCam;
             quatAcu=quatAcu.slerp(sigmaNormAcu,quatCam);
+
 
             
             sigmaAcu=(sigmaAcu + sigmaCam)/2;///Necesitamos otra idea de media de sigma
@@ -297,6 +356,29 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
     ret.rx = addAng180(ang.x(),initAngles.x());
     ret.ry = addAng180(ang.y(),initAngles.y());
     ret.rz = addAng180(ang.z(),initAngles.z());
+
+    ret.vx = velAcu.x()*1000;
+    ret.vy = velAcu.y()*1000;
+    ret.vz = velAcu.z()*1000;
+    ret.vrx = angVelAcu.x();
+    ret.vry = angVelAcu.y();
+    ret.vrz = angVelAcu.z();
+
+    ret.vx = velAcu.x()*1000;
+    ret.vy = velAcu.y()*1000;
+    ret.vz = velAcu.z()*1000;
+    ret.vrx = angVelAcu.x();
+    ret.vry = angVelAcu.y();
+    ret.vrz = angVelAcu.z();
+
+    ret.ax = accAcu.x()*1000;
+    ret.ay = accAcu.y()*1000;
+    ret.az = accAcu.z()*1000;
+    ret.arx = angAccAcu.x();
+    ret.ary = angAccAcu.y();
+    ret.arz = angAccAcu.z();
+
+
     act_rotation_pose = ret.rz;
     qInfo() << "ACT ROTATION POSE" << act_rotation_pose;
     qInfo() << "INIT ROTATION" << init_rotation;
@@ -313,11 +395,20 @@ RoboCompFullPoseEstimation::FullPoseEuler SpecificWorker::FullPoseEstimation_get
         ret.x << ", " <<
         ret.y << ", " <<
         ret.z <<
+        " Velocidad lineal"<< 
+        ret.vx << ", " << 
+        ret.vy << ", " <<
+        ret.vz <<
         " Grados media (x, y, z): " <<
         180*ret.rx/M_PI << ", " <<
         180*ret.ry/M_PI << ", " <<
         180*ret.rz/M_PI <<
-        std::endl;
+        " Velocidad angular media (x, y, z): " <<
+        180*ret.vrx/M_PI << ", " <<
+        180*ret.vry/M_PI << ", " <<
+        180*ret.vrz/M_PI <<
+
+        std::endl<<std::flush;
         }
 	    
 	return ret;

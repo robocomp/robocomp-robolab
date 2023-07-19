@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -83,6 +83,8 @@
 
 #include <fullposeestimationI.h>
 
+#include <FullPoseEstimation.h>
+#include <GenericBase.h>
 
 
 

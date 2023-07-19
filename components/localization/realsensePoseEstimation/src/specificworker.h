@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -32,6 +32,7 @@
 #include <Eigen/Geometry>
 #include <math.h>
 #include <iostream>
+#include <chrono>
 
 
 #pragma push_macro("Q_FOREACH")
@@ -63,14 +64,18 @@ public slots:
         struct PARAMS {
             std::string device_serial;          ///Serial del la camara
             rs2::pipeline pipe;                 ///Pipe de la camara
-            Eigen::Affine3f robot_camera;       ///Matriz de camara respecto al robort (config)
+            Eigen::Affine3f robot_camera;       ///Matriz de camara respecto al robot (config)
             Eigen::Affine3f origen_camera;      ///Matrix de ejes de la camara respecto al origen
             unsigned int mapper_confidence;     //5
             unsigned int tracker_confidence;    //6
             rs2::wheel_odometer* odometer;
             //final pose estimation
             Eigen::Vector3f translation;
+            Eigen::Vector3f velocity;
+            Eigen::Vector3f acceleration;
             Eigen::Quaternion<float> quatCam;
+            Eigen::Vector3f angular_velocity;
+            Eigen::Vector3f angular_acceleration;
         };
 
 		bool print_output = false;

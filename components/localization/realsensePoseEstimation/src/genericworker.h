@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2021 by YOUR NAME HERE
+ *    Copyright (C) 2023 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,7 +26,9 @@
 
 #include <DifferentialRobot.h>
 #include <FullPoseEstimation.h>
+#include <FullPoseEstimation.h>
 #include <FullPoseEstimationPub.h>
+#include <GenericBase.h>
 #include <GenericBase.h>
 
 

@@ -35,8 +35,8 @@ FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior DifferentialRobot FullPoseEstimation FullPoseEstimationPub GenericBase)
-ROBOCOMP_ICE_TO_SRC( CommonBehavior DifferentialRobot FullPoseEstimation FullPoseEstimationPub GenericBase)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior DifferentialRobot FullPoseEstimation FullPoseEstimation FullPoseEstimationPub GenericBase GenericBase)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior DifferentialRobot FullPoseEstimation FullPoseEstimation FullPoseEstimationPub GenericBase GenericBase)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

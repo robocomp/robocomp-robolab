@@ -46,6 +46,15 @@ module RoboCompFullPoseEstimation
 		float vrx;
 		float vry;
 		float vrz;
+		float ax;
+		float ay;
+		float az;
+		float arx;
+		float ary;
+		float arz;
+		float adv;
+		float side;
+		float rot;
 		int confidence;
 	};
 	interface FullPoseEstimation

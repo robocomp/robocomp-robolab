@@ -4,9 +4,14 @@
 ``` RealSensePoseEstimation
 ```
 This component interfaces to the RealSense SDK 2.0 and through it to a RealSense T265 SLAM camera.
-From 20.04 on you need to download a tar source and compile it from
+From 20.04 on you need to download a tar source and compile it 
+- For Jetson:
+https://dev.intelrealsense.com/docs/nvidia-jetson-tx2-installation
+
+- Or for PC:
 https://dev.intelrealsense.com/docs/compiling-librealsense-for-linux-ubuntu-guide?_ga=2.247181511.299939129.1613056151-457352940.1613056151
 
+WARNING TM2 erase from repo, clone commit 391d5356e1090bc57824daca5b17b17a9e56a968
 Additional information can be found in:
 Get the software from: https://www.intelrealsense.com/developers/
 

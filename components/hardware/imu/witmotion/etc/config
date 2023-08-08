@@ -1,0 +1,14 @@
+# Endpoints for implements interfaces
+IMU.Endpoints=tcp -p 17612
+
+port=/dev/ttyUSB0
+
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
+

@@ -1,0 +1,11 @@
+import "IMU.idsl";
+
+Component witmotion
+{
+    Communications
+    {
+        implements IMU;
+    };
+    language python;
+};
+

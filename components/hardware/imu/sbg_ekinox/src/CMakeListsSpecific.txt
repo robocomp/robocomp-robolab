@@ -10,6 +10,7 @@ SET ( HEADERS
   specificmonitor.h
 )
 
+SET (LIBS /usr/local/lib/libsbgECom.a)
 
 SET (LIBS ${LIBS}  )
 

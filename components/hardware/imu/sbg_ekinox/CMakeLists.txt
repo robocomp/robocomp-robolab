@@ -14,9 +14,6 @@ SET(RC_COMPONENT_INSTALL_PATH "/opt/robocomp" CACHE STRING "component install pa
 
 SUBDIRS( src )
 
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-include_directories(${CMAKE_SOURCE_DIR}/include/src ${CMAKE_SOURCE_DIR}/include/common)
-
 INSTALL(FILES etc/config DESTINATION ${RC_COMPONENT_INSTALL_PATH}/etc-default/ RENAME sbg_ekinox.conf )
 
 #ADD_CUSTOM_TARGET(doc doxygen Doxyfile)

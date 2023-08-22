@@ -1,0 +1,11 @@
+import "IMU.idsl";
+
+Component sbg_ekinox
+{
+	Communications
+	{
+		implements IMU;
+	};
+	language Cpp11;
+};
+

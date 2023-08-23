@@ -21,6 +21,50 @@ include_directories(${CMAKE_SOURCE_DIR}/include/src ${CMAKE_SOURCE_DIR}/include/
 Intro to component here
 
 
+
+## EXPLANSION CODE 
+Si se quieren introducir nuevos datos se usara la clase `SbgBinaryLogData` entro de la funcion de callback esta esta compuesto por los siguiente parametros a 23/08/2023.
+
+La comunicacion entre el main y el calback se realizara mediante el parametro de la funcion `pUserArg` siendo este un `*void`, siendo necesario un casteo al tipo de dato deseado
+
+```
+/*!
+ *	Union used to store received logs data.
+ */
+typedef union _SbgBinaryLogData
+{
+	SbgLogStatusData				statusData;			/*!< Stores data for the SBG_ECOM_LOG_STATUS message. */
+	SbgLogImuData					imuData;			/*!< Stores data for the SBG_ECOM_LOG_IMU_DATA message. */
+	SbgLogImuShort					imuShort;			/*!< Stores data for the SBG_ECOM_LOG_IMU_SHORT message. */
+	SbgLogEkfEulerData				ekfEulerData;		/*!< Stores data for the SBG_ECOM_LOG_EKF_EULER message. */
+	SbgLogEkfQuatData				ekfQuatData;		/*!< Stores data for the SBG_ECOM_LOG_EKF_QUAT message. */
+	SbgLogEkfNavData				ekfNavData;			/*!< Stores data for the SBG_ECOM_LOG_EKF_NAV message. */
+	SbgLogShipMotionData			shipMotionData;		/*!< Stores data for the SBG_ECOM_LOG_SHIP_MOTION or SBG_ECOM_LOG_SHIP_MOTION_HP message. */
+	SbgLogOdometerData				odometerData;		/*!< Stores data for the SBG_ECOM_LOG_ODO_VEL message. */
+	SbgLogUtcData					utcData;			/*!< Stores data for the SBG_ECOM_LOG_UTC_TIME message. */
+	SbgLogGpsPos					gpsPosData;			/*!< Stores data for the SBG_ECOM_LOG_GPS_POS message. */
+	SbgLogGpsVel					gpsVelData;			/*!< Stores data for the SBG_ECOM_LOG_GPS#_VEL message. */
+	SbgLogGpsHdt					gpsHdtData;			/*!< Stores data for the SBG_ECOM_LOG_GPS#_HDT message. */
+	SbgLogRawData					gpsRawData;			/*!< Stores data for the SBG_ECOM_LOG_GPS#_RAW message. */
+	SbgLogRawData					rtcmRawData;		/*!< Stores data for the SBG_ECOM_LOG_RTCM_RAW message. */
+	SbgLogMag						magData;			/*!< Stores data for the SBG_ECOM_LOG_MAG message. */
+	SbgLogMagCalib					magCalibData;		/*!< Stores data for the SBG_ECOM_LOG_MAG_CALIB message. */
+	SbgLogDvlData					dvlData;			/*!< Stores data for the SBG_ECOM_LOG_DVL_BOTTOM_TRACK message. */
+	SbgLogAirData					airData;			/*!< Stores data for the SBG_ECOM_LOG_AIR_DATA message. */
+	SbgLogUsblData					usblData;			/*!< Stores data for the SBG_ECOM_LOG_USBL message. */
+	SbgLogDepth						depthData;			/*!< Stores data for the SBG_ECOM_LOG_DEPTH message */
+	SbgLogEvent						eventMarker;		/*!< Stores data for the SBG_ECOM_LOG_EVENT_# message. */
+	SbgLogDiagData					diagData;			/*!< Stores data for the SBG_ECOM_LOG_DIAG message. */
+	SbgLogSatGroupData				satGroupData;		/*!< Stores data for the SBG_ECOM_LOG_SAT message. */
+
+	/* Fast logs */
+	SbgLogFastImuData				fastImuData;		/*!< Stores Fast Imu Data for 1KHz output */
+
+} SbgBinaryLogData;
+
+```
+
+
 ## Configuration parameters
 As any other component, *sbg_ekinox* needs a configuration file to start. In
 ```

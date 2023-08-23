@@ -36,41 +36,6 @@
 // sbgECom headers
 #include <sbgEComLib.h>
 
-class CallbackHandler {
-private:
-    float angle = 0.0;
-
-public:
-    SbgErrorCode onLogReceived(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg) {
-        assert(pLogData);
-
-        SBG_UNUSED_PARAMETER(pHandle);
-        SBG_UNUSED_PARAMETER(pUserArg);
-
-        if (msgClass == SBG_ECOM_CLASS_LOG_ECOM_0) {
-            switch (msg) {
-                case SBG_ECOM_LOG_EKF_EULER:
-                    printf("Euler Angles: %3.1f\t%3.1f\t%3.1f\tStd Dev:%3.1f\t%3.1f\t%3.1f   \r",
-                           sbgRadToDegf(pLogData->ekfEulerData.euler[0]),
-                           sbgRadToDegf(pLogData->ekfEulerData.euler[1]),
-                           sbgRadToDegf(pLogData->ekfEulerData.euler[2]),
-                           sbgRadToDegf(pLogData->ekfEulerData.eulerStdDev[0]),
-                           sbgRadToDegf(pLogData->ekfEulerData.eulerStdDev[1]),
-                           sbgRadToDegf(pLogData->ekfEulerData.eulerStdDev[2]));
-                    angle = sbgRadToDegf(pLogData->ekfEulerData.euler[0]);
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return SBG_NO_ERROR;
-    }
-
-    float getAngle() const {
-        return angle;
-    }
-};
 
 class SpecificWorker : public GenericWorker
 {
@@ -80,11 +45,11 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	static CallbackHandler s_handler;  // Variable estática
+    static SbgErrorCode callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg);
+	static SbgEComHandle init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu);
+	static SbgErrorCode print_product_info(SbgEComHandle *pECom);
 
-    static SbgErrorCode onLogReceived(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg);
-	static SbgErrorCode ellipseMinimalProcess(SbgInterface *pInterface);
-	static SbgErrorCode getAndPrintProductInfo(SbgEComHandle *pECom);
+	static void show_data(RoboCompIMU::DataImu *_data_imu);
 
 
 	RoboCompIMU::Acceleration IMU_getAcceleration();
@@ -102,10 +67,11 @@ public slots:
 private:
 	bool startup_check_flag;
 	SbgInterface sbgInterface;
+	SbgEComHandle comHandle;
 	std::string rs232, IP_address;
 	int baudrate, input_port, output_port;
 	float angle;
-
+	RoboCompIMU::DataImu data_imu;
 
 
 };

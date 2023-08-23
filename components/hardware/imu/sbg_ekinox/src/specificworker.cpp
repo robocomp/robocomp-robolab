@@ -18,9 +18,6 @@
  */
 #include "specificworker.h"
 
-
-CallbackHandler SpecificWorker::s_handler;
-
 /**
 * \brief Default constructor
 */
@@ -39,6 +36,10 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+
+	// Close the sbgEcom library
+	sbgEComClose(&comHandle);
+	sbgInterfaceDestroy(&sbgInterface);
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -78,18 +79,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	if (errorCode == SBG_NO_ERROR)
 		{
-			errorCode = ellipseMinimalProcess(&sbgInterface);
-
-			if (errorCode == SBG_NO_ERROR)
-			{
-				exitCode = EXIT_SUCCESS;
-			}
-			else
-			{
-				exitCode = EXIT_FAILURE;
-			}
-
-			sbgInterfaceDestroy(&sbgInterface);
+			comHandle = init_sbg_ekinox(&sbgInterface, &this->data_imu);
 		}
 		else
 		{
@@ -118,21 +108,25 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	//computeCODE
-	//QMutexLocker locker(mutex);
-	//try
-	//{
-	//  camera_proxy->getYImage(0,img, cState, bState);
-	//  memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-	//  searchTags(image_gray);
-	//}
-	//catch(const Ice::Exception &e)
-	//{
-	//  std::cout << "Error reading from Camera" << e << std::endl;
-	//}
-
-	
-	
+	//
+	// Try to read a frame
+	//
+	SbgErrorCode errorCode = sbgEComHandle(&comHandle);
+	show_data(&data_imu);
+	//
+	// Test if we have to release some CPU (no frame received)
+	//
+	if (errorCode == SBG_NOT_READY)
+	{
+		//
+		// Release CPU
+		//
+		sbgSleep(1);
+	}
+	else
+	{
+		SBG_LOG_ERROR(errorCode, "Unable to process incoming sbgECom logs");
+	}
 }
 
 int SpecificWorker::startup_check()
@@ -152,11 +146,42 @@ int SpecificWorker::startup_check()
  *	\return												SBG_NO_ERROR if the received log has been used successfully.
  */
 
-SbgErrorCode SpecificWorker::onLogReceived(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg)
+SbgErrorCode SpecificWorker::callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg)
 {
     // Utilizar s_handler en lugar de handler
-    return s_handler.onLogReceived(pHandle, msgClass, msg, pLogData, pUserArg);
+	RoboCompIMU::DataImu *data = (RoboCompIMU::DataImu *)pUserArg;
+    assert(pLogData);
+
+	SBG_UNUSED_PARAMETER(pHandle);
+	SBG_UNUSED_PARAMETER(pUserArg);
+
+	if (msgClass == SBG_ECOM_CLASS_LOG_ECOM_0) {
+		// Handle separately each received data according to the log ID
+		switch (msg) {
+			case SBG_ECOM_LOG_EKF_EULER:
+				std::cout << "Euler status:"<< pLogData->ekfEulerData.status<<"*********Time: "<< pLogData->ekfEulerData.timeStamp << std::endl<<std::flush;
+				data->rot.Roll = pLogData->ekfEulerData.euler[0];
+				data->rot.Pitch = pLogData->ekfEulerData.euler[1];
+				data->rot.Yaw = pLogData->ekfEulerData.euler[2];
+				break;
+			case SBG_ECOM_LOG_FAST_IMU_DATA:
+				std::cout << "IMU status:"<< pLogData->fastImuData.status<<"*********Time: "<< pLogData->fastImuData.timeStamp << std::endl<<std::flush;
+				data->acc.XAcc = pLogData->fastImuData.accelerometers[0];
+				data->acc.YAcc = pLogData->fastImuData.accelerometers[1];
+				data->acc.ZAcc = pLogData->fastImuData.accelerometers[2];
+				data->gyro.XGyr = pLogData->fastImuData.gyroscopes[0];
+				data->gyro.YGyr = pLogData->fastImuData.gyroscopes[1];
+				data->gyro.ZGyr = pLogData->fastImuData.gyroscopes[2];
+
+
+			default:
+				break;
+		}
+	}
+
+	return SBG_NO_ERROR;
 }
+
 
 
 /*!
@@ -165,7 +190,7 @@ SbgErrorCode SpecificWorker::onLogReceived(SbgEComHandle *pHandle, SbgEComClass 
  * \param[in]	pECom					SbgECom instance.
  * \return								SBG_NO_ERROR if successful.
  */
-SbgErrorCode  SpecificWorker::getAndPrintProductInfo(SbgEComHandle *pECom)
+SbgErrorCode  SpecificWorker::print_product_info(SbgEComHandle *pECom)
 {
 	SbgErrorCode					errorCode;
 	SbgEComDeviceInfo				deviceInfo;
@@ -211,37 +236,29 @@ SbgErrorCode  SpecificWorker::getAndPrintProductInfo(SbgEComHandle *pECom)
  * \param[in]	pInterface							Interface used to communicate with the device.
  * \return											SBG_NO_ERROR if successful.
  */
-SbgErrorCode  SpecificWorker::ellipseMinimalProcess(SbgInterface *pInterface)
+SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu )
 {
+
+	printf("Initializing sbg_ekinox\n");
 	SbgErrorCode			errorCode = SBG_NO_ERROR;
 	SbgEComHandle			comHandle;
 		
 	assert(pInterface);
 
-	//
 	// Create the sbgECom library and associate it with the created interfaces
-	//
 	errorCode = sbgEComInit(&comHandle, pInterface);
 
-	//
 	// Test that the sbgECom has been initialized
-	//
 	if (errorCode == SBG_NO_ERROR)
 	{
-		//
 		// Welcome message
-		//
 		printf("Welcome to the ELLIPSE minimal example.\n");
 		printf("sbgECom version %s\n\n", SBG_E_COM_VERSION_STR);
 
-		//
 		// Query and display produce info, don't stop if there is an error
-		//
-		getAndPrintProductInfo(&comHandle);
+		print_product_info(&comHandle);
 
-		//
 		// Showcase how to configure some output logs to 25 Hz, don't stop if there is an error
-		//
 		errorCode = sbgEComCmdOutputSetConf(&comHandle, SBG_ECOM_OUTPUT_PORT_A, SBG_ECOM_CLASS_LOG_ECOM_0, SBG_ECOM_LOG_IMU_DATA, SBG_ECOM_OUTPUT_MODE_DIV_8);
 
 		if (errorCode != SBG_NO_ERROR)
@@ -256,57 +273,24 @@ SbgErrorCode  SpecificWorker::ellipseMinimalProcess(SbgInterface *pInterface)
 			SBG_LOG_WARNING(errorCode, "Unable to configure SBG_ECOM_LOG_EKF_EULER log");
 		}
 
-
-		//
 		// Define callbacks for received data and display header
-		//
-		//sbgEComSetReceiveLogCallback(&comHandle, onLogReceived, NULL);
-
-		sbgEComSetReceiveLogCallback(&comHandle, onLogReceived, NULL);
-		
-
-		printf("Euler Angles display with estimated standard deviation - degrees\n");
-
-		//
-		// Loop until the user exist
-		//
-		while (1)
-		{
-			//
-			// Try to read a frame
-			//
-			errorCode = sbgEComHandle(&comHandle);
-			std::cout << "angle: " << s_handler.getAngle() << std::endl;
-			//
-			// Test if we have to release some CPU (no frame received)
-			//
-			if (errorCode == SBG_NOT_READY)
-			{
-				//
-				// Release CPU
-				//
-				sbgSleep(1);
-			}
-			else
-			{
-				SBG_LOG_ERROR(errorCode, "Unable to process incoming sbgECom logs");
-			}
-		}
-
-		//
-		// Close the sbgEcom library
-		//
-		sbgEComClose(&comHandle);
+		sbgEComSetReceiveLogCallback(&comHandle, callback, data_imu);
 	}
 	else
 	{
 		SBG_LOG_ERROR(errorCode, "Unable to initialize the sbgECom library");
 	}
-
-	return errorCode;
+	return comHandle;
 }
 
+void SpecificWorker::show_data(RoboCompIMU::DataImu *_data_imu)
+{
 
+	printf("Aceleration : %f, %f, %f\n",	_data_imu->acc.XAcc, _data_imu->acc.YAcc, _data_imu->acc.ZAcc);
+	printf("Orientation : %f, %f, %f\n",	_data_imu->rot.Roll, _data_imu->rot.Pitch, _data_imu->rot.Yaw);
+
+	printf("\n");
+}
 
 
 RoboCompIMU::Acceleration SpecificWorker::IMU_getAcceleration()

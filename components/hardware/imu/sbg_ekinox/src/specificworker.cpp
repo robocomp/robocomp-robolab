@@ -54,22 +54,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		std::string rs232 = params.at("rs232").value;
 		int baudrate =  std::stoi(params.at("baudrate").value);
 
-
-		if (IP_address.size() == 0){
-		//
-		// Create a serial interface to communicate with the PULSE
-		//
-		errorCode = sbgInterfaceSerialC//
-	SbgInterface sbgInterface;
-	SbgEComHandle comHandle;reate(&this->sbgInterface, rs232.c_str(), baudrate);
-	}
-	else{
-		//
-		// Create a serial interface to communicate with the PULSE
-		//
-		errorCode = sbgInterfaceUdpCreate(&this->sbgInterface, sbgNetworkIpFromString(IP_address.c_str()), input_port, output_port);
-	}
-	
+		if (IP_address.size() == 0)
+			errorCode = sbgInterfaceSerialCreate(&this->sbgInterface, rs232.c_str(), baudrate);
+		else
+			errorCode = sbgInterfaceUdpCreate(&this->sbgInterface, sbgNetworkIpFromString(IP_address.c_str()), input_port, output_port);
 	}
 	catch(const std::exception &e) { qFatal("Error reading config params"); }
 

@@ -1,32 +1,25 @@
 # sbg_ekinox
 
-instala libreria https://github.com/SBG-Systems/sbgECom
-- ubicamos en la carpera de software
-- descargamos repo con  ``git add https://github.com/SBG-Systems/sbgECom.git``
-- compilamos con ```cmake -Bbuild -DBUILD_EXAMPLES=ON -DBUILD_TOOLS=ON && cmake --build build```
-- instalamos con ``sudo make install``
+Install the library: https://github.com/SBG-Systems/sbgECom
+- Navigate to the software folder.
+- Clone the repository using  ``git add https://github.com/SBG-Systems/sbgECom.git``
+- Compile with ```cmake -Bbuild -DBUILD_EXAMPLES=ON -DBUILD_TOOLS=ON && cmake --build build```
+- Install using ``sudo make install``
 
-en el caso de que no funcione con el ```sudo make install``` existe otra opcion mas chapuza:
+If the command ```sudo make install``` doesn't work, there's an alternative method:
 
-en el componente realiza el siguiente comando ``mkdir lib``
-una vez compilado mete el build/libsbgECom.a del repo en lib/ del componente
-realiza los siguente comando ``mkdir include && find src -name "*.h" -exec cp --parents \{} include/ \; && find common -name "*.h" -exec cp --parents \{} include/ \;``
-este genera una carpeta include con todos los .h necesarios, copiamos esta carpeta include en al raiz del componente
-introducir en en CMakeList.txt las lineas
+- Inside the component, execute the following command: ``mkdir lib``
+- After compiling, move the build/libsbgECom.a from the repository to the lib/ folder of the component
+- Execute the following commands: ``mkdir include && find src -name "*.h" -exec cp --parents \{} include/ \; && find common -name "*.h" -exec cp --parents \{} include/ \;``
+- This creates an "include" folder with all necessary .h files. Copy this "include" folder to the root of the component.
+- Add the following lines to CMakeList.txt:
 ```
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 include_directories(${CMAKE_SOURCE_DIR}/include/src ${CMAKE_SOURCE_DIR}/include/common)
 ```
 
-Intro to component here
-
-
-
-## EXPLANSION CODE 
-Si se quieren introducir nuevos datos se usara la clase `SbgBinaryLogData` entro de la funcion de callback esta esta compuesto por los siguiente parametros a 23/08/2023.
-
-La comunicacion entre el main y el calback se realizara mediante el parametro de la funcion `pUserArg` siendo este un `*void`, siendo necesario un casteo al tipo de dato deseado
-
+## EXPANSION CODE  
+If you wish to introduce new data, use the  `SbgBinaryLogData` class within the callback function. As of 23/08/2023, it comprises the following parameters.
 ```
 /*!
  *	Union used to store received logs data.
@@ -61,9 +54,11 @@ typedef union _SbgBinaryLogData
 	SbgLogFastImuData				fastImuData;		/*!< Stores Fast Imu Data for 1KHz output */
 
 } SbgBinaryLogData;
-
 ```
+Communication between the main function and the callback is done via the `pUserArg` function parameter. It is a `*void`, so casting to the desired data type is necessary.
 
+## CONFIGURATION OF SBG EKINOX
+Using a web browser, you can access the device by entering its IP address or by using the URL based on its serial number: `http://ekinox_023000133.local./`. In this case, "023000133" is the serial number.
 
 ## Configuration parameters
 As any other component, *sbg_ekinox* needs a configuration file to start. In
@@ -72,7 +67,26 @@ etc/config
 ```
 you can find an example of a configuration file. We can find there the following lines:
 ```
-EXAMPLE HERE
+CommonBehavior.Endpoints=tcp -p 10000
+
+# Endpoints for implements interfaces
+IMU.Endpoints=tcp -p 0
+
+#Priority with ethernet, to use serial, leave IP blank.
+IP_address = 192.168.50.50
+input_port = 5678
+output_port = 1234
+
+rs232 = /dev/ttyUSB0
+baudrate = 230400
+
+
+InnerModelPath = innermodel.xml
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
 ```
 
 ## Starting the component

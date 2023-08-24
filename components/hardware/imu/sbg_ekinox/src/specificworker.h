@@ -23,6 +23,9 @@
 */
 
 
+#define DEBUG 1
+#define NAVDATA 0
+#define GPSDATA 0
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
@@ -45,12 +48,10 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	//Callback function 
     static SbgErrorCode callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg);
-	static SbgEComHandle init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu);
-	static SbgErrorCode print_product_info(SbgEComHandle *pECom);
-
+	//Show the data in variable data_imu
 	static void show_data(RoboCompIMU::DataImu *_data_imu);
-
 
 	RoboCompIMU::Acceleration IMU_getAcceleration();
 	RoboCompIMU::Gyroscope IMU_getAngularVel();
@@ -59,21 +60,19 @@ public:
 	RoboCompIMU::Orientation IMU_getOrientation();
 	void IMU_resetImu();
 
-
 public slots:
 	void compute();
 	int startup_check();
 	void initialize(int period);
 private:
-	bool startup_check_flag;
+	//SBG function
+	SbgEComHandle init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu);
+	SbgErrorCode print_product_info(SbgEComHandle *pECom);
+	//SBG Variables
 	SbgInterface sbgInterface;
 	SbgEComHandle comHandle;
-	std::string rs232, IP_address;
-	int baudrate, input_port, output_port;
-	float angle;
+
+	bool startup_check_flag;
 	RoboCompIMU::DataImu data_imu;
-
-
 };
-
 #endif

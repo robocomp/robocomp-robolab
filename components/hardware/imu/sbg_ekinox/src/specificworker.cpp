@@ -44,38 +44,34 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//	THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = std::make_shared(innermodel_path);
-//	}
-//	catch(const std::exception &e) { qFatal("Error reading config params"); }
-
-
 	SbgErrorCode		errorCode = SBG_NO_ERROR;
-	int					exitCode;
 
-	//////////////params///////////////////
-	this->IP_address = "192.168.50.50";
-	this->input_port = 5678;
-	this->output_port = 1234;
+	try
+	{
+		std::string IP_address = params.at("IP_address").value;
+		int input_port = std::stoi(params.at("input_port").value);
+		int output_port =  std::stoi(params.at("output_port").value);
+		std::string rs232 = params.at("rs232").value;
+		int baudrate =  std::stoi(params.at("baudrate").value);
 
 
-	if (this->IP_address.size() == 0){
+		if (IP_address.size() == 0){
 		//
 		// Create a serial interface to communicate with the PULSE
 		//
-		errorCode = sbgInterfaceSerialCreate(&this->sbgInterface, this->rs232.c_str(), this->baudrate);
+		errorCode = sbgInterfaceSerialC//
+	SbgInterface sbgInterface;
+	SbgEComHandle comHandle;reate(&this->sbgInterface, rs232.c_str(), baudrate);
 	}
 	else{
 		//
 		// Create a serial interface to communicate with the PULSE
 		//
-		errorCode = sbgInterfaceUdpCreate(&this->sbgInterface, sbgNetworkIpFromString(this->IP_address.c_str()), this->input_port, this->output_port);
+		errorCode = sbgInterfaceUdpCreate(&this->sbgInterface, sbgNetworkIpFromString(IP_address.c_str()), input_port, output_port);
 	}
+	
+	}
+	catch(const std::exception &e) { qFatal("Error reading config params"); }
 
 	if (errorCode == SBG_NO_ERROR)
 		{
@@ -84,7 +80,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 		else
 		{
 			SBG_LOG_ERROR(errorCode, "unable to open serial interface");
-			exitCode = EXIT_FAILURE;
+			exit(-1);
 		}
 
 	return true;
@@ -93,7 +89,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
+	this->Period = 5;// max 200Hz 
 
 	if(this->startup_check_flag)
 	{
@@ -108,25 +104,14 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	//
 	// Try to read a frame
-	//
 	SbgErrorCode errorCode = sbgEComHandle(&comHandle);
-	show_data(&data_imu);
-	//
-	// Test if we have to release some CPU (no frame received)
-	//
-	if (errorCode == SBG_NOT_READY)
-	{
-		//
-		// Release CPU
-		//
-		sbgSleep(1);
-	}
-	else
-	{
+	if (errorCode != SBG_NOT_READY)
 		SBG_LOG_ERROR(errorCode, "Unable to process incoming sbgECom logs");
-	}
+	#if DEBUG
+	else
+		show_data(&data_imu);
+	#endif
 }
 
 int SpecificWorker::startup_check()
@@ -145,44 +130,89 @@ int SpecificWorker::startup_check()
  *	\param[in]	pUserArg								Optional user supplied argument.
  *	\return												SBG_NO_ERROR if the received log has been used successfully.
  */
-
 SbgErrorCode SpecificWorker::callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg)
 {
-    // Utilizar s_handler en lugar de handler
 	RoboCompIMU::DataImu *data = (RoboCompIMU::DataImu *)pUserArg;
     assert(pLogData);
 
 	SBG_UNUSED_PARAMETER(pHandle);
 	SBG_UNUSED_PARAMETER(pUserArg);
 
+	/////////ALL DATA IN SbgBinaryLogData/////////
 	if (msgClass == SBG_ECOM_CLASS_LOG_ECOM_0) {
 		// Handle separately each received data according to the log ID
 		switch (msg) {
-			case SBG_ECOM_LOG_EKF_EULER:
-				std::cout << "Euler status:"<< pLogData->ekfEulerData.status<<"*********Time: "<< pLogData->ekfEulerData.timeStamp << std::endl<<std::flush;
+			case SBG_ECOM_LOG_EKF_EULER:// more data in SBG_ECOM_LOG_EKF_EULER
+				#if DEBUG
+				printf("Euler status: %u *********Time: %u\n", pLogData->ekfEulerData.status, pLogData->ekfEulerData.timeStamp);
+				#endif
 				data->rot.Roll = pLogData->ekfEulerData.euler[0];
 				data->rot.Pitch = pLogData->ekfEulerData.euler[1];
 				data->rot.Yaw = pLogData->ekfEulerData.euler[2];
 				break;
-			case SBG_ECOM_LOG_FAST_IMU_DATA:
-				std::cout << "IMU status:"<< pLogData->fastImuData.status<<"*********Time: "<< pLogData->fastImuData.timeStamp << std::endl<<std::flush;
+			case SBG_ECOM_LOG_IMU_DATA:// more data in SBG_ECOM_LOG_IMU_DATA
+				#if DEBUG
+				printf("IMU status: %u *********Time: %u\n", pLogData->fastImuData.status, pLogData->fastImuData.timeStamp);
+				#endif
 				data->acc.XAcc = pLogData->fastImuData.accelerometers[0];
 				data->acc.YAcc = pLogData->fastImuData.accelerometers[1];
 				data->acc.ZAcc = pLogData->fastImuData.accelerometers[2];
 				data->gyro.XGyr = pLogData->fastImuData.gyroscopes[0];
 				data->gyro.YGyr = pLogData->fastImuData.gyroscopes[1];
 				data->gyro.ZGyr = pLogData->fastImuData.gyroscopes[2];
-
-
+			case SBG_ECOM_LOG_MAG:// more data in SBG_ECOM_LOG_MAG
+				#if DEBUG
+				printf("Magnetic status: %u *********Time: %u\n", pLogData->ekfEulerData.status, pLogData->ekfEulerData.timeStamp);
+				#endif
+				data->mag.XMag = pLogData->magData.magnetometers[0];
+				data->mag.YMag = pLogData->magData.magnetometers[1];
+				data->mag.ZMag = pLogData->magData.magnetometers[2];
+				break;
+			case SBG_ECOM_LOG_EKF_NAV:// more data in SbgLogEkfNavData
+				#if NAVDATA
+				printf("Naval status: %u *********Time: %u\n", pLogData->ekfNavData.status,  pLogData->ekfNavData.timeStamp);
+				printf("Velocity:  %fx, %fy,%fz\n Position: %fx, %fy, %fz\n, undulation: %f", pLogData->ekfNavData.velocity[0], 
+				pLogData->ekfNavData.velocity[1], pLogData->ekfNavData.velocity[2], pLogData->ekfNavData.position[0], 
+				pLogData->ekfNavData.position[1], pLogData->ekfNavData.position[2], pLogData->ekfNavData.undulation);
+				#endif
+				break;
+			case SBG_ECOM_LOG_GPS1_VEL:// more data in SbgLogGpsVel
+				#if GPSDATA
+				printf("Naval velocity status: %u *********Time: %u\n", pLogData->gpsVelData.status,  pLogData->gpsVelData.timeStamp);
+				printf("Velocity:  %fx, %fy, %fz", pLogData->gpsVelData.velocity[0], 
+				pLogData->gpsVelData.velocity[1], pLogData->gpsVelData.velocity[2]);
+				#endif
+				break;
+			case SBG_ECOM_LOG_GPS1_POS:// more data in SbgLogGpsPos
+				#if GPSDATA
+				printf("Naval position status: %u *********Time: %u\n", pLogData->gpsPosData.status,  pLogData->gpsPosData.timeStamp);
+				printf("Latitude:  %f,  Longitude: %f, Altitude: %f", pLogData->gpsPosData.latitude, 
+				pLogData->gpsPosData.longitude, pLogData->gpsPosData.altitude);
+				#endif
+				break;
+			case SBG_ECOM_LOG_GPS1_RAW:
+				#ifdef GPSDATA
+				;//RAW DATA
+				#endif
+				break;
+			case SBG_ECOM_LOG_GPS1_HDT:// more data in SbgLogGpsHdt
+				#if GPSDATA
+				printf("Naval position status: %u *********Time: %u\n", pLogData->gpsHdtData.status,  pLogData->gpsHdtData.timeStamp);
+				printf("Heading:  %f,  Pitch: %f", pLogData->gpsHdtData.heading, 
+				pLogData->gpsHdtData.pitch);
+				#endif
+				break;
+			case SBG_ECOM_LOG_UTC_TIME:// more data in SbgLogUtcData
+				break;	
+			case SBG_ECOM_LOG_STATUS:// more data in SbgLogStatusData
+				break;
 			default:
+				printf("an unread callback: %u\n", msg);
 				break;
 		}
 	}
-
 	return SBG_NO_ERROR;
 }
-
-
 
 /*!
  * Get and print product info.
@@ -194,17 +224,12 @@ SbgErrorCode  SpecificWorker::print_product_info(SbgEComHandle *pECom)
 {
 	SbgErrorCode					errorCode;
 	SbgEComDeviceInfo				deviceInfo;
-
 	assert(pECom);
 
-	//
 	// Get device inforamtions
-	//
 	errorCode = sbgEComCmdGetInfo(pECom, &deviceInfo);
 
-	//
 	// Display device information if no error
-	//
 	if (errorCode == SBG_NO_ERROR)
 	{
 		char	calibVersionStr[32];
@@ -215,18 +240,18 @@ SbgErrorCode  SpecificWorker::print_product_info(SbgEComHandle *pECom)
 		sbgVersionToStringEncoded(deviceInfo.hardwareRev, hwRevisionStr, sizeof(hwRevisionStr));
 		sbgVersionToStringEncoded(deviceInfo.firmwareRev, fmwVersionStr, sizeof(fmwVersionStr));
 
-		printf("      Serial Number: %0.9"PRIu32"\n",	deviceInfo.serialNumber);
-		printf("       Product Code: %s\n",				deviceInfo.productCode);
-		printf("  Hardware Revision: %s\n",				hwRevisionStr);
-		printf("   Firmware Version: %s\n",				fmwVersionStr);
-		printf("     Calib. Version: %s\n",				calibVersionStr);
+		printf("Serial Number: %d\n",	deviceInfo.serialNumber);
+		printf("Product Code: %s\n", deviceInfo.productCode);
+		printf("Hardware Revision: %s\n", hwRevisionStr);
+		printf("Firmware Version: %s\n", fmwVersionStr);
+		printf("Calib. Version: %s\n", calibVersionStr);
 		printf("\n");
 	}
 	else
 	{
 		SBG_LOG_WARNING(errorCode, "Unable to retrieve device information");
+		exit(-1);
 	}
-
 	return errorCode;
 }
 
@@ -234,15 +259,13 @@ SbgErrorCode  SpecificWorker::print_product_info(SbgEComHandle *pECom)
  * Execute the ellipseMinimal example given an opened and valid interface.
  * 
  * \param[in]	pInterface							Interface used to communicate with the device.
+ * \param  data_imu 								Callback data
  * \return											SBG_NO_ERROR if successful.
  */
 SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu )
 {
-
-	printf("Initializing sbg_ekinox\n");
 	SbgErrorCode			errorCode = SBG_NO_ERROR;
 	SbgEComHandle			comHandle;
-		
 	assert(pInterface);
 
 	// Create the sbgECom library and associate it with the created interfaces
@@ -251,85 +274,58 @@ SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCom
 	// Test that the sbgECom has been initialized
 	if (errorCode == SBG_NO_ERROR)
 	{
-		// Welcome message
-		printf("Welcome to the ELLIPSE minimal example.\n");
 		printf("sbgECom version %s\n\n", SBG_E_COM_VERSION_STR);
-
 		// Query and display produce info, don't stop if there is an error
 		print_product_info(&comHandle);
-
-		// Showcase how to configure some output logs to 25 Hz, don't stop if there is an error
-		errorCode = sbgEComCmdOutputSetConf(&comHandle, SBG_ECOM_OUTPUT_PORT_A, SBG_ECOM_CLASS_LOG_ECOM_0, SBG_ECOM_LOG_IMU_DATA, SBG_ECOM_OUTPUT_MODE_DIV_8);
-
-		if (errorCode != SBG_NO_ERROR)
-		{
-			SBG_LOG_WARNING(errorCode, "Unable to configure SBG_ECOM_LOG_IMU_DATA log");
-		}
-
-		errorCode = sbgEComCmdOutputSetConf(&comHandle, SBG_ECOM_OUTPUT_PORT_A, SBG_ECOM_CLASS_LOG_ECOM_0, SBG_ECOM_LOG_EKF_EULER, SBG_ECOM_OUTPUT_MODE_DIV_8);
-
-		if (errorCode != SBG_NO_ERROR)
-		{
-			SBG_LOG_WARNING(errorCode, "Unable to configure SBG_ECOM_LOG_EKF_EULER log");
-		}
-
 		// Define callbacks for received data and display header
 		sbgEComSetReceiveLogCallback(&comHandle, callback, data_imu);
 	}
 	else
 	{
 		SBG_LOG_ERROR(errorCode, "Unable to initialize the sbgECom library");
+		exit(-1);
 	}
 	return comHandle;
 }
 
 void SpecificWorker::show_data(RoboCompIMU::DataImu *_data_imu)
 {
-
 	printf("Aceleration : %f, %f, %f\n",	_data_imu->acc.XAcc, _data_imu->acc.YAcc, _data_imu->acc.ZAcc);
+	printf("Gyroscope : %f, %f, %f\n",	_data_imu->gyro.XGyr, _data_imu->gyro.YGyr, _data_imu->gyro.ZGyr);
+	printf("Magnetic : %f, %f, %f\n",	_data_imu->mag.XMag, _data_imu->mag.YMag, _data_imu->mag.ZMag);
 	printf("Orientation : %f, %f, %f\n",	_data_imu->rot.Roll, _data_imu->rot.Pitch, _data_imu->rot.Yaw);
-
 	printf("\n");
 }
 
-
 RoboCompIMU::Acceleration SpecificWorker::IMU_getAcceleration()
 {
-//implementCODE
-
+	return this->data_imu.acc;
 }
 
 RoboCompIMU::Gyroscope SpecificWorker::IMU_getAngularVel()
 {
-//implementCODE
-
+	return data_imu.gyro;
 }
 
 RoboCompIMU::DataImu SpecificWorker::IMU_getDataImu()
 {
-//implementCODE
-
+	return data_imu;
 }
 
 RoboCompIMU::Magnetic SpecificWorker::IMU_getMagneticFields()
 {
-//implementCODE
-
+	return data_imu.mag;
 }
 
 RoboCompIMU::Orientation SpecificWorker::IMU_getOrientation()
 {
-//implementCODE
-
+	return data_imu.rot;
 }
 
 void SpecificWorker::IMU_resetImu()
 {
 //implementCODE
-
 }
-
-
 
 /**************************************/
 // From the RoboCompIMU you can use this types:

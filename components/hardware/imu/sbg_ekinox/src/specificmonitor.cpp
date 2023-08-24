@@ -86,10 +86,18 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-//	RoboCompCommonBehavior::Parameter aux;
-//	aux.editable = true;
-//	configGetString( "","InnerModelPath", aux.value, "nofile");
-//	params["InnerModelPath"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	configGetString( "","IP_address", aux.value, "192.168.50.50");
+	params["IP_address"] = aux;
+	configGetString( "","input_port", aux.value, "5678");
+	params["input_port"] = aux;
+	configGetString( "","output_port", aux.value, "1234");
+	params["output_port"] = aux;
+	configGetString( "","rs232", aux.value, "/dev/ttyUSB0");
+	params["rs232"] = aux;
+	configGetString( "","baudrate", aux.value, "230400");
+	params["baudrate"] = aux;
 }
 
 //Check parameters and transform them to worker structure

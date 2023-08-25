@@ -27,7 +27,7 @@ import interfaces as ifaces
 import lib.device_model as deviceModel
 from lib.data_processor.roles.jy901s_dataProcessor import JY901SDataProcessor
 from lib.protocol_resolver.roles.wit_protocol_resolver import WitProtocolResolver
-import time
+import time, math
 
 sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
@@ -178,18 +178,18 @@ class SpecificWorker(GenericWorker):
     #
     def IMU_getAcceleration(self):
         ret = ifaces.RoboCompIMU.Acceleration()
-        ret.XAcc = self.device.getDeviceData("accX")
-        ret.YAcc = self.device.getDeviceData("accY")
-        ret.ZAcc = self.device.getDeviceData("accZ")
+        ret.XAcc = self.device.getDeviceData("accX") * 9806,65 #g to mm/s²
+        ret.YAcc = self.device.getDeviceData("accY") * 9806,65 #g to mm/s²
+        ret.ZAcc = self.device.getDeviceData("accZ") * 9806,65 #g to mm/s²
         return ret
     #
     # IMPLEMENTATION of getAngularVel method from IMU interface
     #
     def IMU_getAngularVel(self):
         ret = ifaces.RoboCompIMU.Gyroscope()
-        ret.XGyr =  self.device.getDeviceData("gyroX")
-        ret.YGyr =  self.device.getDeviceData("gyroY")
-        ret.ZGyr =  self.device.getDeviceData("gyroZ")
+        ret.XGyr =  math.radians(self.device.getDeviceData("gyroX"))
+        ret.YGyr =  math.radians(self.device.getDeviceData("gyroY"))
+        ret.ZGyr =  math.radians(self.device.getDeviceData("gyroZ"))
         return ret
     #
     # IMPLEMENTATION of getDataImu method from IMU interface
@@ -216,9 +216,9 @@ class SpecificWorker(GenericWorker):
     #
     def IMU_getOrientation(self):
         ret = ifaces.RoboCompIMU.Orientation()
-        ret.Roll = self.device.getDeviceData("angleY")
-        ret.Pitch = self.device.getDeviceData("angleX")
-        ret.Yaw = self.device.getDeviceData("angleZ")
+        ret.Roll = math.radians(self.device.getDeviceData("angleY"))
+        ret.Pitch = math.radians(self.device.getDeviceData("angleX"))
+        ret.Yaw = math.radians(self.device.getDeviceData("angleZ"))
         return ret
     #
     # IMPLEMENTATION of resetImu method from IMU interface

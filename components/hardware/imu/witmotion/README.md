@@ -7,6 +7,10 @@ With the registers of https://wit-motion.gitbook.io/witmotion-sdk/wit-standard-p
 
 You need to install pyserial with ```pip install pyserial``` and grant permissions to the port with udev rules or commands like ```sudo chmod 666 /dev/ttyUSB0```.
 
+# Important
+This compound has a scanning period of 5 milliseconds maximum.
+The units are in mm/s², rad, rad/s and Gauss
+
 ## Configuration parameters
 As any other component, *witmotion* needs a configuration file to start. In
 ```

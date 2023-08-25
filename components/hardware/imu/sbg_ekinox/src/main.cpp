@@ -81,6 +81,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <gpsubloxI.h>
 #include <imuI.h>
 
 
@@ -171,6 +172,24 @@ int ::sbg_ekinox::run(int argc, char* argv[])
 
 		}
 
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "GpsUblox.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GpsUblox";
+			}
+			Ice::ObjectAdapterPtr adapterGpsUblox = communicator()->createObjectAdapterWithEndpoints("GpsUblox", tmp);
+			auto gpsublox = std::make_shared<GpsUbloxI>(worker);
+			adapterGpsUblox->add(gpsublox, Ice::stringToIdentity("gpsublox"));
+			adapterGpsUblox->activate();
+			cout << "[" << PROGRAM_NAME << "]: GpsUblox adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for GpsUblox\n";
+		}
 
 
 		try

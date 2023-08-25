@@ -1,11 +1,12 @@
 import "IMU.idsl";
+import "GpsUblox.idsl";
 
 Component sbg_ekinox
 {
 	Communications
 	{
-		implements IMU;
-	};
+		implements IMU, GpsUblox;
+	}; 
 	language Cpp11;
 };
 

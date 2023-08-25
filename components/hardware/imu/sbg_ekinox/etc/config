@@ -1,6 +1,7 @@
 CommonBehavior.Endpoints=tcp -p 10000
 
 # Endpoints for implements interfaces
+GpsUblox.Endpoints=tcp -p 0
 IMU.Endpoints=tcp -p 0
 
 #Priority with ethernet, to use serial, leave IP blank.

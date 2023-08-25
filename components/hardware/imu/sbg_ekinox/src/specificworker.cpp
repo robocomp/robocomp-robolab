@@ -63,7 +63,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 	if (errorCode == SBG_NO_ERROR)
 		{
-			comHandle = init_sbg_ekinox(&sbgInterface, &this->data_imu);
+			comHandle = init_sbg_ekinox(&sbgInterface, &this->data_ekinox);
 		}
 		else
 		{
@@ -98,7 +98,7 @@ void SpecificWorker::compute()
 		SBG_LOG_ERROR(errorCode, "Unable to process incoming sbgECom logs");
 	#if DEBUG
 	else
-		show_data(&data_imu);
+		show_data(&data_ekinox);
 	#endif
 }
 
@@ -120,7 +120,7 @@ int SpecificWorker::startup_check()
  */
 SbgErrorCode SpecificWorker::callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg)
 {
-	RoboCompIMU::DataImu *data = (RoboCompIMU::DataImu *)pUserArg;
+	RoboCompSbgEkinoxType *data = (RoboCompSbgEkinoxType *)pUserArg;
     assert(pLogData);
 
 	SBG_UNUSED_PARAMETER(pHandle);
@@ -134,27 +134,27 @@ SbgErrorCode SpecificWorker::callback(SbgEComHandle *pHandle, SbgEComClass msgCl
 				#if DEBUG
 				printf("Euler status: %u *********Time: %u\n", pLogData->ekfEulerData.status, pLogData->ekfEulerData.timeStamp);
 				#endif
-				data->rot.Roll = pLogData->ekfEulerData.euler[0];
-				data->rot.Pitch = pLogData->ekfEulerData.euler[1];
-				data->rot.Yaw = pLogData->ekfEulerData.euler[2];
+				data->data_imu.rot.Roll = pLogData->ekfEulerData.euler[1];
+				data->data_imu.rot.Pitch = pLogData->ekfEulerData.euler[0];
+				data->data_imu.rot.Yaw = -pLogData->ekfEulerData.euler[2];
 				break;
 			case SBG_ECOM_LOG_IMU_DATA:// more data in SBG_ECOM_LOG_IMU_DATA
 				#if DEBUG
 				printf("IMU status: %u *********Time: %u\n", pLogData->fastImuData.status, pLogData->fastImuData.timeStamp);
 				#endif
-				data->acc.XAcc = pLogData->fastImuData.accelerometers[0];
-				data->acc.YAcc = pLogData->fastImuData.accelerometers[1];
-				data->acc.ZAcc = pLogData->fastImuData.accelerometers[2];
-				data->gyro.XGyr = pLogData->fastImuData.gyroscopes[0];
-				data->gyro.YGyr = pLogData->fastImuData.gyroscopes[1];
-				data->gyro.ZGyr = pLogData->fastImuData.gyroscopes[2];
+				data->data_imu.acc.XAcc = -pLogData->fastImuData.accelerometers[1];
+				data->data_imu.acc.YAcc = -pLogData->fastImuData.accelerometers[0];
+				data->data_imu.acc.ZAcc = pLogData->fastImuData.accelerometers[2];
+				data->data_imu.gyro.XGyr = pLogData->fastImuData.gyroscopes[1];
+				data->data_imu.gyro.YGyr = pLogData->fastImuData.gyroscopes[0];
+				data->data_imu.gyro.ZGyr = -pLogData->fastImuData.gyroscopes[2];
 			case SBG_ECOM_LOG_MAG:// more data in SBG_ECOM_LOG_MAG
 				#if DEBUG
 				printf("Magnetic status: %u *********Time: %u\n", pLogData->ekfEulerData.status, pLogData->ekfEulerData.timeStamp);
 				#endif
-				data->mag.XMag = pLogData->magData.magnetometers[0];
-				data->mag.YMag = pLogData->magData.magnetometers[1];
-				data->mag.ZMag = pLogData->magData.magnetometers[2];
+				data->data_imu.mag.XMag = -pLogData->magData.magnetometers[1];
+				data->data_imu.mag.YMag = -pLogData->magData.magnetometers[0];
+				data->data_imu.mag.ZMag = pLogData->magData.magnetometers[2];
 				break;
 			case SBG_ECOM_LOG_EKF_NAV:// more data in SbgLogEkfNavData
 				#if NAVDATA
@@ -172,11 +172,10 @@ SbgErrorCode SpecificWorker::callback(SbgEComHandle *pHandle, SbgEComClass msgCl
 				#endif
 				break;
 			case SBG_ECOM_LOG_GPS1_POS:// more data in SbgLogGpsPos
-				#if GPSDATA
 				printf("Naval position status: %u *********Time: %u\n", pLogData->gpsPosData.status,  pLogData->gpsPosData.timeStamp);
-				printf("Latitude:  %f,  Longitude: %f, Altitude: %f", pLogData->gpsPosData.latitude, 
-				pLogData->gpsPosData.longitude, pLogData->gpsPosData.altitude);
-				#endif
+				data->data_gps.latitude = pLogData->gpsPosData.latitude;
+				data->data_gps.longitude = pLogData->gpsPosData.longitude;
+				data->data_gps.altitude = pLogData->gpsPosData.altitude;
 				break;
 			case SBG_ECOM_LOG_GPS1_RAW:
 				#ifdef GPSDATA
@@ -250,7 +249,7 @@ SbgErrorCode  SpecificWorker::print_product_info(SbgEComHandle *pECom)
  * \param  data_imu 								Callback data
  * \return											SBG_NO_ERROR if successful.
  */
-SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu )
+SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCompSbgEkinoxType *_data_ekinox )
 {
 	SbgErrorCode			errorCode = SBG_NO_ERROR;
 	SbgEComHandle			comHandle;
@@ -266,7 +265,7 @@ SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCom
 		// Query and display produce info, don't stop if there is an error
 		print_product_info(&comHandle);
 		// Define callbacks for received data and display header
-		sbgEComSetReceiveLogCallback(&comHandle, callback, data_imu);
+		sbgEComSetReceiveLogCallback(&comHandle, callback, _data_ekinox);
 	}
 	else
 	{
@@ -276,44 +275,60 @@ SbgEComHandle  SpecificWorker::init_sbg_ekinox(SbgInterface *pInterface, RoboCom
 	return comHandle;
 }
 
-void SpecificWorker::show_data(RoboCompIMU::DataImu *_data_imu)
+void SpecificWorker::show_data(RoboCompSbgEkinoxType *_data_ekinox)
 {
-	printf("Aceleration : %f, %f, %f\n",	_data_imu->acc.XAcc, _data_imu->acc.YAcc, _data_imu->acc.ZAcc);
-	printf("Gyroscope : %f, %f, %f\n",	_data_imu->gyro.XGyr, _data_imu->gyro.YGyr, _data_imu->gyro.ZGyr);
-	printf("Magnetic : %f, %f, %f\n",	_data_imu->mag.XMag, _data_imu->mag.YMag, _data_imu->mag.ZMag);
-	printf("Orientation : %f, %f, %f\n",	_data_imu->rot.Roll, _data_imu->rot.Pitch, _data_imu->rot.Yaw);
+	printf("Aceleration : %f, %f, %f\n",	_data_ekinox->data_imu.acc.XAcc, _data_ekinox->data_imu.acc.YAcc, _data_ekinox->data_imu.acc.ZAcc);
+	printf("Gyroscope : %f, %f, %f\n",	_data_ekinox->data_imu.gyro.XGyr, _data_ekinox->data_imu.gyro.YGyr, _data_ekinox->data_imu.gyro.ZGyr);
+	printf("Magnetic : %f, %f, %f\n",	_data_ekinox->data_imu.mag.XMag, _data_ekinox->data_imu.mag.YMag, _data_ekinox->data_imu.mag.ZMag);
+	printf("Orientation : %f, %f, %f\n",	_data_ekinox->data_imu.rot.Roll, _data_ekinox->data_imu.rot.Pitch, _data_ekinox->data_imu.rot.Yaw);
+	printf("Latitude:  %f,  Longitude: %f, Altitude: %f", _data_ekinox->data_gps.latitude,_data_ekinox->data_gps.longitude, _data_ekinox->data_gps.altitude);
 	printf("\n");
+}
+
+
+RoboCompGpsUblox::DatosGPS SpecificWorker::GpsUblox_getData()
+{
+	return this->data_ekinox.data_gps;
+}
+
+void SpecificWorker::GpsUblox_setInitialPose(float x, float y)
+{
+//implementCODE
 }
 
 RoboCompIMU::Acceleration SpecificWorker::IMU_getAcceleration()
 {
-	return this->data_imu.acc;
+	return this->data_ekinox.data_imu.acc;
 }
 
 RoboCompIMU::Gyroscope SpecificWorker::IMU_getAngularVel()
 {
-	return data_imu.gyro;
+	return this->data_ekinox.data_imu.gyro;
 }
 
 RoboCompIMU::DataImu SpecificWorker::IMU_getDataImu()
 {
-	return data_imu;
+	return this->data_ekinox.data_imu;
 }
 
 RoboCompIMU::Magnetic SpecificWorker::IMU_getMagneticFields()
 {
-	return data_imu.mag;
+	return this->data_ekinox.data_imu.mag;
 }
 
 RoboCompIMU::Orientation SpecificWorker::IMU_getOrientation()
 {
-	return data_imu.rot;
+	return this->data_ekinox.data_imu.rot;
 }
 
 void SpecificWorker::IMU_resetImu()
 {
 //implementCODE
 }
+
+/**************************************/
+// From the RoboCompGpsUblox you can use this types:
+// RoboCompGpsUblox::DatosGPS
 
 /**************************************/
 // From the RoboCompIMU you can use this types:

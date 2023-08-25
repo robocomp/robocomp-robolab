@@ -24,6 +24,7 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
+#include <GpsUblox.h>
 #include <IMU.h>
 
 
@@ -48,6 +49,8 @@ public:
 
 
 
+	virtual RoboCompGpsUblox::DatosGPS GpsUblox_getData() = 0;
+	virtual void GpsUblox_setInitialPose(float x, float y) = 0;
 	virtual RoboCompIMU::Acceleration IMU_getAcceleration() = 0;
 	virtual RoboCompIMU::Gyroscope IMU_getAngularVel() = 0;
 	virtual RoboCompIMU::DataImu IMU_getDataImu() = 0;

@@ -39,11 +39,17 @@
 // sbgECom headers
 #include <sbgEComLib.h>
 
+struct RoboCompSbgEkinox{        
+  RoboCompGpsUblox::DatosGPS data_gps;     
+  RoboCompIMU::DataImu data_imu;
+} ; 
+using RoboCompSbgEkinoxType = RoboCompSbgEkinox;
 
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
+
 	SpecificWorker(TuplePrx tprx, bool startup_check);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
@@ -51,8 +57,10 @@ public:
 	//Callback function 
     static SbgErrorCode callback(SbgEComHandle *pHandle, SbgEComClass msgClass, SbgEComMsgId msg, const SbgBinaryLogData *pLogData, void *pUserArg);
 	//Show the data in variable data_imu
-	static void show_data(RoboCompIMU::DataImu *_data_imu);
+	void show_data(RoboCompSbgEkinoxType *_data_ekinox);
 
+	RoboCompGpsUblox::DatosGPS GpsUblox_getData();
+	void GpsUblox_setInitialPose(float x, float y);
 	RoboCompIMU::Acceleration IMU_getAcceleration();
 	RoboCompIMU::Gyroscope IMU_getAngularVel();
 	RoboCompIMU::DataImu IMU_getDataImu();
@@ -66,13 +74,13 @@ public slots:
 	void initialize(int period);
 private:
 	//SBG function
-	SbgEComHandle init_sbg_ekinox(SbgInterface *pInterface, RoboCompIMU::DataImu *data_imu);
+	SbgEComHandle init_sbg_ekinox(SbgInterface *pInterface, RoboCompSbgEkinoxType *_data_ekinox);
 	SbgErrorCode print_product_info(SbgEComHandle *pECom);
 	//SBG Variables
 	SbgInterface sbgInterface;
 	SbgEComHandle comHandle;
 
 	bool startup_check_flag;
-	RoboCompIMU::DataImu data_imu;
+	RoboCompSbgEkinox data_ekinox;
 };
 #endif

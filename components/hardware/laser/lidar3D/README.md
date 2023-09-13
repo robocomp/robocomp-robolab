@@ -5,7 +5,15 @@ Intro to component here
     Install repo [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver)
 
 ## Run
-    Set ip of the running computer in config and in lidar, section Setting->Destination IP Address
+Set ip of the running computer in config and in lidar, by accessing the lidar ip in a browser, section Setting.
+    
+The difference between lidars is the ports:
+    Helios
+    - MSOP = 6699
+    - DIFOP = 7788
+    Pearl
+    - MSOP = 6698
+    - DIFOP = 7787
 
 
 ## Configuration parameters

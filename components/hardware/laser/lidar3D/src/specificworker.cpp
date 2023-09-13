@@ -44,11 +44,52 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     try
     {
+         // Save locale setting
+        const std::string oldLocale=std::setlocale(LC_NUMERIC,nullptr);
+        // Force '.' as the radix point. If you comment this out,
+        // you'll get output similar to the OP's GUI mode sample
+        std::setlocale(LC_NUMERIC,"C");
         lidar_model = std::stoi(params.at("lidar_model").value);
         msop_port = std::stoi(params.at("msop_port").value);
         difop_port = std::stoi(params.at("difop_port").value);
         dest_pc_ip_addr = params.at("dest_pc_ip_addr").value;
         simulator = params["simulator"].value == "true";
+       
+        //Extrinsic
+        float rx, ry, rz, tx, ty, tz;
+        rx = std::stof(params["rx"].value);
+        ry = std::stof(params["ry"].value);
+        rz = std::stof(params["rz"].value);
+        tx = std::stof(params["tx"].value);
+        ty = std::stof(params["ty"].value);
+        tz = std::stof(params["tz"].value);
+        this->robot_lidar = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
+        this->robot_lidar.rotate(Eigen::AngleAxisf (rx,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
+        std::cout<<"Extrinsec Matrix:"<<std::endl<<this->robot_lidar.matrix()<<endl;
+
+        //boundin box colision / hitbox
+        float center_box_x, center_box_y, center_box_z, size_box_x, size_box_y, size_box_z;
+        center_box_x = std::stof(params["center_box_x"].value);
+        center_box_y = std::stof(params["center_box_y"].value);
+        center_box_z = std::stof(params["center_box_z"].value);
+        size_box_x = std::stof(params["size_box_x"].value);
+        size_box_y = std::stof(params["size_box_y"].value);
+        size_box_z = std::stof(params["size_box_z"].value);
+
+        box_min.x() = center_box_x - size_box_x/2.0;//minx
+        box_min.y() = center_box_y - size_box_y/2.0;//miny
+        box_min.z() = center_box_z - size_box_z/2.0;//minz
+        box_max.x() = center_box_x + size_box_x/2.0;//maxx
+        box_max.y() = center_box_y + size_box_y/2.0;//maxy
+        box_max.z() = center_box_z + size_box_z/2.0;//maxz
+    
+        floor_line = std::stof(params["floor_line"].value);
+
+        std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<endl;
+        std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<endl;
+        std::cout<<"Floor line in millimetres:"<<std::endl<<this->floor_line<<endl;
+        // Restore locale setting
+        std::setlocale(LC_NUMERIC,oldLocale.c_str());
     }
     catch (const std::exception &e)
     { std::cout << e.what() << std::endl; }
@@ -69,7 +110,7 @@ void SpecificWorker::initialize(int period)
         {
             param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
             param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
-            //param.input_param.group_address = "192.168.1.200";
+            //param.input_param.group_address = "192.168.50.111";
             param.input_param.msop_port = msop_port;   ///< Set the lidar msop port number, the default is 6699
             param.input_param.difop_port = difop_port;  ///< Set the lidar difop port number, the default is 7788
             param.lidar_type = lidar_model_list[lidar_model];   ///< Set the lidar type. Make sure this type is correct
@@ -86,30 +127,45 @@ void SpecificWorker::initialize(int period)
             driver.start();
             std::cout << "Driver initiated OK" << std::endl;
         }
-        ready_to_go.store(true);
         timer.start(this->Period);
+        sleep(this->Period/50); //20*period, wait to execution compute
+        ready_to_go.store(true);
     }
 }
 
 void SpecificWorker::compute()
 {
+    auto start = std::chrono::high_resolution_clock::now();
     if (not simulator)  // REAL LIDAR
     {
         std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
         if (msg.get() == NULL)
             return;
 
-        buffer_real_data.put(std::move(*msg), [](auto &&I, auto &T)
+        buffer_real_data.put(std::move(*msg), [this](auto &&I, auto &T)
         {
-            cout << I.points.size() << endl;
-            if (I.points.size() == 28800)
+            //cout << I.points.size() << endl;
+            if (I.points.size() > 0 )
             {
                 T.points.resize(I.points.size());
                 int i = 0;
                 for (auto &&p: I.points)
-                    T.points[i++] = RoboCompLidar3D::TPoint{.x=-p.y, .y=p.x, .z=p.z, .intensity=p.intensity};
+                {
+                    Eigen::Vector3f point(-p.y*1000, p.x*1000, p.z*1000);
+                    Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();
+                    if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line)
+                        T.points[i++] = RoboCompLidar3D::TPoint{.x=lidar_point.x(), .y=lidar_point.y(), .z=lidar_point.z(), 
+                                            .intensity=p.intensity, .longitude=std::atan2(lidar_point.x(), -lidar_point.y())+M_PI};
+                    // else
+                    // 	T.points[i++] = RoboCompLidar3D::TPoint{.x=0, .y=0, .z=0, 
+                    //                         .intensity=0, .longitude=361};
+                    //std::cout << "Puntos xyz:" << p.y*1000 << p.x*1000 << p.z*1000 << std::endl;
+                }
+                T.points.resize(i);
+                std::ranges::sort(T.points, {}, &RoboCompLidar3D::TPoint::longitude);
             }
         });
+    //std::cout << "Time compute: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() << " milli" << std::endl;
 
         //std::cout << "msg: " << msg->seq << " point cloud size: " << msg->points.size() << std::endl;
         fps.print("Connected to real device" + std::to_string(msg->points.size()));
@@ -192,6 +248,11 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
     std::cout << code.toString() << std::endl;
 }
 
+inline bool SpecificWorker::isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max) {
+    return  (point.x() < box_min.x() || point.x() > box_max.x()) ||
+            (point.y() < box_min.y() || point.y() > box_max.y()) ||
+            (point.z() < box_min.z() || point.z() > box_max.z());
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////// Interfaces                                                            //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,10 +281,14 @@ void SpecificWorker::self_adjust_period(int new_period)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, int start, int len, int decimation_factor)
 {
-    if( not ready_to_go)
+    //LiDAR not started
+    if(not ready_to_go)
         return {};
 
-    const int FACTOR = 80;  // pre-calculate this: (1 / 0.4) * 32
+    #if DEBUG
+        auto cstart = std::chrono::high_resolution_clock::now();
+    #endif
+    //Get LiDAR data
     RoboCompLidar3D::TData buffer;
     if(not simulator)
         buffer = buffer_real_data.get_idemp();
@@ -236,44 +301,68 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, in
         qWarning() << "Exiting. No valid option for Lidar3D name:" << QString::fromStdString(name);
         std::terminate();
     }
-
-    // check for nominal conditions
-    if(start == 1 and len == 360  and decimation_factor == 1)
+    #if DEBUG
+        std::cout << "Time get buffer lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstart).count() << " microseconds" << std::endl<<std::flush;
+        cstart = std::chrono::high_resolution_clock::now();
+    #endif
+    auto size_original = buffer.points.size();
+    // Check for nominal conditions
+    if(len == 360  and decimation_factor == 1)
         return buffer;
 
-    // request implies sectorize or decimation
-    auto eje_start = start * FACTOR;
-    //auto eje_leng = len * FACTOR;
-    RoboCompLidar3D::TData data;
-    //data.points.reserve(eje_leng);  // pre-allocate memory
-
-    // Calculate the actual length after decimation
-    int decimated_groups = len / decimation_factor;
-    data.points.reserve(decimated_groups * FACTOR);  // pre-allocate memory
-    for (int i = 0; i < decimated_groups; ++i)
-    {
-        for (int j = 0; j < FACTOR; ++j) 
-        {
-            // Use modulo operation to ensure circular indexing
-            int index = (eje_start + j) % 28800;
-            if (index == 0) index = 28800;
-            data.points.emplace_back(RoboCompLidar3D::TPoint{.x=buffer.points[index].x ,
-                                                     .y=buffer.points[index].y,
-                                                     .z=buffer.points[index].z,
-                                                     .intensity=buffer.points[index].intensity});
-
-        }
-        // Skip next (decimation_factor - 1) groups of points
-        eje_start += decimation_factor * FACTOR;
-
-        // Ensure eje_start is within valid range
-        if (eje_start > 28800) eje_start -= 28800;
+    RoboCompLidar3D::TPoints filtered_points; 
+    //Get all LiDAR
+    if (len == 360)
+        filtered_points = std::move(buffer.points);
+    //Cut range LiDAR
+    else{
+        //Start and end angles
+        auto rad_start = qDegreesToRadians((float)start);
+        auto rad_end = qDegreesToRadians((float)(start + len));
+        
+        //Start Iterator, this is the end if there are surpluses, otherwise it will be modified by the defined end.
+        auto it_begin = std::find_if(buffer.points.begin(), buffer.points.end(),
+                    [_start=rad_start](const RoboCompLidar3D::TPoint& point) 
+                    {return _start < point.longitude;});
+        //End Iterator
+        auto it_end = buffer.points.end();
+        //The clipping exceeds 2pi, we assign the excess to the result
+        if (rad_end > 2 * M_PI)
+            filtered_points.assign(std::make_move_iterator(buffer.points.begin()), std::make_move_iterator(std::find_if(buffer.points.begin(), buffer.points.end(),
+                        [_end=rad_end - 2*M_PI](const RoboCompLidar3D::TPoint& point) 
+                        {return _end < point.longitude;})));
+        else 
+            it_end = std::find_if(it_begin, buffer.points.end(),
+                        [_end=rad_end](const RoboCompLidar3D::TPoint& point)
+                        {return _end < point.longitude;});
+        //we insert the cut with 2PI limit
+        filtered_points.insert(filtered_points.end(), std::make_move_iterator(it_begin), std::make_move_iterator(it_end));
+        #if DEBUG
+            std::cout << "Time prepare lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstart).count() << " microseconds" << std::endl<<std::flush;
+        #endif
     }
-    data.period = buffer.period;
-    data.timestamp = buffer.timestamp;
-    return data;
-}
+    //
+    if (decimation_factor == 1)
+        return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
+    #if DEBUG   
+        cstart = std::chrono::high_resolution_clock::now();
+    #endif
 
+    //Decimal factor calculation
+    float rad_factor = qDegreesToRadians((float)decimation_factor);
+    float tolerance = qDegreesToRadians(0.5);
+
+    //We remove the points that are of no interest 
+    filtered_points.erase(std::remove_if(filtered_points.begin(), filtered_points.end(),
+            [rad_factor, tolerance](const RoboCompLidar3D::TPoint& point) 
+            {float remainder = fmod(point.longitude, rad_factor);
+                return !(remainder <= tolerance || remainder >= rad_factor - tolerance);
+            }), filtered_points.end());
+    #if DEBUG
+        std::cout << "Time for cut lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstart).count() << " microseconds" << std::endl<<std::flush;
+    #endif
+    return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
+}
 
 /**************************************/
 // From the RoboCompLaser you can use this types:
@@ -283,7 +372,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, in
 
 
 /**************************************/
-// From the RoboCompLidar3D you can call this methods:
+// From the RoboCompLidar3D you can call this methods:Lidar3D_getLidarData
 // this->lidar3d_proxy->getLidarData(...)
 
 /**************************************/

@@ -24,6 +24,7 @@
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
+#define DEBUG 0
 
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>
@@ -31,6 +32,11 @@
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
 #include <atomic>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
+
+#include <chrono>
+
 
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
@@ -85,6 +91,15 @@ class SpecificWorker : public GenericWorker
 
         DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TData> buffer_real_data;
         DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_helios_data, buffer_bpearl_data;
+
+        //Extrinsic
+        Eigen::Affine3f robot_lidar;
+        float x_size = 450.0/2.0;
+        float y_size = 460.0/2.0;
+        Eigen::Vector3f box_min;
+        Eigen::Vector3f box_max;
+        float floor_line;
+        inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
         // FPS
             FPSCounter fps;

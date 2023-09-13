@@ -102,6 +102,47 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
     configGetString( "","simulator", aux.value, "nofile");
     params["simulator"] = aux;
+
+	//Extrinsic
+	configGetString( "","rx", aux.value, "");
+	params["rx"] = aux;
+
+	configGetString( "","ry", aux.value, "");
+	params["ry"] = aux;
+
+	configGetString( "","rz", aux.value, "");
+	params["rz"] = aux;
+
+	configGetString( "","tx", aux.value, "");
+	params["tx"] = aux;
+
+	configGetString( "","ty", aux.value, "");
+	params["ty"] = aux;
+
+	configGetString( "","tz", aux.value, "");
+	params["tz"] = aux;
+
+	//boundin box colision / hitbox
+	configGetString( "","center_box_x", aux.value, "");
+	params["center_box_x"] = aux;
+
+	configGetString( "","center_box_y", aux.value, "");
+	params["center_box_y"] = aux;
+
+	configGetString( "","center_box_z", aux.value, "");
+	params["center_box_z"] = aux;
+
+	configGetString( "","size_box_x", aux.value, "");
+	params["size_box_x"] = aux;
+
+	configGetString( "","size_box_y", aux.value, "");
+	params["size_box_y"] = aux;
+
+	configGetString( "","size_box_z", aux.value, "");
+	params["size_box_z"] = aux;
+
+	configGetString( "","floor_line", aux.value, "");
+	params["floor_line"] = aux;
 }
 
 //Check parameters and transform them to worker structure

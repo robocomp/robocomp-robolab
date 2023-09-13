@@ -68,6 +68,7 @@ public slots:
 
     private:
         bool startup_check_flag;
+        bool activated_camera = false;
         cv::Mat cv_frame;
         cv::VideoCapture capture;
 

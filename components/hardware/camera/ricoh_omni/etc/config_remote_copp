@@ -1,15 +1,14 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 10230
 
-# Endpoints for implements interfaces
+# Endpoints for implemented interfaces
 Camera360RGB.Endpoints=tcp -p 10097
 
 # Proxies for required interfaces
-Camera360RGBProxy = camera360rgb:tcp -h localhost -p 10098
+Camera360RGBProxy = camera360rgb:tcp -h 192.168.50.238  -p 10098
 
 display = false
-simulator = false
+simulator = true
 compressed = false
-orin = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

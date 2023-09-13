@@ -71,7 +71,7 @@ void SpecificWorker::initialize(int period)
 		this->startup_check();
 	else
     {
-        bool activated_camera = false;
+        
         while(!activated_camera)
         {
             if(!pars.simulator)
@@ -158,92 +158,96 @@ void SpecificWorker::compute()
 RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
     RoboCompCamera360RGB::TImage res;
-//    std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-    if(sx == 0 || sy == 0)
+    if (this->activated_camera)
     {
-        std::cout << "No size. Sending complete image" << std::endl;
-        sx = MAX_WIDTH; sy = MAX_HEIGHT;
-        cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+        //std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
+        if(sx == 0 || sy == 0)
+        {
+            std::cout << "No size. Sending complete image" << std::endl;
+            sx = MAX_WIDTH; sy = MAX_HEIGHT;
+            cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+        }
+        if(sx == -1)
+            sx = MAX_WIDTH;
+        if(sy == -1)
+            sy = MAX_HEIGHT;
+        if(cx == -1)
+            cx = (int)(MAX_WIDTH/2);
+        if(cy == -1)
+            cy = int(MAX_HEIGHT/2);
+        if(roiwidth == -1)
+            roiwidth = MAX_WIDTH;
+        if(roiheight == -1)
+            roiheight = MAX_HEIGHT;
+
+        // Get image from doublebuffer
+        auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
+
+        // Check if y is out of range. Get max or min values in that case
+        if((cy - (int) (sy / 2)) < 0)
+        {
+    //        std::cout << "CASO 1" << std::endl;
+            sx = (int) ((float) sx / (float) sy * 2 * cy );
+            sy = 2*cy;
+        }
+        else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
+        {
+    //        std::cout << "CASO 2" << std::endl;
+            sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
+            sy = 2 * (MAX_HEIGHT - cy);
+        }
+
+    //    std::cout << "Converted IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
+
+        // Check if x is out of range. Add proportional image section in that case
+        cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
+        if((cx - (int) (sx / 2)) < 0)
+        {
+    //        std::cout << "CENTER MINOR THAN 0" << std::endl;
+    //        std::cout << "LEFT SECTION " << MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)) << std::endl;
+    //        std::cout << "RIGHT SECTION " << cx + (int) (sx / 2) <<std::endl;
+            img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
+            img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
+            cv::hconcat(x_out_image_left, x_out_image_right, dst);
+        }
+
+        else if((cx + (int) (sx / 2)) > MAX_WIDTH)
+        {
+    //        std::cout << "CENTER MAYOR THAN MAX_WIDTH" << std::endl;
+            img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
+            img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
+            cv::hconcat(x_out_image_left, x_out_image_right, dst);
+        }
+
+        else
+        {
+            sx--;
+            img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
+        }
+
+        cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
+        //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
+
+        if (pars.compressed)
+        {
+            std::vector<uchar> buffer;
+            cv::imencode(".jpg", rdst, buffer, compression_params);
+            res.image = buffer;
+            res.compressed = true;
+        } else
+        {
+            res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
+            res.compressed = false;
+        }
+        res.period = fps.get_period();
+        res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
+        res.depth = rdst.channels();
+        res.height = rdst.rows;
+        res.width = rdst.cols;
+        res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
     }
-    if(sx == -1)
-        sx = MAX_WIDTH;
-    if(sy == -1)
-        sy = MAX_HEIGHT;
-    if(cx == -1)
-        cx = (int)(MAX_WIDTH/2);
-    if(cy == -1)
-        cy = int(MAX_HEIGHT/2);
-    if(roiwidth == -1)
-        roiwidth = MAX_WIDTH;
-    if(roiheight == -1)
-        roiheight = MAX_HEIGHT;
-
-    // Get image from doublebuffer
-    auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
-
-    // Check if y is out of range. Get max or min values in that case
-    if((cy - (int) (sy / 2)) < 0)
-    {
-//        std::cout << "CASO 1" << std::endl;
-        sx = (int) ((float) sx / (float) sy * 2 * cy );
-        sy = 2*cy;
-    }
-    else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
-    {
-//        std::cout << "CASO 2" << std::endl;
-        sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
-        sy = 2 * (MAX_HEIGHT - cy);
-    }
-
-//    std::cout << "Converted IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-
-    // Check if x is out of range. Add proportional image section in that case
-    cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
-    if((cx - (int) (sx / 2)) < 0)
-    {
-//        std::cout << "CENTER MINOR THAN 0" << std::endl;
-//        std::cout << "LEFT SECTION " << MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)) << std::endl;
-//        std::cout << "RIGHT SECTION " << cx + (int) (sx / 2) <<std::endl;
-        img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
-        img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
-        cv::hconcat(x_out_image_left, x_out_image_right, dst);
-    }
-
-    else if((cx + (int) (sx / 2)) > MAX_WIDTH)
-    {
-//        std::cout << "CENTER MAYOR THAN MAX_WIDTH" << std::endl;
-        img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
-        img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
-        cv::hconcat(x_out_image_left, x_out_image_right, dst);
-    }
-
-    else
-    {
-        sx--;
-        img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
-    }
-
-    cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
-    //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
-
-    if (pars.compressed)
-    {
-        std::vector<uchar> buffer;
-        cv::imencode(".jpg", rdst, buffer, compression_params);
-        res.image = buffer;
-        res.compressed = true;
-    } else
-    {
-        res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
-        res.compressed = false;
-    }
-    res.period = fps.get_period();
-    res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
-    res.depth = rdst.channels();
-    res.height = rdst.rows;
-    res.width = rdst.cols;
-    res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
     return res;
+    
 }
 
 ///////////////////////////////////////////////////////////////////77

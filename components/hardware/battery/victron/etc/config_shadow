@@ -5,7 +5,7 @@ BatteryStatus.Endpoints=tcp -p 14498
 serialPort=/dev/Victron
 vMaxCharging = 54.0
 vMax = 52.6
-vMin = 41.5
+vMin = 42.0
 
 
 Ice.Warn.Connections=0

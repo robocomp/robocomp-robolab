@@ -33,7 +33,8 @@ public:
 	Lidar3DI(GenericWorker *_worker);
 	~Lidar3DI();
 
-	RoboCompLidar3D::TData getLidarData(std::string name, int start, int len, int decimationfactor, const Ice::Current&);
+	RoboCompLidar3D::TData getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&);
+	RoboCompLidar3D::TData getLidarDataWithThreshold2d(std::string name, float distance, const Ice::Current&);
 
 private:
 

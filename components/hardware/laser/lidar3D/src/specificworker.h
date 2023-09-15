@@ -52,7 +52,8 @@ class SpecificWorker : public GenericWorker
         ~SpecificWorker();
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-        RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor);
+	RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
+	RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance);
 
         std::string helios_name = "helios";
         std::string bpearl_name = "bpearl";

@@ -49,7 +49,8 @@ public:
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
-	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor) = 0;
+	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor) = 0;
+	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance) = 0;
 
 protected:
 

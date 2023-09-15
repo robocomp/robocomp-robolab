@@ -29,8 +29,13 @@ Lidar3DI::~Lidar3DI()
 }
 
 
-RoboCompLidar3D::TData Lidar3DI::getLidarData(std::string name, int start, int len, int decimationfactor, const Ice::Current&)
+RoboCompLidar3D::TData Lidar3DI::getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarData(name, start, len, decimationfactor);
+	return worker->Lidar3D_getLidarData(name, start, len, decimationDegreeFactor);
+}
+
+RoboCompLidar3D::TData Lidar3DI::getLidarDataWithThreshold2d(std::string name, float distance, const Ice::Current&)
+{
+	return worker->Lidar3D_getLidarDataWithThreshold2d(name, distance);
 }
 

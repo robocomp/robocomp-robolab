@@ -92,7 +92,7 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(lidar_name, slider_start, slider_len, slider_dec);
+		auto ldata = lidar3d_proxy->getLidarData(lidar_name, qDegreesToRadians(slider_start), qDegreesToRadians(slider_len), slider_dec);
         qInfo() << "Number of points read:" << ldata.points.size();
 		points->resize(ldata.points.size());
 		colors->resize(points->size());
@@ -144,8 +144,10 @@ int SpecificWorker::startup_check()
 /**************************************/
 // From the RoboCompLidar3D you can call this methods:
 // this->lidar3d_proxy->getLidarData(...)
+// this->lidar3d_proxy->getLidarDataWithThreshold2d(...)
 
 /**************************************/
 // From the RoboCompLidar3D you can use this types:
 // RoboCompLidar3D::TPoint
+// RoboCompLidar3D::TData
 

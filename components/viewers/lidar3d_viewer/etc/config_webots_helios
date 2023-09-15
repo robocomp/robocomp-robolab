@@ -1,13 +1,14 @@
-CommonBehavior.Endpoints=tcp -p 11991
+CommonBehavior.Endpoints=tcp -p 11990
 
 # Proxies for required interfaces
-Lidar3DProxy = lidar3d:tcp -h 192.168.50.153 -p 11988
+Lidar3DProxy = lidar3d:tcp  -p 11988
 
 ### Pointcloud color ###
 # 0.0-1.0
-pc_red = 1
-pc_green = 0
+pc_red = 0
+pc_green = 1 
 pc_blue = 1
+lidar_name = helios
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

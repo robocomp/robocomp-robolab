@@ -100,9 +100,6 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString( "","dest_pc_ip_addr", aux.value, "nofile");
 	params["dest_pc_ip_addr"] = aux;
 
-    configGetString( "","simulator", aux.value, "nofile");
-    params["simulator"] = aux;
-
 	//Extrinsic
 	configGetString( "","rx", aux.value, "");
 	params["rx"] = aux;

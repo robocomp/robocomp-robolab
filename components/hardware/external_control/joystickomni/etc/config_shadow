@@ -8,14 +8,14 @@ CommonBehavior.Endpoints=tcp -p 25002
 OmniRobotProxy = omnirobot:tcp -p  10014
 # User config parameters
 # Example = value
-Joy.Device = /dev/input/js1
+Joy.Device = /dev/input/js0
 Joy.ZMotionAxis = 3
 Joy.YMotionAxis = 0
 Joy.XMotionAxis = 1
 Joy.SampleRate = 5
-Joy.MaxSteering =  2
+Joy.MaxSteering =  -2
 Joy.MaxAdvanceX = -800
-Joy.MaxAdvanceZ = -800
+Joy.MaxAdvanceZ = 800
 
 # Component properties
 #

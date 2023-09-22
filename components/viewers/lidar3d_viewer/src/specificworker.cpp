@@ -74,10 +74,11 @@ void SpecificWorker::initialize(int period)
         viewer_3d->show();
 
 		timer.start(50);
+		
 	}
     window_name = "3D LIDAR Viewer";
     cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
-    slider_start = 300;
+    slider_start = 180;
     slider_len = 100;
 	slider_dec = 1;
     cv::createTrackbar("start", window_name, &slider_start, 360 , &SpecificWorker::on_start, this);
@@ -92,7 +93,7 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(lidar_name, qDegreesToRadians(slider_start), qDegreesToRadians(slider_len), slider_dec);
+		auto ldata = lidar3d_proxy->getLidarData(lidar_name, qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
         qInfo() << "Number of points read:" << ldata.points.size();
 		points->resize(ldata.points.size());
 		colors->resize(points->size());

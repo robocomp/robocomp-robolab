@@ -154,7 +154,7 @@ void SpecificWorker::compute()
                     auto distance2d = std::hypot(lidar_point.x(),lidar_point.y());
                     auto r = lidar_point.norm();
                     T.points[i++] = RoboCompLidar3D::TPoint{.x=lidar_point.x(), .y=lidar_point.y(), .z=lidar_point.z(), 
-                                        .intensity=p.intensity, .phi=std::atan2(lidar_point.x(), -lidar_point.y())+M_PI, 
+                                        .intensity=p.intensity, .phi=std::atan2(-lidar_point.x(), lidar_point.y()), 
                                         .theta=std::acos( lidar_point.z()/ r), .r=r, .distance2d=distance2d};
                 }
             }
@@ -283,8 +283,8 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
                     {return _start < point.phi;});
         //End Iterator
         auto it_end = buffer.points.end();
-        //The clipping exceeds 2pi, we assign the excess to the result
-        if (rad_end > 2 * M_PI)
+        //The clipping exceeds pi, we assign the excess to the result
+        if (rad_end > M_PI)
             filtered_points.assign(std::make_move_iterator(buffer.points.begin()), std::make_move_iterator(std::find_if(buffer.points.begin(), buffer.points.end(),
                         [_end=rad_end - 2*M_PI](const RoboCompLidar3D::TPoint& point) 
                         {return _end < point.phi;})));

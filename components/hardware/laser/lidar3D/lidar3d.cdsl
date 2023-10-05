@@ -5,6 +5,7 @@ Component Lidar3D
     Communications
     {
         implements Lidar3D;
+        requires Lidar3D;
     };
     language Cpp11;
 };

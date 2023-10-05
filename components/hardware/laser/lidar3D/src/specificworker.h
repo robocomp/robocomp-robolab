@@ -34,6 +34,18 @@
 #include <atomic>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <opencv4/opencv2/opencv.hpp>
+#include <opencv4/opencv2/calib3d.hpp>
+#include <opencv4/opencv2/core/mat.hpp>
+#include <opencv4/opencv2/core/core.hpp>
+#include <opencv4/opencv2/core/types.hpp>
+#include <opencv4/opencv2/imgproc.hpp>
+#include <opencv4/opencv2/highgui.hpp>
+#include "cppitertools/slice.hpp"
+#include "cppitertools/zip.hpp"
+#include "math.h"
+
+
 
 #include <chrono>
 
@@ -53,6 +65,7 @@ class SpecificWorker : public GenericWorker
         bool setParams(RoboCompCommonBehavior::ParameterList params);
 
 	RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
+	RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
 	RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance);
 
     public slots:
@@ -83,6 +96,7 @@ class SpecificWorker : public GenericWorker
         static void exceptionCallback(const robosense::lidar::Error& code);
 
         DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TData> buffer_real_data;
+        DoubleBuffer<RoboCompLidar3D::TData,RoboCompLidar3D::TData> buffer_simulated_data;
 
         //Extrinsic
         Eigen::Affine3f robot_lidar;
@@ -91,8 +105,18 @@ class SpecificWorker : public GenericWorker
         float floor_line;
         inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
+        //Image
+        int img_width = 1200, img_height = 600;
+
+        // SIMULATOR
+        bool simulator;
         // FPS
         FPSCounter fps;
+
+
+    RoboCompLidar3D::TData lidar2cam(RoboCompLidar3D::TData lidar_data);
+
+    std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
 };
 
 #endif

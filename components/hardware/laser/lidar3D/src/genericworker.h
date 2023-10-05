@@ -31,7 +31,7 @@
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<>;
+using TuplePrx = std::tuple<RoboCompLidar3D::Lidar3DPrxPtr>;
 
 
 class GenericWorker : public QObject
@@ -47,8 +47,10 @@ public:
 	QMutex *mutex;
 
 
+	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor) = 0;
+	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name) = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance) = 0;
 
 protected:

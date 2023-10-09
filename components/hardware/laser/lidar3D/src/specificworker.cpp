@@ -136,31 +136,21 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-//    cv::Mat frame = cv::Mat::zeros(cv::Size(1200, 600), CV_8UC3);
-//    std::cout<<"1"<<std::endl;
     if(simulator)
     {
-        std::cout<<"2"<<std::endl;
         try
         {
-            if(!lidar_model)
+            if(lidar_model) //BPearl
             {
-                std::cout<<"3"<<std::endl;
-                RoboCompLidar3D::TData raw_lidar = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
-                RoboCompLidar3D::TData processed_lidar = lidar2cam(raw_lidar);
-//                for (auto p : processed_lidar.points){
-//                    cv::circle(frame,cv::Point(p.pixelX,p.pixelY), 3, cv::Scalar(.0, 255.0, .0), cv::FILLED, cv::LINE_8);
-//                }
-//                cv::namedWindow("PRO",cv::WINDOW_AUTOSIZE);
-//                cv::imshow("PRO",frame);
-                buffer_simulated_data.put(lidar3d_proxy->getLidarData("bpearl", 0, 360, 1));
-                buffer_simulated_data.put(std::move(processed_lidar));
-            }
-            else
-            {
-                std::cout<<"4"<<std::endl;
                 buffer_simulated_data.put(lidar3d_proxy->getLidarData("helios", 0, 360, 1));
                 lidar2cam(buffer_simulated_data.get_idemp());
+
+            }
+            else //Helios
+            {
+                RoboCompLidar3D::TData raw_lidar = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
+                RoboCompLidar3D::TData processed_lidar = lidar2cam(raw_lidar);
+                buffer_simulated_data.put(std::move(processed_lidar));
             }
 
         }
@@ -171,42 +161,32 @@ void SpecificWorker::compute()
     }
     else
     {
-        std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
-        auto lidar_size = msg->points.size();
+        RoboCompLidar3D::TData raw_real_lidar;
 
-        std::cout<<"5"<<std::endl;
-        if (msg.get() == NULL)
-            return;
-
-        buffer_real_data.put(std::move(*msg), [this](auto &&I, auto &T)
+        try
         {
-            //cout << I.points.size() << endl;
-            if (I.points.size() > 0 )
-            {
-                T.points.resize(I.points.size());
-                int i = 0;
-                for (auto &&p: I.points)
-                {
-                    Eigen::Vector3f point(-p.y*1000, p.x*1000, p.z*1000);
-                    Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();
+            std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
 
-                    if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line)
-                    {
-                        auto distance2d = std::hypot(lidar_point.x(),lidar_point.y());
-                        auto r = lidar_point.norm();
-                        T.points[i++] = RoboCompLidar3D::TPoint{.x=lidar_point.x(), .y=lidar_point.y(), .z=lidar_point.z(),
-                                .intensity=p.intensity, .phi=std::atan2(-lidar_point.x(), lidar_point.y()),
-                                .theta=std::acos( lidar_point.z()/ r), .r=r, .distance2d=distance2d};
-                    }
-                }
-                T.points.resize(i);
-                std::ranges::sort(T.points, {}, &RoboCompLidar3D::TPoint::phi);
+            auto lidar_size = msg->points.size();
 
+            if (msg.get() == NULL)
+                return;
+
+            raw_real_lidar = msg2tdata(*msg);
+            if (lidar_model) //Bpearl
+                buffer_real_data.put(std::move(raw_real_lidar));
+            else{ //Helios
+                RoboCompLidar3D::TData processed_real_lidar = lidar2cam(raw_real_lidar);
+                buffer_real_data.put(std::move(processed_real_lidar));
             }
-        });
-        fps.print("Connected to real device, " + std::to_string(lidar_size) + " points");
-    }
 
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << __FUNCTION__ << " Error in Real Lidar connection" << std::endl;
+        }
+    }
+    fps.print("Connected to real device");
 }
 
 //
@@ -297,17 +277,11 @@ void SpecificWorker::self_adjust_period(int new_period)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
-
-    #if DEBUG
-        auto cstart = std::chrono::high_resolution_clock::now();
-    #endif
-    std::cout <<"GETLIDAR Simualated" << std::endl;
     RoboCompLidar3D::TData buffer;
 
     //Get LiDAR data
     if(simulator){
         buffer = buffer_simulated_data.get_idemp();
-        std::cout <<"GETLIDAR Simualated" << std::endl;
         return buffer;
     }
 
@@ -383,61 +357,83 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
     if(not ready_to_go)
         return {};
 
-    #if DEBUG
-        auto cstart = std::chrono::high_resolution_clock::now();
-    #endif
     //Get LiDAR data
     RoboCompLidar3D::TData buffer = buffer_real_data.get_idemp();
 
-    #if DEBUG
-        std::cout << "Time get buffer lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstart).count() << " microseconds" << std::endl<<std::flush;
-        cstart = std::chrono::high_resolution_clock::now();
-    #endif
     std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::distance2d);
     RoboCompLidar3D::TPoints filtered_points(std::make_move_iterator(buffer.points.begin()), std::make_move_iterator(
         std::find_if(buffer.points.begin(), buffer.points.end(),
                 [_distance=distance](const RoboCompLidar3D::TPoint& point) 
                 {return _distance < point.distance2d;})));
     std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::phi);
-    
 
-    #if DEBUG
-        std::cout << "Time filter lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstart).count() << " microseconds" << std::endl<<std::flush;
-    #endif
     return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
 }
 
 
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std::string name)
 {
-    std::cout << "Lidar3D_getLidarDataProyectedInImage" << std::endl;
+    int resize_factor = 1;
     //LiDAR not started
     if (not simulator and not ready_to_go)
         return {};
+
     RoboCompLidar3D::TData buffer;
     RoboCompLidar3D::TPoints processed_points;
 
     //Get LiDAR data
-    if(simulator){
+    if(simulator)
         buffer = buffer_simulated_data.get_idemp();
-        std::cout << "LIDAR PROY" << std::endl;
-    }
     else
+    {
         buffer = buffer_real_data.get_idemp();
+        resize_factor = 1.6;
+    }
 
-//    return RoboCompLidar3D::TData {buffer.points, buffer.period, buffer.timestamp};
+    for (auto &p : buffer.points){
+        p.pixelX = p.pixelX * resize_factor;
+        p.pixelY = p.pixelY * resize_factor;
+    }
     return buffer;
-
 }
+
+RoboCompLidar3D::TData SpecificWorker::msg2tdata(PointCloudMsg msg)
+{
+    RoboCompLidar3D::TData raw_lidar;
+    if (msg.points.size() > 0 )
+    {
+        raw_lidar.points.resize(msg.points.size());
+        int i = 0;
+        for (auto &&p: msg.points)
+        {
+            Eigen::Vector3f point(-p.y*1000, p.x*1000, p.z*1000);
+            Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();
+
+            if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line)
+            {
+                auto distance2d = std::hypot(lidar_point.x(),lidar_point.y());
+                auto r = lidar_point.norm();
+                raw_lidar.points[i++] = RoboCompLidar3D::TPoint{.x=lidar_point.x(), .y=lidar_point.y(), .z=lidar_point.z(),
+                        .intensity=p.intensity, .phi=std::atan2(-lidar_point.x(), lidar_point.y()),
+                        .theta=std::acos( lidar_point.z()/ r), .r=r, .distance2d=distance2d};
+            }
+        }
+        raw_lidar.points.resize(i);
+        std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+        raw_lidar.timestamp = msg.timestamp;
+    }
+    return raw_lidar;
+}
+
 
 std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Point2f> &points)
 {
-
     int aperture = M_PI; //Radians?
     int width = 3648;
     int height = 3648;
     int dst_width = 1200;
     int dst_height = 600;
+
 
     int center_x = width / 2;
     int center_y = height / 2;
@@ -469,95 +465,109 @@ std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Poi
 }
 
 RoboCompLidar3D::TData SpecificWorker::lidar2cam (RoboCompLidar3D::TData lidar_data){
-
-//    lidar_points.convertTo(lidar_data.points, CV_32F); // Cast the lidar_points to float data type
-// Split the points into front and back groups based on the 'overlap' parameter
     std::vector<std::pair<std::pair<float, float>, std::string>> conditions_real;
-
     std::vector<cv::Point3f> lidar_front, lidar_back;
     std::vector<cv::Point2f> lidar_front_2d, lidar_back_2d;
     RoboCompLidar3D::TData front, back, complete;
+    cv::Mat D;
 
-    // Create intrinsic variables
-    cv::Mat rvec = (cv::Mat_<double>(3,1) << M_PI_2, 0.0, 0.0 );
-    cv::Mat tvec = (cv::Mat_<double>(3,1) << 0. , -1330, -180.0);
-    cv::Mat rvec_b = (cv::Mat_<double>(3,1) << M_PI_2 , 0.0 , 0.0);
-    cv::Mat tvec_b = (cv::Mat_<double>(3,1) << 0. , -1330., 180.0);
-
+    // Inicialización de rvec
+    cv::Mat rvec;
+    rvec.create(3, 1, CV_64F); // Crea una matriz de 3x1 con elementos de tipo double
+    // Inicialización de tvec
+    cv::Mat tvec;
+    tvec.create(3, 1, CV_64F);
+    // Inicialización de rvec_b
+    cv::Mat rvec_b;
+    rvec_b.create(3, 1, CV_64F);
+    // Inicialización de tvec_b
+    cv::Mat tvec_b;
+    tvec_b.create(3, 1, CV_64F);
     cv::Mat K = (cv::Mat_<double>(3,3) << 1080, 0.0, 1824, 0.0, -1080, 1824, 0.0, 0.0, 1.0); // Ejemplo de inicialización
-    cv::Mat D = (cv::Mat_<double>(4,1) << 0.32508720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
-    D = (cv::Mat_<double>(4,1) << 0.35308720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
 
+    //SIMULATOR & REAL CAMERA PARAMS
+
+    if(simulator){
+        rvec.at<double>(0, 0) = M_PI_2;
+        rvec.at<double>(1, 0) = 0.0;
+        rvec.at<double>(2, 0) = 0.0;
+        tvec.at<double>(0, 0) = 0.0;
+        tvec.at<double>(1, 0) = -1330.0;
+        tvec.at<double>(2, 0) = -180.0;
+        rvec_b.at<double>(0, 0) = M_PI_2;
+        rvec_b.at<double>(1, 0) = 0.0;
+        rvec_b.at<double>(2, 0) = 0.0;
+        tvec_b.at<double>(0, 0) = 0.0;
+        tvec_b.at<double>(1, 0) = -1330.0;
+        tvec_b.at<double>(2, 0) = 180.0;
+    }
+    else
+    {
+        rvec.at<double>(0, 0) = M_PI_2;
+        rvec.at<double>(1, 0) = 0.0;
+        rvec.at<double>(2, 0) = 0.0;
+        tvec.at<double>(0, 0) = 0.0;
+        tvec.at<double>(1, 0) = -1330.0;
+        tvec.at<double>(2, 0) = 170.0;
+        rvec_b.at<double>(0, 0) = M_PI_2;
+        rvec_b.at<double>(1, 0) = 0.0;
+        rvec_b.at<double>(2, 0) = 0.0;
+        tvec_b.at<double>(0, 0) = 0.0;
+        tvec_b.at<double>(1, 0) = -1330.0;
+        tvec_b.at<double>(2, 0) = -170.0;
+    }
+
+    //CHOOSE DIST PARAMS
+    if (!simulator){
+//        D = (cv::Mat_<double>(4,1) << 0.32508720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
+        D = (cv::Mat_<double>(4,1) << 0.35208720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
+    }
+    else
+        D = (cv::Mat_<double>(4,1) << 0.35308720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
+
+    //SPLIT FRONT/BACK POINTS
     for (auto &p : lidar_data.points)
     {
-        if(p.y > 180)
+        if(p.y > tvec_b.at<double>(2,0))
         {
             lidar_front.push_back(cv::Point3f(p.x, p.y, -p.z));
             front.points.push_back(p);
         }
         else
         {
-            // Invert the y coordinates
+            // Invert the x, y coordinates
             lidar_back.push_back(cv::Point3f(-p.x, -p.y, -p.z));
             back.points.push_back(p);
         }
     }
 
+    //PROJECT POINTS 3D -> 2D FISHEYE
     cv::fisheye::projectPoints(lidar_front, lidar_front_2d, rvec, tvec, K, D, 0);
     cv::fisheye::projectPoints(lidar_back, lidar_back_2d, rvec_b, tvec_b, K, D, 0);
 
+    //PROJECT POINTS 2D FISHEYE -> 2D EQUIRECTANGULAR
     lidar_front_2d = fish2equirect(lidar_front_2d);
     lidar_back_2d = fish2equirect(lidar_back_2d);
 
-    std::cout << "Lid back: " << lidar_back_2d.size() << std::endl;
 
+    // COMPOSE COMPLETE IMAGE, CENTER FRONT IMAGE AND SPLIT BACK IMAGE
     for(auto&& [l, p] : iter::zip(front.points, lidar_front_2d))
     {
-        l.pixelX = p.x + img_width/4;
+        l.pixelX = (p.x + img_width / 4);
         l.pixelY = p.y;
     }
-
     complete = front;
-
     for(auto&& [l, p] : iter::zip(back.points, lidar_back_2d))
     {
 
         if(p.x < img_width/4)
             l.pixelX = p.x + img_width*3/4;
         else
-            l.pixelX = p.x - img_width/4;
+            l.pixelX = (p.x - img_width/4);
         l.pixelY = p.y;
-
         complete.points.push_back(l);
     }
 
-//    for (const auto& condition : conditions_real) {
-//
-//        if (condition.second == "cam_front") {
-//            // Assuming proyect_front_real_lidar takes a vector of Point3f and returns a Mat
-//            transformed_points = proyect_front_real_lidar(lidar_front);
-//            points_array = lidar_front;
-//        } else {
-//            // Assuming proyect_back_real_lidar takes a vector of Point3f and returns a Mat
-//            transformed_points = proyect_back_real_lidar(lidar_back);
-//            points_array = lidar_back;
-//        }
-//
-//        for (int i = 0; i < transformed_points.rows; ++i) {
-//            vector<float> point_data;
-//            Point2f tp = transformed_points.at<Point2f>(i);
-//            Point3f pa = points_array[i];
-//
-//            point_data.push_back(tp.x);
-//            point_data.push_back(tp.y);
-//            point_data.push_back(norm(pa));
-//            point_data.push_back(pa.x);
-//            point_data.push_back(pa.y);
-//            point_data.push_back(pa.z);
-//
-//            lidar_in_image.push_back(point_data);
-//        }
-//    }
     return complete;
 }
 

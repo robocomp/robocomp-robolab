@@ -95,7 +95,7 @@ class SpecificWorker : public GenericWorker
         static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
         static void exceptionCallback(const robosense::lidar::Error& code);
 
-        DoubleBuffer<PointCloudMsg, RoboCompLidar3D::TData> buffer_real_data;
+        DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_real_data;
         DoubleBuffer<RoboCompLidar3D::TData,RoboCompLidar3D::TData> buffer_simulated_data;
 
         //Extrinsic
@@ -109,7 +109,7 @@ class SpecificWorker : public GenericWorker
         int img_width = 1200, img_height = 600;
 
         // SIMULATOR
-        bool simulator;
+        bool simulator = false;
         // FPS
         FPSCounter fps;
 
@@ -117,6 +117,8 @@ class SpecificWorker : public GenericWorker
     RoboCompLidar3D::TData lidar2cam(RoboCompLidar3D::TData lidar_data);
 
     std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
+
+    RoboCompLidar3D::TData msg2tdata(PointCloudMsg msg);
 };
 
 #endif

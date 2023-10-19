@@ -34,6 +34,7 @@ public:
 	~Lidar3DI();
 
 	RoboCompLidar3D::TData getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&);
+	RoboCompLidar3D::TDataImage getLidarDataArrayProyectedInImage(std::string name, const Ice::Current&);
 	RoboCompLidar3D::TData getLidarDataProyectedInImage(std::string name, const Ice::Current&);
 	RoboCompLidar3D::TData getLidarDataWithThreshold2d(std::string name, float distance, const Ice::Current&);
 

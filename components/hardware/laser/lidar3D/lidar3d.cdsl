@@ -1,10 +1,11 @@
 import "Lidar3D.idsl";
+import "Camera360RGB.idsl";
 
 Component Lidar3D
 {
     Communications
     {
-        implements Lidar3D;
+        implements Lidar3D, Camera360RGB;
         requires Lidar3D;
     };
     language Cpp11;

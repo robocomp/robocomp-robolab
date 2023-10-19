@@ -34,6 +34,11 @@ RoboCompLidar3D::TData Lidar3DI::getLidarData(std::string name, float start, flo
 	return worker->Lidar3D_getLidarData(name, start, len, decimationDegreeFactor);
 }
 
+RoboCompLidar3D::TDataImage Lidar3DI::getLidarDataArrayProyectedInImage(std::string name, const Ice::Current&)
+{
+	return worker->Lidar3D_getLidarDataArrayProyectedInImage(name);
+}
+
 RoboCompLidar3D::TData Lidar3DI::getLidarDataProyectedInImage(std::string name, const Ice::Current&)
 {
 	return worker->Lidar3D_getLidarDataProyectedInImage(name);

@@ -81,6 +81,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
+#include <camera360rgbI.h>
 #include <lidar3dI.h>
 
 
@@ -188,6 +189,24 @@ int ::Lidar3D::run(int argc, char* argv[])
 
 		}
 
+
+
+		try
+		{
+			// Server adapter creation and publication
+			if (not GenericMonitor::configGetString(communicator(), prefix, "Camera360RGB.Endpoints", tmp, ""))
+			{
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Camera360RGB";
+			}
+			Ice::ObjectAdapterPtr adapterCamera360RGB = communicator()->createObjectAdapterWithEndpoints("Camera360RGB", tmp);
+			auto camera360rgb = std::make_shared<Camera360RGBI>(worker);
+			adapterCamera360RGB->add(camera360rgb, Ice::stringToIdentity("camera360rgb"));
+			adapterCamera360RGB->activate();
+			cout << "[" << PROGRAM_NAME << "]: Camera360RGB adapter created in port " << tmp << endl;
+		}
+		catch (const IceStorm::TopicExists&){
+			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Camera360RGB\n";
+		}
 
 
 		try

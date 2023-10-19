@@ -64,7 +64,10 @@ public:
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	RoboCompCamera360RGB::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight);
+
     RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
+    RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
     RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
     RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance);
 
@@ -97,6 +100,7 @@ private:
 
     DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_real_data;
     DoubleBuffer<RoboCompLidar3D::TData,RoboCompLidar3D::TData> buffer_simulated_data;
+    DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
 
     //Extrinsic
     Eigen::Affine3f robot_lidar;
@@ -108,17 +112,29 @@ private:
     //Image
     int img_width = 1200, img_height = 600;
 
+    //Dst image
+    int dst_width = 1920, dst_height = 960;
+
     // SIMULATOR
     bool simulator = false;
     // FPS
     FPSCounter fps;
 
 
-    RoboCompLidar3D::TData lidar2cam(RoboCompLidar3D::TData lidar_data);
+    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> lidar2cam(RoboCompLidar3D::TData lidar_data);
 
     std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
 
     RoboCompLidar3D::TData msg2tdata(PointCloudMsg msg);
+
+    //Double Buffer for Camera Mat
+    DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
+
+    // Mat that is send in the GetRoi function
+    cv::Mat cv_frame;
+
+    vector<int> compression_params;
+    bool compressed = true;
 };
 
 #endif

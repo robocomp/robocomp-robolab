@@ -47,7 +47,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
         pars.orin = params.at("orin").value == "true" or (params.at("orin").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
-        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << std::endl;
+        pars.time_offset =std::stof(params.at("time_offset").value);
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << "offset "<< pars.time_offset <<std::endl;
     }
     catch(const std::exception &e)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
@@ -66,7 +67,7 @@ void SpecificWorker::initialize(int period)
     	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
     //else
     	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    this->Period = 33;
+    this->Period = 50;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
@@ -105,7 +106,7 @@ void SpecificWorker::initialize(int period)
                 catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;};
             }
         }
-
+        capture_time = -1;
         DEPTH = cv_frame.elemSize();
         timer.start(Period);
     }
@@ -114,7 +115,10 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     if(not pars.simulator)
+    {
         capture >> cv_frame;
+        capture_time = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count() - pars.time_offset;
+    }
     else        // Simulator
     {
         try
@@ -181,7 +185,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             roiheight = MAX_HEIGHT;
 
         // Get image from doublebuffer
-        auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
+        auto img = buffer_image.get_idemp();      // TODO: change to try_get() or get_idemp()
 
         // Check if y is out of range. Get max or min values in that case
         if((cy - (int) (sy / 2)) < 0)
@@ -240,11 +244,13 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             res.compressed = false;
         }
         res.period = fps.get_period();
-        res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
+//        res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
+        res.alivetime = capture_time;
         res.depth = rdst.channels();
         res.height = rdst.rows;
         res.width = rdst.cols;
         res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
+        std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
     }
     return res;
     

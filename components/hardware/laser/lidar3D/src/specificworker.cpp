@@ -165,6 +165,7 @@ void SpecificWorker::compute()
                 auto [processed_lidar, processed_real_lidar_array]= lidar2cam(raw_lidar);
                 buffer_simulated_data.put(std::move(processed_lidar));
                 buffer_image.put(std::move(cv_frame));
+                buffer_array_data.put(std::move(processed_real_lidar_array));
             }
         }
         catch (const std::exception &e)
@@ -604,7 +605,7 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
 
 //    cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
 //    cv::imshow("X",cv_frame);
-    cv::waitKey(1);
+    // cv::waitKey(1);
     data_image.XArray = x;
     data_image.YArray = y;
     data_image.ZArray = z;
@@ -722,16 +723,15 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
 
     //Get LiDAR data
     if(simulator){
-        return ret;
+        return buffer_array_data.get_idemp();
     }
     else
     {
         //LiDAR not started
         if(not ready_to_go)
             return {};
-        ret = buffer_array_data.get_idemp();
 //        std::cout << "Time get_lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstartc).count() << " microseconds" << std::endl<<std::flush;
-        return ret;
+        return buffer_array_data.get_idemp();
     }
 }
 

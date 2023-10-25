@@ -162,8 +162,6 @@ void SpecificWorker::compute()
             else //Helios
             {
                 RoboCompLidar3D::TData raw_lidar = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
-//                RoboCompLidar3D::TData processed_lidar;
-//                RoboCompLidar3D::TDataImage processed_real_lidar_array;
                 auto [processed_lidar, processed_real_lidar_array]= lidar2cam(raw_lidar);
                 buffer_simulated_data.put(std::move(processed_lidar));
                 buffer_image.put(std::move(cv_frame));
@@ -189,8 +187,6 @@ void SpecificWorker::compute()
             if (lidar_model) //Bpearl
                 buffer_real_data.put(std::move(raw_real_lidar));
             else{ //Helios
-//                RoboCompLidar3D::TData processed_real_lidar;
-//                RoboCompLidar3D::TDataImage processed_real_lidar_array;
                 auto [processed_real_lidar, processed_real_lidar_array] = lidar2cam(raw_real_lidar);
                 buffer_array_data.put(std::move(processed_real_lidar_array));
                 buffer_real_data.put(std::move(processed_real_lidar));
@@ -432,6 +428,7 @@ RoboCompLidar3D::TData SpecificWorker::msg2tdata(PointCloudMsg msg)
         auto now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        std::cout << "Timestamp: " << raw_lidar.timestamp << std::endl;
     }
     return raw_lidar;
 }
@@ -554,7 +551,7 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
     lidar_back_2d = fish2equirect(lidar_back_2d);
 
     //FRAME
-//    cv_frame = cv::Mat(cv::Size(dst_width, dst_height), CV_32FC3, cv::Scalar(0,0,0));
+    cv_frame = cv::Mat(cv::Size(dst_width, dst_height), CV_32FC3, cv::Scalar(0,0,0));
 
     // Structure vectors
     RoboCompLidar3D::TDataImage data_image;
@@ -575,10 +572,10 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
         z.push_back(l.z);
         x_p.push_back(l.pixelX);
         y_p.push_back(l.pixelY);
-//        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
-//        pixel[0] = l.x;
-//        pixel[1] = l.y;
-//        pixel[2] = l.z;
+        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
+        pixel[0] = l.x;
+        pixel[1] = l.y;
+        pixel[2] = l.z;
     }
     complete = front;
 
@@ -593,10 +590,10 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
 
         l.pixelY = p.y * resize_factor;
 
-//        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
-//        pixel[0] = l.x;
-//        pixel[1] = l.y;
-//        pixel[2] = l.z;
+        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
+        pixel[0] = l.x;
+        pixel[1] = l.y;
+        pixel[2] = l.z;
         x.push_back(l.x);
         y.push_back(l.y);
         z.push_back(l.z);
@@ -604,6 +601,10 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
         y_p.push_back(l.pixelY);
         complete.points.push_back(l);
     }
+
+//    cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
+//    cv::imshow("X",cv_frame);
+    cv::waitKey(1);
     data_image.XArray = x;
     data_image.YArray = y;
     data_image.ZArray = z;
@@ -701,7 +702,6 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             else
             {
                 res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
-
             }
 
 
@@ -718,6 +718,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
     RoboCompLidar3D::TDataImage ret;
+    auto cstartc = std::chrono::high_resolution_clock::now();
 
     //Get LiDAR data
     if(simulator){
@@ -729,9 +730,9 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
         if(not ready_to_go)
             return {};
         ret = buffer_array_data.get_idemp();
+//        std::cout << "Time get_lidar: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - cstartc).count() << " microseconds" << std::endl<<std::flush;
         return ret;
     }
-
 }
 
 

@@ -475,6 +475,7 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
     cv::Mat D;
     int resize_factor = 1.6;
 
+
     // Inicialización de rvec
     cv::Mat rvec;
     rvec.create(3, 1, CV_64F); // Crea una matriz de 3x1 con elementos de tipo double
@@ -524,7 +525,7 @@ std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> SpecificWorker::l
         tvec_b.at<double>(1, 0) = -1330.0;
         tvec_b.at<double>(2, 0) = -170.0;
         D = (cv::Mat_<double>(4,1) << 0.35208720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
-        resize_factor = 1;
+        resize_factor = 1.6;
     }
 
     //SPLIT FRONT/BACK POINTS

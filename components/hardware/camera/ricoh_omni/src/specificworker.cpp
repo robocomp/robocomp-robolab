@@ -67,7 +67,7 @@ void SpecificWorker::initialize(int period)
     	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
     //else
     	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    this->Period = 50;
+    this->Period = 33;
 	if(this->startup_check_flag)
 		this->startup_check();
 	else

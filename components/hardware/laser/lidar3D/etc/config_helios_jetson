@@ -1,9 +1,12 @@
 CommonBehavior.Endpoints=tcp -p 11986
 
 # Endpoints for implements interfaces
-Lidar3D.Endpoints=tcp -p 11989
+Lidar3D.Endpoints=tcp -p 11990
+Camera360RGB.Endpoints=tcp -p 10799
 
-Lidar3DProxy = lidar3d:tcp -h localhost -p 11987
+# Proxies for required interfaces
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11988
+
 
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1

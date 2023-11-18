@@ -10,6 +10,7 @@ display = false
 simulator = false
 compressed = false
 orin = true
+time_offset = 0
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

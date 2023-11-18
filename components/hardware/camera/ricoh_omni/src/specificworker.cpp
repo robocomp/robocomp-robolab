@@ -47,7 +47,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
         pars.orin = params.at("orin").value == "true" or (params.at("orin").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
-        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << std::endl;
+        pars.time_offset =std::stof(params.at("time_offset").value);
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << "offset "<< pars.time_offset <<std::endl;
     }
     catch(const std::exception &e)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
@@ -105,7 +106,7 @@ void SpecificWorker::initialize(int period)
                 catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;};
             }
         }
-
+        capture_time = -1;
         DEPTH = cv_frame.elemSize();
         timer.start(Period);
     }
@@ -114,13 +115,17 @@ void SpecificWorker::initialize(int period)
 void SpecificWorker::compute()
 {
     if(not pars.simulator)
+    {
         capture >> cv_frame;
+        capture_time = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count() - pars.time_offset;
+    }
     else        // Simulator
     {
         try
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+            capture_time = image.alivetime;
             // self adjusting period to remote image source
             self_adjust_period(image.period);
         }
@@ -181,7 +186,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             roiheight = MAX_HEIGHT;
 
         // Get image from doublebuffer
-        auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
+        auto img = buffer_image.get_idemp();      // TODO: change to try_get() or get_idemp()
 
         // Check if y is out of range. Get max or min values in that case
         if((cy - (int) (sy / 2)) < 0)
@@ -197,15 +202,10 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             sy = 2 * (MAX_HEIGHT - cy);
         }
 
-    //    std::cout << "Converted IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-
         // Check if x is out of range. Add proportional image section in that case
         cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
         if((cx - (int) (sx / 2)) < 0)
         {
-    //        std::cout << "CENTER MINOR THAN 0" << std::endl;
-    //        std::cout << "LEFT SECTION " << MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)) << std::endl;
-    //        std::cout << "RIGHT SECTION " << cx + (int) (sx / 2) <<std::endl;
             img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
             img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
             cv::hconcat(x_out_image_left, x_out_image_right, dst);
@@ -213,7 +213,6 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
 
         else if((cx + (int) (sx / 2)) > MAX_WIDTH)
         {
-    //        std::cout << "CENTER MAYOR THAN MAX_WIDTH" << std::endl;
             img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
             img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
             cv::hconcat(x_out_image_left, x_out_image_right, dst);
@@ -226,8 +225,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
         }
 
         cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
-        //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
-
+ 
         if (pars.compressed)
         {
             std::vector<uchar> buffer;
@@ -240,11 +238,12 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             res.compressed = false;
         }
         res.period = fps.get_period();
-        res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
+        res.alivetime = capture_time;
         res.depth = rdst.channels();
         res.height = rdst.rows;
         res.width = rdst.cols;
         res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
+        std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
     }
     return res;
     

@@ -28,7 +28,6 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
-#include <innermodel/innermodel.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -49,7 +48,6 @@ public slots:
 	void initialize(int period);
 
 private:
-	std::shared_ptr < InnerModel > innerModel;
 	bool startup_check_flag;
 
     vector<int> compression_params;

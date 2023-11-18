@@ -85,6 +85,7 @@ public slots:
             bool orin = false;
             bool compressed = false;
             bool simulator = false;
+            int time_offset;
         };
         PARAMS pars;
         int MAX_WIDTH, MAX_HEIGHT, DEPTH;
@@ -93,6 +94,7 @@ public slots:
         //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
         DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 
+        long long capture_time;
         // track image period
         void self_adjust_period(int new_period);
 };

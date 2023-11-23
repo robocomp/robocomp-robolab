@@ -57,7 +57,7 @@ class SpecificWorker : public GenericWorker
         bool startup_check_flag;
         FPSCounter fps;
         static int slider_width, slider_height, slider_x, slider_y;
-        RoboCompCameraRGBDSimple::TImage initial_img;
+        RoboCompCamera360RGB::TImage initial_img;
         int MAIN_IMAGE_WIDTH = 640;
         int MAIN_IMAGE_HEIGHT = 640;
         static Fovea fovea;

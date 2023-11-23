@@ -25,7 +25,6 @@
 #include <CommonBehavior.h>
 
 #include <Camera360RGB.h>
-#include <CameraRGBDSimple.h>
 
 
 #define CHECK_PERIOD 5000

@@ -74,6 +74,7 @@ void SpecificWorker::initialize(int period)
         try
         {
             initial_img = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+            qInfo() << initial_img.image.size();
             // Create a window
             cv::namedWindow("ROI 360", 1);
             fovea.max_height = initial_img.height;
@@ -99,6 +100,7 @@ void SpecificWorker::initialize(int period)
         }
         catch(const Ice::Exception &ex) { qFatal("Error reading camera image in Initialize");}
 
+        this->Period = 1;
         timer.start(Period);
 	}
 }

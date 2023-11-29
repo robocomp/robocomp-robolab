@@ -45,8 +45,6 @@
 #include "cppitertools/zip.hpp"
 #include "math.h"
 
-
-
 #include <chrono>
 
 
@@ -98,8 +96,7 @@ private:
     static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
     static void exceptionCallback(const robosense::lidar::Error& code);
 
-    DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_real_data;
-    DoubleBuffer<RoboCompLidar3D::TData,RoboCompLidar3D::TData> buffer_simulated_data;
+    DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
     DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
 
     //Extrinsic
@@ -121,11 +118,13 @@ private:
     FPSCounter fps;
 
 
-    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> lidar2cam(RoboCompLidar3D::TData lidar_data);
+    RoboCompLidar3D::TDataImage lidar2cam(RoboCompLidar3D::TData lidar_data);
 
     std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
 
-    RoboCompLidar3D::TData msg2tdata(PointCloudMsg msg);
+    std::optional<RoboCompLidar3D::TPoint> transform_filter_point(float x, float y, float z, float intensity);
+    RoboCompLidar3D::TData msg2tdata(const PointCloudMsg &msg);
+    RoboCompLidar3D::TData sim2tdata(const RoboCompLidar3D::TData &lidar_points);
 
     //Double Buffer for Camera Mat
     DoubleBuffer<cv::Mat, cv::Mat> buffer_image;

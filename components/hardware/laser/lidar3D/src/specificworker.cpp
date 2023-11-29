@@ -156,8 +156,8 @@ void SpecificWorker::compute()
         {
             if(lidar_model) //BPearl
             {
-                buffer_simulated_data.put(lidar3d_proxy->getLidarData("helios", 0, 360, 1));
-                lidar2cam(buffer_simulated_data.get_idemp());
+                buffer_simulated_data.put(lidar3d_proxy->getLidarData("bpearl", 0, 360, 1));
+//                lidar2cam(buffer_simulated_data.get_idemp());
             }
             else //Helios
             {

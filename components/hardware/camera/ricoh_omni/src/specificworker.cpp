@@ -127,7 +127,7 @@ void SpecificWorker::compute()
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
             capture_time = image.alivetime;
             // self adjusting period to remote image source
-            self_adjust_period(image.period);
+            //self_adjust_period(image.period);
         }
         catch (const Ice::Exception &e)
         { std::cout << e.what() << " Error reading 360 camera " << std::endl; }

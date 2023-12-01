@@ -49,7 +49,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         pc_red = std::stod(params.at("pc_red").value);
         pc_green = std::stod(params.at("pc_green").value);
         pc_blue = std::stod(params.at("pc_blue").value);
-        lidar_name = params.at("lidar_name").value;
     }
     catch(const std::exception &e){ std::cout << e.what() << std::endl;}
 
@@ -93,25 +92,24 @@ void SpecificWorker::compute()
 	try
 	{
 		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData(lidar_name, qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
-        qInfo() << "Number of points read:" << ldata.points.size();
+		auto ldata = lidar3d_proxy->getLidarData("", qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
 		points->resize(ldata.points.size());
 		colors->resize(points->size());
 		
-	    for(const auto &[i, p]: ldata.points | iter::enumerate)
+		for(const auto &[i, p]: ldata.points | iter::enumerate)
 		{
             if(p.z > (slider_z - 2000))
             {
                 points->operator[](i) = std::make_tuple(p.x / 1000, p.y / 1000, p.z / 1000);
                 colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
             }
- 		}
+		}
 		viewer_3d->update();
 	}
 
 	catch(const Ice::Exception &e)
 	{
-	  std::cout << "Error reading from Lidar3D" << e << std::endl;
+		std::cout << "Error reading from Lidar3D" << e << std::endl;
 	}
     cv::waitKey(1);
 

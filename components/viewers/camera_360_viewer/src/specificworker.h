@@ -57,14 +57,17 @@ class SpecificWorker : public GenericWorker
         bool startup_check_flag;
         FPSCounter fps;
         static int slider_width, slider_height, slider_x, slider_y;
-        RoboCompCameraRGBDSimple::TImage initial_img;
+        RoboCompCamera360RGB::TImage initial_img;
         int MAIN_IMAGE_WIDTH = 640;
         int MAIN_IMAGE_HEIGHT = 640;
         static Fovea fovea;
-        static void on_cx(int pos, void *data);
+        std::chrono::time_point<std::chrono::high_resolution_clock> begin;
+
+    static void on_cx(int pos, void *data);
         static void on_cy(int pos, void *data);
         static void on_width(int pos, void *data);
         static void on_height(int pos, void *data);
+        void adjustPeriod(int new_period);
 };
 
 #endif

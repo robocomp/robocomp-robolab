@@ -24,7 +24,6 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
-#include <Camera360RGB.h>
 #include <Lidar3D.h>
 
 
@@ -50,7 +49,6 @@ public:
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
-	virtual RoboCompCamera360RGB::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight) = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor) = 0;
 	virtual RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name) = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name) = 0;

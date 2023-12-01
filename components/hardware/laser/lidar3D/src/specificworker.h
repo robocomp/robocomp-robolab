@@ -34,20 +34,23 @@
 #include <atomic>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
+#include <opencv2/core/types.hpp>
+#include <opencv2/core/mat.hpp>
+
 #include <opencv4/opencv2/opencv.hpp>
-#include <opencv4/opencv2/calib3d.hpp>
-#include <opencv4/opencv2/core/mat.hpp>
-#include <opencv4/opencv2/core/core.hpp>
-#include <opencv4/opencv2/core/types.hpp>
-#include <opencv4/opencv2/imgproc.hpp>
-#include <opencv4/opencv2/highgui.hpp>
+// #include <opencv4/opencv2/calib3d.hpp>
+// #include <opencv4/opencv2/core/core.hpp>
+// #include <opencv4/opencv2/imgproc.hpp>
+// #include <opencv4/opencv2/highgui.hpp>
+
+
 #include "cppitertools/slice.hpp"
 #include "cppitertools/zip.hpp"
 #include "math.h"
 
-
-
 #include <chrono>
+#include <thread>
 
 
 typedef PointXYZI PointT;
@@ -63,8 +66,6 @@ public:
     SpecificWorker(TuplePrx tprx, bool startup_check);
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
-
-	RoboCompCamera360RGB::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight);
 
     RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
     RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
@@ -98,8 +99,7 @@ private:
     static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
     static void exceptionCallback(const robosense::lidar::Error& code);
 
-    DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_real_data;
-    DoubleBuffer<RoboCompLidar3D::TData,RoboCompLidar3D::TData> buffer_simulated_data;
+    DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
     DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
 
     //Extrinsic
@@ -121,17 +121,16 @@ private:
     FPSCounter fps;
 
 
-    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TDataImage> lidar2cam(RoboCompLidar3D::TData lidar_data);
+    RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
 
     std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
 
-    RoboCompLidar3D::TData msg2tdata(PointCloudMsg msg);
+    std::optional<RoboCompLidar3D::TPoint> transform_filter_point(float x, float y, float z, int intensity);
+    //RoboCompLidar3D::TData msg2tdata(const PointCloudMsg &msg);
+    // RoboCompLidar3D::TData sim2tdata(const RoboCompLidar3D::TData &lidar_points);
+    RoboCompLidar3D::TData processLidarData(const auto &input_points);
 
-    //Double Buffer for Camera Mat
-    DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 
-    // Mat that is send in the GetRoi function
-    cv::Mat cv_frame;
 
     vector<int> compression_params;
     bool compressed = true;

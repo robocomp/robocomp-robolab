@@ -24,7 +24,6 @@ SET ( SOURCES
   genericmonitor.cpp
   commonbehaviorI.cpp
   genericworker.cpp
-  camera360rgbI.cpp
   lidar3dI.cpp
 )
 
@@ -36,8 +35,8 @@ FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior Camera360RGB Lidar3D Lidar3D)
-ROBOCOMP_ICE_TO_SRC( CommonBehavior Camera360RGB Lidar3D Lidar3D)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior Lidar3D Lidar3D)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior Lidar3D Lidar3D)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 

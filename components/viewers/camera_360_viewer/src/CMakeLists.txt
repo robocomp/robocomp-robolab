@@ -34,13 +34,13 @@ FIND_PACKAGE( Ice REQUIRED COMPONENTS Ice++11 IceStorm++11)
 
 #ROBOCOMP
 ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior Camera360RGB CameraRGBDSimple)
-ROBOCOMP_ICE_TO_SRC( CommonBehavior Camera360RGB CameraRGBDSimple)
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior Camera360RGB)
+ROBOCOMP_ICE_TO_SRC( CommonBehavior Camera360RGB)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
 
 # no-char8_t to avoid a problem with ICE Connection lib.
-add_definitions(-O3  -fmax-errors=1 -fno-char8_t)
+add_definitions(-g  -fmax-errors=1 -fno-char8_t)
 
 # Specify construction and link process
 ADD_EXECUTABLE( Camera360Viewer ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

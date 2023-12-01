@@ -65,7 +65,9 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 	this->Period = period;
-	if(this->startup_check_flag)
+    this->begin = std::chrono::high_resolution_clock::now();
+
+    if(this->startup_check_flag)
 	{
 		this->startup_check();
 	}
@@ -74,6 +76,7 @@ void SpecificWorker::initialize(int period)
         try
         {
             initial_img = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
+            qInfo() << initial_img.image.size();
             // Create a window
             cv::namedWindow("ROI 360", 1);
             fovea.max_height = initial_img.height;
@@ -99,6 +102,7 @@ void SpecificWorker::initialize(int period)
         }
         catch(const Ice::Exception &ex) { qFatal("Error reading camera image in Initialize");}
 
+        this->Period = 33;
         timer.start(Period);
 	}
 }
@@ -121,6 +125,10 @@ void SpecificWorker::compute()
         cv::imshow("Full View", full_mat);
         cv::imshow("ROI 360", roi_mat);
         cv::waitKey(1);
+        
+//  Use adjust the period if you want to adjust it to the period received from another component
+//        this->adjustPeriod(full.period);
+
     }
     catch(const Ice::Exception& e)
     {  std::cout << e.what() << std::endl;   }
@@ -152,6 +160,29 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 
+void SpecificWorker::adjustPeriod(int new_period)
+{
+    const unsigned int msPeriod = 1000;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration<double>(end - begin).count() * 1000;
+
+    if( elapsed > msPeriod)
+    {
+
+        if (abs(new_period - this->Period) < 2)
+            return;
+
+        if (new_period > this->Period)
+            this->Period += 1;
+        else
+
+            this->Period -= 1;
+
+        this->timer.setInterval(this->Period);
+
+        begin = std::chrono::high_resolution_clock::now();  // Restart counter
+    }
+}
 
 void SpecificWorker::on_cx(int pos, void *data)
 {

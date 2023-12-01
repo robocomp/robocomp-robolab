@@ -1,0 +1,38 @@
+CommonBehavior.Endpoints=tcp -p 11986
+
+# Endpoints for implements interfaces
+Lidar3D.Endpoints=tcp -p 11990
+
+# Proxies for required interfaces
+Lidar3DProxy = lidar3d:tcp -h localhost -p 11988
+
+### Lidar params ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 0
+dest_pc_ip_addr = 192.168.50.210
+msop_port = 6699
+difop_port = 7788
+simulator = true
+
+#Warning use "." for decimals not ","
+rx=0.0
+ry=0.0
+rz=0.0
+tx=0.0
+ty=-170.0
+tz=1100.0
+
+# boundin box colision / hitbox
+center_box_x=0.0
+center_box_y=0.0
+center_box_z=900.0
+size_box_x=600.0
+size_box_y=600.0
+size_box_z=600.0
+
+floor_line=80.0
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

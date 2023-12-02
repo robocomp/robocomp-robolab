@@ -24,8 +24,6 @@
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
-#define DEBUG 0
-
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>
 #include <rs_driver/msg/point_cloud_msg.hpp>
@@ -34,16 +32,7 @@
 #include <atomic>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-
-#include <opencv2/core/types.hpp>
-#include <opencv2/core/mat.hpp>
-
 #include <opencv4/opencv2/opencv.hpp>
-// #include <opencv4/opencv2/calib3d.hpp>
-// #include <opencv4/opencv2/core/core.hpp>
-// #include <opencv4/opencv2/imgproc.hpp>
-// #include <opencv4/opencv2/highgui.hpp>
-
 
 #include "cppitertools/slice.hpp"
 #include "cppitertools/zip.hpp"
@@ -52,88 +41,78 @@
 #include <chrono>
 #include <thread>
 
-
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
-
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
 
 class SpecificWorker : public GenericWorker
 {
     Q_OBJECT
-public:
-    SpecificWorker(TuplePrx tprx, bool startup_check);
-    ~SpecificWorker();
-    bool setParams(RoboCompCommonBehavior::ParameterList params);
+    public:
+        SpecificWorker(TuplePrx tprx, bool startup_check);
+        ~SpecificWorker();
+        bool setParams(RoboCompCommonBehavior::ParameterList params);
+        RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
+        RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
+        RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
+        RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance);
 
-    RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
-    RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
-    RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
-    RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance);
+    public slots:
+                void compute();
+        int startup_check();
+        void initialize(int period);
+        void self_adjust_period(int new_period);
 
-public slots:
-            void compute();
-    int startup_check();
-    void initialize(int period);
-    void self_adjust_period(int new_period);
+    private:
+        bool startup_check_flag;
+        std::atomic_bool ready_to_go = false;
+        int lidar_model;
+        int msop_port;
+        int difop_port;
+        std::string dest_pc_ip_addr;
+        robosense::lidar::LidarType lidar_model_list[2] = {
+                robosense::lidar::LidarType::RSHELIOS,
+                robosense::lidar::LidarType::RSBP
+        };
 
-private:
-    bool startup_check_flag;
-    std::atomic_bool ready_to_go = false;
-    int lidar_model;
-    int msop_port;
-    int difop_port;
-    std::string dest_pc_ip_addr;
-    robosense::lidar::LidarType lidar_model_list[2] = {
-            robosense::lidar::LidarType::RSHELIOS,
-            robosense::lidar::LidarType::RSBP
-    };
+        robosense::lidar::RSDriverParam param;                           ///< Create a parameter object
+        robosense::lidar::LidarDriver<PointCloudMsg> driver;             ///< Declare the driver object
 
-    robosense::lidar::RSDriverParam param;                           ///< Create a parameter object
-    robosense::lidar::LidarDriver<PointCloudMsg> driver;             ///< Declare the driver object
+        static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
+        double remap_angle(double angle);
+        int remap_angle_real(int angle);
+        static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
+        static void exceptionCallback(const robosense::lidar::Error& code);
 
-    static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
-    double remap_angle(double angle);
-    int remap_angle_real(int angle);
-    static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
-    static void exceptionCallback(const robosense::lidar::Error& code);
+        // Buffers
+        DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
+        DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
 
-    DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
-    DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
+        //Extrinsic
+        Eigen::Affine3f robot_lidar;
+        Eigen::Vector3f box_min;
+        Eigen::Vector3f box_max;
+        float floor_line;
+        inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
-    //Extrinsic
-    Eigen::Affine3f robot_lidar;
-    Eigen::Vector3f box_min;
-    Eigen::Vector3f box_max;
-    float floor_line;
-    inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
+        //Image
+        int img_width = 1200, img_height = 600;
 
-    //Image
-    int img_width = 1200, img_height = 600;
+        //Dst image
+        int dst_width = 1920, dst_height = 960;
 
-    //Dst image
-    int dst_width = 1920, dst_height = 960;
+        // SIMULATOR
+        bool simulator = false;
 
-    // SIMULATOR
-    bool simulator = false;
-    // FPS
-    FPSCounter fps;
+        // FPS
+        FPSCounter fps;
 
-
-    RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
-
-    std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
-
-    std::optional<RoboCompLidar3D::TPoint> transform_filter_point(float x, float y, float z, int intensity);
-    //RoboCompLidar3D::TData msg2tdata(const PointCloudMsg &msg);
-    // RoboCompLidar3D::TData sim2tdata(const RoboCompLidar3D::TData &lidar_points);
-    RoboCompLidar3D::TData processLidarData(const auto &input_points);
-
-
-
-    vector<int> compression_params;
-    bool compressed = true;
+        RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
+        std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
+        std::optional<RoboCompLidar3D::TPoint> transform_filter_point(float x, float y, float z, int intensity);
+        RoboCompLidar3D::TData processLidarData(const auto &input_points);
+        vector<int> compression_params;
 };
 
 #endif

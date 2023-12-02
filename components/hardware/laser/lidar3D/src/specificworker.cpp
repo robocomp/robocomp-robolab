@@ -148,9 +148,10 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+    RoboCompLidar3D::TData raw_lidar;
+    int num_points = 0;
     try
     {
-        RoboCompLidar3D::TData raw_lidar;
         if(simulator)
         {
             RoboCompLidar3D::TData raw_lidar_sim;
@@ -173,24 +174,22 @@ void SpecificWorker::compute()
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         }
 
-        //Porcess lidar helios and add lidar data to doubleBuffer
+        //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios
             auto processed_real_lidar_array = lidar2cam(raw_lidar);
             buffer_array_data.put(std::move(processed_real_lidar_array));
         }
-
-        std::cout <<"Num points: "<< raw_lidar.points.size()<< " Timestamp: " << raw_lidar.timestamp << std::endl;
+        num_points = raw_lidar.points.size();
         buffer_data.put(std::move(raw_lidar));
     }
     catch (const Ice::Exception &e)
-        {std::cout << __FUNCTION__ << " Error in Simulator Lidar Proxy" << std::endl;}
+        {std::cout << __FUNCTION__ << " Error in Lidar Proxy" << std::endl;}
 
-    catch (const std::exception &e)
-        {std::cout << __FUNCTION__ << " Error in Real Lidar connection" << std::endl;}
-
-    fps.print("Connected to real device");
+    fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
 //        Via this fucntion, the driver gets an free/unused point cloud message from the caller.

@@ -162,7 +162,6 @@ void SpecificWorker::compute()
 
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
-            raw_lidar.period = this->Period; // ms
         }
         else
         {
@@ -174,7 +173,8 @@ void SpecificWorker::compute()
             auto now = std::chrono::system_clock::now();
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         }
-
+        raw_lidar.period = this->Period; // ms
+        
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios

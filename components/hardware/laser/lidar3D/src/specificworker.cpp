@@ -18,7 +18,6 @@
  */
 #include "specificworker.h"
 
-
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
 
@@ -30,7 +29,6 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
     this->startup_check_flag = startup_check;
 //	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
-
 /**
 * \brief Default destructor
 */
@@ -38,7 +36,6 @@ SpecificWorker::~SpecificWorker()
 {
     std::cout << "Destroying SpecificWorker" << std::endl;
 }
-
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     // Save locale setting
@@ -107,7 +104,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     
     return true;
 }
-
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initialize worker" << std::endl;
@@ -174,7 +170,7 @@ void SpecificWorker::compute()
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         }
         raw_lidar.period = this->Period; // ms
-        
+
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios
@@ -209,7 +205,6 @@ std::shared_ptr <PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCal
 
     return std::make_shared<PointCloudMsg>();
 }
-
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
 //        Via this function, the driver gets/returns a stuffed point cloud message to the caller.
@@ -222,7 +217,6 @@ void SpecificWorker::driverReturnPointCloudToCallerCallback(std::shared_ptr <Poi
     stuffed_cloud_queue.clear();
     stuffed_cloud_queue.push(msg);
 }
-
 //
 // @brief exception callback function. The caller should register it to the lidar driver.
 //        Via this function, the driver inform the caller that something happens.
@@ -234,20 +228,11 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
     //       so please DO NOT do time-consuming task here.
     std::cout << code.toString() << std::endl;
 }
-
 inline bool SpecificWorker::isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max) {
     return  (point.x() < box_min.x() || point.x() > box_max.x()) ||
             (point.y() < box_min.y() || point.y() > box_max.y()) ||
             (point.z() < box_min.z() || point.z() > box_max.z());
 }
-
-int SpecificWorker::startup_check()
-{
-    std::cout << "Startup check" << std::endl;
-    QTimer::singleShot(200, qApp, SLOT(quit()));
-    return 0;
-}
-
 void SpecificWorker::self_adjust_period(int new_period)
 {
     if(abs(new_period - this->Period) < 2)      // do it only if period changes
@@ -263,7 +248,6 @@ void SpecificWorker::self_adjust_period(int new_period)
         this->timer.setInterval(this->Period);
     }
 }
-
 std::optional<RoboCompLidar3D::TPoint> SpecificWorker::transform_filter_point(float x, float y, float z, int intensity)
 {
     Eigen::Vector3f point(-y*1000, x*1000, z*1000); // convert to millimeters
@@ -279,7 +263,6 @@ std::optional<RoboCompLidar3D::TPoint> SpecificWorker::transform_filter_point(fl
     }
     return {};
 }
-
 RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points)
 {
     RoboCompLidar3D::TData raw_lidar;
@@ -295,7 +278,6 @@ RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points
     }
     return raw_lidar;
 }
-
 std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Point2f> &points)
 {
     int aperture = M_PI; //Radians?
@@ -329,7 +311,6 @@ std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Poi
     }
     return result;
 }
-
 RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TData &lidar_data){
     std::vector<cv::Point3f> lidar_front, lidar_back;
     std::vector<cv::Point2f> lidar_front_2d, lidar_back_2d;
@@ -474,10 +455,6 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
     data_image.YPixel = y_p;
     return  data_image;
 }
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////// Interfaces                                                            //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -536,7 +513,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
 
     //Apply decimal factor reduction
     if (decimationDegreeFactor == 1)
-        return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
+        return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
 
     //Decimal factor calculation
     float rad_factor = qDegreesToRadians((float)decimationDegreeFactor);
@@ -551,8 +528,6 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
 
     return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
 }
-
-
 /*
  @brief
  @param name - name of the lidar
@@ -578,7 +553,6 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
 
     return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
 }
-
 /*
  @brief
  @param name - name of the lidar
@@ -595,7 +569,6 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
     //Get LiDAR data
     return buffer_data.get_idemp();
 }
-
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
     RoboCompLidar3D::TDataImage ret;
@@ -606,27 +579,10 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
     return buffer_array_data.get_idemp();
 }
 
-
-/**************************************/
-// From the RoboCompLaser you can use this types:
-// RoboCompLaser::LaserConfData
-// RoboCompLaser::TData
-
-/**************************************/
-// From the RoboCompLidar3D you can use this types:
-// RoboCompLidar3D::TPoint
-// RoboCompLidar3D::TDataImage
-// RoboCompLidar3D::TData
-
-/**************************************/
-// From the RoboCompLidar3D you can call this methods:
-// this->lidar3d_proxy->getLidarData(...)
-// this->lidar3d_proxy->getLidarDataArrayProyectedInImage(...)
-// this->lidar3d_proxy->getLidarDataProyectedInImage(...)
-// this->lidar3d_proxy->getLidarDataWithThreshold2d(...)
-
-/**************************************/
-// From the RoboCompCamera360RGB you can use this types:
-// RoboCompCamera360RGB::TRoi
-// RoboCompCamera360RGB::TImage
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+int SpecificWorker::startup_check()
+{
+    std::cout << "Startup check" << std::endl;
+    QTimer::singleShot(200, qApp, SLOT(quit()));
+    return 0;
+}

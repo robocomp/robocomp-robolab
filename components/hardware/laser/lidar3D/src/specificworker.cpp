@@ -162,6 +162,7 @@ void SpecificWorker::compute()
 
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
+            raw_lidar.period = this->Period; // ms
         }
         else
         {
@@ -288,7 +289,7 @@ RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points
         {
             auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity);
             if (transformed)
-                raw_lidar.points.push_back(*transformed);
+                raw_lidar.points.emplace_back(*transformed);
         }
         std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
     }
@@ -548,7 +549,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
                                              return !(remainder <= tolerance || remainder >= rad_factor - tolerance);
                                          }), filtered_points.end());
 
-    return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
+    return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
 }
 
 

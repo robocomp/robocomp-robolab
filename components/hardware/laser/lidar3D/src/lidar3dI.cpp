@@ -44,8 +44,8 @@ RoboCompLidar3D::TData Lidar3DI::getLidarDataProyectedInImage(std::string name, 
 	return worker->Lidar3D_getLidarDataProyectedInImage(name);
 }
 
-RoboCompLidar3D::TData Lidar3DI::getLidarDataWithThreshold2d(std::string name, float distance, const Ice::Current&)
+RoboCompLidar3D::TData Lidar3DI::getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarDataWithThreshold2d(name, distance);
+	return worker->Lidar3D_getLidarDataWithThreshold2d(name, distance, decimationDegreeFactor);
 }
 

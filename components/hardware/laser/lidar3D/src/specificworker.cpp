@@ -189,7 +189,7 @@ void SpecificWorker::compute()
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
-//        Via this fucntion, the driver gets an free/unused point cloud message from the caller.
+//        Via this function, the driver gets an free/unused point cloud message from the caller.
 // @param msg  The free/unused point cloud message.
 //
 std::shared_ptr <PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCallback(void)
@@ -510,28 +510,28 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
     }
 
     //Apply decimal factor reduction
-    if (decimationDegreeFactor == 1)
-        return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
+    if (decimationDegreeFactor != 1){
+        //Decimal factor calculation
+        float rad_factor = qDegreesToRadians((float)decimationDegreeFactor);
+        float tolerance = qDegreesToRadians(0.5);
 
-    //Decimal factor calculation
-    float rad_factor = qDegreesToRadians((float)decimationDegreeFactor);
-    float tolerance = qDegreesToRadians(0.5);
-
-    //We remove the points that are of no interest
-    filtered_points.erase(std::remove_if(filtered_points.begin(), filtered_points.end(),
-                                         [rad_factor, tolerance](const RoboCompLidar3D::TPoint& point)
-                                         {float remainder = fmod(point.phi, rad_factor);
-                                             return !(remainder <= tolerance || remainder >= rad_factor - tolerance);
-                                         }), filtered_points.end());
-
+        //We remove the points that are of no interest
+        filtered_points.erase(std::remove_if(filtered_points.begin(), filtered_points.end(),
+                                            [rad_factor, tolerance](const RoboCompLidar3D::TPoint& point)
+                                            {float remainder = abs(fmod(point.phi, rad_factor));
+                                                return !(remainder <= tolerance || remainder >= rad_factor - tolerance);
+                                            }), filtered_points.end());
+    }
     return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
 }
 /*
  @brief
  @param name - name of the lidar
  @param distance - maximum distance view of the lidar
+ @param decimationDegreeFactor - factor of reduction in degrees 
+
 */
-RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance)
+RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor)
 {
     //LiDAR not started
     if(not ready_to_go)
@@ -549,7 +549,21 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
     //ReSort by phi
     std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::phi);
 
-    return RoboCompLidar3D::TData {filtered_points, buffer.period, buffer.timestamp};
+    //Apply decimal factor reduction
+    if (decimationDegreeFactor != 1){
+        //Decimal factor calculation
+        float rad_factor = qDegreesToRadians((float)decimationDegreeFactor);
+        float tolerance = qDegreesToRadians(0.5);
+
+        //We remove the points that are of no interest
+        filtered_points.erase(std::remove_if(filtered_points.begin(), filtered_points.end(),
+                                            [rad_factor, tolerance](const RoboCompLidar3D::TPoint& point)
+                                            {float remainder = abs(fmod(point.phi, rad_factor));
+                                                return !(remainder <= tolerance || remainder >= rad_factor - tolerance);
+                                            }), filtered_points.end());
+    }
+    return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
+
 }
 /*
  @brief

@@ -467,8 +467,6 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
-    
-
      //LiDAR not started
     if(not ready_to_go)
         return {};

@@ -339,19 +339,20 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
         rvec.at<double>(1, 0) = 0.0;
         rvec.at<double>(2, 0) = 0.0;
         tvec.at<double>(0, 0) = 0.0;
-        tvec.at<double>(1, 0) = -1330.0;
-        tvec.at<double>(2, 0) = -180.0;
+        tvec.at<double>(1, 0) = -1350.0;
+        tvec.at<double>(2, 0) = 170.0;
         rvec_b.at<double>(0, 0) = M_PI_2;
         rvec_b.at<double>(1, 0) = 0.0;
         rvec_b.at<double>(2, 0) = 0.0;
         tvec_b.at<double>(0, 0) = 0.0;
-        tvec_b.at<double>(1, 0) = -1330.0;
-        tvec_b.at<double>(2, 0) = 180.0;
-        resize_factor = 1;
-        D = (cv::Mat_<double>(4,1) << 0.35308720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
-
-        dst_width = 1200;
-        dst_height = 600;
+        tvec_b.at<double>(1, 0) = -1350.0;
+        tvec_b.at<double>(2, 0) = -170.0;
+        resize_factor = 1.0;
+        cv::Mat K_Sim = (cv::Mat_<double>(3,3) << 1100, 0.0, 1824, 0.0, -1100, 1824, 0.0, 0.0, 1.0); // Ejemplo de inicialización
+        K = K_Sim;
+        D = (cv::Mat_<double>(4,1) << 0.34308720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
+        dst_width = 1920;
+        dst_height = 960;
     }
     else
     {

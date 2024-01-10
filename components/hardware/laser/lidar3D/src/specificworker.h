@@ -94,6 +94,8 @@ class SpecificWorker : public GenericWorker
         Eigen::Vector3f box_min;
         Eigen::Vector3f box_max;
         float floor_line;
+        float top_line;
+
         inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
         //Image

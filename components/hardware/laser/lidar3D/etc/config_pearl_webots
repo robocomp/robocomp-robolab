@@ -29,7 +29,8 @@ size_box_x=630.0
 size_box_y=600.0
 size_box_z=800.0
 
-floor_line=25.0
+floor_line=50.0
+top_line= 2500.0
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

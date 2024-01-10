@@ -81,6 +81,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         box_max.z() = center_box_z + size_box_z/2.0;//maxz
 
         floor_line = std::stof(params["floor_line"].value);
+        top_line = std::stof(params["top_line"].value);
 
         std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<endl;
         std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<endl;
@@ -253,7 +254,7 @@ std::optional<RoboCompLidar3D::TPoint> SpecificWorker::transform_filter_point(fl
     Eigen::Vector3f point(-y*1000, x*1000, z*1000); // convert to millimeters
     Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();
 
-    if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line)
+    if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line and lidar_point.z() < top_line)
     {
         auto distance2d = std::hypot(lidar_point.x(),lidar_point.y());
         auto r = lidar_point.norm();

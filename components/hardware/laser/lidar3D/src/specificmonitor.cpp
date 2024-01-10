@@ -138,8 +138,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString( "","size_box_z", aux.value, "");
 	params["size_box_z"] = aux;
 
-	configGetString( "","floor_line", aux.value, "");
+	configGetString( "","floor_line", aux.value, "0.0");
 	params["floor_line"] = aux;
+
+    configGetString( "","top_line", aux.value, "3000.0");
+    params["top_line"] = aux;
 
     //Simulator bool
     configGetString( "","simulator", aux.value, "");

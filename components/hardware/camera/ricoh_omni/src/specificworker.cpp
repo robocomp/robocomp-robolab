@@ -243,7 +243,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
         res.height = rdst.rows;
         res.width = rdst.cols;
         res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
-        std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
+        //std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
     }
     return res;
     

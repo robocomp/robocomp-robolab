@@ -107,14 +107,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 }
 void SpecificWorker::initialize(int period)
 {
-    std::cout << "Initialize worker" << std::endl;
+    std::cout << __FUNCTION__ << " Initialize worker" << std::endl;
+    last_read.store(std::chrono::high_resolution_clock::now());
     this->Period = 50;
     if (this->startup_check_flag)
     {
         this->startup_check();
     } else
     {
-        if (!simulator)
+        if (not simulator)
         {
             param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
             param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
@@ -127,24 +128,32 @@ void SpecificWorker::initialize(int period)
                                          driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
             driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function}
 
-            if (!driver.init(param))                         ///< Call the init function
+            if (not driver.init(param))                         ///< Call the init function
             {
-                std::cout << "Driver Initialize Error..." << std::endl;
-                exit(-1);
+                std::cout << __FUNCTION__ << " Driver Initialize Error.... Aborting" << std::endl;
+                std::terminate();
             }
             driver.start();
-            std::cout << "Driver initiated OK" << std::endl;
-            
+            std::cout << __FUNCTION__ << " Driver initiated OK" << std::endl;
         }
+
+        // pause variable
+        last_read.store(std::chrono::high_resolution_clock::now());
 
         timer.start(this->Period);
         std::this_thread::sleep_for(std::chrono::milliseconds(this->Period*2));
         ready_to_go.store(true);
     }
 }
-
 void SpecificWorker::compute()
 {
+    /// check idle time
+    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_read.load()).count() > MAX_INACTIVE_TIME)
+    {
+        fps.print("No requests in the last 5 seconds. Pausing. Comp wil continue in next call", 3000);
+        return;
+    }
+
     RoboCompLidar3D::TData raw_lidar;
     int num_points = 0;
     try
@@ -160,17 +169,17 @@ void SpecificWorker::compute()
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
         }
-        else
+        else // real lidar
         {
             std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
-            if (msg.get() == NULL)
+            if (msg == nullptr)
                 return;
             
             raw_lidar = processLidarData(*msg);
             auto now = std::chrono::system_clock::now();
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         }
-        raw_lidar.period = this->Period; // ms
+        raw_lidar.period = static_cast<float>(this->Period); // ms
 
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
@@ -184,7 +193,7 @@ void SpecificWorker::compute()
     catch (const Ice::Exception &e)
         {std::cout << __FUNCTION__ << " Error in Lidar Proxy" << std::endl;}
 
-    fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/);
+    fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,13 +207,10 @@ std::shared_ptr <PointCloudMsg> SpecificWorker::driverGetPointCloudFromCallerCal
     // Note: This callback function runs in the packet-parsing/point-cloud-constructing thread of the driver,
     //       so please DO NOT do time-consuming task here.
     std::shared_ptr <PointCloudMsg> msg = free_cloud_queue.pop();
-    
-    if (msg.get() != NULL)
-    {
+    if (msg != nullptr)
         return msg;
-    }
-
-    return std::make_shared<PointCloudMsg>();
+    else
+        return std::make_shared<PointCloudMsg>();
 }
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
@@ -267,14 +273,12 @@ std::optional<RoboCompLidar3D::TPoint> SpecificWorker::transform_filter_point(fl
 RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points)
 {
     RoboCompLidar3D::TData raw_lidar;
-    if (!input_points.points.empty())
+    if (not input_points.points.empty())
     {
+        raw_lidar.points.reserve(input_points.points.size());
         for (const auto &p : input_points.points)
-        {
-            auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity);
-            if (transformed)
+            if(auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity); transformed.has_value())
                 raw_lidar.points.emplace_back(*transformed);
-        }
         std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
     }
     return raw_lidar;
@@ -473,16 +477,18 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
     if(not ready_to_go)
         return {};
 
+    last_read.store(std::chrono::high_resolution_clock::now());
+
     RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
 
     // Check for nominal conditions
-    if(len >= 2*M_PI  and decimationDegreeFactor == 1)
+    if(len >= 2.0*M_PI  and decimationDegreeFactor == 1)
         return buffer;
 
     RoboCompLidar3D::TPoints filtered_points;
 
     //Get all LiDAR
-    if (len >= 2*M_PI)
+    if (len >= 2.0*M_PI)
         filtered_points = std::move(buffer.points);
         //Cut range LiDAR
     else
@@ -539,6 +545,8 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
     if(not ready_to_go)
         return {};
 
+    last_read.store(std::chrono::high_resolution_clock::now());
+
     //Get LiDAR data
     RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
 
@@ -577,6 +585,8 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
     if (not ready_to_go)
         return {};
 
+    last_read.store(std::chrono::high_resolution_clock::now());
+
     RoboCompLidar3D::TData buffer;
     RoboCompLidar3D::TPoints processed_points;
 
@@ -586,10 +596,12 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
     RoboCompLidar3D::TDataImage ret;
+
     //LiDAR not started
     if(not ready_to_go)
         return {};
-    
+
+    last_read.store(std::chrono::high_resolution_clock::now());
     return buffer_array_data.get_idemp();
 }
 

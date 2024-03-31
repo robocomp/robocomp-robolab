@@ -139,6 +139,10 @@ void SpecificWorker::compute( )
         {
             sendEvent = false;
             joystickadapter_pubproxy->sendData(data);
+            for(auto &d : data.axes)
+                d.value = 0;
+            for(auto &b: data.buttons)
+                b.step = 0;
         }
     }
     catch(const Ice::Exception& ex)
@@ -179,7 +183,7 @@ void SpecificWorker::receivedJoystickEvent(int value, int type, int number)
                     //    qInfo() << __FUNCTION__ << value << axis.minRange << axis.maxRange;
                     //}
                     //else
-                        normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
+                    normalized_value = normalize(value, -32000, 32000, axis.minRange, axis.maxRange, axis.dead_zone);
                     if (axis.inverted) normalized_value *= -1;
                     if(auto dr=std::find_if(data.axes.begin(), data.axes.end(),[axis](auto &a){ return a.name == axis.name;}); dr!=data.axes.end())
                     {

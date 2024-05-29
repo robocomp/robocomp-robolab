@@ -6,7 +6,7 @@ Intro to component here
     For Qt5 (deprecated in RoboComp) 
         sudo apt install libqglviewer-dev-qt5
     For Qt6
-        install Qt6 including qtdeclarative6-dev  
+        install Qt6 including qt6-declarative-dev 
         download the sources from from https://libqglviewer.com/ or https://github.com/GillesDebunne/libQGLViewer.git
         Generate Makefile with qmake6 *.pro
         make

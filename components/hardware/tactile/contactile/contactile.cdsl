@@ -1,0 +1,13 @@
+import "Contactile.idsl";
+import "ContactilePub.idsl";
+
+Component contactile
+{
+    Communications
+    {
+        implements Contactile;
+	publishes ContactilePub;
+    };
+    language Cpp11;
+};
+

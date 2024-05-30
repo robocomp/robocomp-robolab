@@ -26,6 +26,7 @@
 #define SPECIFICWORKER_H
 
 #include <genericworker.h>
+#include <doublebuffer/DoubleBuffer.h>
 #include "stdafx.h"
 #include <stdio.h>
 
@@ -60,10 +61,13 @@ class SpecificWorker : public GenericWorker
 
         //
         std::shared_ptr<PTSDKListener> listener;
-        std::shared_ptr<PTSDKSensor> sen0, sen1, sen2, sen3;
+        std::shared_ptr<PTSDKSensor> sen0, sen1, sen2, sen3, sen4, sen5, sen6, sen7, sen8, sen9;
 
         // port
         std::string port = "/dev/ttyACM0";
+
+        // DoubleBuffer
+        DoubleBuffer<RoboCompContactile::FingerTips, RoboCompContactile::FingerTips> db;
 };
 
 #endif

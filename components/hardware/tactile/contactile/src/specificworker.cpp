@@ -74,12 +74,24 @@ void SpecificWorker::initialize(int period)
         sen1 = std::make_shared<PTSDKSensor>();
         sen2 = std::make_shared<PTSDKSensor>();
         sen3 = std::make_shared<PTSDKSensor>();
+        sen4 = std::make_shared<PTSDKSensor>();
+        sen5 = std::make_shared<PTSDKSensor>();
+        sen6 = std::make_shared<PTSDKSensor>();
+        sen7 = std::make_shared<PTSDKSensor>();
+        sen8 = std::make_shared<PTSDKSensor>();
+        sen9 = std::make_shared<PTSDKSensor>();
 
         /* Add all four sensors to the listener */
         listener->addSensor(sen0.get());
         listener->addSensor(sen1.get());
         listener->addSensor(sen2.get());
         listener->addSensor(sen3.get());
+        listener->addSensor(sen4.get());
+        listener->addSensor(sen5.get());
+        listener->addSensor(sen6.get());
+        listener->addSensor(sen7.get());
+        listener->addSensor(sen8.get());
+        listener->addSensor(sen9.get());
 
         int rate = 11520;//9600; 			// The rate of the serial connection
         int parity = 0; 			    	// 0=PARITY_NONE, 1=PARITY_ODD, 2=PARITY_EVEN
@@ -90,7 +102,6 @@ void SpecificWorker::initialize(int period)
         //int err = listener->connectAndStartListening(port.c_str(), rate, parity, byteSize, logFileRate);
         int err = listener->connect(port.c_str(), rate, parity, byteSize);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
 
         /* Check if the connection was successful */
         if (err)
@@ -103,23 +114,51 @@ void SpecificWorker::initialize(int period)
             printf("Connected successfully to %s\n", port.c_str());
         }
 
-        timer.start(100);
+        /* Perform bias */
+        if(not listener->sendBiasRequest())
+        {
+            printf("FAILED to send bias request.\n");
+            return;
+        }
+        else
+            printf("Successfully sent bias request.\n");
+
+        timer.start(0);
 	}
 }
 
 void SpecificWorker::compute()
 {
-    /* Perform bias */
-    if(listener->sendBiasRequest())
-        printf("Successfully sent bias request.\n");
-    else
+    auto res = listener->readNextSample();
+    if (res)
     {
-        printf("FAILED to send bias request.\n");
-        return;
+        double globalForce[NDIM];
+        RoboCompContactile::FingerTips ft;
+        sen0->getGlobalForce(globalForce);
+//        for (int dInd = 0; dInd < NDIM; dInd++)
+//            printf("S0: global F%d = %.3f\n", dInd, globalForce[dInd]);
+//        printf("\n");
+
+        ft.left.x = globalForce[0];
+        ft.left.y = globalForce[1];
+        ft.left.z = globalForce[2];
+
+        sen1->getGlobalForce(globalForce);
+//        for (int dInd = 0; dInd < NDIM; dInd++)
+//            printf("S1: global F%d = %.3f\n", dInd, globalForce[dInd]);
+//        printf("\n");
+
+        ft.right.x = globalForce[0];
+        ft.right.y = globalForce[1];
+        ft.right.z = globalForce[2];
+
+        db.put(std::move(ft));
     }
-    listener->readNextSample();
+    else
+        printf("main(): Read sample FAILED!\n");
 }
 
+////////////////////////////////////////////////////////////////////////7
 int SpecificWorker::startup_check()
 {
 	std::cout << "Startup check" << std::endl;
@@ -127,14 +166,12 @@ int SpecificWorker::startup_check()
 	return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////77
 
 RoboCompContactile::FingerTips SpecificWorker::Contactile_getValues()
 {
-//implementCODE
-    return RoboCompContactile::FingerTips();
+    return db.get();
 }
-
-
 
 /**************************************/
 // From the RoboCompContactile you can use this types:

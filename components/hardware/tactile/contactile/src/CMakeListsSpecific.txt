@@ -10,6 +10,7 @@ SET ( HEADERS
   specificmonitor.h
 )
 
+add_definitions(-O3 -fmax-errors=1 -fno-char8_t)
 
 SET (LIBS ${LIBS}  -L./ -lm -lPTSDK -lpthread)
 

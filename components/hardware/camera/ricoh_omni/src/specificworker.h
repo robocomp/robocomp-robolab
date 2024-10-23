@@ -77,6 +77,8 @@ public slots:
         //vector<uchar> buffer;
 
         FPSCounter fps;
+        std::atomic<std::chrono::high_resolution_clock::time_point> last_read;
+        int MAX_INACTIVE_TIME = 5;  // secs after which the component is paused. It reactivates with a new reset
 
         struct PARAMS
         {

@@ -29,7 +29,6 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 	// shown in the console with qDebug()
     //	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
-
 /**
 * \brief Default destructor
 */
@@ -37,7 +36,6 @@ SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
-
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     try
@@ -54,25 +52,25 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
     return true;
 }
-
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initializing worker" << std::endl;
-    
-    if (pars.orin)
-    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
-    else
-    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
-    //if (pars.orin)
-    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    //else
-    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    this->Period = 33;
+
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
     {
-        
+        last_read.store(std::chrono::high_resolution_clock::now());
+
+        if (pars.orin)
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+        else
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+        //if (pars.orin)
+        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+        //else
+        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+
         while(!activated_camera)
         {
             if(!pars.simulator)
@@ -108,12 +106,20 @@ void SpecificWorker::initialize(int period)
         }
         capture_time = -1;
         DEPTH = cv_frame.elemSize();
+        this->Period = 33;
         timer.start(Period);
     }
 }
-
 void SpecificWorker::compute()
 {
+    /// check idle time
+    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_read.load()).count() > MAX_INACTIVE_TIME)
+    {
+        fps.print("No requests in the last 5 seconds. Pausing. Comp wil continue in next call", 3000);
+        return;
+    }
+
+
     if(not pars.simulator)
     {
         capture >> cv_frame;
@@ -142,11 +148,11 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 
-    void SpecificWorker::self_adjust_period(int new_period)
-    {
-        if(abs(new_period - this->Period) < 2)
-            return;
-        if(new_period > this->Period)
+void SpecificWorker::self_adjust_period(int new_period)
+{
+    if(abs(new_period - this->Period) < 2)
+        return;
+    if(new_period > this->Period)
         {
             this->Period += 1;
             timer.setInterval(this->Period);
@@ -155,7 +161,7 @@ void SpecificWorker::compute()
             this->Period -= 1;
             this->timer.setInterval(this->Period);
         }
-    }
+}
 /////////////////////////////////////////////////////////////////////
 ////////////// Interface
 /////////////////////////////////////////////////////////////////////
@@ -165,6 +171,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
     RoboCompCamera360RGB::TImage res;
     if (this->activated_camera)
     {
+        last_read.store(std::chrono::high_resolution_clock::now());
         //std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
         if(sx == 0 || sy == 0)
         {
@@ -244,6 +251,7 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
         res.width = rdst.cols;
         res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
         //std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
+
     }
     return res;
     

@@ -108,7 +108,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 void SpecificWorker::initialize(int period)
 {
     std::cout << __FUNCTION__ << " Initialize worker" << std::endl;
-    last_read.store(std::chrono::high_resolution_clock::now());
     this->Period = 50;
     if (this->startup_check_flag)
     {

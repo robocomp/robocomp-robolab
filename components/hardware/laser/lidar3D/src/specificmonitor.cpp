@@ -148,9 +148,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","simulator", aux.value, "");
     params["simulator"] = aux;
 
-    // voxel down sampling. Default 100. Radius of the voxel
-    configGetString( "","downsampling", aux.value, "100.0");
-    params["downsampling"] = aux;
+    // voxel down sampling. Default 100. Radius of the voxel. 0 -> no downsampling
+    configGetString( "","down_sampling", aux.value, "100.0");
+    params["down_sampling"] = aux;
 
     std::cout << "------- Finish reading params -----------" << std::endl;
 }

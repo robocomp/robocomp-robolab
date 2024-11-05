@@ -89,7 +89,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         std::cout<<"Floor line in millimetres:"<<std::endl<<this->floor_line<<endl;
 
         // downsampling mm
-        down_sampling = std::stof(params["downsampling"].value);
+        down_sampling = std::stof(params["down_sampling"].value);
         std::cout << "Downsampling in mm " << down_sampling << std::endl;
 
 
@@ -279,43 +279,57 @@ std::optional<Eigen::Vector3d> SpecificWorker::transform_filter_point(float x, f
 RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points)
 {
     RoboCompLidar3D::TData raw_lidar;
-    auto pcd = std::make_shared<open3d::geometry::PointCloud>();
 
-    if (not input_points.points.empty())
+    if (input_points.points.empty())
+        return raw_lidar;
+
+    if(this->down_sampling == 0)    // no downsampling
     {
         // filter out body points
         for (const auto &p : input_points.points)
             if(auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity); transformed.has_value())
-                pcd->points_.emplace_back(*transformed);
-
-        // transform to Eigen::Vector3d for Open3D
-        std::ranges::transform(raw_lidar.points, std::back_inserter(pcd->points_),
-                               [](const auto &p) -> Eigen::Vector3d
-                               { return {p.x, p.y, p.z};});
-        shared_ptr<open3d::geometry::PointCloud> downsampled_pcd;
-        try
-        { downsampled_pcd = pcd->VoxelDownSample(this->down_sampling); }
-        catch (const std::exception &e){std::cout << e.what() << std::endl;};
-
-        // Transform back to RoboCompLidar3D::TData and fill. Check if downsampled is empty
-        shared_ptr<open3d::geometry::PointCloud> pcd_points;
-        if(not downsampled_pcd->IsEmpty())
-            pcd_points = downsampled_pcd;
-        else
-            pcd_points = pcd;
-
-        raw_lidar.points.reserve(pcd_points->points_.size());
-        for (const auto &p: downsampled_pcd->points_)
-        {
-            auto distance2d = std::hypot(p.x(), p.y());
-            auto r = p.norm();
-            raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{.x=(float) p.x(), .y=(float) p.y(), .z=(float) p.z(),
-                    .intensity=0, .phi=(float) std::atan2(p.x(), p.y()),
-                    .theta=(float) std::acos(p.z() / r), .r=(float) r, .distance2d=(float) distance2d});
-        }
-        //qDebug() << "Original size: " << input_points.points.size() << " Downsampled size: " << raw_lidar.points.size();
+                raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{.x=(float) transformed->x(), .y=(float) transformed->y(), .z=(float) transformed->z(),
+                        .intensity=p.intensity, .phi=(float) std::atan2(transformed->x(), transformed->y()),
+                        .theta=(float) std::acos(transformed->z() / transformed->norm()), .r=(float) transformed->norm(),
+                        .distance2d=(float) std::hypot(transformed->x(), transformed->y())});
         std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+        return raw_lidar;
     }
+
+    /// Downsampling
+    // filter out body points
+    auto pcd = std::make_shared<open3d::geometry::PointCloud>();
+    for (const auto &p : input_points.points)
+        if(auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity); transformed.has_value())
+            pcd->points_.emplace_back(*transformed);
+
+    // transform to Eigen::Vector3d for Open3D
+    std::ranges::transform(raw_lidar.points, std::back_inserter(pcd->points_),
+                           [](const auto &p) -> Eigen::Vector3d
+                           { return {p.x, p.y, p.z};});
+    shared_ptr<open3d::geometry::PointCloud> downsampled_pcd;
+    try
+    { downsampled_pcd = pcd->VoxelDownSample(this->down_sampling); }
+    catch (const std::exception &e){std::cout << e.what() << std::endl;};
+
+    // Transform back to RoboCompLidar3D::TData and fill. Check if downsampled is empty
+    shared_ptr<open3d::geometry::PointCloud> pcd_points;
+    if(not downsampled_pcd->IsEmpty())
+        pcd_points = downsampled_pcd;
+    else
+        pcd_points = pcd;
+
+    raw_lidar.points.reserve(pcd_points->points_.size());
+    for (const auto &p: downsampled_pcd->points_)
+    {
+        auto distance2d = std::hypot(p.x(), p.y());
+        auto r = p.norm();
+        raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{.x=(float) p.x(), .y=(float) p.y(), .z=(float) p.z(),
+                .intensity=0, .phi=(float) std::atan2(p.x(), p.y()),
+                .theta=(float) std::acos(p.z() / r), .r=(float) r, .distance2d=(float) distance2d});
+    }
+    //qDebug() << "Original size: " << input_points.points.size() << " Downsampled size: " << raw_lidar.points.size();
+    std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
     return raw_lidar;
 }
 std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Point2f> &points)

@@ -32,6 +32,8 @@ size_box_z=800.0
 floor_line=50.0
 top_line= 2500.0
 
+downsampling = 100.0
+
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0

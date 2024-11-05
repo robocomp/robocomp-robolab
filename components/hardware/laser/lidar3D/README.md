@@ -3,6 +3,7 @@ Intro to component here
 
 ## Installation
     Install repo [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver)
+    Install libopen3d-dev
 
 ## Run
 Set ip of the running computer in config and in lidar, by accessing the lidar ip in a browser, section Setting.

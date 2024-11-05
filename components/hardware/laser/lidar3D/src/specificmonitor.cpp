@@ -148,6 +148,11 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
     configGetString( "","simulator", aux.value, "");
     params["simulator"] = aux;
 
+    // voxel down sampling. Default 100. Radius of the voxel
+    configGetString( "","downsampling", aux.value, "100.0");
+    params["downsampling"] = aux;
+
+    std::cout << "------- Finish reading params -----------" << std::endl;
 }
 
 //Check parameters and transform them to worker structure

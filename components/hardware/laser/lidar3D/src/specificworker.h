@@ -25,6 +25,7 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+#include <open3d/Open3D.h>
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>
 #include <rs_driver/msg/point_cloud_msg.hpp>
@@ -115,9 +116,12 @@ private:
 
             RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
             std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
-            std::optional<RoboCompLidar3D::TPoint> transform_filter_point(float x, float y, float z, int intensity);
+            std::optional<Eigen::Vector3d> transform_filter_point(float x, float y, float z, int intensity);
             RoboCompLidar3D::TData processLidarData(const auto &input_points);  // Abbreviated function template
             inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
+
+            // dowwnsample
+            double down_sampling = 100.0;   //mm free voxel radius
 };
 
 #endif

@@ -63,7 +63,7 @@
 
 // QT includes
 #include <QtCore>
-#include <QtWidgets>
+//#include <QtWidgets>
 
 // ICE includes
 #include <Ice/Ice.h>

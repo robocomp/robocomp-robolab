@@ -21,10 +21,10 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
-int SpecificWorker::slider_start;
-int SpecificWorker::slider_len;
-int SpecificWorker::slider_z;
-
+int SpecificWorker::slider_start = 180;
+int SpecificWorker::slider_len = 100;
+int SpecificWorker::slider_z = 2000;
+int SpecificWorker::slider_dec = 1;
 
 /**
 * \brief Default constructor
@@ -65,6 +65,18 @@ void SpecificWorker::initialize(int period)
 	}
 	else
 	{
+
+
+		window_name = "3D LIDAR Viewer";
+		cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
+
+		cv::createTrackbar("start", window_name, &slider_start, 360 , &SpecificWorker::on_start, this);
+		cv::createTrackbar("len", window_name, &slider_len, 360 , &SpecificWorker::on_len, this);
+		cv::createTrackbar("z filter", window_name, &slider_z, 4000, &SpecificWorker::on_zfilter, this);
+		cv::createTrackbar("decimation filter", window_name, &slider_dec, 5, &SpecificWorker::on_decfilter, this);
+		cv::setTrackbarMin("decimation filter", window_name, 1);
+
+
 		// 3DViewer
         points = std::make_shared<std::vector<std::tuple<float, float, float>>>();
         colors = std::make_shared<std::vector<std::tuple<float, float, float>>>();
@@ -75,22 +87,15 @@ void SpecificWorker::initialize(int period)
 		timer.start(50);
 		
 	}
-    window_name = "3D LIDAR Viewer";
-    cv::namedWindow(window_name, cv::WINDOW_AUTOSIZE);
-    slider_start = 180;
-    slider_len = 100;
-	slider_dec = 1;
-    cv::createTrackbar("start", window_name, &slider_start, 360 , &SpecificWorker::on_start, this);
-    cv::createTrackbar("len", window_name, &slider_len, 360 , &SpecificWorker::on_len, this);
-    cv::createTrackbar("z filter", window_name, &slider_z, 4000, &SpecificWorker::on_zfilter, this);
-	cv::createTrackbar("decimation filter", window_name, &slider_dec, 5, &SpecificWorker::on_decfilter, this);
-	cv::setTrackbarMin("decimation filter", window_name, 1);
+
+
 }
 
 void SpecificWorker::compute()
 {
 	try
 	{
+		cv::Mat image = cv::Mat::zeros(480, 640, CV_8UC3);
 		points->clear(); colors->clear();
 		auto ldata = lidar3d_proxy->getLidarData("", qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
 		points->resize(ldata.points.size());
@@ -117,15 +122,26 @@ void SpecificWorker::compute()
 
 void SpecificWorker::on_start(int pos, void *data)
 {
+    auto *worker = static_cast<SpecificWorker*>(data);
+    worker->slider_start = pos;
 }
+
 void SpecificWorker::on_len(int pos, void *data)
 {
+    auto *worker = static_cast<SpecificWorker*>(data);
+    worker->slider_len = pos;
 }
+
 void SpecificWorker::on_zfilter(int pos, void *data)
 {
+    auto *worker = static_cast<SpecificWorker*>(data);
+    worker->slider_z = pos;
 }
+
 void SpecificWorker::on_decfilter(int pos, void *data)
 {
+    auto *worker = static_cast<SpecificWorker*>(data);
+    worker->slider_dec = pos;
 }
 
 int SpecificWorker::startup_check()

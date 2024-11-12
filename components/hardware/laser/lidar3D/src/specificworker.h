@@ -24,8 +24,12 @@
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
+#define USE_OPEN3D false
 
-#include <open3d/Open3D.h>
+#if USE_OPEN3D
+    #include <open3d/Open3D.h>
+#endif
+
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>
 #include <rs_driver/msg/point_cloud_msg.hpp>
@@ -121,7 +125,7 @@ private:
             inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
             // dowwnsample
-            double down_sampling = 100.0;   //mm free voxel radius
+            double down_sampling = 0;   //mm free voxel radius
 };
 
 #endif

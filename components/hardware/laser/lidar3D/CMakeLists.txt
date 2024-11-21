@@ -4,7 +4,7 @@ PROJECT( Lidar3D )
 SET(RC_COMPONENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "component base path" FORCE)
 SET(RC_COMPONENT_DEVEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE STRING "component binary path" FORCE)
 #SET(RC_COMPONENT_DEVEL_PATH "${WORKSPACE_PATH}/devel"  CACHE STRING "component binary path")
-SET(RC_COMPONENT_INSTALL_PATH "/opt/robocomp" CACHE STRING "component install path")
+SET(RC_COMPONENT_INSTALL_PATH "/home/robocomp/robocomp" CACHE STRING "component install path")
 
 #commented as now devel is merged into source space
 #get_filename_component( COMPONENT_NAME ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
@@ -12,7 +12,7 @@ SET(RC_COMPONENT_INSTALL_PATH "/opt/robocomp" CACHE STRING "component install pa
 #STRING(STRIP ${COMPONENT_NAME} COMPONENT_NAME)
 #SET(COMPONENT_NAME ${COMPONENT_NAME} CACHE STRING "component name" FORCE)
 
-SUBDIRS( src )
+SUBDIRS(generated)
 
 INSTALL(FILES etc/config DESTINATION ${RC_COMPONENT_INSTALL_PATH}/etc-default/ RENAME Lidar3D.conf )
 

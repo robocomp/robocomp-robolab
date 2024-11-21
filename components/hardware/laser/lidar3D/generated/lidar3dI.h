@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,26 +16,26 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LASER_H
-#define LASER_H
+#ifndef LIDAR3D_H
+#define LIDAR3D_H
 
 // Ice includes
 #include <Ice/Ice.h>
-#include <Laser.h>
+#include <Lidar3D.h>
 
-#include <config.h>
 #include "genericworker.h"
 
 
-class LaserI : public virtual RoboCompLaser::Laser
+class Lidar3DI : public virtual RoboCompLidar3D::Lidar3D
 {
 public:
-	LaserI(GenericWorker *_worker);
-	~LaserI();
+	Lidar3DI(GenericWorker *_worker);
+	~Lidar3DI();
 
-	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&);
-	RoboCompLaser::LaserConfData getLaserConfData(const Ice::Current&);
-	RoboCompLaser::TLaserData getLaserData(const Ice::Current&);
+	RoboCompLidar3D::TData getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&);
+	RoboCompLidar3D::TDataImage getLidarDataArrayProyectedInImage(std::string name, const Ice::Current&);
+	RoboCompLidar3D::TData getLidarDataProyectedInImage(std::string name, const Ice::Current&);
+	RoboCompLidar3D::TData getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor, const Ice::Current&);
 
 private:
 

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -19,17 +19,23 @@
 #ifndef GENERICWORKER_H
 #define GENERICWORKER_H
 
-#include "config.h"
 #include <stdint.h>
-#include <qlog/qlog.h>
-#include <CommonBehavior.h>
+#include <grafcetStep/GRAFCETStep.h>
+#include <ConfigLoader/ConfigLoader.h>
+#include <QStateMachine>
+#include <QEvent>
+#include <QString>
+#include <functional>
+#include <atomic>
+#include <QtCore>
+#include <variant>
+#include <unordered_map>
+
+
 
 #include <Lidar3D.h>
 
-
-#define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
-
 
 using TuplePrx = std::tuple<RoboCompLidar3D::Lidar3DPrxPtr>;
 
@@ -38,13 +44,16 @@ class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
-	GenericWorker(TuplePrx tprx);
+	GenericWorker(const ConfigLoader& configLoader, TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
-	virtual void setPeriod(int p);
 
-	virtual bool setParams(RoboCompCommonBehavior::ParameterList params) = 0;
-	QMutex *mutex;
+	void setPeriod(const std::string& state, int period);
+	int getPeriod(const std::string& state);
+
+	QStateMachine statemachine;
+	QTimer hibernationChecker;
+	std::atomic_bool hibernation = false;
 
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
@@ -55,19 +64,24 @@ public:
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor) = 0;
 
 protected:
+	std::unordered_map<std::string, std::unique_ptr<GRAFCETStep>> states;
+	ConfigLoader configLoader;
 
-	QTimer timer;
-	int Period;
+
 
 private:
 
-
 public slots:
+	virtual void initialize() = 0;
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+	virtual void emergency() = 0;
+	virtual void restore() = 0;
+	void hibernationCheck();
 	
 signals:
 	void kill();
+	void goToEmergency();
+	void goToRestore();
 };
 
 #endif

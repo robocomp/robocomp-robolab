@@ -1,5 +1,3 @@
-CommonBehavior.Endpoints=tcp -p 11986
-
 # Endpoints for implements interfaces
 Lidar3D.Endpoints=tcp -p 11990
 Camera360RGB.Endpoints=tcp -p 10099
@@ -20,6 +18,9 @@ rz=0.0
 tx=0.0
 ty=-170.0
 tz=1100.0
+
+Period.Compute=100
+Period.Emergency=500
 
 # boundin box colision / hitbox
 center_box_x=0.0

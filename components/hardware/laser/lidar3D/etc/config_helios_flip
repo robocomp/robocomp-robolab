@@ -35,6 +35,9 @@ top_line= 4000
 
 down_sampling = 100.0
 
+Period.Compute=100
+Period.Emergency=500
+
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
 Ice.Trace.Protocol=0

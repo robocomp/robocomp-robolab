@@ -25,10 +25,31 @@ robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
-    this->startup_check_flag = startup_check;
-//	QLoggingCategory::setFilterRules("*.debug=false\n");
+this->startup_check_flag = startup_check;
+	if(this->startup_check_flag)
+	{
+		this->startup_check();
+	}
+	else
+	{
+		#ifdef HIBERNATION_ENABLED
+			hibernationChecker.start(500);
+		#endif
+        
+		//Your states for machine HERE EXAMPLE
+
+		statemachine.setChildMode(QState::ExclusiveStates);
+		statemachine.start();
+
+		auto error = statemachine.errorString();
+		if (error.length() > 0){
+			qWarning() << error;
+			throw error;
+		}
+		
+	}
 }
 /**
 * \brief Default destructor
@@ -37,8 +58,10 @@ SpecificWorker::~SpecificWorker()
 {
     std::cout << "Destroying SpecificWorker" << std::endl;
 }
-bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
+void SpecificWorker::initialize()
 {
+    std::cout << "initialize worker" << std::endl;
+	//computeCODE
     // Save locale setting
     const std::string oldLocale=std::setlocale(LC_NUMERIC,nullptr);
     // Force '.' as the radix point. If you comment this out,
@@ -46,33 +69,33 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     std::setlocale(LC_NUMERIC,"C");
     try
     {
-        lidar_model = std::stoi(params.at("lidar_model").value);
-        msop_port = std::stoi(params.at("msop_port").value);
-        difop_port = std::stoi(params.at("difop_port").value);
-        dest_pc_ip_addr = params.at("dest_pc_ip_addr").value;
+        lidar_model = this->configLoader.get<int>("lidar_model");
+        msop_port = this->configLoader.get<int>("msop_port");
+        difop_port = this->configLoader.get<int>("difop_port");
+        dest_pc_ip_addr =this->configLoader.get<std::string>("dest_pc_ip_addr");
 
         //Extrinsic
         float rx, ry, rz, tx, ty, tz;
-        rx = std::stof(params["rx"].value);
-        ry = std::stof(params["ry"].value);
-        rz = std::stof(params["rz"].value);
-        tx = std::stof(params["tx"].value);
-        ty = std::stof(params["ty"].value);
-        tz = std::stof(params["tz"].value);
+        rx = this->configLoader.get<double>("rx");
+        ry = this->configLoader.get<double>("ry");
+        rz = this->configLoader.get<double>("rz");
+        tx = this->configLoader.get<double>("tx");
+        ty = this->configLoader.get<double>("ty");
+        tz = this->configLoader.get<double>("tz");
         this->robot_lidar = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
         this->robot_lidar.rotate(Eigen::AngleAxisf (rx,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
-        std::cout<<"Extrinsec Matrix:"<<std::endl<<this->robot_lidar.matrix()<<endl;
+        std::cout<<"Extrinsec Matrix:"<<std::endl<<this->robot_lidar.matrix()<<std::endl;
 
         //boundin box colision / hitbox
         float center_box_x, center_box_y, center_box_z, size_box_x, size_box_y, size_box_z;
-        center_box_x = std::stof(params["center_box_x"].value);
-        center_box_y = std::stof(params["center_box_y"].value);
-        center_box_z = std::stof(params["center_box_z"].value);
-        size_box_x = std::stof(params["size_box_x"].value);
-        size_box_y = std::stof(params["size_box_y"].value);
-        size_box_z = std::stof(params["size_box_z"].value);
+        center_box_x = this->configLoader.get<double>("center_box_x");
+        center_box_y = this->configLoader.get<double>("center_box_y");
+        center_box_z = this->configLoader.get<double>("center_box_z");
+        size_box_x = this->configLoader.get<double>("size_box_x");
+        size_box_y = this->configLoader.get<double>("size_box_y");
+        size_box_z = this->configLoader.get<double>("size_box_z");
 
-        simulator = params["simulator"].value == "true";
+        simulator = this->configLoader.get<bool>("simulator");
 
         box_min.x() = center_box_x - size_box_x/2.0;//minx
         box_min.y() = center_box_y - size_box_y/2.0;//miny
@@ -81,16 +104,16 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         box_max.y() = center_box_y + size_box_y/2.0;//maxy
         box_max.z() = center_box_z + size_box_z/2.0;//maxz
 
-        floor_line = std::stof(params["floor_line"].value);
-        top_line = std::stof(params["top_line"].value);
+        floor_line = this->configLoader.get<int>("floor_line");
+        top_line = this->configLoader.get<int>("top_line");
 
-        std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<endl;
-        std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<endl;
-        std::cout<<"Floor line in millimetres:"<<std::endl<<this->floor_line<<endl;
+        std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<std::endl;
+        std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<std::endl;
+        std::cout<<"Floor line in millimetres:"<<std::endl<<this->floor_line<<std::endl;
 
         #if USE_OPEN3D
             // downsampling mm
-            down_sampling = std::stof(params["down_sampling"].value);
+            down_sampling = this->configLoader.get<double>("down_sampling");
         #else
             down_sampling = 0;
         #endif
@@ -98,7 +121,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 
     }catch (const std::exception &e)
-    {std::cout <<"Error reading the config \n" << e.what() << std::endl << std::flush; }
+    {
+        std::cout <<"Error reading the config \n" << e.what() << std::endl << std::flush; 
+        std::terminate();
+        }
 
     // Restore locale setting
     std::setlocale(LC_NUMERIC,oldLocale.c_str());
@@ -112,57 +138,35 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         dst_width = 1920;
         dst_height = 920;
     }
-    
-    return true;
-}
-void SpecificWorker::initialize(int period)
-{
-    std::cout << __FUNCTION__ << " Initialize worker" << std::endl;
-    this->Period = 50;
-    if (this->startup_check_flag)
+    if (not simulator)
     {
-        this->startup_check();
-    } else
-    {
-        if (not simulator)
+        param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
+        param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
+        //param.input_param.group_address = "192.168.50.111";
+        param.input_param.msop_port = msop_port;   ///< Set the lidar msop port number, the default is 6699
+        param.input_param.difop_port = difop_port;  ///< Set the lidar difop port number, the default is 7788
+        param.lidar_type = lidar_model_list[lidar_model];   ///< Set the lidar type. Make sure this type is correct
+        param.print();
+        driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback,
+                                        driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
+        driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function}
+
+        if (not driver.init(param))                         ///< Call the init function
         {
-            param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
-            param.input_param.host_address = dest_pc_ip_addr; // ip del pc que va a recibir los datos. El lidar se encuentra en la 192.168.1.200 (tiene api rest)
-            //param.input_param.group_address = "192.168.50.111";
-            param.input_param.msop_port = msop_port;   ///< Set the lidar msop port number, the default is 6699
-            param.input_param.difop_port = difop_port;  ///< Set the lidar difop port number, the default is 7788
-            param.lidar_type = lidar_model_list[lidar_model];   ///< Set the lidar type. Make sure this type is correct
-            param.print();
-            driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback,
-                                         driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
-            driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function}
-
-            if (not driver.init(param))                         ///< Call the init function
-            {
-                std::cout << __FUNCTION__ << " Driver Initialize Error.... Aborting" << std::endl;
-                std::terminate();
-            }
-            driver.start();
-            std::cout << __FUNCTION__ << " Driver initiated OK" << std::endl;
+            std::cout << __FUNCTION__ << " Driver Initialize Error.... Aborting" << std::endl;
+            std::terminate();
         }
-
-        // pause variable
-        last_read.store(std::chrono::high_resolution_clock::now());
-
-        timer.start(this->Period);
-        std::this_thread::sleep_for(std::chrono::milliseconds(this->Period*2));
-        ready_to_go.store(true);
+        driver.start();
+        std::cout << __FUNCTION__ << " Driver initiated OK" << std::endl;
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(getPeriod("Compute")));
+    ready_to_go.store(true);
+    
 }
+
 void SpecificWorker::compute()
 {
-    /// check idle time
-    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_read.load()).count() > MAX_INACTIVE_TIME)
-    {
-        fps.print("No requests in the last 5 seconds. Pausing. Comp wil continue in next call", 3000);
-        return;
-    }
-
     RoboCompLidar3D::TData raw_lidar;
     int num_points = 0;
     try
@@ -188,7 +192,7 @@ void SpecificWorker::compute()
             auto now = std::chrono::system_clock::now();
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         }
-        raw_lidar.period = static_cast<float>(this->Period); // ms
+        raw_lidar.period = static_cast<float>(getPeriod("Compute")); // ms
 
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
@@ -203,6 +207,25 @@ void SpecificWorker::compute()
         {std::cout << __FUNCTION__ << " Error in Lidar Proxy" << std::endl;}
 
     fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
+}
+
+
+void SpecificWorker::emergency()
+{
+    std::cout << "Emergency worker" << std::endl;
+	//computeCODE
+	//
+	//if (SUCCESSFUL)
+    //  emmit goToRestore()
+}
+
+//Execute one when exiting to emergencyState
+void SpecificWorker::restore()
+{
+    std::cout << "Restore worker" << std::endl;
+	//computeCODE
+	//Restore emergency component
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,18 +274,13 @@ inline bool SpecificWorker::isPointOutsideCube(const Eigen::Vector3f point, cons
 }
 void SpecificWorker::self_adjust_period(int new_period)
 {
-    if(abs(new_period - this->Period) < 2)      // do it only if period changes
+    int period = getPeriod("Compute");
+    if(abs(new_period - period) < 2)      // do it only if period changes
         return;
-    if(new_period > this->Period)
-    {
-        this->Period += 1;
-        timer.setInterval(this->Period);
-    }
+    if(new_period > period)
+        setPeriod("Compute", period + 1);
     else
-    {
-        this->Period -= 1;
-        this->timer.setInterval(this->Period);
-    }
+        setPeriod("Compute", period - 1);
 }
 std::optional<Eigen::Vector3d> SpecificWorker::transform_filter_point(float x, float y, float z, int intensity)
 {
@@ -529,11 +547,12 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
+	#ifdef HIBERNATION_ENABLED
+		hibernation = true;
+	#endif
      //LiDAR not started
     if(not ready_to_go)
         return {};
-
-    last_read.store(std::chrono::high_resolution_clock::now());
 
     RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
 
@@ -597,11 +616,12 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor)
 {
+	#ifdef HIBERNATION_ENABLED
+		hibernation = true;
+	#endif
     //LiDAR not started
     if(not ready_to_go)
         return {};
-
-    last_read.store(std::chrono::high_resolution_clock::now());
 
     //Get LiDAR data
     RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
@@ -637,11 +657,12 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std::string name)
 {
+	#ifdef HIBERNATION_ENABLED
+		hibernation = true;
+	#endif
     //LiDAR not started
     if (not ready_to_go)
         return {};
-
-    last_read.store(std::chrono::high_resolution_clock::now());
 
     RoboCompLidar3D::TData buffer;
     RoboCompLidar3D::TPoints processed_points;
@@ -651,13 +672,15 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
 }
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
+	#ifdef HIBERNATION_ENABLED
+		hibernation = true;
+	#endif
     RoboCompLidar3D::TDataImage ret;
 
     //LiDAR not started
     if(not ready_to_go)
         return {};
 
-    last_read.store(std::chrono::high_resolution_clock::now());
     return buffer_array_data.get_idemp();
 }
 
@@ -668,3 +691,23 @@ int SpecificWorker::startup_check()
     QTimer::singleShot(200, qApp, SLOT(quit()));
     return 0;
 }
+
+/**************************************/
+// From the RoboCompLidar3D you can call this methods:
+// RoboCompLidar3D::TData this->lidar3d_proxy->getLidarData(string name, float start, float len, int decimationDegreeFactor)
+// RoboCompLidar3D::TDataImage this->lidar3d_proxy->getLidarDataArrayProyectedInImage(string name)
+// RoboCompLidar3D::TData this->lidar3d_proxy->getLidarDataProyectedInImage(string name)
+// RoboCompLidar3D::TData this->lidar3d_proxy->getLidarDataWithThreshold2d(string name, float distance, int decimationDegreeFactor)
+
+/**************************************/
+// From the RoboCompLidar3D you can use this types:
+// RoboCompLidar3D::TPoint
+// RoboCompLidar3D::TDataImage
+// RoboCompLidar3D::TData
+
+/**************************************/
+// From the RoboCompLidar3D you can use this types:
+// RoboCompLidar3D::TPoint
+// RoboCompLidar3D::TDataImage
+// RoboCompLidar3D::TData
+

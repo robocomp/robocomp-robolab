@@ -29,6 +29,7 @@
 #if USE_OPEN3D
     #include <open3d/Open3D.h>
 #endif
+#define HIBERNATION_ENABLED
 
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>
@@ -56,18 +57,19 @@ class SpecificWorker : public GenericWorker
 {
     Q_OBJECT
         public:
-            SpecificWorker(TuplePrx tprx, bool startup_check);
+	        SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check);
             ~SpecificWorker();
-            bool setParams(RoboCompCommonBehavior::ParameterList params);
             RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
             RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
             RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
             RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor);
 
         public slots:
+            void initialize();
             void compute();
+            void emergency();
+            void restore();
             int startup_check();
-            void initialize(int period);
             void self_adjust_period(int new_period);
 
 private:
@@ -85,7 +87,7 @@ private:
 
             robosense::lidar::RSDriverParam param;                           ///< Create a parameter object
             robosense::lidar::LidarDriver<PointCloudMsg> driver;             ///< Declare the driver object
-            vector<int> compression_params;
+            std::vector<int> compression_params;
 
             static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
             double remap_angle(double angle);
@@ -119,7 +121,7 @@ private:
             int MAX_INACTIVE_TIME = 5;  // secs after which the component is paused. It reactivates with a new reset
 
             RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
-            std::vector<cv::Point2f> fish2equirect(const vector<cv::Point2f> &points);
+            std::vector<cv::Point2f> fish2equirect(const std::vector<cv::Point2f> &points);
             std::optional<Eigen::Vector3d> transform_filter_point(float x, float y, float z, int intensity);
             RoboCompLidar3D::TData processLidarData(const auto &input_points);  // Abbreviated function template
             inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);

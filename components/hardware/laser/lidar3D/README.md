@@ -1,4 +1,4 @@
-# lidar_3d
+# Lidar3D
 Intro to component here
 
 ## Installation
@@ -18,7 +18,7 @@ The difference between lidars is the ports:
 
 
 ## Configuration parameters
-As any other component, *lidar_3d* needs a configuration file to start. In
+As any other component, *Lidar3D* needs a configuration file to start. In
 ```
 etc/config
 ```
@@ -31,7 +31,7 @@ EXAMPLE HERE
 To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
 
 ```
-cd <lidar_3d's path> 
+cd <Lidar3D's path> 
 ```
 ```
 cp etc/config config
@@ -40,5 +40,5 @@ cp etc/config config
 After editing the new config file we can run the component:
 
 ```
-bin/lidar_3d config
+bin/Lidar3D config
 ```

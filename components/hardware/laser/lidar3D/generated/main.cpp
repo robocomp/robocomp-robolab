@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -63,36 +63,41 @@
 
 // QT includes
 #include <QtCore>
-//#include <QtWidgets>
+#include <QtWidgets>
 
 // ICE includes
 #include <Ice/Ice.h>
 #include <IceStorm/IceStorm.h>
 #include <Ice/Application.h>
 
-#include <rapplication/rapplication.h>
-#include <sigwatch/sigwatch.h>
-#include <qlog/qlog.h>
+#include <ConfigLoader/ConfigLoader.h>
 
-#include "config.h"
-#include "genericmonitor.h"
+#include <sigwatch/sigwatch.h>
+
 #include "genericworker.h"
-#include "specificworker.h"
-#include "specificmonitor.h"
-#include "commonbehaviorI.h"
+#include "../src/specificworker.h"
 
 #include <lidar3dI.h>
 
 
+//#define USE_QTGUI
+
+#define PROGRAM_NAME    "Lidar3D"
+#define SERVER_FULL_NAME   "RoboComp Lidar3D::Lidar3D"
 
 
-class Lidar3D : public RoboComp::Application
+class Lidar3D : public Ice::Application
 {
 public:
-	Lidar3D (QString prfx, bool startup_check) { prefix = prfx.toStdString(); this->startup_check_flag=startup_check; }
+	Lidar3D (QString configFile, QString prfx, bool startup_check) { 
+		this->configFile = configFile.toStdString();
+		this->prefix = prfx.toStdString();
+		this->startup_check_flag=startup_check; 
+		}
 private:
 	void initialize();
-	std::string prefix;
+	std::string prefix, configFile;
+	ConfigLoader configLoader;
 	TuplePrx tprx;
 	bool startup_check_flag = false;
 
@@ -102,9 +107,8 @@ public:
 
 void ::Lidar3D::initialize()
 {
-	// Config file properties read example
-	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
-	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
+    this->configLoader.load(this->configFile);
+	this->configLoader.printConfig();
 }
 
 int ::Lidar3D::run(int argc, char* argv[])
@@ -132,84 +136,46 @@ int ::Lidar3D::run(int argc, char* argv[])
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
-	string proxy, tmp;
+	std::string proxy, tmp;
 	initialize();
 
 	try
 	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "Lidar3DProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Lidar3DProxy\n";
-		}
-		lidar3d_proxy = Ice::uncheckedCast<RoboCompLidar3D::Lidar3DPrx>( communicator()->stringToProxy( proxy ) );
+	    proxy = configLoader.get<std::string>("Lidar3DProxy");
+		lidar3d_proxy = Ice::uncheckedCast<RoboCompLidar3D::Lidar3DPrx>(communicator()->stringToProxy(proxy));
 	}
 	catch(const Ice::Exception& ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Lidar3D: " << ex;
+		std::cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Lidar3D: " << ex;
 		return EXIT_FAILURE;
 	}
-	rInfo("Lidar3DProxy initialized Ok!");
+	qInfo("Lidar3DProxy initialized Ok!");
 
 
 	tprx = std::make_tuple(lidar3d_proxy);
-	SpecificWorker *worker = new SpecificWorker(tprx, startup_check_flag);
-	//Monitor thread
-	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
-	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
+	SpecificWorker *worker = new SpecificWorker(this->configLoader, tprx, startup_check_flag);
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
-	monitor->start();
-
-	if ( !monitor->isRunning() )
-		return status;
-
-	while (!monitor->ready)
-	{
-		usleep(10000);
-	}
 
 	try
 	{
-		try {
-			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "CommonBehavior.Endpoints", tmp, "")) {
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
-			}
-			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-			auto commonbehaviorI = std::make_shared<CommonBehaviorI>(monitor);
-			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
-			adapterCommonBehavior->activate();
-		}
-		catch(const Ice::Exception& ex)
-		{
-			status = EXIT_FAILURE;
-
-			cout << "[" << PROGRAM_NAME << "]: Exception raised while creating CommonBehavior adapter: " << endl;
-			cout << ex;
-
-		}
-
-
 
 		try
 		{
 			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "Lidar3D.Endpoints", tmp, ""))
-			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy Lidar3D";
-			}
-			Ice::ObjectAdapterPtr adapterLidar3D = communicator()->createObjectAdapterWithEndpoints("Lidar3D", tmp);
+		    tmp = configLoader.get<std::string>("Lidar3D.Endpoints");
+		    Ice::ObjectAdapterPtr adapterLidar3D = communicator()->createObjectAdapterWithEndpoints("Lidar3D", tmp);
 			auto lidar3d = std::make_shared<Lidar3DI>(worker);
 			adapterLidar3D->add(lidar3d, Ice::stringToIdentity("lidar3d"));
 			adapterLidar3D->activate();
-			cout << "[" << PROGRAM_NAME << "]: Lidar3D adapter created in port " << tmp << endl;
+			std::cout << "[" << PROGRAM_NAME << "]: Lidar3D adapter created in port " << tmp << std::endl;
 		}
 		catch (const IceStorm::TopicExists&){
-			cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Lidar3D\n";
+			std::cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Lidar3D\n";
 		}
 
 
 		// Server adapter creation and publication
-		cout << SERVER_FULL_NAME " started" << endl;
+		std::cout << SERVER_FULL_NAME " started" << std::endl;
 
 		// User defined QtGui elements ( main window, dialogs, etc )
 
@@ -227,8 +193,8 @@ int ::Lidar3D::run(int argc, char* argv[])
 	{
 		status = EXIT_FAILURE;
 
-		cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << endl;
-		cout << ex;
+		std::cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << std::endl;
+		std::cout << ex;
 
 	}
 	#ifdef USE_QTGUI
@@ -236,16 +202,13 @@ int ::Lidar3D::run(int argc, char* argv[])
 	#endif
 
 	status = EXIT_SUCCESS;
-	monitor->terminate();
-	monitor->wait();
 	delete worker;
-	delete monitor;
 	return status;
 }
 
 int main(int argc, char* argv[])
 {
-	string arg;
+	std::string arg;
 
 	// Set config file
 	QString configFile("etc/config");
@@ -264,7 +227,7 @@ int main(int argc, char* argv[])
 			if (arg.find(startup.toStdString(), 0) != std::string::npos)
 			{
 				startup_check_flag = true;
-				cout << "Startup check = True"<< endl;
+				std::cout << "Startup check = True"<< std::endl;
 			}
 			else if (arg.find(prfx.toStdString(), 0) != std::string::npos)
 			{
@@ -286,7 +249,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::Lidar3D app(prefix, startup_check_flag);
+	::Lidar3D app(configFile, prefix, startup_check_flag);
 
-	return app.main(argc, argv, configFile.toLocal8Bit().data());
+	return app.main(argc, argv);
 }

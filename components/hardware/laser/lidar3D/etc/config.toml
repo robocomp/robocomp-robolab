@@ -26,7 +26,7 @@ top_line= 4000
 
 down_sampling = 100.0
 
-[Proxys]
+[Proxies]
 # Proxies for required interfaces
 Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 

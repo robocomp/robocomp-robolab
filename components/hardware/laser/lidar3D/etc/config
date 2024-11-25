@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-Proxys.Lidar3D = lidar3d:tcp -h localhost -p 11988
+Proxies.Lidar3D = lidar3d:tcp -h localhost -p 11988
 
 
 # Endpoints for implements interfaces

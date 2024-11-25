@@ -141,7 +141,7 @@ int ::Lidar3D::run(int argc, char* argv[])
 
 	try
 	{
-	    proxy = configLoader.get<std::string>("Proxys.Lidar3D");
+	    proxy = configLoader.get<std::string>("Proxies.Lidar3D");
 		lidar3d_proxy = Ice::uncheckedCast<RoboCompLidar3D::Lidar3DPrx>(communicator()->stringToProxy(proxy));
 	}
 	catch(const Ice::Exception& ex)

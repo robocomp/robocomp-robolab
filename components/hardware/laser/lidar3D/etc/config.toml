@@ -26,16 +26,13 @@ top_line= 4000
 
 down_sampling = 100.0
 
-
-
+[Proxys]
 # Proxies for required interfaces
-Lidar3DProxy = "lidar3d:tcp -h localhost -p 11988"
+Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 
-
+[Endpoints]
 # Endpoints for implements interfaces
-[Lidar3D]
-Endpoints = "tcp -p 11990"
-
+Lidar3D = "tcp -p 11990"
 
 [Period]
 Compute=100

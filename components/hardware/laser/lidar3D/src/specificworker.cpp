@@ -37,8 +37,23 @@ this->startup_check_flag = startup_check;
 		#ifdef HIBERNATION_ENABLED
 			hibernationChecker.start(500);
 		#endif
-        
-		//Your states for machine HERE EXAMPLE
+
+		
+		// Example statemachine:
+		/***
+		//Your definition for the statesmachine (if you dont want use a execute function, use nullptr)
+		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period, 
+															std::bind(&SpecificWorker::customLoop, this),  // Cyclic function
+															std::bind(&SpecificWorker::customEnter, this), // On-enter function
+															std::bind(&SpecificWorker::customExit, this)); // On-exit function
+
+		//Add your definition of transitions (addTransition(originOfSignal, signal, dstState))
+		states["CustomState"]->addTransition(states["CustomState"].get(), SIGNAL(entered()), states["OtherState"].get());
+		states["Compute"]->addTransition(this, SIGNAL(customSignal()), states["CustomState"].get()); //Define your signal in the .h file under the "Signals" section.
+
+		//Add your custom state
+		statemachine.addState(states["CustomState"].get());
+		***/
 
 		statemachine.setChildMode(QState::ExclusiveStates);
 		statemachine.start();
@@ -51,9 +66,6 @@ this->startup_check_flag = startup_check;
 		
 	}
 }
-/**
-* \brief Default destructor
-*/
 SpecificWorker::~SpecificWorker()
 {
     std::cout << "Destroying SpecificWorker" << std::endl;
@@ -61,7 +73,6 @@ SpecificWorker::~SpecificWorker()
 void SpecificWorker::initialize()
 {
     std::cout << "initialize worker" << std::endl;
-	//computeCODE
     // Save locale setting
     const std::string oldLocale=std::setlocale(LC_NUMERIC,nullptr);
     // Force '.' as the radix point. If you comment this out,

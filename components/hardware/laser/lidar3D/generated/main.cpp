@@ -141,7 +141,7 @@ int ::Lidar3D::run(int argc, char* argv[])
 
 	try
 	{
-	    proxy = configLoader.get<std::string>("Lidar3DProxy");
+	    proxy = configLoader.get<std::string>("Proxys.Lidar3D");
 		lidar3d_proxy = Ice::uncheckedCast<RoboCompLidar3D::Lidar3DPrx>(communicator()->stringToProxy(proxy));
 	}
 	catch(const Ice::Exception& ex)
@@ -162,7 +162,7 @@ int ::Lidar3D::run(int argc, char* argv[])
 		try
 		{
 			// Server adapter creation and publication
-		    tmp = configLoader.get<std::string>("Lidar3D.Endpoints");
+		    tmp = configLoader.get<std::string>("Endpoints.Lidar3D");
 		    Ice::ObjectAdapterPtr adapterLidar3D = communicator()->createObjectAdapterWithEndpoints("Lidar3D", tmp);
 			auto lidar3d = std::make_shared<Lidar3DI>(worker);
 			adapterLidar3D->add(lidar3d, Ice::stringToIdentity("lidar3d"));

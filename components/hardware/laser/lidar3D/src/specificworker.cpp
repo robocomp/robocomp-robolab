@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -115,8 +115,8 @@ void SpecificWorker::initialize()
         box_max.y() = center_box_y + size_box_y/2.0;//maxy
         box_max.z() = center_box_z + size_box_z/2.0;//maxz
 
-        floor_line = this->configLoader.get<int>("floor_line");
-        top_line = this->configLoader.get<int>("top_line");
+        floor_line = this->configLoader.get<double>("floor_line");
+        top_line = this->configLoader.get<double>("top_line");
 
         std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<std::endl;
         std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<std::endl;
@@ -215,7 +215,7 @@ void SpecificWorker::compute()
         buffer_data.put(std::move(raw_lidar));
     }
     catch (const Ice::Exception &e)
-        {std::cout << __FUNCTION__ << " Error in Lidar Proxy" << std::endl;}
+        {std::cerr << __FUNCTION__ << " Error in Lidar Proxy\n" << e.what() << std::endl;}
 
     fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
 }

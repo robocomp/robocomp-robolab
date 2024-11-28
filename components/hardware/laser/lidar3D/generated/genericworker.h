@@ -32,7 +32,6 @@
 #include <unordered_map>
 
 
-
 #include <Lidar3D.h>
 
 #define BASIC_PERIOD 100
@@ -66,6 +65,7 @@ public:
 protected:
 	std::unordered_map<std::string, std::unique_ptr<GRAFCETStep>> states;
 	ConfigLoader configLoader;
+
 
 
 

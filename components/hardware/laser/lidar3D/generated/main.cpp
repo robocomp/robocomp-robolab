@@ -93,7 +93,13 @@ public:
 		this->configFile = configFile.toStdString();
 		this->prefix = prfx.toStdString();
 		this->startup_check_flag=startup_check; 
+
+		this->configLoader.load(this->configFile);
+		this->configLoader.printConfig();
 		}
+
+	Ice::InitializationData getInitializationDataIce();
+
 private:
 	void initialize();
 	std::string prefix, configFile;
@@ -105,13 +111,23 @@ public:
 	virtual int run(int, char*[]);
 };
 
-void ::Lidar3D::initialize()
+Ice::InitializationData Lidar3D::getInitializationDataIce(){
+        Ice::InitializationData initData;
+        initData.properties = Ice::createProperties();
+        initData.properties->setProperty("Ice.Warn.Connections", this->configLoader.get<std::string>("Ice.Warn.Connections"));
+        initData.properties->setProperty("Ice.Trace.Network", this->configLoader.get<std::string>("Ice.Trace.Network"));
+        initData.properties->setProperty("Ice.Trace.Protocol", this->configLoader.get<std::string>("Ice.Trace.Protocol"));
+        initData.properties->setProperty("Ice.MessageSizeMax", this->configLoader.get<std::string>("Ice.MessageSizeMax"));
+		return initData;
+}
+
+void Lidar3D::initialize()
 {
     this->configLoader.load(this->configFile);
 	this->configLoader.printConfig();
 }
 
-int ::Lidar3D::run(int argc, char* argv[])
+int Lidar3D::run(int argc, char* argv[])
 {
 #ifdef USE_QTGUI
 	QApplication a(argc, argv);  // GUI application
@@ -193,8 +209,8 @@ int ::Lidar3D::run(int argc, char* argv[])
 	{
 		status = EXIT_FAILURE;
 
-		std::cout << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << std::endl;
-		std::cout << ex;
+		std::cerr << "[" << PROGRAM_NAME << "]: Exception raised on main thread: " << std::endl;
+		std::cerr << ex;
 
 	}
 	#ifdef USE_QTGUI
@@ -249,7 +265,7 @@ int main(int argc, char* argv[])
 		}
 
 	}
-	::Lidar3D app(configFile, prefix, startup_check_flag);
+	Lidar3D app(configFile, prefix, startup_check_flag);
 
-	return app.main(argc, argv);
+	return app.main(argc, argv, app.getInitializationDataIce());
 }

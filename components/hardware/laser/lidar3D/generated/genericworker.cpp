@@ -46,6 +46,9 @@ GenericWorker::GenericWorker(const ConfigLoader& configLoader, TuplePrx tprx) : 
 
 	connect(&hibernationChecker, SIGNAL(timeout()), this, SLOT(hibernationCheck()));
 
+
+
+    
 }
 
 /**

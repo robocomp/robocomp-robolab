@@ -119,13 +119,15 @@ If you’re regenerating or adapting old components, here’s what has changed:
 - Skeleton code split: `generated` (non-editable) and `src` (editable).
 - Component period is now configurable in the configuration file.
 - State machine integrated with predefined states: `Initialize`, `Compute`, `Emergency`, and `Restore`.
+- With the `dsr` option, you generate `G` in the GenericWorker, making the viewer independent. If you want to use the `dsrviewer`, you will need the `Qt GUI (QMainWindow)` and the `dsr` option enabled in the **CDSL**.
+- Strings in the legacy config now need to be enclosed in quotes (`""`).
 
 ## Adapting Old Components
 To adapt older components to the new structure:
 
-1. **Add** `Period.Compute` and `Period.Emergency` to the `etc/config` file.
+1. **Add** `Period.Compute` and `Period.Emergency` and swap Endpoints and Proxies with their names in the `etc/config` file.
 2. **Merge** the new `src/CMakeLists.txt` and the old `CMakeListsSpecific` files.
-2. **Modify** `specificworker.h`:
+3. **Modify** `specificworker.h`:
     - Add the `HIBERNATION_ENABLED` flag.
     - Update the constructor signature.
     - Replace `setParams` with state definitions (`Initialize`, `Compute`, etc.).
@@ -140,12 +142,21 @@ To adapt older components to the new structure:
             hibernation = true;
         #endif
         ```
-5. **Installing toml++**, to use the new .toml configuration format, install the toml++ library:
+5. **Update Configuration Strings**, ensure all strings in the `config` under legacy are enclosed in quotes (`""`), as required by the new structure.
+6. **Using DSR**, if you use the DSR option, note that `G` is generated in `GenericWorker`, making the viewer independent. However, to use the `dsrviewer`, you must integrate a `Qt GUI (QMainWindow)` and enable the `dsr` option in the **CDSL**. 
+7. **Installing toml++**, to use the new .toml configuration format, install the toml++ library:
 ```bash
-cd software && git clone https://github.com/marzer/tomlplusplus.git
-cd tomlplusplus && cmake -B build && sudo make install -C build -j12
+mkdir ~/software 2> /dev/null; git clone https://github.com/marzer/tomlplusplus.git ~/software/tomlplusplus
+cd ~/software/tomlplusplus && cmake -B build && sudo make install -C build -j12 && cd -
 ```
-6. **Generated Code**, When the component is generated, a `generated` folder is created containing non-editable files. You can delete everything in the `src` directory except for:
+8. **Installing qt6 Dependencies**
+```bash
+sudo apt install qt6-base-dev qt6-declarative-dev qt6-scxml-dev libqt6statemachineqml6 libqt6statemachine6
+
+mkdir ~/software 2> /dev/null; git clone https://github.com/GillesDebunne/libQGLViewer.git ~/software/libQGLViewer
+cd ~/software/libQGLViewer && qmake6 *.pro && make -j12 && sudo make install && sudo ldconfig && cd -
+```
+9. **Generated Code**, When the component is generated, a `generated` folder is created containing non-editable files. You can delete everything in the `src` directory except for:
 - `src/specificworker.h`
 - `src/specificworker.cpp`
 - `src/CMakeLists.txt`

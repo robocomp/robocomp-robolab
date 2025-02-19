@@ -1,0 +1,11 @@
+import "JoystickAdapter.idsl";
+
+Component python_xbox_controller
+{
+    Communications
+    {
+        publishes JoystickAdapter;
+    };
+    language python;
+};
+

@@ -20,7 +20,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# \mainpage RoboComp::camerargbdsimpleviewer
+# \mainpage RoboComp::pioneer_viewer
 #
 # \section intro_sec Introduction
 #
@@ -48,7 +48,7 @@
 #
 # \subsection execution_ssec Execution
 #
-# Just: "${PATH_TO_BINARY}/camerargbdsimpleviewer --Ice.Config=${PATH_TO_CONFIG_FILE}"
+# Just: "${PATH_TO_BINARY}/pioneer_viewer --Ice.Config=${PATH_TO_CONFIG_FILE}"
 #
 # \subsection running_ssec Once running
 #
@@ -71,7 +71,7 @@ def sigint_handler(*args):
 
 
 if __name__ == '__main__':
-    app = QtCore.QCoreApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
@@ -88,5 +88,5 @@ if __name__ == '__main__':
 
     interface_manager.set_default_hanlder(worker)
     signal.signal(signal.SIGINT, sigint_handler)
-    app.exec_()
+    app.exec()
     interface_manager.destroy()

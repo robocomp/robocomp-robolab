@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-PROJECT(  camerargbdsimpleviewer )
+PROJECT(  pioneer_viewer )
 
 INCLUDE( /home/robocomp/robocomp/cmake/robocomp.cmake )
 

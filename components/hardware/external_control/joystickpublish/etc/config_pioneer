@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -h pioneernuc.local -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -h 192.168.50.201 -p 9999
 
 InnerModelPath = innermodel.xml
 

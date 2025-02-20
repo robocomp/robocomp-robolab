@@ -19,8 +19,8 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from PySide2.QtCore import QTimer
-from PySide2.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 from genericworker import *
 import cv2
 import numpy as np
@@ -29,12 +29,17 @@ import itertools
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 50
+        self.Period = 5
         if startup_check:
             self.startup_check()
         else:
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
+
+        # QLabel to show the image
+        self.label = QLabel(self.ui.frame)
+        self.label.setGeometry(0, 0, self.ui.frame.width(), self.ui.frame.height())
+        self.label.setAlignment(Qt.AlignCenter)  # Alinear la imagen al centro
 
     def __del__(self):
         print('SpecificWorker destructor')
@@ -56,41 +61,33 @@ class SpecificWorker(GenericWorker):
             #cvdepth_norm = cv2.normalize(src=cvdepth, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             #cvdepth_norm_color = cv2.applyColorMap(cvdepth_norm, cv2.COLORMAP_HOT)
             cvcolor = np.frombuffer(color.image, np.uint8).reshape(color.height, color.width, color.depth)
-            cvcolor = cv2.resize(cvcolor, (color.height*2, color.width*2))
-            #mosaic = self.make_mosaic([cvcolor, cvdepth_norm_color])
-            cv2.imshow('CameraRGBDViewer', cvcolor)
-            cv2.waitKey(1)
-            #cv2.imshow('CameraRGBDViewer - Depth', cvdepth_norm)
+            #cvcolor = cv2.resize(cvcolor, (color.height*2, color.width*2))
+            # Verifica si la imagen se cargó correctamente
+            print("Imagen cargada, dimensiones: ", cvcolor.shape)
+            #cv2.imshow("Debug - Imagen recibida", cvcolor)  # Mostrar la imagen con OpenCV para depurar
+
+            #Convert the OpenCV image to QImage
+            image = cv2.cvtColor(cvcolor, cv2.COLOR_BGR2RGB)
+            # Verificar las dimensiones y tipo de imagen
+            print("Dimensiones de la imagen convertida: ", image.shape)
+            if image is not None:
+                # Convertir la imagen de OpenCV a QImage
+                height, width, channels = image.shape
+                qimage = QImage(image.data, width, height, width * channels, QImage.Format_RGB888)
+
+                # Convertir QImage a QPixmap y actualizar el QLabel
+                pixmap = QPixmap.fromImage(qimage)
+                self.label.setPixmap(pixmap)
+
+                # Ajustar la escala del contenido del QLabel
+                self.label.setScaledContents(True)
+                self.ui.frame.show()  # Mostrar el frame
+
         except Ice.Exception as e:
             print(e)
-        return True
 
-    def make_mosaic(self, imgs):
-        #if any(i.shape != imgs[0].shape for i in imgs[1:]):
-        #    raise ValueError('Not all images have the same shape.')
 
-        img_h, img_w, img_c = imgs[0].shape
-        m_x = 0
-        m_y = 0
-        w = 2
-        h = 1
-        n = w * h
-        margin = 10
-        if margin is not None:
-            m_x = int(margin)
-            m_y = m_x
-        imgmatrix = np.zeros((img_h * h + m_y * (h - 1),
-                              img_w * w + m_x * (w - 1),
-                              img_c),
-                             np.uint8)
-        imgmatrix.fill(255)
-        positions = itertools.product(range(w), range(h))
-        for (x_i, y_i), img in itertools.zip_longest(positions, imgs):
-            x = x_i * (img_w + m_x)
-            y = y_i * (img_h + m_y)
-            imgmatrix[y:y+img_h, x:x+img_w, :] = img
-
-        return imgmatrix
+        #self.ui.progressBar.setValue(0)
 
 def startup_check(self):
     QTimer.singleShot(200, QApplication.instance().quit)

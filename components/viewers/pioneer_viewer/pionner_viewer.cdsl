@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+
+Component pioneer_viewer
+{
+	Communications
+	{
+		requires CameraRGBDSimple;
+	};
+	language Python;
+	gui Qt(QWidget);
+	
+};
+

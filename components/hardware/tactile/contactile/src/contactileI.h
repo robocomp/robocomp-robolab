@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,26 +16,24 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LASER_H
-#define LASER_H
+#ifndef CONTACTILE_H
+#define CONTACTILE_H
 
 // Ice includes
 #include <Ice/Ice.h>
-#include <Laser.h>
+#include <Contactile.h>
 
 #include <config.h>
 #include "genericworker.h"
 
 
-class LaserI : public virtual RoboCompLaser::Laser
+class ContactileI : public virtual RoboCompContactile::Contactile
 {
 public:
-	LaserI(GenericWorker *_worker);
-	~LaserI();
+	ContactileI(GenericWorker *_worker);
+	~ContactileI();
 
-	RoboCompLaser::TLaserData getLaserAndBStateData(RoboCompGenericBase::TBaseState &bState, const Ice::Current&);
-	RoboCompLaser::LaserConfData getLaserConfData(const Ice::Current&);
-	RoboCompLaser::TLaserData getLaserData(const Ice::Current&);
+	RoboCompContactile::FingerTips getValues(const Ice::Current&);
 
 private:
 

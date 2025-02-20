@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,29 +16,21 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIDAR3D_H
-#define LIDAR3D_H
+#include "contactileI.h"
 
-// Ice includes
-#include <Ice/Ice.h>
-#include <Lidar3D.h>
-
-#include <config.h>
-#include "genericworker.h"
-
-
-class Lidar3DI : public virtual RoboCompLidar3D::Lidar3D
+ContactileI::ContactileI(GenericWorker *_worker)
 {
-public:
-	Lidar3DI(GenericWorker *_worker);
-	~Lidar3DI();
+	worker = _worker;
+}
 
-	RoboCompLidar3D::TData getLidarData(std::string name, int start, int len, int decimationfactor, const Ice::Current&);
 
-private:
+ContactileI::~ContactileI()
+{
+}
 
-	GenericWorker *worker;
 
-};
+RoboCompContactile::FingerTips ContactileI::getValues(const Ice::Current&)
+{
+	return worker->Contactile_getValues();
+}
 
-#endif

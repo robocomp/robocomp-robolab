@@ -4,8 +4,8 @@ Component Lidar3D
 {
     Communications
     {
-        requires Lidar3D;
         implements Lidar3D;
+        requires Lidar3D;
     };
     language Cpp11;
 };

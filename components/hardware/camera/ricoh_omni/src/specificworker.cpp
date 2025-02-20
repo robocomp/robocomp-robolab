@@ -29,7 +29,6 @@ SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorke
 	// shown in the console with qDebug()
     //	QLoggingCategory::setFilterRules("*.debug=false\n");
 }
-
 /**
 * \brief Default destructor
 */
@@ -37,7 +36,6 @@ SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
-
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
     try
@@ -47,31 +45,32 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
         pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
         pars.orin = params.at("orin").value == "true" or (params.at("orin").value == "True");
         pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
-        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << std::endl;
+        pars.time_offset =std::stof(params.at("time_offset").value);
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << "offset "<< pars.time_offset <<std::endl;
     }
     catch(const std::exception &e)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
     return true;
 }
-
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initializing worker" << std::endl;
-    
-    if (pars.orin)
-    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
-    else
-    	pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
-    //if (pars.orin)
-    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    //else
-    	//pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-    this->Period = 33;
+
 	if(this->startup_check_flag)
 		this->startup_check();
 	else
     {
-        bool activated_camera = false;
+        last_read.store(std::chrono::high_resolution_clock::now());
+
+        if (pars.orin)
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+        else
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+        //if (pars.orin)
+        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+        //else
+        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+
         while(!activated_camera)
         {
             if(!pars.simulator)
@@ -105,24 +104,36 @@ void SpecificWorker::initialize(int period)
                 catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;};
             }
         }
-
+        capture_time = -1;
         DEPTH = cv_frame.elemSize();
+        this->Period = 33;
         timer.start(Period);
     }
 }
-
 void SpecificWorker::compute()
 {
+    /// check idle time
+    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_read.load()).count() > MAX_INACTIVE_TIME)
+    {
+        fps.print("No requests in the last 5 seconds. Pausing. Comp wil continue in next call", 3000);
+        return;
+    }
+
+
     if(not pars.simulator)
+    {
         capture >> cv_frame;
+        capture_time = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count() - pars.time_offset;
+    }
     else        // Simulator
     {
         try
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
+            capture_time = image.alivetime;
             // self adjusting period to remote image source
-            self_adjust_period(image.period);
+            //self_adjust_period(image.period);
         }
         catch (const Ice::Exception &e)
         { std::cout << e.what() << " Error reading 360 camera " << std::endl; }
@@ -137,11 +148,11 @@ void SpecificWorker::compute()
     fps.print("FPS:");
 }
 
-    void SpecificWorker::self_adjust_period(int new_period)
-    {
-        if(abs(new_period - this->Period) < 2)
-            return;
-        if(new_period > this->Period)
+void SpecificWorker::self_adjust_period(int new_period)
+{
+    if(abs(new_period - this->Period) < 2)
+        return;
+    if(new_period > this->Period)
         {
             this->Period += 1;
             timer.setInterval(this->Period);
@@ -150,7 +161,7 @@ void SpecificWorker::compute()
             this->Period -= 1;
             this->timer.setInterval(this->Period);
         }
-    }
+}
 /////////////////////////////////////////////////////////////////////
 ////////////// Interface
 /////////////////////////////////////////////////////////////////////
@@ -158,92 +169,92 @@ void SpecificWorker::compute()
 RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
     RoboCompCamera360RGB::TImage res;
-//    std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-    if(sx == 0 || sy == 0)
+    if (this->activated_camera)
     {
-        std::cout << "No size. Sending complete image" << std::endl;
-        sx = MAX_WIDTH; sy = MAX_HEIGHT;
-        cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+        last_read.store(std::chrono::high_resolution_clock::now());
+        //std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
+        if(sx == 0 || sy == 0)
+        {
+            std::cout << "No size. Sending complete image" << std::endl;
+            sx = MAX_WIDTH; sy = MAX_HEIGHT;
+            cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+        }
+        if(sx == -1)
+            sx = MAX_WIDTH;
+        if(sy == -1)
+            sy = MAX_HEIGHT;
+        if(cx == -1)
+            cx = (int)(MAX_WIDTH/2);
+        if(cy == -1)
+            cy = int(MAX_HEIGHT/2);
+        if(roiwidth == -1)
+            roiwidth = MAX_WIDTH;
+        if(roiheight == -1)
+            roiheight = MAX_HEIGHT;
+
+        // Get image from doublebuffer
+        auto img = buffer_image.get_idemp();      // TODO: change to try_get() or get_idemp()
+
+        // Check if y is out of range. Get max or min values in that case
+        if((cy - (int) (sy / 2)) < 0)
+        {
+    //        std::cout << "CASO 1" << std::endl;
+            sx = (int) ((float) sx / (float) sy * 2 * cy );
+            sy = 2*cy;
+        }
+        else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
+        {
+    //        std::cout << "CASO 2" << std::endl;
+            sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
+            sy = 2 * (MAX_HEIGHT - cy);
+        }
+
+        // Check if x is out of range. Add proportional image section in that case
+        cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
+        if((cx - (int) (sx / 2)) < 0)
+        {
+            img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
+            img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
+            cv::hconcat(x_out_image_left, x_out_image_right, dst);
+        }
+
+        else if((cx + (int) (sx / 2)) > MAX_WIDTH)
+        {
+            img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
+            img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
+            cv::hconcat(x_out_image_left, x_out_image_right, dst);
+        }
+
+        else
+        {
+            sx--;
+            img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
+        }
+
+        cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
+ 
+        if (pars.compressed)
+        {
+            std::vector<uchar> buffer;
+            cv::imencode(".jpg", rdst, buffer, compression_params);
+            res.image = buffer;
+            res.compressed = true;
+        } else
+        {
+            res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
+            res.compressed = false;
+        }
+        res.period = fps.get_period();
+        res.alivetime = capture_time;
+        res.depth = rdst.channels();
+        res.height = rdst.rows;
+        res.width = rdst.cols;
+        res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
+        //std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
+
     }
-    if(sx == -1)
-        sx = MAX_WIDTH;
-    if(sy == -1)
-        sy = MAX_HEIGHT;
-    if(cx == -1)
-        cx = (int)(MAX_WIDTH/2);
-    if(cy == -1)
-        cy = int(MAX_HEIGHT/2);
-    if(roiwidth == -1)
-        roiwidth = MAX_WIDTH;
-    if(roiheight == -1)
-        roiheight = MAX_HEIGHT;
-
-    // Get image from doublebuffer
-    auto img = buffer_image.get();      // TODO: change to try_get() or get_idemp()
-
-    // Check if y is out of range. Get max or min values in that case
-    if((cy - (int) (sy / 2)) < 0)
-    {
-//        std::cout << "CASO 1" << std::endl;
-        sx = (int) ((float) sx / (float) sy * 2 * cy );
-        sy = 2*cy;
-    }
-    else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
-    {
-//        std::cout << "CASO 2" << std::endl;
-        sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
-        sy = 2 * (MAX_HEIGHT - cy);
-    }
-
-//    std::cout << "Converted IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-
-    // Check if x is out of range. Add proportional image section in that case
-    cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
-    if((cx - (int) (sx / 2)) < 0)
-    {
-//        std::cout << "CENTER MINOR THAN 0" << std::endl;
-//        std::cout << "LEFT SECTION " << MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)) << std::endl;
-//        std::cout << "RIGHT SECTION " << cx + (int) (sx / 2) <<std::endl;
-        img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
-        img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
-        cv::hconcat(x_out_image_left, x_out_image_right, dst);
-    }
-
-    else if((cx + (int) (sx / 2)) > MAX_WIDTH)
-    {
-//        std::cout << "CENTER MAYOR THAN MAX_WIDTH" << std::endl;
-        img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
-        img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
-        cv::hconcat(x_out_image_left, x_out_image_right, dst);
-    }
-
-    else
-    {
-        sx--;
-        img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
-    }
-
-    cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
-    //qInfo() << "requested " << cx - (int) (sx / 2) << cy - (int) (sy / 2) << "resized " << rdst.rows << rdst.cols;
-
-    if (pars.compressed)
-    {
-        std::vector<uchar> buffer;
-        cv::imencode(".jpg", rdst, buffer, compression_params);
-        res.image = buffer;
-        res.compressed = true;
-    } else
-    {
-        res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
-        res.compressed = false;
-    }
-    res.period = fps.get_period();
-    res.alivetime = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count();
-    res.depth = rdst.channels();
-    res.height = rdst.rows;
-    res.width = rdst.cols;
-    res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
     return res;
+    
 }
 
 ///////////////////////////////////////////////////////////////////77

@@ -82,7 +82,6 @@
 #include "commonbehaviorI.h"
 
 
-#include <CameraRGBDSimple.h>
 
 
 

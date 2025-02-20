@@ -107,9 +107,7 @@ class SpecificWorker : public GenericWorker
         std::shared_ptr<std::vector<std::tuple<point3f, point3f, point3f, point3f>>> planes;
         std::string window_name;
 
-    string lidar_name = "helios";
-    static int slider_start, slider_len, slider_z;
-    int slider_dec;
+    static int slider_start, slider_len, slider_z, slider_dec;
     static void on_start(int pos,void *data);
     static void on_len(int pos,void *data);
     static void on_zfilter(int pos,void *data);

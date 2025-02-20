@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2024 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -24,14 +24,15 @@
 #include <qlog/qlog.h>
 #include <CommonBehavior.h>
 
-#include <Lidar3D.h>
+#include <Contactile.h>
+#include <ContactilePub.h>
 
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 
-using TuplePrx = std::tuple<RoboCompLidar3D::Lidar3DPrxPtr>;
+using TuplePrx = std::tuple<RoboCompContactilePub::ContactilePubPrxPtr>;
 
 
 class GenericWorker : public QObject
@@ -47,9 +48,9 @@ public:
 	QMutex *mutex;
 
 
-	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
+	RoboCompContactilePub::ContactilePubPrxPtr contactilepub_pubproxy;
 
-	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, int start, int len, int decimationfactor) = 0;
+	virtual RoboCompContactile::FingerTips Contactile_getValues() = 0;
 
 protected:
 

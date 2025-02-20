@@ -26,9 +26,16 @@ from genericworker import *
 import interfaces as ifaces
 from vedirect import Vedirect
 import time, json
+import os
+import threading
 
-sys.path.append('/opt/robocomp/lib')
 console = Console(highlight=False)
+
+try:
+    import setproctitle
+    setproctitle.setproctitle(os.path.basename(os.getcwd()))
+except:
+    pass
 
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
@@ -37,10 +44,18 @@ console = Console(highlight=False)
 # import librobocomp_innermodel
 
 
+
+
 class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map, startup_check=False):
         super(SpecificWorker, self).__init__(proxy_map)
         self.Period = 1000
+        
+        self.on_warning = True
+        self.warning_mode = 0
+        self.warning_thread = threading.Thread(target=self.warning_function, daemon=True)
+        self.warning_thread.start()
+
         if startup_check:
             self.startup_check()
         else:
@@ -51,16 +66,24 @@ class SpecificWorker(GenericWorker):
 
     def __del__(self):
         """Destructor"""
+        self.on_warning = False
 
     def setParams(self, params):
         try:
-            self.lambda_percentage = lambda x: ((x - float(params["in"]))*100)/ (float(params["Vmax"])-float(params["Vmin"]))
             self.victron = Vedirect(serialport=params["serialPort"], timeout=None,vMaxCharging=float(params["vMaxCharging"]),
-            vMax=float(params["vMax"]), vMin=float(params["vMin"]))
+                                vMax=float(params["vMax"]), vMin=float(params["vMin"]))
         except Exception as e:
             print(e)
             print("Error reading config params")
         return True
+
+    def warning_function(self):
+        while self.on_warning:
+            if self.warning_mode == 1:
+                os.system("ffplay -nodisp -autoexit audio/Please_charge_me.mp3 > /dev/null")
+            elif self.warning_mode == 2:
+                os.system("ffplay -nodisp -autoexit audio/Hunger.mp3 > /dev/null")
+            time.sleep(30)
 
 
     @QtCore.Slot()
@@ -71,18 +94,27 @@ class SpecificWorker(GenericWorker):
             self.batteryStatus.voltage = int(victron_data_dict["V"])/1000
             self.batteryStatus.current = int(victron_data_dict["I"])/1000
             self.batteryStatus.consumptionPerHour = int(victron_data_dict["H20"])
-            print(ifaces.RoboCompBatteryStatus.BatteryStates.Charging)
+            
+            #Totalmente cargado
             if victron_data_dict["CS"]=="5": 
                 self.batteryStatus.state = ifaces.RoboCompBatteryStatus.BatteryStates.Charged 
                 self.batteryStatus.percentage = 100
+
+            #Descargandose/No conectado
             elif victron_data_dict["CS"]=="0": 
                 self.batteryStatus.state = ifaces.RoboCompBatteryStatus.BatteryStates.Disconnected 
                 self.batteryStatus.percentage = self.victron.calc_percentage(charger=False, voltage=self.batteryStatus.voltage)
+                if self.batteryStatus.percentage < 15:
+                    self.warning_mode = 2
+                elif self.batteryStatus.percentage < 25:
+                    self.warning_mode = 1
+
+            #Cargandose
             else:  
                 self.batteryStatus.state = ifaces.RoboCompBatteryStatus.BatteryStates.Charging
                 self.batteryStatus.percentage = self.victron.calc_percentage(charger=True, voltage=self.batteryStatus.voltage)
-
-
+                self.warning_ticks = 0
+                
             print(self.batteryStatus)
             # Mostramos los datos por pantalla de forma bonita
             print("=========== Datos recibidos ===========")

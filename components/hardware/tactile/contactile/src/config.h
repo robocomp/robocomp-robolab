@@ -5,7 +5,7 @@
 //#define USE_QTGUI
 
 
-#define PROGRAM_NAME    "Lidar3D"
-#define SERVER_FULL_NAME   "RoboComp Lidar3D:: Lidar3D"
+#define PROGRAM_NAME    "contactile"
+#define SERVER_FULL_NAME   "RoboComp contactile:: contactile"
 
 #endif

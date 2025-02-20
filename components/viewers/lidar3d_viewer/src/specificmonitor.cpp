@@ -96,9 +96,6 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
 	configGetString( "","pc_blue", aux.value, "nofile");
 	params["pc_blue"] = aux;
-
-    configGetString( "","lidar_name", aux.value, "helios");
-    params["lidar_name"] = aux;
 }
 
 //Check parameters and transform them to worker structure

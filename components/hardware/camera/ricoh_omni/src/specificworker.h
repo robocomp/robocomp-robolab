@@ -68,6 +68,7 @@ public slots:
 
     private:
         bool startup_check_flag;
+        bool activated_camera = false;
         cv::Mat cv_frame;
         cv::VideoCapture capture;
 
@@ -76,6 +77,8 @@ public slots:
         //vector<uchar> buffer;
 
         FPSCounter fps;
+        std::atomic<std::chrono::high_resolution_clock::time_point> last_read;
+        int MAX_INACTIVE_TIME = 5;  // secs after which the component is paused. It reactivates with a new reset
 
         struct PARAMS
         {
@@ -84,6 +87,7 @@ public slots:
             bool orin = false;
             bool compressed = false;
             bool simulator = false;
+            int time_offset;
         };
         PARAMS pars;
         int MAX_WIDTH, MAX_HEIGHT, DEPTH;
@@ -92,6 +96,7 @@ public slots:
         //DoubleBuffer<cv::Mat, RoboCompCameraSimple::TImage> buffer_image;
         DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 
+        long long capture_time;
         // track image period
         void self_adjust_period(int new_period);
 };

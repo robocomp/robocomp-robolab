@@ -8,6 +8,7 @@ ui_*
 *.pyc
 CMakeCache.txt
 CMakeFiles
+build
 
 # Build and Release Folders
 bin/

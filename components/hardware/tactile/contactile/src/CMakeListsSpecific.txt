@@ -1,0 +1,17 @@
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+add_definitions(-O3 -fmax-errors=1 -fno-char8_t)
+
+SET (LIBS ${LIBS}  -L./ -lm -lPTSDK -lpthread)
+
+

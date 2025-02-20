@@ -100,6 +100,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 
     configGetString( "","compressed", aux.value, "false");
     params["compressed"] = aux;
+
+    configGetString( "","time_offset", aux.value, "0");
+    params["time_offset"] = aux;
 }
 
 //Check parameters and transform them to worker structure

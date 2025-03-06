@@ -1,0 +1,14 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+#CameraRGBDSimpleProxy = camerargbdsimple:tcp -h 192.168.50.201 -p 10095
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -h 10.8.0.3 -p 10095
+
+BatteryStatusProxy = batterystatus:tcp -h 192.168.50.201 -p 14498
+DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
+
+camera_name = Viriato_head_camera_front_sensor
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800

@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+import "DifferentialRobot.idsl";
+import "BatteryStatus.idsl";
+Component pioneer_viewer_py
+{
+    Communications
+    {
+        requires CameraRGBDSimple, DifferentialRobot, BatteryStatus;
+    };
+    language python;
+    gui Qt(QWidget);
+};
+

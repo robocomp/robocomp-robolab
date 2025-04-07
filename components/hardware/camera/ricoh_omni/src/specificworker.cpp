@@ -131,7 +131,7 @@ void SpecificWorker::compute()
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
-            capture_time = image.alivetime;
+            capture_time = image.timestamp;
             // self adjusting period to remote image source
             //self_adjust_period(image.period);
         }
@@ -245,12 +245,12 @@ RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy,
             res.compressed = false;
         }
         res.period = fps.get_period();
-        res.alivetime = capture_time;
+        res.timestamp = capture_time;
         res.depth = rdst.channels();
         res.height = rdst.rows;
         res.width = rdst.cols;
         res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
-        //std::cout << "TIMESTAMP: " << res.alivetime<< std::endl;
+        //std::cout << "TIMESTAMP: " << res.timestamp<< std::endl;
 
     }
     return res;

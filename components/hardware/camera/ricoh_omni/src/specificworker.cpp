@@ -169,92 +169,78 @@ void SpecificWorker::self_adjust_period(int new_period)
 RoboCompCamera360RGB::TImage SpecificWorker::Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight)
 {
     RoboCompCamera360RGB::TImage res;
-    if (this->activated_camera)
+    if (!this->activated_camera)
+        return res;
+
+    last_read.store(std::chrono::high_resolution_clock::now());
+
+    // Default values for invalid inputs
+    sx = (sx <= 0) ? MAX_WIDTH : sx;
+    sy = (sy <= 0) ? MAX_HEIGHT : sy;
+    cx = (cx < 0) ? MAX_WIDTH / 2 : cx;
+    cy = (cy < 0) ? MAX_HEIGHT / 2 : cy;
+    roiwidth = (roiwidth < 0) ? MAX_WIDTH : roiwidth;
+    roiheight = (roiheight < 0) ? MAX_HEIGHT : roiheight;
+
+    // Get image from double buffer
+    auto img = buffer_image.get_idemp();
+
+    // Adjust ROI to stay within bounds
+    int half_sx = sx / 2, half_sy = sy / 2;
+    cy = std::clamp(cy, half_sy, MAX_HEIGHT - half_sy);
+    cx = std::clamp(cx, half_sx, MAX_WIDTH - half_sx);
+
+    cv::Mat roi;
+    if (cx - half_sx < 0 || cx + half_sx > MAX_WIDTH) // Handle x out-of-bounds
     {
-        last_read.store(std::chrono::high_resolution_clock::now());
-        //std::cout << "REQUIRED IMAGE: " << sx << " " << sy << " " << cx << " " << cy << " " << roiwidth << " " << roiheight << std::endl;
-        if(sx == 0 || sy == 0)
+        cv::Mat left, right;
+        if (cx - half_sx < 0)
         {
-            std::cout << "No size. Sending complete image" << std::endl;
-            sx = MAX_WIDTH; sy = MAX_HEIGHT;
-            cx = (int)(MAX_WIDTH/2); cy = int(MAX_HEIGHT/2);
+            img(cv::Rect(MAX_WIDTH - (half_sx - cx), cy - half_sy, half_sx - cx, sy)).copyTo(left);
+            img(cv::Rect(0, cy - half_sy, cx + half_sx, sy)).copyTo(right);
         }
-        if(sx == -1)
-            sx = MAX_WIDTH;
-        if(sy == -1)
-            sy = MAX_HEIGHT;
-        if(cx == -1)
-            cx = (int)(MAX_WIDTH/2);
-        if(cy == -1)
-            cy = int(MAX_HEIGHT/2);
-        if(roiwidth == -1)
-            roiwidth = MAX_WIDTH;
-        if(roiheight == -1)
-            roiheight = MAX_HEIGHT;
-
-        // Get image from doublebuffer
-        auto img = buffer_image.get_idemp();      // TODO: change to try_get() or get_idemp()
-
-        // Check if y is out of range. Get max or min values in that case
-        if((cy - (int) (sy / 2)) < 0)
-        {
-    //        std::cout << "CASO 1" << std::endl;
-            sx = (int) ((float) sx / (float) sy * 2 * cy );
-            sy = 2*cy;
-        }
-        else if((cy + (int) (sy / 2)) >= MAX_HEIGHT)
-        {
-    //        std::cout << "CASO 2" << std::endl;
-            sx = (int) ((float) sx / (float) sy * 2 * (MAX_HEIGHT - cy) );
-            sy = 2 * (MAX_HEIGHT - cy);
-        }
-
-        // Check if x is out of range. Add proportional image section in that case
-        cv::Mat x_out_image_left, x_out_image_right, dst, rdst;;
-        if((cx - (int) (sx / 2)) < 0)
-        {
-            img(cv::Rect(MAX_WIDTH - 1 - abs (cx - (int) (sx / 2)), cy - (int) (sy / 2), abs (cx - (int) (sx / 2)), sy)).copyTo(x_out_image_left);
-            img(cv::Rect(0, cy - (int) (sy / 2),  cx + (int) (sx / 2), sy)).copyTo(x_out_image_right);
-            cv::hconcat(x_out_image_left, x_out_image_right, dst);
-        }
-
-        else if((cx + (int) (sx / 2)) > MAX_WIDTH)
-        {
-            img(cv::Rect(cx - (int) (sx / 2) - 1, cy - (int) (sy / 2), MAX_WIDTH - cx + (int) (sx / 2), sy)).copyTo(x_out_image_left);
-            img(cv::Rect(0, cy - (int) (sy / 2), cx + (int) (sx / 2) - MAX_WIDTH, sy)).copyTo(x_out_image_right);
-            cv::hconcat(x_out_image_left, x_out_image_right, dst);
-        }
-
         else
         {
-            sx--;
-            img(cv::Rect(cx - (int) (sx / 2), cy - (int) (sy / 2), sx, sy)).copyTo(dst);
+            img(cv::Rect(cx - half_sx, cy - half_sy, MAX_WIDTH - cx + half_sx, sy)).copyTo(left);
+            img(cv::Rect(0, cy - half_sy, cx + half_sx - MAX_WIDTH, sy)).copyTo(right);
         }
-
-        cv::resize(dst, rdst, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
- 
-        if (pars.compressed)
-        {
-            std::vector<uchar> buffer;
-            cv::imencode(".jpg", rdst, buffer, compression_params);
-            res.image = buffer;
-            res.compressed = true;
-        } else
-        {
-            res.image.assign(rdst.data, rdst.data + (rdst.total() * rdst.elemSize()));
-            res.compressed = false;
-        }
-        res.period = fps.get_period();
-        res.timestamp = capture_time;
-        res.depth = rdst.channels();
-        res.height = rdst.rows;
-        res.width = rdst.cols;
-        res.roi = RoboCompCamera360RGB::TRoi{.xcenter=cx, .ycenter=cy, .xsize=sx, .ysize=sy, .finalxsize=res.width, .finalysize=res.height};
-        //std::cout << "TIMESTAMP: " << res.timestamp<< std::endl;
-
+        cv::hconcat(left, right, roi);
     }
+    else
+    {
+        roi = img(cv::Rect(cx - half_sx, cy - half_sy, sx, sy));
+    }
+
+    // Resize only if necessary
+    cv::Mat resized_roi;
+    if (roiwidth != sx || roiheight != sy)
+        cv::resize(roi, resized_roi, cv::Size(roiwidth, roiheight), cv::INTER_LINEAR);
+    else
+        resized_roi = roi;
+
+    // Compress or copy image data
+    if (pars.compressed)
+    {
+        std::vector<uchar> buffer;
+        cv::imencode(".jpg", resized_roi, buffer, compression_params);
+        res.image = std::move(buffer);
+        res.compressed = true;
+    }
+    else
+    {
+        res.image.assign(resized_roi.data, resized_roi.data + (resized_roi.total() * resized_roi.elemSize()));
+        res.compressed = false;
+    }
+
+    // Populate result metadata
+    res.period = fps.get_period();
+    res.timestamp = capture_time;
+    res.depth = resized_roi.channels();
+    res.height = resized_roi.rows;
+    res.width = resized_roi.cols;
+    res.roi = RoboCompCamera360RGB::TRoi{.xcenter = cx, .ycenter = cy, .xsize = sx, .ysize = sy, .finalxsize = res.width, .finalysize = res.height};
+
     return res;
-    
 }
 
 ///////////////////////////////////////////////////////////////////77

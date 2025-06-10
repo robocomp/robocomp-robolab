@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2024 by YOUR NAME HERE
+ *    Copyright (C) 2025 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -18,9 +18,28 @@
  */
 #include "lidar3dI.h"
 
-Lidar3DI::Lidar3DI(GenericWorker *_worker)
+Lidar3DI::Lidar3DI(GenericWorker *_worker, const size_t id): worker(_worker), id(id)
 {
-	worker = _worker;
+	getLidarDataHandlers = {
+		[this](auto a, auto b, auto c, auto d) { return worker->Lidar3D_getLidarData(a, b, c, d); }
+	};
+
+	getLidarDataArrayProyectedInImageHandlers = {
+		[this](auto a) { return worker->Lidar3D_getLidarDataArrayProyectedInImage(a); }
+	};
+
+	getLidarDataByCategoryHandlers = {
+		[this](auto a, auto b) { return worker->Lidar3D_getLidarDataByCategory(a, b); }
+	};
+
+	getLidarDataProyectedInImageHandlers = {
+		[this](auto a) { return worker->Lidar3D_getLidarDataProyectedInImage(a); }
+	};
+
+	getLidarDataWithThreshold2dHandlers = {
+		[this](auto a, auto b, auto c) { return worker->Lidar3D_getLidarDataWithThreshold2d(a, b, c); }
+	};
+
 }
 
 
@@ -31,21 +50,71 @@ Lidar3DI::~Lidar3DI()
 
 RoboCompLidar3D::TData Lidar3DI::getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarData(name, start, len, decimationDegreeFactor);
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getLidarDataHandlers.size())
+		return  getLidarDataHandlers[id](name, start, len, decimationDegreeFactor);
+	else
+		throw std::out_of_range("Invalid getLidarData id: " + std::to_string(id));
+
 }
 
 RoboCompLidar3D::TDataImage Lidar3DI::getLidarDataArrayProyectedInImage(std::string name, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarDataArrayProyectedInImage(name);
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getLidarDataArrayProyectedInImageHandlers.size())
+		return  getLidarDataArrayProyectedInImageHandlers[id](name);
+	else
+		throw std::out_of_range("Invalid getLidarDataArrayProyectedInImage id: " + std::to_string(id));
+
+}
+
+RoboCompLidar3D::TDataCategory Lidar3DI::getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp, const Ice::Current&)
+{
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getLidarDataByCategoryHandlers.size())
+		return  getLidarDataByCategoryHandlers[id](categories, timestamp);
+	else
+		throw std::out_of_range("Invalid getLidarDataByCategory id: " + std::to_string(id));
+
 }
 
 RoboCompLidar3D::TData Lidar3DI::getLidarDataProyectedInImage(std::string name, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarDataProyectedInImage(name);
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getLidarDataProyectedInImageHandlers.size())
+		return  getLidarDataProyectedInImageHandlers[id](name);
+	else
+		throw std::out_of_range("Invalid getLidarDataProyectedInImage id: " + std::to_string(id));
+
 }
 
 RoboCompLidar3D::TData Lidar3DI::getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor, const Ice::Current&)
 {
-	return worker->Lidar3D_getLidarDataWithThreshold2d(name, distance, decimationDegreeFactor);
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getLidarDataWithThreshold2dHandlers.size())
+		return  getLidarDataWithThreshold2dHandlers[id](name, distance, decimationDegreeFactor);
+	else
+		throw std::out_of_range("Invalid getLidarDataWithThreshold2d id: " + std::to_string(id));
+
 }
 

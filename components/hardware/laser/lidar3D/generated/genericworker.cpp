@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2024 by YOUR NAME HERE
+ *    Copyright (C) 2025 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -125,5 +125,9 @@ void GenericWorker::hibernationCheck()
 		originalPeriod = this->getPeriod("Compute");
         this->setPeriod("Compute", 500);
     }
+}
+
+void GenericWorker::hibernationTick(){
+	hibernation = true;
 }
 

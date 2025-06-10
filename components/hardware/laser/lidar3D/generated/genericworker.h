@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2024 by YOUR NAME HERE
+ *    Copyright (C) 2025 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -59,8 +59,10 @@ public:
 
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor) = 0;
 	virtual RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name) = 0;
+	virtual RoboCompLidar3D::TDataCategory Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp) = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name) = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor) = 0;
+
 
 protected:
 	std::unordered_map<std::string, std::unique_ptr<GRAFCETStep>> states;
@@ -77,6 +79,7 @@ public slots:
 	virtual void emergency() = 0;
 	virtual void restore() = 0;
 	void hibernationCheck();
+	void hibernationTick();
 	
 signals:
 	void kill();

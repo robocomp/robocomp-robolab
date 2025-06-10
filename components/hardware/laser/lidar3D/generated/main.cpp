@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2024 by YOUR NAME HERE
+ *    Copyright (C) 2025 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -79,11 +79,52 @@
 
 #include <lidar3dI.h>
 
+#include <Lidar3D.h>
 
 //#define USE_QTGUI
 
 #define PROGRAM_NAME    "Lidar3D"
 #define SERVER_FULL_NAME   "RoboComp Lidar3D::Lidar3D"
+
+
+template <typename InterfaceType>
+void implement( const Ice::CommunicatorPtr& communicator,
+                const std::string& endpointConfig,
+                const std::string& adapterName,
+                SpecificWorker* worker,
+                int index)
+{
+    try
+    {
+        Ice::ObjectAdapterPtr adapter = communicator->createObjectAdapterWithEndpoints(adapterName, endpointConfig);
+        auto servant = std::make_shared<InterfaceType>(worker, index);
+        adapter->add(servant, Ice::stringToIdentity(adapterName));
+        adapter->activate();
+        std::cout << "[" << PROGRAM_NAME << "]: " << adapterName << " adapter created in port " << endpointConfig << std::endl;
+    }
+    catch (const IceStorm::TopicExists&)
+    {
+        std::cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for " << adapterName << std::endl;
+    }
+}
+
+template <typename ProxyType, typename ProxyPointer>
+void require(const Ice::CommunicatorPtr& communicator,
+             const std::string& proxyConfig, 
+             const std::string& proxyName,
+             ProxyPointer& proxy)
+{
+    try
+    {
+        proxy = Ice::uncheckedCast<ProxyType>(communicator->stringToProxy(proxyConfig));
+        std::cout << proxyName << " initialized Ok!\n";
+    }
+    catch(const Ice::Exception& ex)
+    {
+        std::cout << "[" << PROGRAM_NAME << "]: Exception creating proxy " << proxyName << ": " << ex;
+        throw;
+    }
+}
 
 
 class Lidar3D : public Ice::Application
@@ -94,8 +135,7 @@ public:
 		this->prefix = prfx.toStdString();
 		this->startup_check_flag=startup_check; 
 
-		this->configLoader.load(this->configFile);
-		this->configLoader.printConfig();
+		initialize();
 		}
 
 	Ice::InitializationData getInitializationDataIce();
@@ -125,6 +165,7 @@ void Lidar3D::initialize()
 {
     this->configLoader.load(this->configFile);
 	this->configLoader.printConfig();
+	std::cout<<std::endl;
 }
 
 int Lidar3D::run(int argc, char* argv[])
@@ -152,21 +193,10 @@ int Lidar3D::run(int argc, char* argv[])
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
-	std::string proxy, tmp;
-	initialize();
 
-	try
-	{
-	    proxy = configLoader.get<std::string>("Proxies.Lidar3D");
-		lidar3d_proxy = Ice::uncheckedCast<RoboCompLidar3D::Lidar3DPrx>(communicator()->stringToProxy(proxy));
-	}
-	catch(const Ice::Exception& ex)
-	{
-		std::cout << "[" << PROGRAM_NAME << "]: Exception creating proxy Lidar3D: " << ex;
-		return EXIT_FAILURE;
-	}
-	qInfo("Lidar3DProxy initialized Ok!");
-
+	//Require code
+	require<RoboCompLidar3D::Lidar3DPrx, RoboCompLidar3D::Lidar3DPrxPtr>(communicator(),
+	                    configLoader.get<std::string>("Proxies.Lidar3D"), "Lidar3DProxy", lidar3d_proxy);
 
 	tprx = std::make_tuple(lidar3d_proxy);
 	SpecificWorker *worker = new SpecificWorker(this->configLoader, tprx, startup_check_flag);
@@ -175,20 +205,10 @@ int Lidar3D::run(int argc, char* argv[])
 	try
 	{
 
-		try
-		{
-			// Server adapter creation and publication
-		    tmp = configLoader.get<std::string>("Endpoints.Lidar3D");
-		    Ice::ObjectAdapterPtr adapterLidar3D = communicator()->createObjectAdapterWithEndpoints("Lidar3D", tmp);
-			auto lidar3d = std::make_shared<Lidar3DI>(worker);
-			adapterLidar3D->add(lidar3d, Ice::stringToIdentity("lidar3d"));
-			adapterLidar3D->activate();
-			std::cout << "[" << PROGRAM_NAME << "]: Lidar3D adapter created in port " << tmp << std::endl;
-		}
-		catch (const IceStorm::TopicExists&){
-			std::cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for Lidar3D\n";
-		}
-
+		//Implement code
+		implement<Lidar3DI>(communicator(),
+		                    configLoader.get<std::string>("Endpoints.Lidar3D"), 
+		                    "lidar3d", worker,  0);
 
 		// Server adapter creation and publication
 		std::cout << SERVER_FULL_NAME " started" << std::endl;

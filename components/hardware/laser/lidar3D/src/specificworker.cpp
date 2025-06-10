@@ -27,7 +27,7 @@ robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue
 */
 SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
-this->startup_check_flag = startup_check;
+	this->startup_check_flag = startup_check;
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -662,10 +662,6 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
     return RoboCompLidar3D::TData {.points=filtered_points, .period=buffer.period, .timestamp=buffer.timestamp};
 
 }
-/*
- @brief
- @param name - name of the lidar
-*/
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std::string name)
 {
 	#ifdef HIBERNATION_ENABLED
@@ -680,6 +676,14 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
 
     //Get LiDAR data
     return buffer_data.get_idemp();
+}
+
+RoboCompLidar3D::TDataCategory SpecificWorker::Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp)
+{
+	RoboCompLidar3D::TDataCategory ret{};
+	//implementCODE
+
+	return ret;
 }
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
@@ -707,6 +711,7 @@ int SpecificWorker::startup_check()
 // From the RoboCompLidar3D you can call this methods:
 // RoboCompLidar3D::TData this->lidar3d_proxy->getLidarData(string name, float start, float len, int decimationDegreeFactor)
 // RoboCompLidar3D::TDataImage this->lidar3d_proxy->getLidarDataArrayProyectedInImage(string name)
+// RoboCompLidar3D::TDataCategory this->lidar3d_proxy->getLidarDataByCategory(TCategories categories, long timestamp)
 // RoboCompLidar3D::TData this->lidar3d_proxy->getLidarDataProyectedInImage(string name)
 // RoboCompLidar3D::TData this->lidar3d_proxy->getLidarDataWithThreshold2d(string name, float distance, int decimationDegreeFactor)
 
@@ -715,10 +720,12 @@ int SpecificWorker::startup_check()
 // RoboCompLidar3D::TPoint
 // RoboCompLidar3D::TDataImage
 // RoboCompLidar3D::TData
+// RoboCompLidar3D::TDataCategory
 
 /**************************************/
 // From the RoboCompLidar3D you can use this types:
 // RoboCompLidar3D::TPoint
 // RoboCompLidar3D::TDataImage
 // RoboCompLidar3D::TData
+// RoboCompLidar3D::TDataCategory
 

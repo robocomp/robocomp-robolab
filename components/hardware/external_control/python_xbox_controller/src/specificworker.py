@@ -39,9 +39,9 @@ console = Console(highlight=False)
 
 
 class SpecificWorker(GenericWorker):
-    def __init__(self, proxy_map, startup_check=False):
-        super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 16
+    def __init__(self, proxy_map, configData, startup_check=False):
+        super(SpecificWorker, self).__init__(proxy_map, configData)
+        self.Period = configData["Period"]["Compute"]
         if startup_check:
             self.startup_check()
         else:
@@ -145,12 +145,12 @@ class SpecificWorker(GenericWorker):
 
     ######################
     # From the RoboCompJoystickAdapter you can publish calling this methods:
-    # self.joystickadapter_proxy.sendData(...)
+    # RoboCompJoystickAdapter.void self.joystickadapter_proxy.sendData(TData data)
 
     ######################
     # From the RoboCompJoystickAdapter you can use this types:
-    # RoboCompJoystickAdapter.AxisParams
-    # RoboCompJoystickAdapter.ButtonParams
-    # RoboCompJoystickAdapter.TData
+    # ifaces.RoboCompJoystickAdapter.AxisParams
+    # ifaces.RoboCompJoystickAdapter.ButtonParams
+    # ifaces.RoboCompJoystickAdapter.TData
 
 

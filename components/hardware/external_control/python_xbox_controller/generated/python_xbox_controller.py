@@ -54,16 +54,36 @@
 #
 #
 #
-
 import argparse
 # Ctrl+c handling
 import signal
+import sys
+import os
+from pathlib import Path
 
 from rich.console import Console
+from rich.text import Text
 console = Console()
 
+try:
+    ROBOCOMP = os.environ['ROBOCOMP']
+except KeyError:
+    console.print(Text('ROBOCOMP environment variable not set, using the default value /home/robocomp/robocomp', "yellow"))
+    ROBOCOMP = '/home/robocomp/robocomp'
+
+configloader_path = os.path.join(ROBOCOMP, "classes", "ConfigLoader")
+sys.path.append(str(configloader_path))
+try:
+    from ConfigLoader import ConfigLoader
+except ModuleNotFoundError:
+    console.print(Text(f"ERROR: Could not find ConfigLoader.py. Expected path: {configloader_path}/ConfigLoader.py", "red"))
+    console.print(Text("Please update RoboComp classes or check the path.", "green"))
+    exit(-1)
+
+sys.path.append(str(Path(__file__).parent.parent))
+from src.specificworker import *
 import interfaces
-from specificworker import *
+
 
 #SIGNALS handler
 def sigint_handler(*args):
@@ -73,20 +93,21 @@ def sigint_handler(*args):
 if __name__ == '__main__':
     app = QtCore.QCoreApplication(sys.argv)
     parser = argparse.ArgumentParser()
-    parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
+    parser.add_argument('configfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
 
     args = parser.parse_args()
-    interface_manager = interfaces.InterfaceManager(args.iceconfigfile)
+    configData = ConfigLoader.load_config(args.configfile)
+    interface_manager = interfaces.InterfaceManager(configData)
 
     if interface_manager.status == 0:
-        worker = SpecificWorker(interface_manager.get_proxies_map(), args.startup_check)
-        worker.setParams(interface_manager.parameters)
+        worker = SpecificWorker(interface_manager.get_proxies_map(), configData, args.startup_check)
+        if hasattr(worker, "setParams"): worker.setParams(configData)
     else:
         print("Error getting required connections, check config file")
         sys.exit(-1)
 
-    interface_manager.set_default_hanlder(worker)
+    interface_manager.set_default_hanlder(worker, configData)
     signal.signal(signal.SIGINT, sigint_handler)
-    app.exec_()
+    app.exec()
     interface_manager.destroy()

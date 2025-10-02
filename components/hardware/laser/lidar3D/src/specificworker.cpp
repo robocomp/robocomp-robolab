@@ -644,7 +644,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
                          [_distance=distance](const RoboCompLidar3D::TPoint& point)
                          {return _distance < point.distance2d;})));
     //ReSort by phi
-    std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::phi);
+    std::ranges::sort(filtered_points, {}, &RoboCompLidar3D::TPoint::phi);
 
     //Apply decimal factor reduction
     if (decimationDegreeFactor != 1){

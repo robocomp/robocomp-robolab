@@ -2,7 +2,7 @@
 Endpoints.Lidar3D = "tcp -p 11990"
 
 # Proxies for required interfaces
-Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11998"
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1

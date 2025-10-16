@@ -49,6 +49,8 @@
 
 #include <chrono>
 #include <thread>
+#include <omp.h>
+// #include <execution>
 
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
@@ -73,10 +75,11 @@ class SpecificWorker : public GenericWorker
          * \brief Destructor for SpecificWorker.
          */
         ~SpecificWorker();
+	    RoboCompLidar3D::TColorCloudData Lidar3D_getColorCloudData();
         RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor);
         RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name);
-	RoboCompLidar3D::TDataCategory Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp);        
-	RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
+	    RoboCompLidar3D::TDataCategory Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp);        
+	    RoboCompLidar3D::TData Lidar3D_getLidarDataProyectedInImage(std::string name);
         RoboCompLidar3D::TData Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor);
 
     public slots:
@@ -134,8 +137,10 @@ class SpecificWorker : public GenericWorker
         static void exceptionCallback(const robosense::lidar::Error& code);
 
         // Buffers
-        DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
-        DoubleBuffer<RoboCompLidar3D::TDataImage,RoboCompLidar3D::TDataImage> buffer_array_data;
+        DoubleBuffer<std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData>, 
+                     std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData>> buffer_data;
+        DoubleBuffer<std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage>,
+                     std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage>> buffer_array_data;
 
         //Extrinsic
         Eigen::Affine3f robot_lidar;
@@ -160,8 +165,8 @@ class SpecificWorker : public GenericWorker
 
         RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
         std::vector<cv::Point2f> fish2equirect(const std::vector<cv::Point2f> &points);
-        std::optional<Eigen::Vector3d> transform_filter_point(float x, float y, float z, int intensity);
-        RoboCompLidar3D::TData processLidarData(const auto &input_points);  // Abbreviated function template
+        std::pair<bool, Eigen::Vector3f> transform_filter_point(float x, float y, float z, int intensity);
+        std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> processLidarData(const auto &input_points);  // Abbreviated function template
         inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
 
         // dowwnsample

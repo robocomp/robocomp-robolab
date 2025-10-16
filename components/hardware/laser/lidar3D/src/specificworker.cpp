@@ -178,8 +178,8 @@ void SpecificWorker::initialize()
 
 void SpecificWorker::compute()
 {
-    RoboCompLidar3D::TData raw_lidar;
-    int num_points = 0;
+    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar;
+    int num_points, num_erased_points = 0;
     try
     {
         if(simulator)
@@ -191,7 +191,8 @@ void SpecificWorker::compute()
                 raw_lidar_sim = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
 
             raw_lidar = processLidarData(raw_lidar_sim);
-            raw_lidar.timestamp = raw_lidar_sim.timestamp;
+            raw_lidar.first.timestamp = raw_lidar_sim.timestamp;
+            raw_lidar.second.timestamp = raw_lidar_sim.timestamp;
         }
         else // real lidar
         {
@@ -201,23 +202,28 @@ void SpecificWorker::compute()
             
             raw_lidar = processLidarData(*msg);
             auto now = std::chrono::system_clock::now();
-            raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            raw_lidar.first.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            raw_lidar.second.timestamp = raw_lidar.first.timestamp;
+            
         }
-        raw_lidar.period = static_cast<float>(getPeriod("Compute")); // ms
+        raw_lidar.first.period = static_cast<float>(getPeriod("Compute")); // ms
 
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios
-            auto processed_real_lidar_array = lidar2cam(raw_lidar);
+            std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage> processed_real_lidar_array;
+            processed_real_lidar_array.first = lidar2cam(raw_lidar.first);
+            processed_real_lidar_array.second = lidar2cam(raw_lidar.second);
             buffer_array_data.put(std::move(processed_real_lidar_array));
         }
-        num_points = raw_lidar.points.size();
+        num_points = raw_lidar.first.points.size();
+        num_erased_points = raw_lidar.second.points.size();
         buffer_data.put(std::move(raw_lidar));
     }
     catch (const Ice::Exception &e)
         {std::cerr << __FUNCTION__ << " Error in Lidar Proxy\n" << e.what() << std::endl;}
 
-    fps.print("Num points: " + std::to_string(num_points) /*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
+    fps.print("Num points: " + std::to_string(num_points) + " | Num erased points: " +  std::to_string(num_erased_points)/*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
 }
 
 
@@ -293,25 +299,21 @@ void SpecificWorker::self_adjust_period(int new_period)
     else
         setPeriod("Compute", period - 1);
 }
-std::optional<Eigen::Vector3d> SpecificWorker::transform_filter_point(float x, float y, float z, int intensity)
+std::pair<bool, Eigen::Vector3f> SpecificWorker::transform_filter_point(float x, float y, float z, int intensity)
 {
     Eigen::Vector3f point(-y*1000, x*1000, z*1000); // convert to millimeters
     Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();  // Assumes no rotation
 
-    if (isPointOutsideCube(lidar_point, box_min, box_max) and lidar_point.z() > floor_line and lidar_point.z() < top_line)
-    {
-        //auto distance2d = std::hypot(lidar_point.x(),lidar_point.y());
-        //auto r = lidar_point.norm();
-        return Eigen::Vector3d(lidar_point.x(), lidar_point.y(), lidar_point.z());
-        //return RoboCompLidar3D::TPoint{.x=lidar_point.x(), .y=lidar_point.y(), .z=lidar_point.z(),
-        //        .intensity=intensity, .phi=std::atan2(lidar_point.x(), lidar_point.y()),
-        //        .theta=std::acos( lidar_point.z()/ r), .r=r, .distance2d=distance2d};
-    }
-    return {};
+    const bool valid =
+        isPointOutsideCube(lidar_point, box_min, box_max) &&
+        lidar_point.z() > floor_line &&
+        lidar_point.z() < top_line;
+
+    return { valid, lidar_point };
 }
-RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points)
+std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> SpecificWorker::processLidarData(const auto &input_points)
 {
-    RoboCompLidar3D::TData raw_lidar;
+    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar; // <utils points, erased points>
 
     if (input_points.points.empty())
         return raw_lidar;
@@ -319,13 +321,33 @@ RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points
     if(this->down_sampling == 0)    // no downsampling
     {
         // filter out body points
-        for (const auto &p : input_points.points)
-            if(auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity); transformed.has_value())
-                raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{.x=(float) transformed->x(), .y=(float) transformed->y(), .z=(float) transformed->z(),
-                        .intensity=p.intensity, .phi=(float) std::atan2(transformed->x(), transformed->y()),
-                        .theta=(float) std::acos(transformed->z() / transformed->norm()), .r=(float) transformed->norm(),
-                        .distance2d=(float) std::hypot(transformed->x(), transformed->y())});
-        std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+       for (const auto& p : input_points.points)
+        {
+            auto [valid, pt] = transform_filter_point(p.x, p.y, p.z, p.intensity);
+
+            const float x = pt.x(), y = pt.y(), z = pt.z();
+            const float r = std::sqrt(x*x + y*y + z*z);
+            const float distance2d = std::hypot(x, y);
+            const float phi = std::atan2(x, y);
+            const float theta = std::acos(z / r);
+
+            RoboCompLidar3D::TPoint out{
+                .x = x, .y = y, .z = z,
+                .intensity = p.intensity,
+                .phi = phi,
+                .theta = theta,
+                .r = r,
+                .distance2d = distance2d
+            };
+
+            if (valid)
+                raw_lidar.first.points.emplace_back(std::move(out));
+            else
+                raw_lidar.second.points.emplace_back(std::move(out));
+        }
+
+        std::ranges::sort(raw_lidar.first.points, {}, &RoboCompLidar3D::TPoint::phi);
+        // std::ranges::sort(raw_lidar.second.points, {}, &RoboCompLidar3D::TPoint::phi);
         return raw_lidar;
     }
 
@@ -536,8 +558,8 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
         y_p.push_back(l.pixelY);
     }
 
-//    cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
-//    cv::imshow("X",cv_frame);
+    // cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
+    // cv::imshow("X",cv_frame);
     // cv::waitKey(1);
     data_image.XArray = x;
     data_image.YArray = y;
@@ -549,6 +571,50 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////// Interfaces                                                            //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+RoboCompLidar3D::TColorCloudData SpecificWorker::Lidar3D_getColorCloudData()
+{
+    RoboCompLidar3D::TColorCloudData cloud;
+
+    //merge all points
+    auto [data_valid, data_invalid] = buffer_data.get_idemp();
+    const auto total_size = data_valid.points.size() + data_invalid.points.size();
+    std::vector<RoboCompLidar3D::TPoint> points;
+    points.reserve(total_size);
+
+    points.insert(points.end(),
+                         std::make_move_iterator(data_valid.points.begin()),
+                         std::make_move_iterator(data_valid.points.end()));
+
+    points.insert(points.end(),
+                         std::make_move_iterator(data_invalid.points.begin()),
+                         std::make_move_iterator(data_invalid.points.end()));
+
+
+    const size_t N = points.size();
+
+    cloud.X.resize(N);
+    cloud.Y.resize(N);
+    cloud.Z.resize(N);
+    cloud.R.resize(N);
+    cloud.G.resize(N);
+    cloud.B.resize(N);
+
+    constexpr float maxShort = 32767.0f;
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+        const auto& p = points[i];
+        cloud.X[i] = static_cast<int16_t>(std::clamp(p.x, -maxShort, maxShort));
+        cloud.Y[i] = static_cast<int16_t>(std::clamp(p.y, -maxShort, maxShort));
+        cloud.Z[i] = static_cast<int16_t>(std::clamp(p.z, -maxShort, maxShort));
+        cloud.R[i] = cloud.G[i] = cloud.B[i] = 255;
+    }
+
+	return cloud;
+}
+
 /*
  @brief
  @param name - name of the lidar
@@ -558,14 +624,11 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
-	#ifdef HIBERNATION_ENABLED
-		hibernation = true;
-	#endif
      //LiDAR not started
     if(not ready_to_go)
         return {};
 
-    RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
+    RoboCompLidar3D::TData buffer = buffer_data.get_idemp().first;
 
     // Check for nominal conditions
     if(len >= 2.0*M_PI  and decimationDegreeFactor == 1)
@@ -627,15 +690,12 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor)
 {
-	#ifdef HIBERNATION_ENABLED
-		hibernation = true;
-	#endif
     //LiDAR not started
     if(not ready_to_go)
         return {};
 
     //Get LiDAR data
-    RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
+    RoboCompLidar3D::TData buffer = buffer_data.get_idemp().first;
 
     //Sort distance and cut
     std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::distance2d);
@@ -664,9 +724,6 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
 }
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std::string name)
 {
-	#ifdef HIBERNATION_ENABLED
-		hibernation = true;
-	#endif
     //LiDAR not started
     if (not ready_to_go)
         return {};
@@ -675,7 +732,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
     RoboCompLidar3D::TPoints processed_points;
 
     //Get LiDAR data
-    return buffer_data.get_idemp();
+    return buffer_data.get_idemp().first;
 }
 
 RoboCompLidar3D::TDataCategory SpecificWorker::Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp)
@@ -687,16 +744,62 @@ RoboCompLidar3D::TDataCategory SpecificWorker::Lidar3D_getLidarDataByCategory(Ro
 }
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
-	#ifdef HIBERNATION_ENABLED
-		hibernation = true;
-	#endif
-    RoboCompLidar3D::TDataImage ret;
 
     //LiDAR not started
     if(not ready_to_go)
         return {};
+    if (name == "unfiltered"){
 
-    return buffer_array_data.get_idemp();
+    auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
+    const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
+    RoboCompLidar3D::TDataImage dataImage;
+    dataImage.timestamp = std::max(data_valid.timestamp, data_invalid.timestamp);
+
+    dataImage.XArray.reserve(total_size);
+    dataImage.YArray.reserve(total_size);
+    dataImage.ZArray.reserve(total_size);
+    dataImage.XPixel.reserve(total_size);
+    dataImage.YPixel.reserve(total_size);
+
+    dataImage.XArray.insert(dataImage.XArray.end(),
+        std::make_move_iterator(data_valid.XArray.begin()),
+        std::make_move_iterator(data_valid.XArray.end()));
+    dataImage.XArray.insert(dataImage.XArray.end(),
+        std::make_move_iterator(data_invalid.XArray.begin()),
+        std::make_move_iterator(data_invalid.XArray.end()));
+
+    dataImage.YArray.insert(dataImage.YArray.end(),
+        std::make_move_iterator(data_valid.YArray.begin()),
+        std::make_move_iterator(data_valid.YArray.end()));
+    dataImage.YArray.insert(dataImage.YArray.end(),
+        std::make_move_iterator(data_invalid.YArray.begin()),
+        std::make_move_iterator(data_invalid.YArray.end()));
+
+    dataImage.ZArray.insert(dataImage.ZArray.end(),
+        std::make_move_iterator(data_valid.ZArray.begin()),
+        std::make_move_iterator(data_valid.ZArray.end()));
+    dataImage.ZArray.insert(dataImage.ZArray.end(),
+        std::make_move_iterator(data_invalid.ZArray.begin()),
+        std::make_move_iterator(data_invalid.ZArray.end()));
+
+    dataImage.XPixel.insert(dataImage.XPixel.end(),
+        std::make_move_iterator(data_valid.XPixel.begin()),
+        std::make_move_iterator(data_valid.XPixel.end()));
+    dataImage.XPixel.insert(dataImage.XPixel.end(),
+        std::make_move_iterator(data_invalid.XPixel.begin()),
+        std::make_move_iterator(data_invalid.XPixel.end()));
+
+    dataImage.YPixel.insert(dataImage.YPixel.end(),
+        std::make_move_iterator(data_valid.YPixel.begin()),
+        std::make_move_iterator(data_valid.YPixel.end()));
+    dataImage.YPixel.insert(dataImage.YPixel.end(),
+        std::make_move_iterator(data_invalid.YPixel.begin()),
+        std::make_move_iterator(data_invalid.YPixel.end()));
+
+    return dataImage;
+    }
+    else
+        return buffer_array_data.get_idemp().first;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -709,6 +812,7 @@ int SpecificWorker::startup_check()
 
 /**************************************/
 // From the RoboCompLidar3D you can call this methods:
+// RoboCompLidar3D::TColorCloudData this->lidar3d_proxy->getColorCloudData()
 // RoboCompLidar3D::TData this->lidar3d_proxy->getLidarData(string name, float start, float len, int decimationDegreeFactor)
 // RoboCompLidar3D::TDataImage this->lidar3d_proxy->getLidarDataArrayProyectedInImage(string name)
 // RoboCompLidar3D::TDataCategory this->lidar3d_proxy->getLidarDataByCategory(TCategories categories, long timestamp)
@@ -721,6 +825,7 @@ int SpecificWorker::startup_check()
 // RoboCompLidar3D::TDataImage
 // RoboCompLidar3D::TData
 // RoboCompLidar3D::TDataCategory
+// RoboCompLidar3D::TColorCloudData
 
 /**************************************/
 // From the RoboCompLidar3D you can use this types:
@@ -728,4 +833,5 @@ int SpecificWorker::startup_check()
 // RoboCompLidar3D::TDataImage
 // RoboCompLidar3D::TData
 // RoboCompLidar3D::TDataCategory
+// RoboCompLidar3D::TColorCloudData
 

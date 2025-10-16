@@ -13,7 +13,8 @@ INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv4.cmake )
 add_definitions(-O3 -Wall -fmax-errors=1 -fno-char8_t)
 
 find_package(rs_driver REQUIRED)
+find_package(OpenMP REQUIRED)
 include_directories(${rs_driver_INCLUDE_DIRS})
 
-LIST(APPEND LIBS ${LIBS} ${rs_driver_LIBRARIES} Open3D gomp)
+LIST(APPEND LIBS ${LIBS} ${rs_driver_LIBRARIES} OpenMP::OpenMP_CXX Open3D gomp)
 

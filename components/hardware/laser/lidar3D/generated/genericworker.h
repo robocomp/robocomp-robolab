@@ -57,6 +57,7 @@ public:
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
 
+	virtual RoboCompLidar3D::TColorCloudData Lidar3D_getColorCloudData() = 0;
 	virtual RoboCompLidar3D::TData Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor) = 0;
 	virtual RoboCompLidar3D::TDataImage Lidar3D_getLidarDataArrayProyectedInImage(std::string name) = 0;
 	virtual RoboCompLidar3D::TDataCategory Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp) = 0;

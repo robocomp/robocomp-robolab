@@ -20,6 +20,10 @@
 
 Lidar3DI::Lidar3DI(GenericWorker *_worker, const size_t id): worker(_worker), id(id)
 {
+	getColorCloudDataHandlers = {
+		[this]() { return worker->Lidar3D_getColorCloudData(); }
+	};
+
 	getLidarDataHandlers = {
 		[this](auto a, auto b, auto c, auto d) { return worker->Lidar3D_getLidarData(a, b, c, d); }
 	};
@@ -47,6 +51,20 @@ Lidar3DI::~Lidar3DI()
 {
 }
 
+
+RoboCompLidar3D::TColorCloudData Lidar3DI::getColorCloudData(const Ice::Current&)
+{
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < getColorCloudDataHandlers.size())
+		return  getColorCloudDataHandlers[id]();
+	else
+		throw std::out_of_range("Invalid getColorCloudData id: " + std::to_string(id));
+
+}
 
 RoboCompLidar3D::TData Lidar3DI::getLidarData(std::string name, float start, float len, int decimationDegreeFactor, const Ice::Current&)
 {

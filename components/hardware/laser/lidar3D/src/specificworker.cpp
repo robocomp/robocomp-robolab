@@ -179,7 +179,7 @@ void SpecificWorker::initialize()
 void SpecificWorker::compute()
 {
     std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar;
-    int num_points, num_erased_points = 0;
+    int num_points = 0, num_erased_points = 0;
     try
     {
         if(simulator)

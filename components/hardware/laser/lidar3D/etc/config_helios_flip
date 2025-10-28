@@ -7,7 +7,7 @@ Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1
 lidar_model = 0
-dest_pc_ip_addr = "192.168.3.26"
+dest_pc_ip_addr = "192.168.50.78"
 msop_port = 6699
 difop_port = 7788
 simulator = false
@@ -17,8 +17,8 @@ rx = 0.0
 ry = 3.1416
 rz = 0.0
 tx = 0.0
-ty = -170.0
-tz = 1100.0
+ty = -30.0
+tz = 1040.5
 
 # boundin box colision / hitbox
 center_box_x = 0.0

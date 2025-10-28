@@ -173,13 +173,13 @@ void SpecificWorker::initialize()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(getPeriod("Compute")));
     ready_to_go.store(true);
-    
 }
 
 void SpecificWorker::compute()
 {
     std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar;
     int num_points = 0, num_erased_points = 0;
+    
     try
     {
         if(simulator)
@@ -199,10 +199,12 @@ void SpecificWorker::compute()
             std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
             if (msg == nullptr)
                 return;
-            
+
             raw_lidar = processLidarData(*msg);
+            
             auto now = std::chrono::system_clock::now();
             raw_lidar.first.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            
             raw_lidar.second.timestamp = raw_lidar.first.timestamp;
             
         }
@@ -216,6 +218,7 @@ void SpecificWorker::compute()
             processed_real_lidar_array.second = lidar2cam(raw_lidar.second);
             buffer_array_data.put(std::move(processed_real_lidar_array));
         }
+
         num_points = raw_lidar.first.points.size();
         num_erased_points = raw_lidar.second.points.size();
         buffer_data.put(std::move(raw_lidar));
@@ -445,6 +448,7 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
     tvec_b.create(3, 1, CV_64F);
     cv::Mat K = (cv::Mat_<double>(3,3) << 1080, 0.0, 1824, 0.0, -1080, 1824, 0.0, 0.0, 1.0); // Ejemplo de inicialización
 
+
     //SIMULATOR & REAL CAMERA PARAMS
     if(simulator){
         rvec.at<double>(0, 0) = M_PI_2;
@@ -520,6 +524,7 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
     std::vector<int> x_p; x_p.reserve(front.points.size() + back.points.size());
     std::vector<int> y_p; y_p.reserve(front.points.size() + back.points.size());
 
+
     // COMPOSE COMPLETE IMAGE, CENTER FRONT IMAGE AND SPLIT BACK IMAGE
     for(auto&& [l, p] : iter::zip(front.points, lidar_front_2d))
     {
@@ -546,16 +551,17 @@ RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TD
         }
 
         l.pixelY = p.y * resize_factor;
-
-        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
-        pixel[0] = l.x;
-        pixel[1] = l.y;
-        pixel[2] = l.z;
-        x.push_back(l.x);
-        y.push_back(l.y);
-        z.push_back(l.z);
-        x_p.push_back(l.pixelX);
-        y_p.push_back(l.pixelY);
+        if( l.pixelX >= 0 &&  l.pixelX < cv_frame.cols && l.pixelY >= 0 && l.pixelY < cv_frame.rows) {
+            cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
+            pixel[0] = l.x;
+            pixel[1] = l.y;
+            pixel[2] = l.z;
+            x.push_back(l.x);
+            y.push_back(l.y);
+            z.push_back(l.z);
+            x_p.push_back(l.pixelX);
+            y_p.push_back(l.pixelY);
+        }
     }
 
     // cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
@@ -748,59 +754,60 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
     //LiDAR not started
     if(not ready_to_go)
         return {};
+    
     if (name == "unfiltered"){
 
-    auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
-    const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
-    RoboCompLidar3D::TDataImage dataImage;
-    dataImage.timestamp = std::max(data_valid.timestamp, data_invalid.timestamp);
+        auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
+        const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
+        RoboCompLidar3D::TDataImage dataImage;
+        dataImage.timestamp = std::max(data_valid.timestamp, data_invalid.timestamp);
 
-    dataImage.XArray.reserve(total_size);
-    dataImage.YArray.reserve(total_size);
-    dataImage.ZArray.reserve(total_size);
-    dataImage.XPixel.reserve(total_size);
-    dataImage.YPixel.reserve(total_size);
+        dataImage.XArray.reserve(total_size);
+        dataImage.YArray.reserve(total_size);
+        dataImage.ZArray.reserve(total_size);
+        dataImage.XPixel.reserve(total_size);
+        dataImage.YPixel.reserve(total_size);
 
-    dataImage.XArray.insert(dataImage.XArray.end(),
-        std::make_move_iterator(data_valid.XArray.begin()),
-        std::make_move_iterator(data_valid.XArray.end()));
-    dataImage.XArray.insert(dataImage.XArray.end(),
-        std::make_move_iterator(data_invalid.XArray.begin()),
-        std::make_move_iterator(data_invalid.XArray.end()));
+        dataImage.XArray.insert(dataImage.XArray.end(),
+            std::make_move_iterator(data_valid.XArray.begin()),
+            std::make_move_iterator(data_valid.XArray.end()));
+        dataImage.XArray.insert(dataImage.XArray.end(),
+            std::make_move_iterator(data_invalid.XArray.begin()),
+            std::make_move_iterator(data_invalid.XArray.end()));
 
-    dataImage.YArray.insert(dataImage.YArray.end(),
-        std::make_move_iterator(data_valid.YArray.begin()),
-        std::make_move_iterator(data_valid.YArray.end()));
-    dataImage.YArray.insert(dataImage.YArray.end(),
-        std::make_move_iterator(data_invalid.YArray.begin()),
-        std::make_move_iterator(data_invalid.YArray.end()));
+        dataImage.YArray.insert(dataImage.YArray.end(),
+            std::make_move_iterator(data_valid.YArray.begin()),
+            std::make_move_iterator(data_valid.YArray.end()));
+        dataImage.YArray.insert(dataImage.YArray.end(),
+            std::make_move_iterator(data_invalid.YArray.begin()),
+            std::make_move_iterator(data_invalid.YArray.end()));
 
-    dataImage.ZArray.insert(dataImage.ZArray.end(),
-        std::make_move_iterator(data_valid.ZArray.begin()),
-        std::make_move_iterator(data_valid.ZArray.end()));
-    dataImage.ZArray.insert(dataImage.ZArray.end(),
-        std::make_move_iterator(data_invalid.ZArray.begin()),
-        std::make_move_iterator(data_invalid.ZArray.end()));
+        dataImage.ZArray.insert(dataImage.ZArray.end(),
+            std::make_move_iterator(data_valid.ZArray.begin()),
+            std::make_move_iterator(data_valid.ZArray.end()));
+        dataImage.ZArray.insert(dataImage.ZArray.end(),
+            std::make_move_iterator(data_invalid.ZArray.begin()),
+            std::make_move_iterator(data_invalid.ZArray.end()));
 
-    dataImage.XPixel.insert(dataImage.XPixel.end(),
-        std::make_move_iterator(data_valid.XPixel.begin()),
-        std::make_move_iterator(data_valid.XPixel.end()));
-    dataImage.XPixel.insert(dataImage.XPixel.end(),
-        std::make_move_iterator(data_invalid.XPixel.begin()),
-        std::make_move_iterator(data_invalid.XPixel.end()));
+        dataImage.XPixel.insert(dataImage.XPixel.end(),
+            std::make_move_iterator(data_valid.XPixel.begin()),
+            std::make_move_iterator(data_valid.XPixel.end()));
+        dataImage.XPixel.insert(dataImage.XPixel.end(),
+            std::make_move_iterator(data_invalid.XPixel.begin()),
+            std::make_move_iterator(data_invalid.XPixel.end()));
 
-    dataImage.YPixel.insert(dataImage.YPixel.end(),
-        std::make_move_iterator(data_valid.YPixel.begin()),
-        std::make_move_iterator(data_valid.YPixel.end()));
-    dataImage.YPixel.insert(dataImage.YPixel.end(),
-        std::make_move_iterator(data_invalid.YPixel.begin()),
-        std::make_move_iterator(data_invalid.YPixel.end()));
-
-    return dataImage;
+        dataImage.YPixel.insert(dataImage.YPixel.end(),
+            std::make_move_iterator(data_valid.YPixel.begin()),
+            std::make_move_iterator(data_valid.YPixel.end()));
+        dataImage.YPixel.insert(dataImage.YPixel.end(),
+            std::make_move_iterator(data_invalid.YPixel.begin()),
+            std::make_move_iterator(data_invalid.YPixel.end()));
+        return dataImage;
     }
-    else
+    else{
         return buffer_array_data.get_idemp().first;
-}
+    }
+    }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()

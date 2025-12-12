@@ -38,11 +38,11 @@ SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, 
 			hibernationChecker.start(500);
 		#endif
 
-		
+
 		// Example statemachine:
 		/***
 		//Your definition for the statesmachine (if you dont want use a execute function, use nullptr)
-		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period, 
+		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period,
 															std::bind(&SpecificWorker::customLoop, this),  // Cyclic function
 															std::bind(&SpecificWorker::customEnter, this), // On-enter function
 															std::bind(&SpecificWorker::customExit, this)); // On-exit function
@@ -63,7 +63,7 @@ SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, 
 			qWarning() << error;
 			throw error;
 		}
-		
+
 	}
 }
 SpecificWorker::~SpecificWorker()
@@ -133,7 +133,7 @@ void SpecificWorker::initialize()
 
     }catch (const std::exception &e)
     {
-        std::cout <<"Error reading the config \n" << e.what() << std::endl << std::flush; 
+        std::cout <<"Error reading the config \n" << e.what() << std::endl << std::flush;
         std::terminate();
         }
 
@@ -179,7 +179,7 @@ void SpecificWorker::compute()
 {
     std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar;
     int num_points = 0, num_erased_points = 0;
-    
+
     try
     {
         if(simulator)
@@ -201,12 +201,12 @@ void SpecificWorker::compute()
                 return;
 
             raw_lidar = processLidarData(*msg);
-            
+
             auto now = std::chrono::system_clock::now();
             raw_lidar.first.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-            
+
             raw_lidar.second.timestamp = raw_lidar.first.timestamp;
-            
+
         }
         raw_lidar.first.period = static_cast<float>(getPeriod("Compute")); // ms
 
@@ -426,154 +426,137 @@ std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Poi
     }
     return result;
 }
-RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam (const RoboCompLidar3D::TData &lidar_data){
-    std::vector<cv::Point3f> lidar_front, lidar_back;
-    std::vector<cv::Point2f> lidar_front_2d, lidar_back_2d;
-    RoboCompLidar3D::TData front, back;
-    cv::Mat D;
-    int resize_factor = 1.6;
+// C++
+RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam(const RoboCompLidar3D::TData &lidar_data)
+{
+    // ---------------------------------------------------------
+    // 1. EXTRINSIC CONFIGURATION (Position and Orientation)
+    // ---------------------------------------------------------
 
+    cv::Mat rvec(3, 1, CV_64F);
+    cv::Mat tvec(3, 1, CV_64F);
 
-    // Inicialización de rvec
-    cv::Mat rvec;
-    rvec.create(3, 1, CV_64F); // Crea una matriz de 3x1 con elementos de tipo double
-    // Inicialización de tvec
-    cv::Mat tvec;
-    tvec.create(3, 1, CV_64F);
-    // Inicialización de rvec_b
-    cv::Mat rvec_b;
-    rvec_b.create(3, 1, CV_64F);
-    // Inicialización de tvec_b
-    cv::Mat tvec_b;
-    tvec_b.create(3, 1, CV_64F);
-    cv::Mat K = (cv::Mat_<double>(3,3) << 1080, 0.0, 1824, 0.0, -1080, 1824, 0.0, 0.0, 1.0); // Ejemplo de inicialización
-
-
-    //SIMULATOR & REAL CAMERA PARAMS
-    if(simulator){
+    // Configure rotation and translation depending on environment
+    if (simulator)
+    {
+        // Rotation for simulator: 90 degrees around X (Rodrigues vector)
         rvec.at<double>(0, 0) = M_PI_2;
         rvec.at<double>(1, 0) = 0.0;
         rvec.at<double>(2, 0) = 0.0;
+
+        // Translation for simulator (in mm)
         tvec.at<double>(0, 0) = 0.0;
-        tvec.at<double>(1, 0) = -1350.0;
+        tvec.at<double>(1, 0) = 1350.0;
         tvec.at<double>(2, 0) = 170.0;
-        rvec_b.at<double>(0, 0) = M_PI_2;
-        rvec_b.at<double>(1, 0) = 0.0;
-        rvec_b.at<double>(2, 0) = 0.0;
-        tvec_b.at<double>(0, 0) = 0.0;
-        tvec_b.at<double>(1, 0) = -1350.0;
-        tvec_b.at<double>(2, 0) = -170.0;
-        resize_factor = 1.0;
-        cv::Mat K_Sim = (cv::Mat_<double>(3,3) << 1100, 0.0, 1824, 0.0, -1100, 1824, 0.0, 0.0, 1.0); // Ejemplo de inicialización
-        K = K_Sim;
-        D = (cv::Mat_<double>(4,1) << 0.34308720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
+
+        // Destination image resolution for simulator
         dst_width = 1920;
         dst_height = 960;
     }
-    else
+    else // Real robot
     {
+        // Rotation for real robot (Rodrigues vector)
         rvec.at<double>(0, 0) = M_PI_2;
         rvec.at<double>(1, 0) = 0.0;
         rvec.at<double>(2, 0) = 0.0;
+
+        // Translation for real robot (in mm)
         tvec.at<double>(0, 0) = 0.0;
-        tvec.at<double>(1, 0) = -1330.0;
+        tvec.at<double>(1, 0) = 1330.0;
         tvec.at<double>(2, 0) = 170.0;
-        rvec_b.at<double>(0, 0) = M_PI_2;
-        rvec_b.at<double>(1, 0) = 0.0;
-        rvec_b.at<double>(2, 0) = 0.0;
-        tvec_b.at<double>(0, 0) = 0.0;
-        tvec_b.at<double>(1, 0) = -1330.0;
-        tvec_b.at<double>(2, 0) = -170.0;
-        D = (cv::Mat_<double>(4,1) << 0.35208720224831864, -0.396793518453425, 0.20325216832157427, -0.03725173372715627); // Ejemplo de inicialización
-        resize_factor = 1.6;
+
+        // Keep default destination resolution (can be adjusted if needed)
     }
 
-    //SPLIT FRONT/BACK POINTS
-    for (auto &p : lidar_data.points)
-    {
-        if(p.y > tvec_b.at<double>(2,0))
-        {
-            lidar_front.push_back(cv::Point3f(p.x, p.y, -p.z));
-            front.points.push_back(p);
-        }
-        else
-        {
-            // Invert the x, y coordinates
-            lidar_back.push_back(cv::Point3f(-p.x, -p.y, -p.z));
-            back.points.push_back(p);
-        }
-    }
+    // ---------------------------------------------------------
+    // 2. TRANSFORMATION MATRICES PREPARATION
+    // ---------------------------------------------------------
 
-    //PROJECT POINTS 3D -> 2D FISHEYE
-    cv::fisheye::projectPoints(lidar_front, lidar_front_2d, rvec, tvec, K, D, 0);
-    cv::fisheye::projectPoints(lidar_back, lidar_back_2d, rvec_b, tvec_b, K, D, 0);
+    // Convert Rodrigues rotation vector to 3x3 rotation matrix
+    cv::Mat R_mat;
+    cv::Rodrigues(rvec, R_mat);
 
-    //PROJECT POINTS 2D FISHEYE -> 2D EQUIRECTANGULAR
-    lidar_front_2d = fish2equirect(lidar_front_2d);
-    lidar_back_2d = fish2equirect(lidar_back_2d);
+    // Copy rotation matrix to a float array for faster access in the loop
+    float R[3][3];
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            R[i][j] = static_cast<float>(R_mat.at<double>(i, j));
 
-    //FRAME
-    cv::Mat cv_frame(cv::Size(dst_width, dst_height), CV_32FC3, cv::Scalar(0,0,0));
+    // Copy translation vector to float array
+    float T[3];
+    T[0] = static_cast<float>(tvec.at<double>(0, 0));
+    T[1] = static_cast<float>(tvec.at<double>(1, 0));
+    T[2] = static_cast<float>(tvec.at<double>(2, 0));
 
-    // Structure vectors
+    // ---------------------------------------------------------
+    // 3. POINTS PROCESSING AND EQUIRECTANGULAR PROJECTION
+    // ---------------------------------------------------------
+
     RoboCompLidar3D::TDataImage data_image;
     data_image.timestamp = lidar_data.timestamp;
-    std::vector<float> x; x.reserve(front.points.size() + back.points.size());
-    std::vector<float> y; y.reserve(front.points.size() + back.points.size());
-    std::vector<float> z; z.reserve(front.points.size() + back.points.size());
-    std::vector<int> x_p; x_p.reserve(front.points.size() + back.points.size());
-    std::vector<int> y_p; y_p.reserve(front.points.size() + back.points.size());
+    size_t num_points = lidar_data.points.size();
 
+    // Reserve vector capacity to avoid reallocations
+    data_image.XArray.reserve(num_points);
+    data_image.YArray.reserve(num_points);
+    data_image.ZArray.reserve(num_points);
+    data_image.XPixel.reserve(num_points);
+    data_image.YPixel.reserve(num_points);
 
-    // COMPOSE COMPLETE IMAGE, CENTER FRONT IMAGE AND SPLIT BACK IMAGE
-    for(auto&& [l, p] : iter::zip(front.points, lidar_front_2d))
+    const float inv_PI = 1.0f / M_PI;
+    const float inv_2PI = 1.0f / (2.0f * M_PI);
+
+    for (const auto &p : lidar_data.points)
     {
-        l.pixelX = (p.x + dst_width / 4) * resize_factor;
-        l.pixelY = p.y * resize_factor;
-        x.push_back(l.x);
-        y.push_back(l.y);
-        z.push_back(l.z);
-        x_p.push_back(l.pixelX);
-        y_p.push_back(l.pixelY);
-        cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
-        pixel[0] = l.x;
-        pixel[1] = l.y;
-        pixel[2] = l.z;
+        // A. Extrinsic transform: P_cam = R * P_lidar + T
+        // Assumes p.x, p.y, p.z are in the same units as T (mm).
+        float x_cam = R[0][0] * p.x + R[0][1] * p.y + R[0][2] * p.z + T[0];
+        float y_cam = R[1][0] * p.x + R[1][1] * p.y + R[1][2] * p.z + T[1];
+        float z_cam = R[2][0] * p.x + R[2][1] * p.y + R[2][2] * p.z + T[2];
+
+        // Compute planar distance and full 3D distance in camera coords
+        float rho = std::hypot(x_cam, y_cam);
+        float r_dist = std::sqrt(x_cam * x_cam + y_cam * y_cam + z_cam * z_cam);
+
+        // Skip very close noise points
+        if (r_dist < 10.0f)
+            continue;
+
+        // NOTE: After the applied rotation, typical camera axes may be:
+        // X = right, Y = down, Z = forward. Adjust atan2 usage if different.
+        // Here we compute yaw (longitude) and pitch (latitude) for equirectangular mapping.
+
+        // Yaw: angle around vertical axis — use X and Z (X to the right, Z forward)
+        float yaw = std::atan2(x_cam, z_cam);
+
+        // Pitch: vertical angle — use negative Y if camera Y is downwards
+        float pitch = std::atan2(-y_cam, std::hypot(x_cam, z_cam));
+
+        // Normalize to [0,1] UV coordinates for equirectangular image
+        float u = (yaw * inv_2PI) + 0.5f;
+        float v = 0.5f - (pitch * inv_PI);
+
+        // Convert UV to pixel coordinates
+        int px = static_cast<int>(u * dst_width);
+        int py = static_cast<int>(v * dst_height);
+
+        // Clamp pixel indices to image bounds
+        px = std::max(0, std::min(px, dst_width - 1));
+        py = std::max(0, std::min(py, dst_height - 1));
+
+        // Store original LiDAR coordinates (or change to transformed coords if desired)
+        data_image.XArray.push_back(p.x);
+        data_image.YArray.push_back(p.y);
+        data_image.ZArray.push_back(p.z);
+        data_image.XPixel.push_back(px);
+        data_image.YPixel.push_back(py);
+
     }
 
-    for(auto&& [l, p] : iter::zip(back.points, lidar_back_2d))
-    {
-        if(p.x < dst_width/4) {
-            l.pixelX = (p.x + dst_width * 3 / 4) * resize_factor;
-        }
-        else{
-            l.pixelX = (p.x - dst_width/4) * resize_factor;
-        }
-
-        l.pixelY = p.y * resize_factor;
-        if( l.pixelX >= 0 &&  l.pixelX < cv_frame.cols && l.pixelY >= 0 && l.pixelY < cv_frame.rows) {
-            cv::Vec3f& pixel = cv_frame.at<cv::Vec3f>(l.pixelY, l.pixelX);
-            pixel[0] = l.x;
-            pixel[1] = l.y;
-            pixel[2] = l.z;
-            x.push_back(l.x);
-            y.push_back(l.y);
-            z.push_back(l.z);
-            x_p.push_back(l.pixelX);
-            y_p.push_back(l.pixelY);
-        }
-    }
-
-    // cv::resize(cv_frame, cv_frame, cv::Size(640,320),cv::INTER_NEAREST);
-    // cv::imshow("X",cv_frame);
-    // cv::waitKey(1);
-    data_image.XArray = x;
-    data_image.YArray = y;
-    data_image.ZArray = z;
-    data_image.XPixel = x_p;
-    data_image.YPixel = y_p;
-    return  data_image;
+    return data_image;
 }
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////// Interfaces                                                            //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -626,7 +609,7 @@ RoboCompLidar3D::TColorCloudData SpecificWorker::Lidar3D_getColorCloudData()
  @param name - name of the lidar
  @param start - start angle in radians
  @param len - length of the angle in radians
- @param decimationDegreeFactor - factor of reduction in degrees 
+ @param decimationDegreeFactor - factor of reduction in degrees
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
@@ -660,7 +643,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
         auto it_end = buffer.points.end();
         //The clipping exceeds pi, we assign the excess to the result
         if (rad_end > M_PI)
-            filtered_points.assign(std::make_move_iterator(buffer.points.begin()), 
+            filtered_points.assign(std::make_move_iterator(buffer.points.begin()),
                                     std::make_move_iterator(std::find_if(buffer.points.begin(), buffer.points.end(),
                                                             [_end=rad_end - 2*M_PI](const RoboCompLidar3D::TPoint& point)
                                                             {return _end < point.phi;})));
@@ -691,7 +674,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
  @brief
  @param name - name of the lidar
  @param distance - maximum distance view of the lidar
- @param decimationDegreeFactor - factor of reduction in degrees 
+ @param decimationDegreeFactor - factor of reduction in degrees
 
 */
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor)
@@ -754,7 +737,7 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
     //LiDAR not started
     if(not ready_to_go)
         return {};
-    
+
     if (name == "unfiltered"){
 
         auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
@@ -841,4 +824,3 @@ int SpecificWorker::startup_check()
 // RoboCompLidar3D::TData
 // RoboCompLidar3D::TDataCategory
 // RoboCompLidar3D::TColorCloudData
-

@@ -18,7 +18,7 @@ ry = 0.0
 rz = 0.0
 tx = 0.0
 ty = -170.0
-tz = 1100.0
+tz = 970.0	 #970.0
 
 # boundin box colision / hitbox
 center_box_x = 0.0
@@ -28,12 +28,12 @@ size_box_x = 600.0
 size_box_y = 600.0
 size_box_z = 600.0
 
-floor_line = 200.0
-top_line = 2200.0
+floor_line = -200.0
+top_line = 4000.0
 
 down_sampling = 100.0
 
-Period.Compute = 100
+Period.Compute = 50
 Period.Emergency = 500
 
 Ice.Warn.Connections = "0"

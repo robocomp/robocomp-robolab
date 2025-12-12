@@ -17,12 +17,12 @@ simulator = true
 #Warning use "." for decimals not ","
 rx = 0.0
 ry = 0.0
-rz = 0.0
+rz = 0.3
 tx = 0.0
 ty = -170.0
 tz = 1100.0
 
-Period.Compute = 100
+Period.Compute = 50
 Period.Emergency = 500
 
 # boundin box colision / hitbox

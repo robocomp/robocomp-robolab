@@ -10,7 +10,7 @@ sudo aptitude install libgstreamer1.0-dev libusb-1.0-0-dev autopoint gtk-doc-too
 In case you have installed libuvc uninstall it
 
 # Install decode Nvidia 
-Video_Codec_SDK_12.0.16 works
+Video_Codec_SDK_12.0.16 works: https://developer.nvidia.com/video-codec-sdk-archive
 ## If is Jetson
 You do nothing
 ## If is normal PC 

@@ -33,7 +33,7 @@ top_line = 4000.0
 down_sampling = 100.0
 
 
-Period.Compute = 100
+Period.Compute = 50
 Period.Emergency = 500
 
 Ice.Warn.Connections = "0"

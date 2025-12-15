@@ -171,6 +171,10 @@ class SpecificWorker : public GenericWorker
 
         // dowwnsample
         double down_sampling = 0;   //mm free voxel radius
+
+        // Inicialización de rvec
+        cv::Mat rvec;
+        cv::Mat tvec;
         
     signals:
         //void customSignal();

@@ -73,11 +73,6 @@ SpecificWorker::~SpecificWorker()
 void SpecificWorker::initialize()
 {
     std::cout << "initialize worker" << std::endl;
-    // Save locale setting
-    const std::string oldLocale=std::setlocale(LC_NUMERIC,nullptr);
-    // Force '.' as the radix point. If you comment this out,
-    // you'll get output similar to the OP's GUI mode sample
-    std::setlocale(LC_NUMERIC,"C");
     try
     {
         lidar_model = this->configLoader.get<int>("lidar_model");
@@ -130,25 +125,52 @@ void SpecificWorker::initialize()
         #endif
         std::cout << "Downsampling in mm " << down_sampling << std::endl;
 
+        // ---------------------------------------------------------
+        // EXTRINSIC CONFIGURATION (Position and Orientation)
+        // ---------------------------------------------------------
+        rvec.create(3, 1, CV_64F);  
+        tvec.create(3, 1, CV_64F);
+
+        // Configure rotation and translation depending on environment
+        if (simulator)
+        {
+            // Rotation for simulator: 90 degrees around X (Rodrigues vector)
+            rvec.at<double>(0, 0) = M_PI_2;
+            rvec.at<double>(1, 0) = 0.0;
+            rvec.at<double>(2, 0) = 0.0;
+
+            // Translation for simulator (in mm)
+            tvec.at<double>(0, 0) = 0.0;
+            tvec.at<double>(1, 0) = 1350.0;
+            tvec.at<double>(2, 0) = 170.0;
+
+            // Destination image resolution for simulator
+            dst_width = 1920;
+            dst_height = 960;
+        }
+        else // Real robot
+        {
+            // Rotation for real robot (Rodrigues vector)
+            rvec.at<double>(0, 0) = M_PI_2;
+            rvec.at<double>(1, 0) = 0.0;
+            rvec.at<double>(2, 0) = 0.0;
+
+            // Translation for real robot (in mm)
+            tvec.at<double>(0, 0) = 0.0;
+            tvec.at<double>(1, 0) = 1330.0;
+            tvec.at<double>(2, 0) = 170.0;
+
+            // Destination image resolution for real robot 
+            dst_width = 1920;
+            dst_height = 920;
+        }
 
     }catch (const std::exception &e)
     {
         std::cout <<"Error reading the config \n" << e.what() << std::endl << std::flush;
         std::terminate();
-        }
-
-    // Restore locale setting
-    std::setlocale(LC_NUMERIC,oldLocale.c_str());
-
-    if(simulator){
-        dst_width = 1200;
-        dst_height = 600;
     }
-    else
-    {
-        dst_width = 1920;
-        dst_height = 920;
-    }
+
     if (not simulator)
     {
         param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
@@ -430,45 +452,6 @@ std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Poi
 RoboCompLidar3D::TDataImage SpecificWorker::lidar2cam(const RoboCompLidar3D::TData &lidar_data)
 {
     // ---------------------------------------------------------
-    // 1. EXTRINSIC CONFIGURATION (Position and Orientation)
-    // ---------------------------------------------------------
-
-    cv::Mat rvec(3, 1, CV_64F);
-    cv::Mat tvec(3, 1, CV_64F);
-
-    // Configure rotation and translation depending on environment
-    if (simulator)
-    {
-        // Rotation for simulator: 90 degrees around X (Rodrigues vector)
-        rvec.at<double>(0, 0) = M_PI_2;
-        rvec.at<double>(1, 0) = 0.0;
-        rvec.at<double>(2, 0) = 0.0;
-
-        // Translation for simulator (in mm)
-        tvec.at<double>(0, 0) = 0.0;
-        tvec.at<double>(1, 0) = 1350.0;
-        tvec.at<double>(2, 0) = 170.0;
-
-        // Destination image resolution for simulator
-        dst_width = 1920;
-        dst_height = 960;
-    }
-    else // Real robot
-    {
-        // Rotation for real robot (Rodrigues vector)
-        rvec.at<double>(0, 0) = M_PI_2;
-        rvec.at<double>(1, 0) = 0.0;
-        rvec.at<double>(2, 0) = 0.0;
-
-        // Translation for real robot (in mm)
-        tvec.at<double>(0, 0) = 0.0;
-        tvec.at<double>(1, 0) = 1330.0;
-        tvec.at<double>(2, 0) = 170.0;
-
-        // Keep default destination resolution (can be adjusted if needed)
-    }
-
-    // ---------------------------------------------------------
     // 2. TRANSFORMATION MATRICES PREPARATION
     // ---------------------------------------------------------
 
@@ -600,6 +583,10 @@ RoboCompLidar3D::TColorCloudData SpecificWorker::Lidar3D_getColorCloudData()
         cloud.Z[i] = static_cast<int16_t>(std::clamp(p.z, -maxShort, maxShort));
         cloud.R[i] = cloud.G[i] = cloud.B[i] = 255;
     }
+
+    cloud.timestamp = std::min(data_valid.timestamp, data_invalid.timestamp);
+    cloud.numberPoints = N;
+    cloud.compressed = false;
 
 	return cloud;
 }
@@ -743,7 +730,7 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
         auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
         const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
         RoboCompLidar3D::TDataImage dataImage;
-        dataImage.timestamp = std::max(data_valid.timestamp, data_invalid.timestamp);
+        dataImage.timestamp = std::min(data_valid.timestamp, data_invalid.timestamp);
 
         dataImage.XArray.reserve(total_size);
         dataImage.YArray.reserve(total_size);

@@ -35,7 +35,7 @@ Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 Lidar3D = "tcp -p 11990"
 
 [Period]
-Compute = 100
+Compute = 50
 Emergency = 500
 
 [Ice]

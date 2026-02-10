@@ -1,0 +1,16 @@
+import "Lidar3D.idsl";
+import "FullPoseEstimationPub.idsl";
+import "OmniRobot.idsl";
+import "DifferentialRobot.idsl";
+
+Component mapping_component
+{
+    Communications
+    {
+        requires Lidar3D, OmniRobot, DifferentialRobot;
+        subscribesTo FullPoseEstimationPub;
+
+    };
+    language Cpp11;
+};
+

@@ -1,0 +1,69 @@
+# MediaMTX v1.5.1 Configuration - Optimizado para Ricoh Theta Z1
+
+###############################################
+# General settings
+###############################################
+
+logLevel: info
+logDestinations: [stdout]
+readTimeout: 10s
+writeTimeout: 10s
+
+###############################################
+# RTSP server
+###############################################
+
+rtsp: yes
+rtspAddress: 0.0.0.0:8554
+
+###############################################
+# RTMP server
+###############################################
+
+rtmp: yes
+rtmpAddress: 0.0.0.0:1935
+
+###############################################
+# HLS server
+###############################################
+
+hls: yes
+hlsAddress: 0.0.0.0:8888
+hlsAlwaysRemux: no
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+###############################################
+# WebRTC server - Optimizado para BAJA LATENCIA
+###############################################
+
+webrtc: yes
+webrtcAddress: 0.0.0.0:8889
+webrtcLocalUDPAddress: :8189
+webrtcIPsFromInterfaces: yes
+webrtcAdditionalHosts: ['192.168.5.13']
+
+# Servidores STUN para ayudar con conectividad ICE
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+
+###############################################
+# SRT server
+###############################################
+
+srt: yes
+srtAddress: 0.0.0.0:8890
+
+###############################################
+# Paths
+###############################################
+
+paths:
+  # Ricoh Theta 360 camera stream
+  theta:
+    source: publisher
+
+  all_others:

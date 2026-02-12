@@ -43,12 +43,18 @@ Add to .bashrc and source:
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+// HIBERNATION DESACTIVADA para mantener máxima velocidad continua
+// Si se activa, reduce el período cuando no hay peticiones
+// #define HIBERNATION_ENABLED
+
 #include <genericworker.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
+#include <thread>
+#include <chrono>
 
 using namespace std::chrono;
 
@@ -56,25 +62,46 @@ class SpecificWorker : public GenericWorker
 {
     Q_OBJECT
     public:
-        SpecificWorker(TuplePrx tprx, bool startup_check);
+        SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check);
         ~SpecificWorker();
-        bool setParams(RoboCompCommonBehavior::ParameterList params);
 	RoboCompCamera360RGB::TImage Camera360RGB_getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight);
 
 public slots:
-        void compute();
-        int startup_check();
-        void initialize(int period);
+        /**
+         * \brief Initializes the worker one time.
+         */
+        void initialize();
 
+        /**
+         * \brief Main compute loop of the worker.
+         */
+        void compute();
+
+        /**
+         * \brief Handles the emergency state loop.
+         */
+        void emergency();
+
+        /**
+         * \brief Restores the component from an emergency state.
+         */
+        void restore();
+
+        int startup_check();
     private:
         bool startup_check_flag;
         bool activated_camera = false;
         cv::Mat cv_frame;
         cv::VideoCapture capture;
 
-        vector<int> compression_params;
-        string pipeline;
-        //vector<uchar> buffer;
+        // Streaming paralelo a MediaMTX
+        cv::VideoWriter stream_writer;
+        std::string stream_pipeline;
+        bool streaming_enabled = false;
+
+        std::vector<int> compression_params;
+        std::string pipeline;
+        //std::vector<uchar> buffer;
 
         FPSCounter fps;
         std::atomic<std::chrono::high_resolution_clock::time_point> last_read;
@@ -87,6 +114,11 @@ public slots:
             bool orin = false;
             bool compressed = false;
             bool simulator = false;
+            bool streaming = true;      // Streaming paralelo a MediaMTX
+            bool stream_webrtc = false; // true=WHIP/WebRTC directo, false=RTMP a MediaMTX
+            std::string stream_host = "localhost";
+            int stream_port = 8554;
+            std::string stream_path = "theta";
             int time_offset;
         };
         PARAMS pars;
@@ -99,6 +131,9 @@ public slots:
         long long capture_time;
         // track image period
         void self_adjust_period(int new_period);
+
+signals:
+        //void customSignal();
 };
 
 #endif

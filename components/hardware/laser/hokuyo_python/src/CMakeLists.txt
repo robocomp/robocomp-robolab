@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10)
 PROJECT(  hokuyo_python )
 
-INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
+# find_package(pybind11 REQUIRED)
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior GenericBase Laser )
+# pybind11_add_module(example_module src/example.cpp)
+

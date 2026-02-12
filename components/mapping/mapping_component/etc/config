@@ -1,0 +1,22 @@
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for required interfaces
+Proxies.DifferentialRobot = "differentialrobot:tcp -h localhost -p 10004"
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11990"
+Proxies.OmniRobot = "omnirobot:tcp -h localhost -p 10010"
+
+
+# Endpoints for subscriptions interfaces
+Endpoints.FullPoseEstimationPubTopic = "tcp -p 1567"
+Endpoints.FullPoseEstimationPubPrefix = ""   # removed "bas"
+
+
+
+Period.Compute = 25
+Period.Emergency = 500
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2023 by YOUR NAME HERE
+ *    Copyright (C) 2025 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,29 +16,33 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef CAMERA360RGB_H
-#define CAMERA360RGB_H
+#include "fullposeestimationpubI.h"
 
-// Ice includes
-#include <Ice/Ice.h>
-#include <Camera360RGB.h>
-
-#include <config.h>
-#include "genericworker.h"
-
-
-class Camera360RGBI : public virtual RoboCompCamera360RGB::Camera360RGB
+FullPoseEstimationPubI::FullPoseEstimationPubI(GenericWorker *_worker, const size_t id): worker(_worker), id(id)
 {
-public:
-	Camera360RGBI(GenericWorker *_worker);
-	~Camera360RGBI();
+	newFullPoseHandlers = {
+		[this](auto a) { return worker->FullPoseEstimationPub_newFullPose(a); }
+	};
 
-	RoboCompCamera360RGB::TImage getROI(int cx, int cy, int sx, int sy, int roiwidth, int roiheight, const Ice::Current&);
+}
 
-private:
 
-	GenericWorker *worker;
+FullPoseEstimationPubI::~FullPoseEstimationPubI()
+{
+}
 
-};
 
-#endif
+void FullPoseEstimationPubI::newFullPose(RoboCompFullPoseEstimation::FullPoseEuler pose, const Ice::Current&)
+{
+
+    #ifdef HIBERNATION_ENABLED
+		worker->hibernationTick();
+	#endif
+    
+	if (id < newFullPoseHandlers.size())
+		 newFullPoseHandlers[id](pose);
+	else
+		throw std::out_of_range("Invalid newFullPose id: " + std::to_string(id));
+
+}
+

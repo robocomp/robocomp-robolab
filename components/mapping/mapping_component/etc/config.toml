@@ -1,0 +1,28 @@
+[Proxies]
+# This property is used by the clients to connect to IceStorm.
+TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+
+# Proxies for required interfaces
+DifferentialRobot = "differentialrobot:tcp -h localhost -p 0"
+Lidar3D = "lidar3d:tcp -h localhost -p 0"
+OmniRobot = "omnirobot:tcp -h localhost -p 0"
+
+[Endpoints]
+# Endpoints for subscriptions interfaces
+FullPoseEstimationPubTopic = "tcp -p 0"
+FullPoseEstimationPubPrefix = ""
+
+
+
+
+
+[Period]
+Compute = 100
+Emergency = 500
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

@@ -21,13 +21,46 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
-	this->startup_check_flag = startup_check;
-	// Uncomment if there's too many debug messages
-	// but it removes the possibility to see the messages
-	// shown in the console with qDebug()
-    //	QLoggingCategory::setFilterRules("*.debug=false\n");
+this->startup_check_flag = startup_check;
+	if(this->startup_check_flag)
+	{
+		this->startup_check();
+	}
+	else
+	{
+		#ifdef HIBERNATION_ENABLED
+			hibernationChecker.start(500);
+		#endif
+
+		
+		// Example statemachine:
+		/***
+		//Your definition for the statesmachine (if you dont want use a execute function, use nullptr)
+		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period, 
+															std::bind(&SpecificWorker::customLoop, this),  // Cyclic function
+															std::bind(&SpecificWorker::customEnter, this), // On-enter function
+															std::bind(&SpecificWorker::customExit, this)); // On-exit function
+
+		//Add your definition of transitions (addTransition(originOfSignal, signal, dstState))
+		states["CustomState"]->addTransition(states["CustomState"].get(), SIGNAL(entered()), states["OtherState"].get());
+		states["Compute"]->addTransition(this, SIGNAL(customSignal()), states["CustomState"].get()); //Define your signal in the .h file under the "Signals" section.
+
+		//Add your custom state
+		statemachine.addState(states["CustomState"].get());
+		***/
+
+		statemachine.setChildMode(QState::ExclusiveStates);
+		statemachine.start();
+
+		auto error = statemachine.errorString();
+		if (error.length() > 0){
+			qWarning() << error;
+			throw error;
+		}
+		
+	}
 }
 /**
 * \brief Default destructor
@@ -36,24 +69,49 @@ SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
-bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
+void SpecificWorker::initialize()
 {
-    try
+try
     {
         //Parametros por el config
-        pars.display = params.at("display").value == "true" or (params.at("display").value == "True");
-        pars.simulator = params.at("simulator").value == "true" or (params.at("simulator").value == "True");
-        pars.orin = params.at("orin").value == "true" or (params.at("orin").value == "True");
-        pars.compressed = params.at("compressed").value == "true" or (params.at("compressed").value == "True");
-        pars.time_offset =std::stof(params.at("time_offset").value);
-        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed << " simulator: " << pars.simulator << "offset "<< pars.time_offset <<std::endl;
+        pars.display = this->configLoader.get<bool>("display") or (this->configLoader.get<bool>("display"));
+        pars.simulator = this->configLoader.get<bool>("simulator") or (this->configLoader.get<bool>("simulator"));
+        pars.orin = this->configLoader.get<bool>("orin") or (this->configLoader.get<bool>("orin"));
+        pars.compressed = this->configLoader.get<bool>("compressed") or (this->configLoader.get<bool>("compressed"));
+        pars.time_offset =this->configLoader.get<double>("time_offset");
+
+        // Parámetros de streaming (opcionales, por defecto activado)
+        try {
+            pars.streaming = this->configLoader.get<bool>("streaming");
+        } catch(...) {
+            pars.streaming = true; // Por defecto habilitado
+        }
+
+        try {
+            pars.stream_host = this->configLoader.get<std::string>("stream_host");
+        } catch(...) {
+            pars.stream_host = "localhost";
+        }
+
+        try {
+            pars.stream_port = this->configLoader.get<int>("stream_port");
+        } catch(...) {
+            pars.stream_port = 8554;
+        }
+
+        try {
+            pars.stream_path = this->configLoader.get<std::string>("stream_path");
+        } catch(...) {
+            pars.stream_path = "theta";
+        }
+
+        std::cout << "Params: device" << pars.device << " display " << pars.display << " compressed: " << pars.compressed
+                  << " simulator: " << pars.simulator << " streaming: " << pars.streaming << " offset "<< pars.time_offset <<std::endl;
     }
     catch(const std::exception &e)
     { std::cout << e.what() << " Error reading config params" << std::endl;};
-    return true;
-}
-void SpecificWorker::initialize(int period)
-{
+
+//chekpoint robocompUpdater
     std::cout << "Initializing worker" << std::endl;
 
 	if(this->startup_check_flag)
@@ -62,32 +120,78 @@ void SpecificWorker::initialize(int period)
     {
         last_read.store(std::chrono::high_resolution_clock::now());
 
+        // Pipeline optimizado para máxima velocidad y FPS
+        // - Sin queues intermedias (reduce latencia)
+        // - max-buffers=1 en appsink (solo último frame)
+        // - drop=true (descarta frames antiguos)
+        // - sync=false (no sincronización, máxima velocidad)
         if (pars.orin)
-            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+            pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=4 ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
         else
-            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvdec ! gldownload ! queue ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! queue ! appsink drop=true sync=false";
+            pipeline = "thetauvcsrc mode=2K ! h264parse ! nvh264sldec ! videoconvert n-threads=4 ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
         //if (pars.orin)
         //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
         //else
         //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
 
-        while(!activated_camera)
+        int connection_attempts = 0;
+        const int max_attempts = 10;
+
+        while(!activated_camera && connection_attempts < max_attempts)
         {
+            connection_attempts++;
+            std::cout << "Connecting to Camera360RGB (attempt " << connection_attempts << "/" << max_attempts << ")" << std::endl;
+
             if(!pars.simulator)
             {
+                std::cout << "Pipeline: " << pipeline << std::endl;
+
                 if( auto success = capture.open(pipeline, cv::CAP_GSTREAMER);
                         success != true)
                 {
-                    qWarning() << __FUNCTION__ << " Error connecting. No camera found";
+                    qWarning() << __FUNCTION__ << " Error connecting. No camera found or pipeline error.";
+                    qWarning() << "Make sure:";
+                    qWarning() << "  1. Camera is connected via USB";
+                    qWarning() << "  2. GST_PLUGIN_PATH is set: export GST_PLUGIN_PATH=/home/robocomp/software/gstthetauvc/thetauvc";
+                    qWarning() << "  3. Plugin thetauvcsrc is available: gst-inspect-1.0 thetauvcsrc";
+
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
                 }
                 else
                 {
+                    std::cout << "Camera opened successfully, grabbing first frame..." << std::endl;
                     compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
                     compression_params.push_back(50);
-                    capture >> cv_frame;
-                    MAX_WIDTH = cv_frame.cols;
-                    MAX_HEIGHT = cv_frame.rows;
-                    activated_camera = true;
+
+                    // Try to grab first frame with timeout
+                    bool frame_grabbed = false;
+                    for(int i = 0; i < 5; i++)
+                    {
+                        if(capture.grab())
+                        {
+                            capture.retrieve(cv_frame);
+                            if(!cv_frame.empty())
+                            {
+                                frame_grabbed = true;
+                                break;
+                            }
+                        }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    }
+
+                    if(frame_grabbed && !cv_frame.empty())
+                    {
+                        MAX_WIDTH = cv_frame.cols;
+                        MAX_HEIGHT = cv_frame.rows;
+                        activated_camera = true;
+                        std::cout << "Camera activated successfully! Resolution: " << MAX_WIDTH << "x" << MAX_HEIGHT << std::endl;
+                    }
+                    else
+                    {
+                        qWarning() << "Failed to grab first frame from camera";
+                        capture.release();
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                    }
                 }
             }
             else
@@ -101,29 +205,104 @@ void SpecificWorker::initialize(int period)
                     MAX_HEIGHT = image.height;
                     activated_camera = true;
                 }
-                catch(const Ice::Exception &e){ std::cout << e.what() << std::endl;};
+                catch(const Ice::Exception &e)
+                {
+                    std::cout << "Simulator connection error: " << e.what() << std::endl;
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
             }
         }
+
+        if(!activated_camera)
+        {
+            qFatal("Failed to activate camera after %d attempts. Exiting.", max_attempts);
+        }
+
+        // Inicializar pipeline de streaming paralelo a MediaMTX
+        if(pars.streaming && !pars.simulator)
+        {
+            std::cout << "Initializing parallel streaming to MediaMTX..." << std::endl;
+
+            // Pipeline GStreamer para publicar vía RTSP a MediaMTX
+            // Usamos shmsink para compartir frames con un proceso GStreamer externo
+            // O usamos appsrc -> flvmux -> rtmpsink (RTMP es más compatible)
+            stream_pipeline = "appsrc ! videoconvert ! video/x-raw,format=I420 ! "
+                            "x264enc tune=zerolatency bitrate=5000 speed-preset=ultrafast key-int-max=30 ! "
+                            "video/x-h264,profile=baseline ! "
+                            "flvmux streamable=true ! "
+                            "rtmpsink location=rtmp://" + pars.stream_host + ":1935/" + pars.stream_path + " sync=false";
+
+            std::cout << "Stream pipeline: " << stream_pipeline << std::endl;
+
+            // Intentar abrir el writer (sin bloquear si falla)
+            try {
+                if(stream_writer.open(stream_pipeline, cv::CAP_GSTREAMER, 0, 30,
+                                     cv::Size(MAX_WIDTH, MAX_HEIGHT), true))
+                {
+                    streaming_enabled = true;
+                    std::cout << "✓ Streaming pipeline initialized successfully!" << std::endl;
+                    std::cout << "  Publishing to: rtsp://" << pars.stream_host << ":"
+                             << pars.stream_port << "/" << pars.stream_path << std::endl;
+                }
+                else
+                {
+                    std::cout << "⚠ Could not initialize streaming pipeline. Continuing without streaming." << std::endl;
+                    streaming_enabled = false;
+                }
+            }
+            catch(const cv::Exception& e)
+            {
+                std::cout << "⚠ Streaming initialization failed: " << e.what() << std::endl;
+                std::cout << "  Continuing without streaming..." << std::endl;
+                streaming_enabled = false;
+            }
+        }
+        else
+        {
+            std::cout << "Streaming disabled (simulator mode or config)" << std::endl;
+            streaming_enabled = false;
+        }
+
         capture_time = -1;
         DEPTH = cv_frame.elemSize();
-        this->Period = 33;
-        timer.start(Period);
+        setPeriod("Compute", 33);
+        
     }
 }
 void SpecificWorker::compute()
 {
-    /// check idle time
-    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_read.load()).count() > MAX_INACTIVE_TIME)
-    {
-        fps.print("No requests in the last 5 seconds. Pausing. Comp wil continue in next call", 3000);
-        return;
-    }
+    // OPTIMIZADO PARA MÁXIMA VELOCIDAD - Sin pausas, captura continua
 
+    bool frame_valid = false;
 
     if(not pars.simulator)
     {
-        capture >> cv_frame;
-        capture_time = duration_cast< milliseconds >(system_clock::now().time_since_epoch()).count() - pars.time_offset;
+        // Real camera capture - optimizado para velocidad
+        try
+        {
+            if(capture.isOpened())
+            {
+                // Usar read() directo es más rápido que grab()+retrieve()
+                capture.read(cv_frame);
+
+                // Validación mínima (solo empty check para máxima velocidad)
+                if(!cv_frame.empty())
+                {
+                    capture_time = duration_cast<milliseconds>(
+                        system_clock::now().time_since_epoch()).count() - pars.time_offset;
+                    frame_valid = true;
+                }
+            }
+            else
+            {
+                qWarning() << "Camera not opened";
+                activated_camera = false;
+            }
+        }
+        catch(const cv::Exception& e)
+        {
+            qWarning() << "OpenCV exception:" << e.what();
+        }
     }
     else        // Simulator
     {
@@ -131,35 +310,104 @@ void SpecificWorker::compute()
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
             cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
-            capture_time = image.timestamp;
-            // self adjusting period to remote image source
-            //self_adjust_period(image.period);
+
+            if(!cv_frame.empty())
+            {
+                capture_time = image.timestamp;
+                frame_valid = true;
+            }
         }
         catch (const Ice::Exception &e)
-        { std::cout << e.what() << " Error reading 360 camera " << std::endl; }
+        {
+            qWarning() << "Simulator error:" << e.what();
+        }
     }
 
-    if(pars.display)
+    // Procesamiento mínimo para máxima velocidad
+    if(frame_valid)
     {
-        cv::imshow("USB Camera", cv_frame);
-        cv::waitKey(1); // waits to display frame
+        // Publicar frame al stream de MediaMTX (en paralelo, sin bloquear)
+        if(streaming_enabled && stream_writer.isOpened())
+        {
+            try {
+                // Escribir frame sin bloquear el loop principal
+                stream_writer.write(cv_frame);
+            }
+            catch(const cv::Exception& e) {
+                // Silenciar errores de streaming para no ralentizar captura
+                // Si falla consistentemente, deshabilitamos streaming
+                static int stream_errors = 0;
+                if(++stream_errors > 100) {
+                    std::cout << "⚠ Too many streaming errors, disabling..." << std::endl;
+                    streaming_enabled = false;
+                    stream_writer.release();
+                }
+            }
+        }
+
+        // Display optimizado (solo si está habilitado)
+        if(pars.display)
+        {
+            try
+            {
+                // INTER_NEAREST es el más rápido (sin interpolación)
+                cv::Mat display_frame;
+                cv::resize(cv_frame, display_frame,
+                          cv::Size(cv_frame.cols / 2, cv_frame.rows / 2),
+                          0, 0, cv::INTER_NEAREST);
+                cv::imshow("Ricoh Theta Z1 [REALTIME]", display_frame);
+                cv::waitKey(1);
+            }
+            catch(const cv::Exception& e)
+            {
+                // Silenciar errores de display para no ralentizar
+            }
+        }
+
+        // Buffer actualizado (sin clone para máxima velocidad - usar con cuidado)
+        // NOTA: Si hay problemas de thread-safety, volver a usar clone()
+        buffer_image.put(std::move(cv_frame));
+
+        // Print FPS statistics
+        fps.print("FPS:");
     }
-    buffer_image.put(std::move(cv_frame)); // TODO: Replace by tuple with timestamp
-    fps.print("FPS:");
+    else
+    {
+        qWarning() << "Skipping frame due to invalid data";
+    }
+}
+
+
+void SpecificWorker::emergency()
+{
+    std::cout << "Emergency worker" << std::endl;
+	//computeCODE
+	//
+	//if (SUCCESSFUL)
+    //  emmit goToRestore()
+}
+
+//Execute one when exiting to emergencyState
+void SpecificWorker::restore()
+{
+    std::cout << "Restore worker" << std::endl;
+	//computeCODE
+	//Restore emergency component
+
 }
 
 void SpecificWorker::self_adjust_period(int new_period)
 {
-    if(abs(new_period - this->Period) < 2)
+    if(abs(new_period - getPeriod("Compute")) < 2)
         return;
-    if(new_period > this->Period)
+    if(new_period > getPeriod("Compute"))
         {
-            this->Period += 1;
-            timer.setInterval(this->Period);
+            this->setPeriod("Compute", getPeriod("Compute") + 1);
+
         } else
         {
-            this->Period -= 1;
-            this->timer.setInterval(this->Period);
+            this->setPeriod("Compute", getPeriod("Compute") - 1);
+
         }
 }
 /////////////////////////////////////////////////////////////////////

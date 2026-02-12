@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ricoh Theta Z1 - Ultra Low Latency Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: white;
+        }
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            background: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            padding: 15px;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.5em; }
+        .header .subtitle { font-size: 0.9em; opacity: 0.8; }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            width: 100%;
+        }
+        #video {
+            width: 100%;
+            max-height: 75vh;
+            display: block;
+            background-color: #222;
+            object-fit: contain;
+        }
+        .overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .overlay .latency { color: #00ff00; font-size: 18px; font-weight: bold; }
+        .overlay .warn { color: #ffaa00; }
+        .overlay .bad { color: #ff4444; }
+
+        .controls {
+            padding: 15px;
+            background: #1a1a2e;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .config-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .config-group label {
+            font-size: 12px;
+            color: #888;
+        }
+        .config-group input {
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f0f23;
+            color: white;
+            width: 120px;
+        }
+        .config-group input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-connect { background: #00aa00; color: white; }
+        .btn-connect:hover { background: #00cc00; }
+        .btn-disconnect { background: #cc0000; color: white; }
+        .btn-disconnect:hover { background: #ff0000; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            padding: 10px 15px;
+            background: #0f0f23;
+            font-family: monospace;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        .stat { display: flex; gap: 5px; }
+        .stat-label { color: #888; }
+        .stat-value { color: #00ff00; }
+
+        .status {
+            padding: 5px 15px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-disconnected { background: #333; color: #888; }
+        .status-connecting { background: #aa8800; color: white; }
+        .status-connected { background: #00aa00; color: white; }
+        .status-error { background: #cc0000; color: white; }
+
+        .tips {
+            padding: 10px 15px;
+            background: #0a0a1a;
+            font-size: 11px;
+            color: #666;
+        }
+        .tips ul { margin-left: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> Shadow Ricoh </h1>
+            <div class="subtitle">WebRTC WHEP Viewer </div>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="overlay">
+                <div>Latencia: <span id="latencyDisplay" class="latency">--</span> ms</div>
+                <div>FPS: <span id="fpsDisplay">--</span> | Bitrate: <span id="bitrateDisplay">--</span></div>
+                <div>ICE: <span id="iceState">--</span> | Track: <span id="trackState">--</span></div>
+                <div id="mdnsWarning" style="display:none;color:orange;font-weight:bold;margin-top:5px;background:rgba(0,0,0,0.8);padding:5px;border-radius:3px;">
+                    ⚠️ mDNS detectado (IPs ocultas).
+                    <br>
+                    <button id="fixMdnsBtn" style="margin-top:5px;font-size:11px;padding:3px 8px;cursor:pointer;background:#e94560;color:white;border:none;border-radius:3px;">
+                        🔓 Desbloquear IPs Locales
+                    </button>
+                </div>
+                <div style="color:#888;font-size:10px;margin-top:5px;">Click en el video si no se ve</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="config-group">
+                <label>IP:</label>
+                <input type="text" id="hostInput" placeholder="192.168.5.13">
+            </div>
+            <div class="config-group">
+                <label>Puerto:</label>
+                <input type="text" id="portInput" placeholder="8889" style="width:60px">
+            </div>
+            <div class="config-group">
+                <label>Stream:</label>
+                <input type="text" id="pathInput" placeholder="theta" style="width:80px">
+            </div>
+
+            <button id="connectBtn" class="btn btn-connect">▶ CONECTAR</button>
+            <button id="disconnectBtn" class="btn btn-disconnect" style="display:none">⏹ DESCONECTAR</button>
+
+            <span id="statusBadge" class="status status-disconnected">DESCONECTADO</span>
+        </div>
+
+        <div class="stats">
+            <div class="stat"><span class="stat-label">Resolución:</span><span id="resolution" class="stat-value">--</span></div>
+            <div class="stat"><span class="stat-label">Codec:</span><span id="codec" class="stat-value">--</span></div>
+            <div class="stat"><span class="stat-label">Jitter:</span><span id="jitter" class="stat-value">--</span></div>
+            <div class="stat"><span class="stat-label">Packets Lost:</span><span id="packetsLost" class="stat-value">--</span></div>
+            <div class="stat"><span class="stat-label">Buffer:</span><span id="bufferDelay" class="stat-value">--</span></div>
+        </div>
+
+        <div class="tips">
+            <strong> Consejos para mínima latencia:</strong>
+            <ul>
+                <li>Usa Chrome/Edge (mejor soporte WebRTC)</li>
+                <li>Conexión por cable ethernet (evita WiFi)</li>
+                <li>El video está silenciado para evitar buffering de audio</li>
+                <li>Si hay problemas, prueba: <code>vlc --network-caching=50 rtsp://IP:8554/theta</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const video = document.getElementById('video');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const hostInput = document.getElementById('hostInput');
+        const portInput = document.getElementById('portInput');
+        const pathInput = document.getElementById('pathInput');
+
+        // Stats elements
+        const latencyDisplay = document.getElementById('latencyDisplay');
+        const fpsDisplay = document.getElementById('fpsDisplay');
+        const bitrateDisplay = document.getElementById('bitrateDisplay');
+        const iceState = document.getElementById('iceState');
+        const trackState = document.getElementById('trackState');
+        const resolution = document.getElementById('resolution');
+        const codec = document.getElementById('codec');
+        const jitter = document.getElementById('jitter');
+        const packetsLost = document.getElementById('packetsLost');
+        const bufferDelay = document.getElementById('bufferDelay');
+        const mdnsWarning = document.getElementById('mdnsWarning');
+        const fixMdnsBtn = document.getElementById('fixMdnsBtn');
+
+        let pc = null;
+        let statsInterval = null;
+        let lastBytesReceived = 0;
+        let lastTimestamp = 0;
+        let frameCount = 0;
+        let lastFrameTime = 0;
+
+        // Cargar configuración guardada
+        hostInput.value = localStorage.getItem('webrtc_host') || '192.168.5.13';
+        portInput.value = localStorage.getItem('webrtc_port') || '8889';
+        pathInput.value = localStorage.getItem('webrtc_path') || 'theta';
+
+        function saveConfig() {
+            localStorage.setItem('webrtc_host', hostInput.value);
+            localStorage.setItem('webrtc_port', portInput.value);
+            localStorage.setItem('webrtc_path', pathInput.value);
+        }
+
+        function updateStatus(state, text) {
+            statusBadge.className = `status status-${state}`;
+            statusBadge.textContent = text;
+        }
+
+        function updateLatencyColor(latency) {
+            if (latency < 100) {
+                latencyDisplay.className = 'latency';
+            } else if (latency < 300) {
+                latencyDisplay.className = 'latency warn';
+            } else {
+                latencyDisplay.className = 'latency bad';
+            }
+        }
+
+        fixMdnsBtn.onclick = async (e) => {
+            e.stopPropagation(); // Prevent video click
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('⚠️ Tu navegador bloquea el acceso a dispositivos en HTTP.\n\nSoluciones:\n1. Usa HTTPS\n2. Ve a chrome://flags/#anonymize-local-ips-exposed-by-webrtc y ponlo en "Disabled"');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop());
+                alert('✅ Permisos concedidos.\n\nLas IPs locales ahora deberían ser visibles.\nPor favor, pulsa CONECTAR de nuevo.');
+                mdnsWarning.style.display = 'none';
+                disconnect(); // Force disconnect to reset
+            } catch (err) {
+                console.error('Permisos denegados:', err);
+                alert('❌ Permisos denegados.\nNo se pudieron desbloquear las IPs locales.');
+            }
+        };
+
+        async function connect() {
+            saveConfig();
+            let streamAssigned = false;
+            mdnsWarning.style.display = 'none';
+
+            const host = hostInput.value || 'localhost';
+            const port = portInput.value || '8889';
+            const path = pathInput.value || 'theta';
+            const whepUrl = `http://${host}:${port}/${path}/whep`;
+
+            updateStatus('connecting', 'CONECTANDO...');
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'inline-block';
+
+            try {
+                // 1. Obtener ICE servers
+                console.log('Solicitando OPTIONS a:', whepUrl);
+                const optionsRes = await fetch(whepUrl, { method: 'OPTIONS' });
+                let iceServers = parseIceServers(optionsRes.headers.get('Link'));
+
+                // FALLBACK: Si no hay ICE servers, usar Google STUN
+                if (iceServers.length === 0) {
+                    console.log('⚠️ No se recibieron ICE servers, usando Google STUN fallback');
+                    iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+                }
+                console.log('🧊 ICE Servers:', iceServers);
+
+                // 2. Crear PeerConnection con configuración de BAJA LATENCIA
+                pc = new RTCPeerConnection({
+                    iceServers: iceServers,
+                    iceCandidatePoolSize: 0,  // No pre-gather
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require',
+                });
+
+                // Debug ICE Candidates
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        console.log('🍧 Local Candidate:', event.candidate.candidate);
+                        if (event.candidate.candidate.includes('.local')) {
+                            console.warn('⚠️ mDNS candidate detected. Esto puede bloquear la conexión en LAN sin HTTPS.');
+                            mdnsWarning.style.display = 'block';
+                        }
+                    } else {
+                        console.log('🍧 ICE Gathering Complete');
+                    }
+                };
+
+                pc.onicecandidateerror = (event) => {
+                    console.warn('🍧 ICE Candidate Error:', event);
+                };
+
+                pc.onconnectionstatechange = () => {
+                    console.log('Connection State:', pc.connectionState);
+                };
+
+                // Configurar handler de track inmediatamente
+                pc.ontrack = (evt) => {
+                    console.log('🎬 Track recibido:', evt.track.kind, evt.track);
+                    console.log('🎬 Streams:', evt.streams);
+
+                    if (streamAssigned) {
+                        console.log('⚠️ Stream ya asignado, ignorando evento ontrack duplicado');
+                        return;
+                    }
+
+                    trackState.textContent = evt.track.kind + ' ✓';
+                    trackState.style.color = '#00ff00';
+
+                    if (evt.track.kind === 'video') {
+                        streamAssigned = true;
+                        if (evt.streams && evt.streams[0]) {
+                            console.log('🎬 Asignando stream al video');
+                            video.srcObject = evt.streams[0];
+                        } else {
+                            console.log('🎬 Creando nuevo MediaStream con el track');
+                            video.srcObject = new MediaStream([evt.track]);
+                        }
+
+                        video.play().then(() => {
+                            console.log('🎬 Video reproduciendo');
+                        }).catch(e => {
+                            console.warn('Autoplay blocked:', e);
+                            updateStatus('connected', 'CONECTADO - Click para reproducir');
+                        });
+                    }
+                };
+
+                pc.oniceconnectionstatechange = () => {
+                    iceState.textContent = pc.iceConnectionState;
+                    console.log('ICE state:', pc.iceConnectionState);
+
+                    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                        updateStatus('connected', 'CONECTADO');
+                        mdnsWarning.style.display = 'none'; // Ocultar warning si conecta
+                        startStatsMonitoring();
+                    } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+                        updateStatus('error', 'FALLO CONEXION (ICE)');
+                        console.error('ICE Connection Failed. Check Firewall/IPs.');
+                    }
+                };
+
+                // Debug: eventos del video
+                video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
+                    resolution.textContent = `${video.videoWidth}x${video.videoHeight}`;
+                };
+                video.onloadeddata = () => console.log('Video data loaded');
+                video.oncanplay = () => {
+                    console.log('Video can play');
+                    video.play().catch(e => console.warn('Autoplay en canplay:', e));
+                };
+                video.onplaying = () => {
+                    console.log('Video is playing');
+                    trackState.textContent = 'playing ✓';
+                };
+                video.onstalled = () => console.log('Video stalled');
+                video.onwaiting = () => console.log('Video waiting');
+                video.onerror = () => {
+                    console.error('Video error:', video.error);
+                    trackState.textContent = 'error ✗';
+                    trackState.style.color = '#ff0000';
+                };
+
+                // 3. Agregar transceiver solo para video (sin audio = menos latencia)
+                pc.addTransceiver('video', {
+                    direction: 'recvonly'
+                });
+
+                // 4. Crear offer
+                const offer = await pc.createOffer({
+                    offerToReceiveVideo: true,
+                    offerToReceiveAudio: false  // Sin audio = menos buffering
+                });
+
+                await pc.setLocalDescription(offer);
+
+                // 5. Esperar ICE gathering (con timeout aumentado)
+                console.log('Esperando ICE gathering...');
+                await waitForIceGathering(pc, 4000);
+
+                // 6. Enviar offer
+                console.log('Enviando Offer SDP...');
+                const postRes = await fetch(whepUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: pc.localDescription.sdp
+                });
+
+                if (!postRes.ok) {
+                    const error = await postRes.text();
+                    throw new Error(`Server error: ${postRes.status} - ${error}`);
+                }
+
+                const answerSdp = await postRes.text();
+                console.log('Answer SDP recibido, longitud:', answerSdp.length);
+
+                // Log remote candidates
+                const remoteCandidates = answerSdp.split('\n').filter(l => l.includes('a=candidate'));
+                console.log('🍧 Remote Candidates (SDP):', remoteCandidates);
+
+                // 7. Set remote description (esto dispara ontrack)
+                await pc.setRemoteDescription(new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: answerSdp
+                }));
+
+                console.log('Remote description set');
+                console.log('Receivers:', pc.getReceivers());
+
+                // Verificar si hay receivers con track
+                const receivers = pc.getReceivers();
+                if (!streamAssigned && receivers.length > 0) {
+                    console.log('Tenemos receivers, asignando manualmente...');
+                    for (const receiver of receivers) {
+                        if (receiver.track && receiver.track.kind === 'video') {
+                            console.log('🎬 Track encontrado via getReceivers:', receiver.track);
+                            trackState.textContent = 'video ✓';
+                            trackState.style.color = '#00ff00';
+
+                            streamAssigned = true;
+                            const stream = new MediaStream([receiver.track]);
+                            video.srcObject = stream;
+
+                            video.play().then(() => {
+                                console.log('🎬 Video reproduciendo');
+                            }).catch(e => {
+                                console.warn('Autoplay blocked:', e);
+                                updateStatus('connected', 'CLICK PARA VER');
+                            });
+                            break;
+                        }
+                    }
+                } else if (streamAssigned) {
+                    console.log('Stream ya asignado, saltando asignación manual');
+                }
+
+                // Verificar estado del video periódicamente
+                const videoCheckInterval = setInterval(() => {
+                    if (!pc) {
+                        clearInterval(videoCheckInterval);
+                        return;
+                    }
+                    console.log('Video check - readyState:', video.readyState,
+                                'paused:', video.paused,
+                                'srcObject:', video.srcObject ? 'set' : 'null',
+                                'tracks:', video.srcObject ? video.srcObject.getTracks().length : 0);
+
+                    if (video.srcObject && video.srcObject.getTracks().length > 0) {
+                        const track = video.srcObject.getTracks()[0];
+                        console.log('Track state:', track.readyState, 'enabled:', track.enabled, 'muted:', track.muted);
+                    }
+                }, 3000);
+
+            } catch (err) {
+                console.error('Error:', err);
+                updateStatus('error', `ERROR: ${err.message}`);
+                disconnect();
+            }
+        }
+
+        function waitForIceGathering(pc, timeout) {
+            return new Promise((resolve) => {
+                if (pc.iceGatheringState === 'complete') {
+                    resolve();
+                    return;
+                }
+
+                const timeoutId = setTimeout(() => {
+                    console.log('ICE gathering timeout, continuing...');
+                    resolve();
+                }, timeout);
+
+                pc.onicegatheringstatechange = () => {
+                    if (pc.iceGatheringState === 'complete') {
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+            });
+        }
+
+        function parseIceServers(linkHeader) {
+            if (!linkHeader) return [];
+
+            return linkHeader.split(', ').map(link => {
+                const match = link.match(/<(.+?)>; rel="ice-server"/);
+                if (match) {
+                    return { urls: [match[1]] };
+                }
+                return null;
+            }).filter(s => s !== null);
+        }
+
+        function disconnect() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+
+            video.srcObject = null;
+
+            updateStatus('disconnected', 'DESCONECTADO');
+            connectBtn.style.display = 'inline-block';
+            disconnectBtn.style.display = 'none';
+            mdnsWarning.style.display = 'none';
+
+            // Reset stats
+            latencyDisplay.textContent = '--';
+            fpsDisplay.textContent = '--';
+            bitrateDisplay.textContent = '--';
+            iceState.textContent = '--';
+        }
+
+        function startStatsMonitoring() {
+            if (statsInterval) clearInterval(statsInterval);
+
+            statsInterval = setInterval(async () => {
+                if (!pc) return;
+
+                try {
+                    const stats = await pc.getStats();
+
+                    stats.forEach(report => {
+                        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                            // Bitrate
+                            const now = report.timestamp;
+                            const bytes = report.bytesReceived;
+
+                            if (lastTimestamp > 0) {
+                                const bitrate = Math.round((bytes - lastBytesReceived) * 8 / (now - lastTimestamp));
+                                bitrateDisplay.textContent = `${bitrate} kbps`;
+                            }
+
+                            lastBytesReceived = bytes;
+                            lastTimestamp = now;
+
+                            // Jitter
+                            if (report.jitter !== undefined) {
+                                jitter.textContent = `${(report.jitter * 1000).toFixed(1)} ms`;
+                            }
+
+                            // Packets lost
+                            if (report.packetsLost !== undefined) {
+                                packetsLost.textContent = report.packetsLost;
+                            }
+
+                            // FPS
+                            if (report.framesPerSecond !== undefined) {
+                                fpsDisplay.textContent = report.framesPerSecond.toFixed(1);
+                            } else if (report.framesDecoded !== undefined) {
+                                // Calcular FPS manualmente
+                                const currentFrames = report.framesDecoded;
+                                const currentTime = Date.now();
+                                if (lastFrameTime > 0) {
+                                    const fps = (currentFrames - frameCount) / ((currentTime - lastFrameTime) / 1000);
+                                    fpsDisplay.textContent = fps.toFixed(1);
+                                }
+                                frameCount = currentFrames;
+                                lastFrameTime = currentTime;
+                            }
+
+                            // Jitter buffer delay (latencia de buffering)
+                            if (report.jitterBufferDelay !== undefined && report.jitterBufferEmittedCount > 0) {
+                                const avgDelay = (report.jitterBufferDelay / report.jitterBufferEmittedCount) * 1000;
+                                bufferDelay.textContent = `${avgDelay.toFixed(0)} ms`;
+
+                                // Usar jitter buffer delay como estimación de latencia
+                                latencyDisplay.textContent = avgDelay.toFixed(0);
+                                updateLatencyColor(avgDelay);
+                            }
+
+                            // Codec
+                            if (report.codecId) {
+                                stats.forEach(s => {
+                                    if (s.id === report.codecId) {
+                                        codec.textContent = s.mimeType || '--';
+                                    }
+                                });
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Stats error:', e);
+                }
+            }, 500);  // Actualizar cada 500ms
+        }
+
+        // Event listeners
+        connectBtn.onclick = connect;
+        disconnectBtn.onclick = disconnect;
+
+        // Click en el video para forzar reproducción
+        video.onclick = () => {
+            if (video.srcObject) {
+                video.play().then(() => {
+                    console.log('Video reproduciendo tras click');
+                    updateStatus('connected', 'CONECTADO');
+                }).catch(e => console.error('Error reproduciendo:', e));
+            }
+        };
+
+        // Reconectar con Enter
+        [hostInput, portInput, pathInput].forEach(input => {
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') connect();
+            };
+        });
+
+        // Atajos de teclado
+        document.onkeydown = (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    video.requestFullscreen();
+                }
+            }
+        };
+
+        console.log('🎥 Viewer listo. Presiona F para pantalla completa.');
+    </script>
+</body>
+</html>

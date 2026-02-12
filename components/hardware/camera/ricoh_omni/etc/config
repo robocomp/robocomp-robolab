@@ -1,18 +1,27 @@
-CommonBehavior.Endpoints=tcp -p 10000
-
 # Endpoints for implements interfaces
-Camera360RGB.Endpoints=tcp -p 10097
+Endpoints.Camera360RGB = "tcp -p 10097"
 
 # Proxies for required interfaces
-Camera360RGBProxy = camera360rgb:tcp -h localhost -p 10098
+Proxies.Camera360RGB = "camera360rgb:tcp -h localhost -p 10098"
 
-display = false
+# CONFIGURACIÓN OPTIMIZADA PARA MÁXIMA VELOCIDAD Y FPS
+display = false          # false = no display (ahorra CPU/GPU para captura)
 simulator = false
-compressed = false
-orin = true
-time_offset = 0
+compressed = false       # false = sin compresión (más rápido)
+orin = false
+time_offset = 0.0
 
-Ice.Warn.Connections=0
-Ice.Trace.Network=0
-Ice.Trace.Protocol=0
-Ice.MessageSizeMax=20004800
+# STREAMING PARALELO A MEDIAMTX
+streaming = true         # Habilitar streaming paralelo
+stream_host = "localhost"  # IP de MediaMTX
+stream_port = 8554       # Puerto RTSP de MediaMTX
+stream_path = "theta"      # Path del stream en MediaMTX
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "50000000"  # 50MB para imágenes grandes
+
+# PERÍODO OPTIMIZADO PARA MÁXIMA VELOCIDAD
+Period.Compute = 30      # ~33 FPS máximo (ajustado automáticamente)
+Period.Emergency = 500

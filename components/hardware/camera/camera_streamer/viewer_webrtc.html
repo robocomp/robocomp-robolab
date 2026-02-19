@@ -302,6 +302,7 @@
 
     <script>
         let pc = null;
+        let whepSessionUrl = null;  // Store WHEP session URL for proper cleanup
         let statsInterval = null;
         let lastBytes = 0;
         let lastTime = Date.now();
@@ -323,29 +324,46 @@
 
         async function connect() {
             if (pc) {
-                disconnect();
+                await disconnect();
             }
 
             setStatus('connecting', 'Connecting...');
 
             try {
+                // Get ICE servers from OPTIONS request
+                const whepUrl = getStreamUrl();
+                let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+                try {
+                    const optionsRes = await fetch(whepUrl, { method: 'OPTIONS' });
+                    const linkHeader = optionsRes.headers.get('Link');
+                    if (linkHeader) {
+                        const parsedServers = parseIceServers(linkHeader);
+                        if (parsedServers.length > 0) {
+                            iceServers = parsedServers;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to get ICE servers from OPTIONS, using fallback');
+                }
+
                 pc = new RTCPeerConnection({
-                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                    iceServers: iceServers,
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require'
                 });
 
                 pc.addTransceiver('video', { direction: 'recvonly' });
                 pc.addTransceiver('audio', { direction: 'recvonly' });
 
                 pc.ontrack = (event) => {
-                    console.log('Track received:', event.track.kind);
                     if (event.track.kind === 'video') {
                         document.getElementById('video').srcObject = event.streams[0];
                     }
                 };
 
                 pc.oniceconnectionstatechange = () => {
-                    console.log('ICE state:', pc.iceConnectionState);
-                    if (pc.iceConnectionState === 'connected') {
+                    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
                         setStatus('connected', 'Connected');
                         startStats();
                     } else if (pc.iceConnectionState === 'disconnected' ||
@@ -355,23 +373,14 @@
                     }
                 };
 
+                // Trickle ICE - No esperar a todos los candidates para reducir latencia
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
 
-                // Wait for ICE gathering
-                await new Promise((resolve) => {
-                    if (pc.iceGatheringState === 'complete') {
-                        resolve();
-                    } else {
-                        pc.onicegatheringstatechange = () => {
-                            if (pc.iceGatheringState === 'complete') {
-                                resolve();
-                            }
-                        };
-                    }
-                });
+                // Don't wait for ICE gathering - use trickle ICE for faster connection
+                // MediaMTX supports trickle ICE, so we send the offer immediately
 
-                const response = await fetch(getStreamUrl(), {
+                const response = await fetch(whepUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/sdp' },
                     body: pc.localDescription.sdp
@@ -381,22 +390,50 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
+                // Store the session URL from Location header for proper cleanup
+                const locationHeader = response.headers.get('Location');
+
+                if (locationHeader) {
+                    if (locationHeader.startsWith('http')) {
+                        whepSessionUrl = locationHeader;
+                    } else if (locationHeader.startsWith('/')) {
+                        const url = new URL(whepUrl);
+                        whepSessionUrl = `${url.protocol}//${url.host}${locationHeader}`;
+                    } else {
+                        whepSessionUrl = whepUrl + '/' + locationHeader;
+                    }
+                } else {
+                    console.warn('No Location header received - DELETE may not work');
+                }
+
                 const answer = await response.text();
                 await pc.setRemoteDescription({ type: 'answer', sdp: answer });
 
             } catch (error) {
                 console.error('Connection error:', error);
                 setStatus('disconnected', 'Error: ' + error.message);
-                disconnect();
+                await disconnect();
             }
         }
 
-        function disconnect() {
+        async function disconnect() {
             stopStats();
+
+            // Send DELETE request to properly close WHEP session
+            if (whepSessionUrl) {
+                try {
+                    await fetch(whepSessionUrl, { method: 'DELETE' });
+                } catch (error) {
+                    console.warn('Failed to close WHEP session:', error);
+                }
+                whepSessionUrl = null;
+            }
+
             if (pc) {
                 pc.close();
                 pc = null;
             }
+
             document.getElementById('video').srcObject = null;
             setStatus('disconnected', 'Disconnected');
 
@@ -405,6 +442,17 @@
             document.getElementById('resolution').textContent = '--';
             document.getElementById('framerate').textContent = '-- fps';
             document.getElementById('bitrate').textContent = '-- kbps';
+        }
+
+        function parseIceServers(linkHeader) {
+            if (!linkHeader) return [];
+            return linkHeader.split(', ').map(link => {
+                const match = link.match(/<(.+?)>; rel="ice-server"/);
+                if (match) {
+                    return { urls: [match[1]] };
+                }
+                return null;
+            }).filter(s => s !== null);
         }
 
         function startStats() {

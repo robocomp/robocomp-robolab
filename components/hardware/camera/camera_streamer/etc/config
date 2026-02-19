@@ -4,7 +4,7 @@ Endpoints.CameraSimple = "tcp -p 10195"
 # ==========================================
 # Camera Configuration
 # ==========================================
-Camera.Device = "/dev/video1"
+Camera.Device = "/dev/video0"
 Camera.Width = 640
 Camera.Height = 480
 Camera.FPS = 30

@@ -128,7 +128,7 @@ class SpecificWorker(GenericWorker):
                                                               ifaces.RoboCompJoystickAdapter.AxisParams(name="rotate", value=float(odom_values[2]))])
         button_data = ifaces.RoboCompJoystickAdapter.ButtonsList([ifaces.RoboCompJoystickAdapter.ButtonParams(name="block", step=button_values[0]),
                                                                  ifaces.RoboCompJoystickAdapter.ButtonParams(name="stop", step=button_values[1]),
-                                                                 ifaces.RoboCompJoystickAdapter.ButtonParams(name="joystica_control", step=button_values[2])])
+                                                                 ifaces.RoboCompJoystickAdapter.ButtonParams(name="joystick_control", step=button_values[2])])
         self.joystickadapter_proxy.sendData(ifaces.RoboCompJoystickAdapter.TData(axes=axis_data, buttons=button_data))
 
     def startup_check(self):

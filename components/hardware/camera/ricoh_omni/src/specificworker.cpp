@@ -34,22 +34,6 @@ this->startup_check_flag = startup_check;
 			hibernationChecker.start(500);
 		#endif
 
-		
-		// Example statemachine:
-		/***
-		//Your definition for the statesmachine (if you dont want use a execute function, use nullptr)
-		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period, 
-															std::bind(&SpecificWorker::customLoop, this),  // Cyclic function
-															std::bind(&SpecificWorker::customEnter, this), // On-enter function
-															std::bind(&SpecificWorker::customExit, this)); // On-exit function
-
-		//Add your definition of transitions (addTransition(originOfSignal, signal, dstState))
-		states["CustomState"]->addTransition(states["CustomState"].get(), SIGNAL(entered()), states["OtherState"].get());
-		states["Compute"]->addTransition(this, SIGNAL(customSignal()), states["CustomState"].get()); //Define your signal in the .h file under the "Signals" section.
-
-		//Add your custom state
-		statemachine.addState(states["CustomState"].get());
-		***/
 
 		statemachine.setChildMode(QState::ExclusiveStates);
 		statemachine.start();
@@ -77,6 +61,7 @@ try
         pars.display = this->configLoader.get<bool>("display") or (this->configLoader.get<bool>("display"));
         pars.simulator = this->configLoader.get<bool>("simulator") or (this->configLoader.get<bool>("simulator"));
         pars.orin = this->configLoader.get<bool>("orin") or (this->configLoader.get<bool>("orin"));
+        pars.use_gpu = this->configLoader.get<bool>("use_gpu") or (this->configLoader.get<bool>("use_gpu"));
         pars.compressed = this->configLoader.get<bool>("compressed") or (this->configLoader.get<bool>("compressed"));
         pars.time_offset =this->configLoader.get<double>("time_offset");
 
@@ -120,19 +105,32 @@ try
     {
         last_read.store(std::chrono::high_resolution_clock::now());
 
-        // Pipeline optimizado para máxima velocidad y FPS
-        // - Sin queues intermedias (reduce latencia)
-        // - max-buffers=1 en appsink (solo último frame)
-        // - drop=true (descarta frames antiguos)
-        // - sync=false (no sincronización, máxima velocidad)
+        std::cout << "Configuring streaming pipeline..." << std::endl;
+
+        // ==========================================
+        // CONFIGURACIÓN DEL PIPELINE DE ENTRADA (CAPTURA)
+        // ==========================================
+        std::cout << "Configuring input capture pipeline..." << std::endl;
+
+        std::cout << "Configuring input capture pipeline..." << std::endl;
+
         if (pars.orin)
-            pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=4 ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
+        {
+            // Orin Hardware Decoder 
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
+        }
+        else if (pars.use_gpu) 
+        {
+            // PC NVIDIA GPU Hardware Decoder 
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! nvh264dec ! gldownload ! queue ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
+        }
         else
-            pipeline = "thetauvcsrc mode=2K ! h264parse ! nvh264sldec ! videoconvert n-threads=4 ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
-        //if (pars.orin)
-        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvv4l2decoder ! nvvidconv ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
-        //else
-        //pipeline = "thetauvcsrc mode=2K ! h264parse ! nvdec ! gldownload ! videoconvert n-threads=2 ! video/x-raw,format=BGR ! appsink drop=true sync=false";
+        {
+            // CPU Decoder 
+            pipeline = "thetauvcsrc mode=2K ! queue ! h264parse ! avdec_h264 ! queue ! videoconvert threads=4 ! video/x-raw,format=BGR ! appsink max-buffers=1 drop=true sync=false";
+        }
+        
+        std::cout << "Stream pipeline: " << stream_pipeline << std::endl;
 
         int connection_attempts = 0;
         const int max_attempts = 10;
@@ -224,8 +222,8 @@ try
             std::cout << "Initializing parallel streaming to MediaMTX..." << std::endl;
 
             // Pipeline GStreamer para publicar vía RTSP a MediaMTX
-            // Usamos shmsink para compartir frames con un proceso GStreamer externo
-            // O usamos appsrc -> flvmux -> rtmpsink (RTMP es más compatible)
+            // shmsink para compartir frames con un proceso GStreamer externo
+            // appsrc -> flvmux -> rtmpsink (RTMP es más compatible)
             stream_pipeline = "appsrc ! videoconvert ! video/x-raw,format=I420 ! "
                             "x264enc tune=zerolatency bitrate=5000 speed-preset=ultrafast key-int-max=30 ! "
                             "video/x-h264,profile=baseline ! "
@@ -234,7 +232,7 @@ try
 
             std::cout << "Stream pipeline: " << stream_pipeline << std::endl;
 
-            // Intentar abrir el writer (sin bloquear si falla)
+            // Abrir el writer (sin bloquear si falla)
             try {
                 if(stream_writer.open(stream_pipeline, cv::CAP_GSTREAMER, 0, 30,
                                      cv::Size(MAX_WIDTH, MAX_HEIGHT), true))
@@ -271,7 +269,7 @@ try
 }
 void SpecificWorker::compute()
 {
-    // OPTIMIZADO PARA MÁXIMA VELOCIDAD - Sin pausas, captura continua
+    // OPTIMIZADO - Sin pausas, captura continua
 
     bool frame_valid = false;
 
@@ -282,7 +280,7 @@ void SpecificWorker::compute()
         {
             if(capture.isOpened())
             {
-                // Usar read() directo es más rápido que grab()+retrieve()
+                // read() directo es más rápido que grab()+retrieve()
                 capture.read(cv_frame);
 
                 // Validación mínima (solo empty check para máxima velocidad)

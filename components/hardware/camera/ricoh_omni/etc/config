@@ -9,6 +9,7 @@ display = false          # false = no display (ahorra CPU/GPU para captura)
 simulator = false
 compressed = false       # false = sin compresión (más rápido)
 orin = false
+use_gpu = true
 time_offset = 0.0
 
 # STREAMING PARALELO A MEDIAMTX

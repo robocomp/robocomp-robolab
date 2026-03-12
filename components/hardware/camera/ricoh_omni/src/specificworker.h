@@ -112,6 +112,7 @@ public slots:
             std::string device = "/dev/video0";
             bool display = false;
             bool orin = false;
+            bool use_gpu =true;
             bool compressed = false;
             bool simulator = false;
             bool streaming = true;      // Streaming paralelo a MediaMTX

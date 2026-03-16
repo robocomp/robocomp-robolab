@@ -1,18 +1,24 @@
-# Proxies for required interfaces
-DifferentialRobotProxy = differentialrobot:tcp -h localhost -p 10004
-
-
+# Proxies for publishes interfaces
+Proxies.JoystickAdapterPrefix = ""
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
 
 
-Ice.Warn.Connections=0
-Ice.Trace.Network=0
-Ice.Trace.Protocol=0
-Ice.ACM.Client=10
-Ice.ACM.Server=10
-Ice.MessageSizeMax=20004800
+Period.Compute = 100
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+
+Ice.Warn.Connections="0"
+Ice.Trace.Network="0"
+Ice.Trace.Protocol="0"
+Ice.ACM.Client="10"
+Ice.ACM.Server="10"
+
+Ice.MessageSizeMax = "20004800"
+
 
 
 

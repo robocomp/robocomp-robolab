@@ -1,10 +1,10 @@
-import "/robocomp/interfaces/IDSLs/DifferentialRobot.idsl";
+import "JoystickAdapter.idsl";
 
 Component keyboardrobotcontroller
 {
 	Communications
 	{
-		requires DifferentialRobot;
+		publishes JoystickAdapter;
 	};
 	language Python;
 };

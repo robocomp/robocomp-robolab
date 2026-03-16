@@ -1,13 +1,23 @@
+
+
+# Proxies for required interfaces
+Proxies.GenericBase = "genericbase:tcp -h localhost -p 33330"
+
+
+
 # Endpoints for implements interfaces
-Laser.Endpoints=tcp -p 10101
+Endpoints.Laser = "tcp -h localhost -p 10004"
 
 uart_port = /dev/ttyACM0
 uart_speed = 115200
 
-Ice.Warn.Connections=0
-Ice.Trace.Network=0
-Ice.Trace.Protocol=0
-Ice.MessageSizeMax=20004800
 
 
 
+Period.Compute = 100
+Period.Emergency = 500
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

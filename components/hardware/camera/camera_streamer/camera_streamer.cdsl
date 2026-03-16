@@ -1,0 +1,11 @@
+import "CameraSimple.idsl";
+
+Component camera_streamer
+{
+	Communications
+	{
+		implements CameraSimple;
+	};
+	language Python;
+};
+

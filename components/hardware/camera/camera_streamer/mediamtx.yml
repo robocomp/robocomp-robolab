@@ -1,0 +1,80 @@
+# MediaMTX v1.5.1 Configuration
+
+###############################################
+# General settings
+###############################################
+
+logLevel: info
+logDestinations: [stdout]
+readTimeout: 20s
+writeTimeout: 20s
+readBufferCount: 512
+
+###############################################
+# RTSP server
+###############################################
+
+rtsp: yes
+rtspAddress: 0.0.0.0:8554
+
+###############################################
+# RTMP server
+###############################################
+
+rtmp: yes
+rtmpAddress: 0.0.0.0:1935
+
+###############################################
+# HLS server
+###############################################
+
+hls: yes
+hlsAddress: 0.0.0.0:8888
+hlsAlwaysRemux: no
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+###############################################
+# WebRTC server
+###############################################
+
+webrtc: yes
+webrtcAddress: 0.0.0.0:8889
+webrtcLocalUDPAddress: 0.0.0.0:8189
+webrtcLocalTCPAddress: 0.0.0.0:8189
+
+# Only announce LAN IPs for faster ICE negotiation
+webrtcIPsFromInterfaces: no
+webrtcAdditionalHosts:
+  - 192.168.5.13
+  - 192.168.5.54
+
+# For NAT traversal, uncomment and configure with your public IP:
+# webrtcICEHostNAT1To1IPs: ['<YOUR_PUBLIC_IP>']
+
+# ICE servers
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+
+###############################################
+# SRT server
+###############################################
+
+srt: yes
+srtAddress: 0.0.0.0:8890
+
+###############################################
+# Paths
+###############################################
+
+paths:
+  theta:
+    source: publisher
+
+  camera:
+    source: publisher
+
+  all_others:

@@ -1,0 +1,41 @@
+# Endpoints for implements interfaces
+Endpoints.CameraSimple = "tcp -p 10195"
+
+# ==========================================
+# Camera Configuration
+# ==========================================
+Camera.Device = "/dev/video0"
+Camera.Width = 640
+Camera.Height = 480
+Camera.FPS = 30
+
+# ==========================================
+# Display Configuration
+# ==========================================
+# 1 = mostrar ventana OpenCV, 0 = sin display
+Display.Enabled = 0
+
+# ==========================================
+# Streaming Configuration (MediaMTX)
+# ==========================================
+# 1 = habilitar streaming RTMP a MediaMTX, 0 = deshabilitado
+Stream.Enabled = 1
+Stream.Host = localhost
+Stream.Port = 1935
+Stream.Path = camera
+
+# ==========================================
+# Component Periods (ms)
+# ==========================================
+# Periodo en ms (33ms ≈ 30fps para tiempo real)
+Period.Compute = 33
+Period.Emergency = 500
+
+# ==========================================
+# ICE Configuration
+# ==========================================
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"
+

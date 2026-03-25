@@ -106,6 +106,7 @@ class SpecificWorker : public GenericWorker
 			float VIEW_FIT_RADIUS = 6.0f; // m, only nearby lidar points are considered for auto-fit
 			bool USE_WEBOTS = false;
 			float ODOMETRY_NOISE_FACTOR = 0.1f; // stddev of Gaussian noise added to odometry readings, as a fraction of the measured value (e.g. 0.1 = 10% noise)
+			bool PREDICTION_EARLY_EXIT = false; // Skip RFE optimization when predicted pose already has low SDF error
 
 		};
 		Params params;

@@ -13,6 +13,9 @@ FullPoseEstimationPubPrefix = ""
 Compute = 100
 Emergency = 500
 
+[RoomConcept]
+PredictionEarlyExit = true  # Skip RFE optimization when predicted pose SDF error is already low
+
 [Component.Debug]
 Verbose = true
 

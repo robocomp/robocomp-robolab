@@ -76,7 +76,8 @@ void SpecificWorker::initialize()
 
     /////////GET PARAMS, OPEND DEVICES....////////
     //int period = configLoader.get<int>("Period.Compute") //NOTE: If you want get period of compute use getPeriod("compute")
-    //std::string device = configLoader.get<std::string>("Device.name") 
+    //std::string device = configLoader.get<std::string>("Device.name")
+    params.PREDICTION_EARLY_EXIT = configLoader.get<bool>("RoomConcept.PredictionEarlyExit");
 
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);
@@ -88,18 +89,15 @@ void SpecificWorker::initialize()
     run_ctx.velocity_buffer = &velocity_buffer_;
     run_ctx.odometry_buffer = &odometry_buffer_;
     room_concept_.set_run_context(run_ctx);
+    room_concept_.params.prediction_early_exit = params.PREDICTION_EARLY_EXIT;
 
     initialize_room_model_from_svg();
     const std::string pose_path = pose_file_path();
     room_concept_.set_seed_pose_file(pose_path);
     std::cout << "Pose seed file path: " << pose_path << std::endl;
 
-    viewer_2d_ = std::make_unique<rc::Viewer2D>(viewerContainer, params.GRID_MAX_DIM, true);
-
-    // Embed the viewer widget inside the viewerContainer QFrame from the .ui
-    auto *viewer_layout = new QVBoxLayout(viewerContainer);
-    viewer_layout->setContentsMargins(0, 0, 0, 0);
-    viewer_layout->addWidget(viewer_2d_->get_widget());
+    viewer_2d_ = std::make_unique<rc::Viewer2D>(frame, params.GRID_MAX_DIM, true);
+    viewer_2d_->show();
 
     viewer_2d_->add_robot(params.ROBOT_WIDTH, params.ROBOT_LENGTH, 0.f, 0.f, QColor("blue"));
 

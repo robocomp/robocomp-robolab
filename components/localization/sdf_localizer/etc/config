@@ -11,6 +11,7 @@ Endpoints.FullPoseEstimationPubPrefix = ""
 Endpoints.JoystickAdapterTopic = "tcp -p 0"
 Endpoints.JoystickAdapterPrefix = ""
 
+RoomConcept.PredictionEarlyExit = false
 
 
 Period.Compute = 100

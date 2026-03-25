@@ -1,0 +1,11 @@
+import "ForceTorqueSensor.idsl";
+
+Component bota_force_sensor
+{
+    Communications
+    {
+        implements ForceTorqueSensor;
+    };
+    language Cpp11;
+};
+

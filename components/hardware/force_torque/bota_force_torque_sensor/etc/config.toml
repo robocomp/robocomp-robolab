@@ -1,0 +1,17 @@
+[Endpoints]
+# Endpoints for implements interfaces
+ForceTorqueSensor = "tcp -p 0"
+
+
+[Period]
+Compute = 100
+Emergency = 500
+
+[Component.Debug]
+Verbose = true
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

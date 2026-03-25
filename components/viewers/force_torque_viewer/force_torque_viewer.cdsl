@@ -1,0 +1,13 @@
+import "ForceTorqueSensor.idsl";
+
+Component force_torque_viewer
+{
+    Communications
+    {
+        requires ForceTorqueSensor;
+    };
+    language python;
+    gui Qt(QMainWindow);
+
+};
+

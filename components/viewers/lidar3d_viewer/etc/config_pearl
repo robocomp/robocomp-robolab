@@ -1,15 +1,18 @@
-CommonBehavior.Endpoints=tcp -p 11991
-
 # Proxies for required interfaces
-Lidar3DProxy = lidar3d:tcp -p 11989
+Proxies.Lidar3D = "lidar3d:tcp -p 11989"
 
 ### Pointcloud color ###
 # 0.0-1.0
-pc_red = 1
-pc_green = 0
-pc_blue = 1
+pc_red = 1.0
+pc_green = 0.0
+pc_blue = 1.0
 
-Ice.Warn.Connections=0
-Ice.Trace.Network=0
-Ice.Trace.Protocol=0
-Ice.MessageSizeMax=20004800
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"
+
+Period.Compute = 33
+Period.Emergency = 500
+Component.Debug.Verbose = true
+

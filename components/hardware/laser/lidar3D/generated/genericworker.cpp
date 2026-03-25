@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2025 by YOUR NAME HERE
+ *    Copyright (C) 2026 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -24,7 +24,9 @@ GenericWorker::GenericWorker(const ConfigLoader& configLoader, TuplePrx tprx) : 
 {
 
 	this->configLoader = configLoader;
-	
+    if (!this->configLoader.get<bool>("Component.Debug.Verbose")) {
+        qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
+    }
 	lidar3d_proxy = std::get<0>(tprx);
 
 	states["Initialize"] = std::make_unique<GRAFCETStep>("Initialize", BASIC_PERIOD, nullptr, std::bind(&GenericWorker::initialize, this));
@@ -47,8 +49,6 @@ GenericWorker::GenericWorker(const ConfigLoader& configLoader, TuplePrx tprx) : 
 	connect(&hibernationChecker, SIGNAL(timeout()), this, SLOT(hibernationCheck()));
 
 
-
-    
 }
 
 /**
@@ -131,3 +131,6 @@ void GenericWorker::hibernationTick(){
 	hibernation = true;
 }
 
+
+void GenericWorker::initialize(){
+};

@@ -1,0 +1,13 @@
+import "Lidar3D.idsl";
+import "KinovaArm.idsl";
+
+Component lidar3DFilter
+{
+    Communications
+    {
+        implements Lidar3D;
+        requires KinovaArm, KinovaArm, Lidar3D, Lidar3D;
+    };
+    language Cpp11;
+};
+

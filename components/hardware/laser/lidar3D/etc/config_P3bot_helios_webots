@@ -17,21 +17,10 @@ rx = 0.0
 ry = 0.0
 rz = 0.0
 tx = 0.0
-ty = -60.0
-tz = 1240.0
+ty = -170.0
+tz = 950.0
 
-# boundin box colision / hitbox
-center_box_x = 0.0
-center_box_y = 0.0
-center_box_z = 900.0
-size_box_x = 600.0
-size_box_y = 600.0
-size_box_z = 600.0
-
-floor_line = 200.0
-top_line = 2200.0
-
-down_sampling = 100.0
+Component.Debug.Verbose = true
 
 Period.Compute = 50
 Period.Emergency = 500

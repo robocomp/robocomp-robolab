@@ -25,19 +25,9 @@ tz = 1100.0
 Period.Compute = 50
 Period.Emergency = 500
 
-# boundin box colision / hitbox
-center_box_x = 0.0
-center_box_y = 0.0
-center_box_z = 900.0
-size_box_x = 600.0
-size_box_y = 600.0
-size_box_z = 600.0
-
-floor_line = -25.0
-top_line = 4000.0
-down_sampling = 100.0
-
 Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"
 Ice.Trace.Protocol = "0"
 Ice.MessageSizeMax = "20004800"
+Component.Debug.Verbose = true
+

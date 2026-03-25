@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-Proxies.Lidar3D = "lidar3d:tcp  -p 11990"
+Proxies.Lidar3D = "lidar3d:tcp  -p 11995"
 
 ### Pointcloud color ###
 # 0.0-1.0

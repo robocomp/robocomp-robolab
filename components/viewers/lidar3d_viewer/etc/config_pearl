@@ -6,7 +6,6 @@ Proxies.Lidar3D = "lidar3d:tcp -p 11989"
 pc_red = 1.0
 pc_green = 0.0
 pc_blue = 1.0
-option = ""
 
 Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"

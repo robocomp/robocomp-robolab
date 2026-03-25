@@ -24,11 +24,6 @@
 
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
-#define USE_OPEN3D false
-
-#if USE_OPEN3D
-    #include <open3d/Open3D.h>
-#endif
 
 // If you want reduce compute period automaticaly for lack of use
 #define HIBERNATION_ENABLED
@@ -137,17 +132,11 @@ class SpecificWorker : public GenericWorker
         static void exceptionCallback(const robosense::lidar::Error& code);
 
         // Buffers
-        DoubleBuffer<std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData>, 
-                     std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData>> buffer_data;
-        DoubleBuffer<std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage>,
-                     std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage>> buffer_array_data;
+        DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;
+        DoubleBuffer<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage> buffer_array_data;
 
         //Extrinsic
         Eigen::Affine3f robot_lidar;
-        Eigen::Vector3f box_min;
-        Eigen::Vector3f box_max;
-        float floor_line;
-        float top_line;
 
         //Image
         int img_width = 1200, img_height = 600;
@@ -165,17 +154,13 @@ class SpecificWorker : public GenericWorker
 
         RoboCompLidar3D::TDataImage lidar2cam(const RoboCompLidar3D::TData &lidar_data);
         std::vector<cv::Point2f> fish2equirect(const std::vector<cv::Point2f> &points);
-        std::pair<bool, Eigen::Vector3f> transform_filter_point(float x, float y, float z, int intensity);
-        std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> processLidarData(const auto &input_points);  // Abbreviated function template
+        RoboCompLidar3D::TData processLidarData(const auto &input_points);  // Abbreviated function template
         inline bool isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max);
-
-        // dowwnsample
-        double down_sampling = 0;   //mm free voxel radius
 
         // Inicialización de rvec
         cv::Mat rvec;
         cv::Mat tvec;
-        
+
     signals:
         //void customSignal();
 };

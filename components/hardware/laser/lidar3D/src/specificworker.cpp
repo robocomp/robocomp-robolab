@@ -18,6 +18,7 @@
  */
 #include "specificworker.h"
 #include <cppitertools/enumerate.hpp>
+#include <eigen3/Eigen/src/Core/PartialReduxEvaluator.h>
 
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
@@ -92,38 +93,8 @@ void SpecificWorker::initialize()
         this->robot_lidar.rotate(Eigen::AngleAxisf (rx,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
         std::cout<<"Extrinsec Matrix:"<<std::endl<<this->robot_lidar.matrix()<<std::endl;
 
-        //boundin box colision / hitbox
-        float center_box_x, center_box_y, center_box_z, size_box_x, size_box_y, size_box_z;
-        center_box_x = this->configLoader.get<double>("center_box_x");
-        center_box_y = this->configLoader.get<double>("center_box_y");
-        center_box_z = this->configLoader.get<double>("center_box_z");
-        size_box_x = this->configLoader.get<double>("size_box_x");
-        size_box_y = this->configLoader.get<double>("size_box_y");
-        size_box_z = this->configLoader.get<double>("size_box_z");
-
         simulator = this->configLoader.get<bool>("simulator");
 
-        box_min.x() = center_box_x - size_box_x/2.0;//minx
-        box_min.y() = center_box_y - size_box_y/2.0;//miny
-        box_min.z() = center_box_z - size_box_z/2.0;//minz
-        box_max.x() = center_box_x + size_box_x/2.0;//maxx
-        box_max.y() = center_box_y + size_box_y/2.0;//maxy
-        box_max.z() = center_box_z + size_box_z/2.0;//maxz
-
-        floor_line = this->configLoader.get<double>("floor_line");
-        top_line = this->configLoader.get<double>("top_line");
-
-        std::cout<<"Hitbox min in millimetres:"<<std::endl<<this->box_min<<std::endl;
-        std::cout<<"Hitbox max in millimetres:"<<std::endl<<this->box_max<<std::endl;
-        std::cout<<"Floor line in millimetres:"<<std::endl<<this->floor_line<<std::endl;
-
-        #if USE_OPEN3D
-            // downsampling mm
-            down_sampling = this->configLoader.get<double>("down_sampling");
-        #else
-            down_sampling = 0;
-        #endif
-        std::cout << "Downsampling in mm " << down_sampling << std::endl;
 
         // ---------------------------------------------------------
         // EXTRINSIC CONFIGURATION (Position and Orientation)
@@ -199,7 +170,7 @@ void SpecificWorker::initialize()
 
 void SpecificWorker::compute()
 {
-    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar;
+    RoboCompLidar3D::TData raw_lidar;
     int num_points = 0, num_erased_points = 0;
 
     try
@@ -213,8 +184,7 @@ void SpecificWorker::compute()
                 raw_lidar_sim = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
 
             raw_lidar = processLidarData(raw_lidar_sim);
-            raw_lidar.first.timestamp = raw_lidar_sim.timestamp;
-            raw_lidar.second.timestamp = raw_lidar_sim.timestamp;
+            raw_lidar.timestamp = raw_lidar_sim.timestamp;
         }
         else // real lidar
         {
@@ -225,30 +195,26 @@ void SpecificWorker::compute()
             raw_lidar = processLidarData(*msg);
 
             auto now = std::chrono::system_clock::now();
-            raw_lidar.first.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-
-            raw_lidar.second.timestamp = raw_lidar.first.timestamp;
+            raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
         }
-        raw_lidar.first.period = static_cast<float>(getPeriod("Compute")); // ms
+        raw_lidar.period = static_cast<float>(getPeriod("Compute")); // ms
 
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios
-            std::pair<RoboCompLidar3D::TDataImage, RoboCompLidar3D::TDataImage> processed_real_lidar_array;
-            processed_real_lidar_array.first = lidar2cam(raw_lidar.first);
-            processed_real_lidar_array.second = lidar2cam(raw_lidar.second);
+            RoboCompLidar3D::TDataImage processed_real_lidar_array;
+            processed_real_lidar_array = lidar2cam(raw_lidar);
             buffer_array_data.put(std::move(processed_real_lidar_array));
         }
 
-        num_points = raw_lidar.first.points.size();
-        num_erased_points = raw_lidar.second.points.size();
+        num_points = raw_lidar.points.size();
         buffer_data.put(std::move(raw_lidar));
     }
     catch (const Ice::Exception &e)
         {std::cerr << __FUNCTION__ << " Error in Lidar Proxy\n" << e.what() << std::endl;}
 
-    fps.print("Num points: " + std::to_string(num_points) + " | Num erased points: " +  std::to_string(num_erased_points)/*+ " Timestamp: " + std::to_string(raw_lidar.timestamp)*/, 3000);
+    fps.print("Num points: " + std::to_string(num_points)+ " Timestamp: " + std::to_string(raw_lidar.timestamp), 3000);
 }
 
 
@@ -309,11 +275,7 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
     //       so please DO NOT do time-consuming task here.
     std::cout << code.toString() << std::endl;
 }
-inline bool SpecificWorker::isPointOutsideCube(const Eigen::Vector3f point, const Eigen::Vector3f box_min, const Eigen::Vector3f box_max) {
-    return  (point.x() < box_min.x() || point.x() > box_max.x()) ||
-            (point.y() < box_min.y() || point.y() > box_max.y()) ||
-            (point.z() < box_min.z() || point.z() > box_max.z());
-}
+
 void SpecificWorker::self_adjust_period(int new_period)
 {
     int period = getPeriod("Compute");
@@ -324,96 +286,33 @@ void SpecificWorker::self_adjust_period(int new_period)
     else
         setPeriod("Compute", period - 1);
 }
-std::pair<bool, Eigen::Vector3f> SpecificWorker::transform_filter_point(float x, float y, float z, int intensity)
-{
-    Eigen::Vector3f point(-y*1000, x*1000, z*1000); // convert to millimeters
-    Eigen::Vector3f lidar_point = robot_lidar.linear() * point + robot_lidar.translation();  // Assumes no rotation
 
-    const bool valid =
-        isPointOutsideCube(lidar_point, box_min, box_max) &&
-        lidar_point.z() > floor_line &&
-        lidar_point.z() < top_line;
-
-    return { valid, lidar_point };
-}
-std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> SpecificWorker::processLidarData(const auto &input_points)
+RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points)
 {
-    std::pair<RoboCompLidar3D::TData, RoboCompLidar3D::TData> raw_lidar; // <utils points, erased points>
+    RoboCompLidar3D::TData raw_lidar; // <utils points, erased points>
 
     if (input_points.points.empty())
         return raw_lidar;
 
-    if(this->down_sampling == 0)    // no downsampling
+    raw_lidar.points.reserve(input_points.points.size());
+       
+    // filter out body points
+    for (const auto& p : input_points.points)
     {
-        // filter out body points
-       for (const auto& p : input_points.points)
-        {
-            auto [valid, pt] = transform_filter_point(p.x, p.y, p.z, p.intensity);
-
-            const float x = pt.x(), y = pt.y(), z = pt.z();
-            const float r = std::sqrt(x*x + y*y + z*z);
-            const float distance2d = std::hypot(x, y);
-            const float phi = std::atan2(x, y);
-            const float theta = std::acos(z / r);
-
-            RoboCompLidar3D::TPoint out{
-                .x = x, .y = y, .z = z,
-                .intensity = p.intensity,
-                .phi = phi,
-                .theta = theta,
-                .r = r,
-                .distance2d = distance2d
-            };
-
-            if (valid)
-                raw_lidar.first.points.emplace_back(std::move(out));
-            else
-                raw_lidar.second.points.emplace_back(std::move(out));
-        }
-
-        std::ranges::sort(raw_lidar.first.points, {}, &RoboCompLidar3D::TPoint::phi);
-        // std::ranges::sort(raw_lidar.second.points, {}, &RoboCompLidar3D::TPoint::phi);
-        return raw_lidar;
+        Eigen::Vector3f pt = robot_lidar.linear() * Eigen::Vector3f (-p.y, p.x, p.z) *1000 + robot_lidar.translation();
+        raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{
+            .x = pt.x(), .y = pt.y(), .z = pt.z(),
+            .intensity = p.intensity,
+            .phi = std::atan2(pt.x(), pt.y()),
+            .theta = std::acos(pt.z() / pt.norm()),
+            .r = pt.norm(),
+            .distance2d = std::hypot(pt.x(), pt.y())
+        });
     }
-
-
-    #if USE_OPEN3D
-        /// Downsampling
-        // filter out body points
-        auto pcd = std::make_shared<open3d::geometry::PointCloud>();
-        for (const auto &p : input_points.points)
-            if(auto transformed = transform_filter_point(p.x, p.y, p.z, p.intensity); transformed.has_value())
-                pcd->points_.emplace_back(*transformed);
-
-        // transform to Eigen::Vector3d for Open3D
-        std::ranges::transform(raw_lidar.points, std::back_inserter(pcd->points_),
-                            [](const auto &p) -> Eigen::Vector3d
-                            { return {p.x, p.y, p.z};});
-        shared_ptr<open3d::geometry::PointCloud> downsampled_pcd;
-        try
-        { downsampled_pcd = pcd->VoxelDownSample(this->down_sampling); }
-        catch (const std::exception &e){std::cout << e.what() << std::endl;};
-
-        // Transform back to RoboCompLidar3D::TData and fill. Check if downsampled is empty
-        shared_ptr<open3d::geometry::PointCloud> pcd_points;
-        if(not downsampled_pcd->IsEmpty())
-            pcd_points = downsampled_pcd;
-        else
-            pcd_points = pcd;
-
-        raw_lidar.points.reserve(pcd_points->points_.size());
-        for (const auto &p: downsampled_pcd->points_)
-        {
-            auto distance2d = std::hypot(p.x(), p.y());
-            auto r = p.norm();
-            raw_lidar.points.emplace_back(RoboCompLidar3D::TPoint{.x=(float) p.x(), .y=(float) p.y(), .z=(float) p.z(),
-                    .intensity=0, .phi=(float) std::atan2(p.x(), p.y()),
-                    .theta=(float) std::acos(p.z() / r), .r=(float) r, .distance2d=(float) distance2d});
-        }
-        //qDebug() << "Original size: " << input_points.points.size() << " Downsampled size: " << raw_lidar.points.size();
+        // Ordenar por phi como requiere tu salida
         std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
         return raw_lidar;
-    #endif
+
 }
 std::vector<cv::Point2f> SpecificWorker::fish2equirect(const std::vector<cv::Point2f> &points)
 {
@@ -549,25 +448,12 @@ RoboCompLidar3D::TColorCloudData SpecificWorker::Lidar3D_getColorCloudData()
     RoboCompLidar3D::TColorCloudData cloud;
 
     //merge all points
-    auto [data_valid, data_invalid] = buffer_data.get_idemp();
-    const auto total_size = data_valid.points.size() + data_invalid.points.size();
-    std::vector<RoboCompLidar3D::TPoint> points;
-    points.reserve(total_size);
-
-    points.insert(points.end(),
-                         std::make_move_iterator(data_valid.points.begin()),
-                         std::make_move_iterator(data_valid.points.end()));
-
-    points.insert(points.end(),
-                         std::make_move_iterator(data_invalid.points.begin()),
-                         std::make_move_iterator(data_invalid.points.end()));
-
-
-    const size_t N = points.size();
+    RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
+    const size_t N = buffer.points.size();
 
     cloud.X.resize(N);
     cloud.Y.resize(N);
-    cloud.Z.resize(N);
+    cloud.Z.resize(N);  
     cloud.R.resize(N);
     cloud.G.resize(N);
     cloud.B.resize(N);
@@ -575,16 +461,16 @@ RoboCompLidar3D::TColorCloudData SpecificWorker::Lidar3D_getColorCloudData()
     constexpr float maxShort = 32767.0f;
 
     #pragma omp parallel for
-    for (size_t i = 0; i < points.size(); ++i)
+    for (size_t i = 0; i < N; ++i)
     {
-        const auto& p = points[i];
+        const auto& p = buffer.points[i];
         cloud.X[i] = static_cast<int16_t>(std::clamp(p.x, -maxShort, maxShort));
         cloud.Y[i] = static_cast<int16_t>(std::clamp(p.y, -maxShort, maxShort));
         cloud.Z[i] = static_cast<int16_t>(std::clamp(p.z, -maxShort, maxShort));
         cloud.R[i] = cloud.G[i] = cloud.B[i] = 255;
     }
 
-    cloud.timestamp = std::min(data_valid.timestamp, data_invalid.timestamp);
+    cloud.timestamp = buffer.timestamp;
     cloud.numberPoints = N;
     cloud.compressed = false;
 
@@ -604,7 +490,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
     if(not ready_to_go)
         return {};
 
-    RoboCompLidar3D::TData buffer = buffer_data.get_idemp().first;
+    RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
 
     // Check for nominal conditions
     if(len >= 2.0*M_PI  and decimationDegreeFactor == 1)
@@ -671,7 +557,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::
         return {};
 
     //Get LiDAR data
-    RoboCompLidar3D::TData buffer = buffer_data.get_idemp().first;
+    RoboCompLidar3D::TData buffer = buffer_data.get_idemp();
 
     //Sort distance and cut
     std::ranges::sort(buffer.points, {}, &RoboCompLidar3D::TPoint::distance2d);
@@ -708,7 +594,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std:
     RoboCompLidar3D::TPoints processed_points;
 
     //Get LiDAR data
-    return buffer_data.get_idemp().first;
+    return buffer_data.get_idemp();
 }
 
 RoboCompLidar3D::TDataCategory SpecificWorker::Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp)
@@ -725,59 +611,59 @@ RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedIn
     if(not ready_to_go)
         return {};
 
-    if (name == "unfiltered"){
+    // if (name == "unfiltered"){
 
-        auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
-        const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
-        RoboCompLidar3D::TDataImage dataImage;
-        dataImage.timestamp = std::min(data_valid.timestamp, data_invalid.timestamp);
+    //     auto [data_valid, data_invalid] = buffer_array_data.get_idemp();
+    //     const auto total_size = data_valid.XArray.size() + data_invalid.XArray.size();
+    //     RoboCompLidar3D::TDataImage dataImage;
+    //     dataImage.timestamp = std::min(data_valid.timestamp, data_invalid.timestamp);
 
-        dataImage.XArray.reserve(total_size);
-        dataImage.YArray.reserve(total_size);
-        dataImage.ZArray.reserve(total_size);
-        dataImage.XPixel.reserve(total_size);
-        dataImage.YPixel.reserve(total_size);
+    //     dataImage.XArray.reserve(total_size);
+    //     dataImage.YArray.reserve(total_size);
+    //     dataImage.ZArray.reserve(total_size);
+    //     dataImage.XPixel.reserve(total_size);
+    //     dataImage.YPixel.reserve(total_size);
 
-        dataImage.XArray.insert(dataImage.XArray.end(),
-            std::make_move_iterator(data_valid.XArray.begin()),
-            std::make_move_iterator(data_valid.XArray.end()));
-        dataImage.XArray.insert(dataImage.XArray.end(),
-            std::make_move_iterator(data_invalid.XArray.begin()),
-            std::make_move_iterator(data_invalid.XArray.end()));
+    //     dataImage.XArray.insert(dataImage.XArray.end(),
+    //         std::make_move_iterator(data_valid.XArray.begin()),
+    //         std::make_move_iterator(data_valid.XArray.end()));
+    //     dataImage.XArray.insert(dataImage.XArray.end(),
+    //         std::make_move_iterator(data_invalid.XArray.begin()),
+    //         std::make_move_iterator(data_invalid.XArray.end()));
 
-        dataImage.YArray.insert(dataImage.YArray.end(),
-            std::make_move_iterator(data_valid.YArray.begin()),
-            std::make_move_iterator(data_valid.YArray.end()));
-        dataImage.YArray.insert(dataImage.YArray.end(),
-            std::make_move_iterator(data_invalid.YArray.begin()),
-            std::make_move_iterator(data_invalid.YArray.end()));
+    //     dataImage.YArray.insert(dataImage.YArray.end(),
+    //         std::make_move_iterator(data_valid.YArray.begin()),
+    //         std::make_move_iterator(data_valid.YArray.end()));
+    //     dataImage.YArray.insert(dataImage.YArray.end(),
+    //         std::make_move_iterator(data_invalid.YArray.begin()),
+    //         std::make_move_iterator(data_invalid.YArray.end()));
 
-        dataImage.ZArray.insert(dataImage.ZArray.end(),
-            std::make_move_iterator(data_valid.ZArray.begin()),
-            std::make_move_iterator(data_valid.ZArray.end()));
-        dataImage.ZArray.insert(dataImage.ZArray.end(),
-            std::make_move_iterator(data_invalid.ZArray.begin()),
-            std::make_move_iterator(data_invalid.ZArray.end()));
+    //     dataImage.ZArray.insert(dataImage.ZArray.end(),
+    //         std::make_move_iterator(data_valid.ZArray.begin()),
+    //         std::make_move_iterator(data_valid.ZArray.end()));
+    //     dataImage.ZArray.insert(dataImage.ZArray.end(),
+    //         std::make_move_iterator(data_invalid.ZArray.begin()),
+    //         std::make_move_iterator(data_invalid.ZArray.end()));
 
-        dataImage.XPixel.insert(dataImage.XPixel.end(),
-            std::make_move_iterator(data_valid.XPixel.begin()),
-            std::make_move_iterator(data_valid.XPixel.end()));
-        dataImage.XPixel.insert(dataImage.XPixel.end(),
-            std::make_move_iterator(data_invalid.XPixel.begin()),
-            std::make_move_iterator(data_invalid.XPixel.end()));
+    //     dataImage.XPixel.insert(dataImage.XPixel.end(),
+    //         std::make_move_iterator(data_valid.XPixel.begin()),
+    //         std::make_move_iterator(data_valid.XPixel.end()));
+    //     dataImage.XPixel.insert(dataImage.XPixel.end(),
+    //         std::make_move_iterator(data_invalid.XPixel.begin()),
+    //         std::make_move_iterator(data_invalid.XPixel.end()));
 
-        dataImage.YPixel.insert(dataImage.YPixel.end(),
-            std::make_move_iterator(data_valid.YPixel.begin()),
-            std::make_move_iterator(data_valid.YPixel.end()));
-        dataImage.YPixel.insert(dataImage.YPixel.end(),
-            std::make_move_iterator(data_invalid.YPixel.begin()),
-            std::make_move_iterator(data_invalid.YPixel.end()));
-        return dataImage;
-    }
-    else{
-        return buffer_array_data.get_idemp().first;
-    }
-    }
+    //     dataImage.YPixel.insert(dataImage.YPixel.end(),
+    //         std::make_move_iterator(data_valid.YPixel.begin()),
+    //         std::make_move_iterator(data_valid.YPixel.end()));
+    //     dataImage.YPixel.insert(dataImage.YPixel.end(),
+    //         std::make_move_iterator(data_invalid.YPixel.begin()),
+    //         std::make_move_iterator(data_invalid.YPixel.end()));
+    //     return dataImage;
+    // }
+    // else{
+    return buffer_array_data.get_idemp();
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 int SpecificWorker::startup_check()

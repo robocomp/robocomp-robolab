@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2025 by YOUR NAME HERE
+ *    Copyright (C) 2026 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -46,11 +46,11 @@ private:
 
 	// Array handlers for each method
 	std::array<std::function<RoboCompLidar3D::TColorCloudData(void)>, 1> getColorCloudDataHandlers;
-	std::array<std::function<RoboCompLidar3D::TData(std::string, float, float, int)>, 1> getLidarDataHandlers;
-	std::array<std::function<RoboCompLidar3D::TDataImage(std::string)>, 1> getLidarDataArrayProyectedInImageHandlers;
-	std::array<std::function<RoboCompLidar3D::TDataCategory(RoboCompLidar3D::TCategories, Ice::Long)>, 1> getLidarDataByCategoryHandlers;
-	std::array<std::function<RoboCompLidar3D::TData(std::string)>, 1> getLidarDataProyectedInImageHandlers;
-	std::array<std::function<RoboCompLidar3D::TData(std::string, float, int)>, 1> getLidarDataWithThreshold2dHandlers;
+	std::array<std::function<RoboCompLidar3D::TData(std::string&, float&, float&, int&)>, 1> getLidarDataHandlers;
+	std::array<std::function<RoboCompLidar3D::TDataImage(std::string&)>, 1> getLidarDataArrayProyectedInImageHandlers;
+	std::array<std::function<RoboCompLidar3D::TDataCategory(RoboCompLidar3D::TCategories&, Ice::Long&)>, 1> getLidarDataByCategoryHandlers;
+	std::array<std::function<RoboCompLidar3D::TData(std::string&)>, 1> getLidarDataProyectedInImageHandlers;
+	std::array<std::function<RoboCompLidar3D::TData(std::string&, float&, int&)>, 1> getLidarDataWithThreshold2dHandlers;
 
 };
 

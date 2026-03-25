@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2025 by YOUR NAME HERE
+ *    Copyright (C) 2026 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -25,23 +25,23 @@ Lidar3DI::Lidar3DI(GenericWorker *_worker, const size_t id): worker(_worker), id
 	};
 
 	getLidarDataHandlers = {
-		[this](auto a, auto b, auto c, auto d) { return worker->Lidar3D_getLidarData(a, b, c, d); }
+		[this](auto &a, auto &b, auto &c, auto &d) { return worker->Lidar3D_getLidarData(a, b, c, d); }
 	};
 
 	getLidarDataArrayProyectedInImageHandlers = {
-		[this](auto a) { return worker->Lidar3D_getLidarDataArrayProyectedInImage(a); }
+		[this](auto &a) { return worker->Lidar3D_getLidarDataArrayProyectedInImage(a); }
 	};
 
 	getLidarDataByCategoryHandlers = {
-		[this](auto a, auto b) { return worker->Lidar3D_getLidarDataByCategory(a, b); }
+		[this](auto &a, auto &b) { return worker->Lidar3D_getLidarDataByCategory(a, b); }
 	};
 
 	getLidarDataProyectedInImageHandlers = {
-		[this](auto a) { return worker->Lidar3D_getLidarDataProyectedInImage(a); }
+		[this](auto &a) { return worker->Lidar3D_getLidarDataProyectedInImage(a); }
 	};
 
 	getLidarDataWithThreshold2dHandlers = {
-		[this](auto a, auto b, auto c) { return worker->Lidar3D_getLidarDataWithThreshold2d(a, b, c); }
+		[this](auto &a, auto &b, auto &c) { return worker->Lidar3D_getLidarDataWithThreshold2d(a, b, c); }
 	};
 
 }

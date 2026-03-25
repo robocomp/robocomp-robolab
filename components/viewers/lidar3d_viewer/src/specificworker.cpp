@@ -80,7 +80,6 @@ void SpecificWorker::initialize()
 	pc_red = this->configLoader.get<double>("pc_red");
 	pc_green = this->configLoader.get<double>("pc_green");
 	pc_blue = this->configLoader.get<double>("pc_blue");
-	option = this->configLoader.get<std::string>("option");
 
 
 	//chekpoint robocompUpdater

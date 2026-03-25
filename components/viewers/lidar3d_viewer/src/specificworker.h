@@ -119,8 +119,7 @@ class SpecificWorker : public GenericWorker
         double pc_red;
         double pc_green;
         double pc_blue;
-        std::string option = "";
-
+        
         Viewer *viewer_3d;
         std::shared_ptr<std::vector<point3f>> points, colors;
         std::shared_ptr<std::vector<std::tuple<point3f, point3f, point3f, point3f>>> planes;

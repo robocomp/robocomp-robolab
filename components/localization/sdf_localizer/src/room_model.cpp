@@ -137,14 +137,21 @@ torch::Tensor Model::prior_loss() const
 
 torch::Tensor Model::sdf(const torch::Tensor& points_robot) const
 {
+    return sdf_at_pose(points_robot, robot_pos, robot_theta);
+}
+
+torch::Tensor Model::sdf_at_pose(const torch::Tensor& points_robot,
+                                  const torch::Tensor& pose_xy,
+                                  const torch::Tensor& pose_theta) const
+{
     // Transform points from robot frame to room frame
     // Use the device of input points as the reference
     const auto device = points_robot.device();
     const auto pxy = points_robot.index({torch::indexing::Slice(), torch::indexing::Slice(0,2)});
 
     // Move model parameters to the same device as points (no-op if already there)
-    const auto theta = robot_theta.to(device);
-    const auto pos = robot_pos.to(device);
+    const auto theta = pose_theta.to(device);
+    const auto pos = pose_xy.to(device);
 
     const auto c = torch::cos(theta);
     const auto s = torch::sin(theta);

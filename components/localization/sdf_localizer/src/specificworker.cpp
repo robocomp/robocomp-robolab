@@ -23,6 +23,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QVBoxLayout>
 
 SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
@@ -93,7 +94,12 @@ void SpecificWorker::initialize()
     room_concept_.set_seed_pose_file(pose_path);
     std::cout << "Pose seed file path: " << pose_path << std::endl;
 
-    viewer_2d_ = std::make_unique<rc::Viewer2D>(this, params.GRID_MAX_DIM, true);
+    viewer_2d_ = std::make_unique<rc::Viewer2D>(viewerContainer, params.GRID_MAX_DIM, true);
+
+    // Embed the viewer widget inside the viewerContainer QFrame from the .ui
+    auto *viewer_layout = new QVBoxLayout(viewerContainer);
+    viewer_layout->setContentsMargins(0, 0, 0, 0);
+    viewer_layout->addWidget(viewer_2d_->get_widget());
 
     viewer_2d_->add_robot(params.ROBOT_WIDTH, params.ROBOT_LENGTH, 0.f, 0.f, QColor("blue"));
 
@@ -107,8 +113,6 @@ void SpecificWorker::initialize()
     {
         viewer_2d_->update_estimated_room_rect(params.GRID_MAX_DIM.width(), params.GRID_MAX_DIM.height(), false);
     }
-
-	viewer_2d_->show();
 
     room_concept_.start();
 }

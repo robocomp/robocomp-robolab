@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <deque>
 #include <limits>
 #include <thread>
 #include <mutex>
@@ -76,7 +77,15 @@ public:
         float wall_thickness = 0.1f;
         float wall_height = 2.4f;        // meters
         int max_lidar_points = 1000;      // Subsample for speed
-        float pose_smoothing = 0.7f;     // EMA smoothing factor (0=no smoothing, 1=full smoothing)
+        float pose_smoothing = 0.7f;     // EMA smoothing factor (legacy, unused when window > 1)
+
+        // ===== Sliding Window (RFE) =====
+        // Paper: "Total-Time Active Inference" - Realized Free Energy over a past window
+        // W=1 degenerates to the old single-step behaviour
+        int rfe_window_size = 10;             // Number of past timesteps to retain
+        int rfe_max_lidar_per_old_slot = 300;  // Subsample older slots to save compute
+        float rfe_obs_sigma = 0.05f;           // σ_obs for SDF observation noise (m)
+        float rfe_huber_delta = 0.15f;         // Huber threshold (m)
 
         // GPU/CPU selection
         // Note: For small tensors (~200 points), CPU is faster due to GPU transfer overhead
@@ -220,6 +229,23 @@ public:
         return Eigen::Matrix<float,5,1>::Zero();
     }
 
+    // ===== Sliding Window (RFE) types =====
+    struct WindowSlot
+    {
+        torch::Tensor pose;             // [3] = {x, y, theta}, requires_grad=true
+        torch::Tensor lidar_points;     // [N, 3] stored observation (no grad)
+        Eigen::Vector3f odometry_delta = Eigen::Vector3f::Zero(); // delta from prev slot
+        Eigen::Matrix3f motion_cov = Eigen::Matrix3f::Identity(); // Σ_dyn
+        int64_t timestamp_ms = 0;
+    };
+
+    struct BoundaryPrior
+    {
+        Eigen::Vector3f mu = Eigen::Vector3f::Zero();        // MAP pose of dropped state
+        Eigen::Matrix3f precision = Eigen::Matrix3f::Identity(); // Σ^{-1} from diag Hessian
+        bool valid = false;
+    };
+
     UpdateResult update(const std::pair<std::vector<Eigen::Vector3f>, std::int64_t> &lidar,
                         const std::vector<rc::VelocityCommand> &velocity_history,
                         const std::vector<rc::OdometryReading> &odometry_history);
@@ -257,9 +283,13 @@ private:
    // Manual pose reset - skip optimization for a few frames
    int manual_reset_frames_ = 0;  // Counter to skip optimization after manual reset
 
-   // Smoothed pose to reduce jitter
+   // Smoothed pose to reduce jitter (legacy, used only when rfe_window_size == 1)
    Eigen::Vector3f smoothed_pose_ = Eigen::Vector3f::Zero();  // [x, y, theta]
    bool has_smoothed_pose_ = false;
+
+   // ===== Sliding Window (RFE) state =====
+   std::deque<WindowSlot> window_;
+   BoundaryPrior boundary_prior_;
 
    // Prediction-based early exit tracking
    int tracking_step_count_ = 0;        // Number of tracking steps since init
@@ -317,6 +347,16 @@ private:
     PredictionState predict_step(std::shared_ptr<Model> &room,
                                   const OdometryPrior &odometry_prior,
                                   bool is_localized);
+
+    // ===== Sliding-window RFE methods =====
+    // Build the full RFE loss over the current window (Eq. 27 of the paper)
+    torch::Tensor compute_rfe_loss() const;
+
+    // Slide the window: compute boundary prior from oldest slot, drop it
+    void slide_window();
+
+    // Collect all window pose tensors into a flat list (for optimizer)
+    std::vector<torch::Tensor> collect_window_params() const;
 
     // Find best initial orientation by testing multiple candidates (0°, 90°, 180°, 270°)
     float find_best_initial_orientation(const std::vector<Eigen::Vector3f>& lidar_points,

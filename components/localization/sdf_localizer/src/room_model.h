@@ -99,6 +99,11 @@ public:
     // Compute SDF for points in robot frame
     torch::Tensor sdf(const torch::Tensor& points_robot) const;
 
+    // Compute SDF for points in robot frame using an external pose (for sliding window RFE)
+    torch::Tensor sdf_at_pose(const torch::Tensor& points_robot,
+                              const torch::Tensor& pose_xy,
+                              const torch::Tensor& pose_theta) const;
+
     // Get current state as Eigen vector [width, length, x, y, phi]
     Eigen::Matrix<float, 5, 1> get_state() const;
 

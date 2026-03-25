@@ -9,7 +9,8 @@ ui_*
 CMakeCache.txt
 CMakeFiles
 build
-
+*.ice
+*.new
 # Build and Release Folders
 bin/
 bin-debug/

@@ -12,6 +12,13 @@ namespace rc
     //  Threading: start / stop / run / get_last_result / push_command
     // =====================================================================
 
+    // Static initialization: limit PyTorch threads to avoid CPU overload
+    static bool torch_threads_initialized = []() {
+        torch::set_num_threads(5);
+        torch::set_num_interop_threads(2);
+        return true;
+    }();
+
     RoomConcept::~RoomConcept()
     {
         stop();
@@ -265,14 +272,25 @@ namespace rc
                 continue;
             }
 
-            // ===== 4. SNAPSHOT VELOCITY & ODOMETRY HISTORY =====
+            // ===== 4. SKIP IF SAME LIDAR FRAME =====
+            const auto current_ts = lidar_high_->second;
+            if (current_ts == last_ts)
+            {
+                std::this_thread::sleep_for(kMinWait);
+                continue;
+            }
+
+            // ===== 5. SNAPSHOT VELOCITY & ODOMETRY HISTORY =====
             auto vel_snap  = run_ctx_.velocity_buffer->get_snapshot<0>();
             auto odom_snap = run_ctx_.odometry_buffer->get_snapshot<0>();
 
-            // ===== 5. RUN LOCALIZATION UPDATE =====
+            // ===== 6. RUN LOCALIZATION UPDATE =====
+            const auto t_update_start = std::chrono::high_resolution_clock::now();
             const auto res = update(lidar_high_.value(), vel_snap, odom_snap);
+            const float update_ms = std::chrono::duration<float, std::milli>(
+                std::chrono::high_resolution_clock::now() - t_update_start).count();
 
-            // ===== 6. PUBLISH RESULT =====
+            // ===== 7. PUBLISH RESULT =====
             {
                 std::lock_guard lock(result_mutex_);
                 last_result_ = res;
@@ -280,27 +298,20 @@ namespace rc
             if (res.ok && !loc_initialized_.load())
                 loc_initialized_ = true;
 
-            // Adaptive pacing: slow down on repeated timestamps, speed up on new data
-            const auto current_ts = lidar_high_->second;
-            if (current_ts == last_ts)
-                wait_period = std::min(wait_period + std::chrono::milliseconds(1), kMaxWait);
-            else
-                wait_period = std::max(wait_period - std::chrono::milliseconds(1), kMinWait);
-
             last_ts = current_ts;
+            wait_period = std::max(wait_period - std::chrono::milliseconds(1), kMinWait);
+            update_ms_accum_ += update_ms;
+            update_ms_count_++;
+            const float avg_update_ms = update_ms_accum_ / update_ms_count_;
+            const int fps = loc_fps_.print("[LocThread] update_ms(last/avg)=" + std::to_string(static_cast<int>(update_ms))
+                               + "/" + std::to_string(static_cast<int>(avg_update_ms)), 2000);
+            if (fps > 0) { update_ms_accum_ = 0.f; update_ms_count_ = 0; }
             std::this_thread::sleep_for(wait_period);
         }
 
         loc_running_ = false;
         qInfo() << "[LocThread] Localization thread stopped";
     }
-
-      // Static initialization: limit PyTorch threads to avoid CPU overload
-    static bool torch_threads_initialized = []() {
-        torch::set_num_threads(2);  // Limit to 2 threads
-        torch::set_num_interop_threads(1);
-        return true;
-    }();
 
     float RoomConcept::find_best_initial_orientation(const std::vector<Eigen::Vector3f>& lidar_points,
                                                         float x, float y, float base_phi)

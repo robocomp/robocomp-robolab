@@ -95,5 +95,5 @@ LIST(APPEND LIBS ${LIBS} "${TORCH_LIBRARIES}" tbb Qt6PrintSupport Qt6Xml
 
 
 # no-char8_t to avoid a problem with ICE Connection lib.
-add_definitions(-fmax-errors=1 -fno-char8_t)
+add_definitions(-O3 -fmax-errors=1 -fno-char8_t)
 

@@ -10,6 +10,7 @@
 #include <variant>
 #include <optional>
 #include <string>
+#include <fps/fps.h>
 
 // ---- PyTorch vs Qt macros (slots/signals/emit) ----
 // Qt uses 'slots' as a macro. PyTorch/libtorch has methods named slots(), which breaks compilation.
@@ -121,6 +122,10 @@ public:
         float odom_noise_trans = 0.08f;  // Fractional position noise per meter of motion
         float odom_noise_rot   = 0.04f;  // Fractional rotation noise per radian of rotation
         float odom_noise_base  = 0.01f;  // Base position noise even when stationary (m)
+
+        // Torch threading configuration
+        int torch_num_threads = 5;          // Limit CPU threads to avoid overload
+        int torch_num_interop_threads = 2;  // Limit inter-op threads for better latency
     };
 
     // Get the torch device based on params
@@ -304,6 +309,10 @@ private:
     float init_room_width_ = 10.f;
     float init_room_length_ = 10.f;
     std::string seed_pose_file_path_;
+
+   FPSCounter loc_fps_;  // Timing for the localization thread
+   float update_ms_accum_ = 0.f;
+   int   update_ms_count_ = 0;
 
    // Compute velocity-adaptive weights based on motion profile
    Eigen::Vector3f compute_velocity_adaptive_weights(const OdometryPrior& odometry_prior);

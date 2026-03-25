@@ -78,6 +78,10 @@ void SpecificWorker::initialize()
     //int period = configLoader.get<int>("Period.Compute") //NOTE: If you want get period of compute use getPeriod("compute")
     //std::string device = configLoader.get<std::string>("Device.name")
     params.PREDICTION_EARLY_EXIT = configLoader.get<bool>("RoomConcept.PredictionEarlyExit");
+    room_concept_.params.num_iterations          = configLoader.get<int>("RoomConcept.NumIterations");
+    room_concept_.params.rfe_window_size         = configLoader.get<int>("RoomConcept.WindowSize");
+    room_concept_.params.max_lidar_points        = configLoader.get<int>("RoomConcept.MaxLidarPoints");
+    room_concept_.params.rfe_max_lidar_per_old_slot = configLoader.get<int>("RoomConcept.MaxLidarOldSlot");
 
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);
@@ -119,6 +123,8 @@ void SpecificWorker::initialize()
 
 void SpecificWorker::compute()
 {
+   const auto t0 = std::chrono::high_resolution_clock::now();
+
    const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -126,6 +132,8 @@ void SpecificWorker::compute()
     const auto &[robot_pose_gt_, lidar_data_] = lidar_buffer.read(timestamp);
     if (!lidar_data_.has_value())
     { qWarning() << "No lidar data from lidar_buffer"; return; };
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
 
     // Draw lidar in room frame using RoomConcept robot pose estimate.
     Eigen::Affine2f pose_for_draw = Eigen::Affine2f::Identity();
@@ -155,6 +163,12 @@ void SpecificWorker::compute()
 
     update_ui(loc_res, pose_for_draw);
 
+    const auto t2 = std::chrono::high_resolution_clock::now();
+    const float ms_buf  = std::chrono::duration<float, std::milli>(t1 - t0).count();
+    const float ms_draw = std::chrono::duration<float, std::milli>(t2 - t1).count();
+    fps_counter_.print("[Compute] buf=" + std::to_string(static_cast<int>(ms_buf))
+                       + "ms draw="    + std::to_string(static_cast<int>(ms_draw)) + "ms", 2000);
+
 }
 
 void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
@@ -183,6 +197,7 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
 /////////////////////////////////////////////////////////////////////////
 void SpecificWorker::read_lidar()
 {
+    FPSCounter lidar_fps;
     auto wait_period = std::chrono::milliseconds (getPeriod("Compute"));
     while(!stop_lidar_thread)
     {
@@ -212,7 +227,7 @@ void SpecificWorker::read_lidar()
                         params.LIDAR_LOW_DECIMATION_FACTOR);
             }
             catch (const Ice::Exception &e)
-            { qWarning() << "[read_lidar] HELIOS launch failed:" << e.what(); }
+            { qWarning() << "[read_lidar] HELIOS failed:" << e.what(); continue;}
 
             // ---- Wait process HELIOS ----
             std::vector<Eigen::Vector3f> points_high;
@@ -225,11 +240,13 @@ void SpecificWorker::read_lidar()
                 if (pmx*pmx + pmy*pmy > body_offset_sq && pmz < params.LIDAR_HIGH_MAX_HEIGHT and pmz > params.LIDAR_HIGH_MIN_HEIGHT)
                     points_high.emplace_back(pmx, pmy, pmz);
             }
+            const size_t n_pts = points_high.size();
             lidar_buffer.put<1>(std::make_pair(std::move(points_high), data_high.timestamp), timestamp);
 
             // Adjust period with hysteresis
             if (wait_period > std::chrono::milliseconds((long) data_high.period + 2)) --wait_period;
             else if (wait_period < std::chrono::milliseconds((long) data_high.period - 2)) ++wait_period;
+            lidar_fps.print("[LidarThread] pts=" + std::to_string(n_pts), 2000);
             std::this_thread::sleep_for(wait_period);
         }
         catch (const Ice::Exception &e)

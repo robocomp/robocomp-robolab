@@ -33,7 +33,7 @@
 #include "room_concept.h"
 #include "viewer_2d.h"
 #include <atomic>
-
+#include <fps/fps.h>
 
 /**
  * \brief Class SpecificWorker implements the core functionality of the component.
@@ -94,12 +94,14 @@ class SpecificWorker : public GenericWorker
 			float ROBOT_LENGTH = 0.480;  // m
 			float ROBOT_SEMI_WIDTH = ROBOT_WIDTH / 2.f;     // m
 			float ROBOT_SEMI_LENGTH = ROBOT_LENGTH / 2.f;    // m
+			
 			// High LiDAR (HELIOS) — localization + MPPI
 			std::string LIDAR_NAME_HIGH = "helios";
 			float MAX_LIDAR_HIGH_RANGE = 100;  // m
 			int LIDAR_LOW_DECIMATION_FACTOR = 1;
 			float LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
 			float LIDAR_HIGH_MAX_HEIGHT = 2.2f; // m, points above this height in the high lidar will be ignored
+			
 			// General
 			QRectF GRID_MAX_DIM{-5, -5, 10, 10};
 			int MAX_LIDAR_DRAW_POINTS = 500;
@@ -116,6 +118,7 @@ class SpecificWorker : public GenericWorker
 		// Utils
 		float yawFromQuaternion(const RoboCompWebots2Robocomp::Quaternion &quat);
 		std::chrono::steady_clock::time_point last_joystick_time_;
+		FPSCounter fps_counter_;
 		
 		// Thread-safe buffer for velocity commands (joystick / controller)
 		rc::VelocityBuffer velocity_buffer_{20};

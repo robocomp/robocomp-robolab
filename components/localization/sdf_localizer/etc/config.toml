@@ -2,12 +2,15 @@
 # This property is used by the clients to connect to IceStorm.
 TopicManager = "IceStorm/TopicManager:default -p 9999"
 # Proxies for required interfaces
-Lidar3d = "lidar3d:tcp -h localhost -p 0"
+Lidar3D = "lidar3d:tcp -h localhost -p 11990" # HELIOS"
+Webots2Robocomp = "webots2robocomp:tcp -h localhost -p 10006"
+
 [Endpoints]
 # Endpoints for subscriptions interfaces
 FullPoseEstimationPubTopic = "tcp -p 0"
 FullPoseEstimationPubPrefix = ""
-
+JoystickAdapterTopic = "tcp -p 0"
+JoystickAdapterPrefix = ""
 
 [Period]
 Compute = 100
@@ -15,6 +18,10 @@ Emergency = 500
 
 [RoomConcept]
 PredictionEarlyExit = true  # Skip RFE optimization when predicted pose SDF error is already low
+NumIterations  = 10     # Adam steps per update (25 = accurate, 5 = fast)
+WindowSize     = 3      # Past lidar slots optimized jointly (10 = accurate, 3 = fast)
+MaxLidarPoints = 300   # Max points in newest slot (1000 = accurate, 300 = fast)
+MaxLidarOldSlot = 200  # Max points in older slots (300 = accurate, 100 = fast)
 
 [Component.Debug]
 Verbose = true

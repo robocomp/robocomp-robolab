@@ -5,16 +5,17 @@ Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
 Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11990" # HELIOS
 Proxies.Webots2Robocomp = "webots2robocomp:tcp -h localhost -p 10006"
 
+[Endpoints]
 # Endpoints for subscriptions interfaces
-Endpoints.FullPoseEstimationPubTopic = "tcp -p 0"
-Endpoints.FullPoseEstimationPubPrefix = ""
-Endpoints.JoystickAdapterTopic = "tcp -p 0"
-Endpoints.JoystickAdapterPrefix = ""
+FullPoseEstimationPubTopic = "tcp -p 0"
+FullPoseEstimationPubPrefix = ""
+JoystickAdapterTopic = "tcp -p 0"
+JoystickAdapterPrefix = ""
 
 RoomConcept.PredictionEarlyExit = false
 
 
-Period.Compute = 100
+Period.Compute = 50
 Period.Emergency = 500
 
 Component.Debug.Verbose = true

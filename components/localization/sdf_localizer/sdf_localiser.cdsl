@@ -1,0 +1,15 @@
+import "Lidar3D.idsl";
+import "FullPoseEstimationPub.idsl";
+import "Webots2Robocomp.idsl";
+import "JoystickAdapter.idsl";
+
+Component sdf_localiser
+{
+    Communications
+    {
+        requires Lidar3D, Webots2Robocomp;
+        subscribesTo FullPoseEstimationPub, JoystickAdapter;
+    };
+    language Cpp11;
+    gui Qt(QWidget);
+};

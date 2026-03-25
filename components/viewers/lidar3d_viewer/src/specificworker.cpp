@@ -21,17 +21,49 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
-int SpecificWorker::slider_start = 180;
-int SpecificWorker::slider_len = 100;
-int SpecificWorker::slider_z = 2000;
-int SpecificWorker::slider_dec = 1;
-
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
-	this->startup_check_flag = startup_check;
+this->startup_check_flag = startup_check;
+	if(this->startup_check_flag)
+	{
+		this->startup_check();
+	}
+	else
+	{
+		#ifdef HIBERNATION_ENABLED
+			hibernationChecker.start(500);
+		#endif
+
+		
+		// Example statemachine:
+		/***
+		//Your definition for the statesmachine (if you dont want use a execute function, use nullptr)
+		states["CustomState"] = std::make_unique<GRAFCETStep>("CustomState", period, 
+															std::bind(&SpecificWorker::customLoop, this),  // Cyclic function
+															std::bind(&SpecificWorker::customEnter, this), // On-enter function
+															std::bind(&SpecificWorker::customExit, this)); // On-exit function
+
+		//Add your definition of transitions (addTransition(originOfSignal, signal, dstState))
+		states["CustomState"]->addTransition(states["CustomState"].get(), SIGNAL(entered()), states["OtherState"].get());
+		states["Compute"]->addTransition(this, SIGNAL(customSignal()), states["CustomState"].get()); //Define your signal in the .h file under the "Signals" section.
+
+		//Add your custom state
+		statemachine.addState(states["CustomState"].get());
+		***/
+
+		statemachine.setChildMode(QState::ExclusiveStates);
+		statemachine.start();
+
+		auto error = statemachine.errorString();
+		if (error.length() > 0){
+			qWarning() << error;
+			throw error;
+		}
+		
+	}
 }
 
 /**
@@ -42,23 +74,17 @@ SpecificWorker::~SpecificWorker()
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
-bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
+void SpecificWorker::initialize()
 {
-	try
-    {
-        pc_red = std::stod(params.at("pc_red").value);
-        pc_green = std::stod(params.at("pc_green").value);
-        pc_blue = std::stod(params.at("pc_blue").value);
-    }
-    catch(const std::exception &e){ std::cout << e.what() << std::endl;}
 
-	return true;
-}
+	pc_red = this->configLoader.get<double>("pc_red");
+	pc_green = this->configLoader.get<double>("pc_green");
+	pc_blue = this->configLoader.get<double>("pc_blue");
+	option = this->configLoader.get<std::string>("option");
 
-void SpecificWorker::initialize(int period)
-{
+
+	//chekpoint robocompUpdater
 	std::cout << "Initialize worker" << std::endl;
-	this->Period = period;
 	if(this->startup_check_flag)
 	{
 		this->startup_check();
@@ -72,9 +98,11 @@ void SpecificWorker::initialize(int period)
 
 		cv::createTrackbar("start", window_name, &slider_start, 360 , &SpecificWorker::on_start, this);
 		cv::createTrackbar("len", window_name, &slider_len, 360 , &SpecificWorker::on_len, this);
-		cv::createTrackbar("z filter", window_name, &slider_z, 4000, &SpecificWorker::on_zfilter, this);
 		cv::createTrackbar("decimation filter", window_name, &slider_dec, 5, &SpecificWorker::on_decfilter, this);
 		cv::setTrackbarMin("decimation filter", window_name, 1);
+		// Checkboxes (0 o 1)
+		cv::createTrackbar("Show Filtered (0/1)", window_name, &check_filtered, 1, nullptr);
+		cv::createTrackbar("Show Invalid (0/1)", window_name, &check_invalid, 1, nullptr);
 
 
 		// 3DViewer
@@ -84,7 +112,6 @@ void SpecificWorker::initialize(int period)
         viewer_3d = new Viewer(this, points, colors);
         viewer_3d->show();
 
-		timer.start(50);
 		
 	}
 
@@ -93,30 +120,58 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	try
-	{
-		cv::Mat image = cv::Mat::zeros(480, 640, CV_8UC3);
-		points->clear(); colors->clear();
-		auto ldata = lidar3d_proxy->getLidarData("", qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
-		points->resize(ldata.points.size());
-		colors->resize(points->size());
-		
-		for(const auto &[i, p]: ldata.points | iter::enumerate)
-		{
-            if(p.z > (slider_z - 2000))
-            {
-                points->operator[](i) = std::make_tuple(p.x / 1000, p.y / 1000, p.z / 1000);
-                colors->operator[](i) = std::make_tuple(pc_red, pc_green, pc_blue);
-            }
-		}
-		viewer_3d->update();
-	}
+    try
+    {
+        points->clear(); 
+        colors->clear();
 
-	catch(const Ice::Exception &e)
-	{
-		std::cout << "Error reading from Lidar3D" << e << std::endl;
-	}
+        // 1. Si está marcado "Invalid"
+        if (check_invalid == 1)
+        {
+            auto ldata_invalid = lidar3d_proxy->getLidarData("invalid", qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
+            for(const auto &p : ldata_invalid.points)
+            {
+                points->emplace_back(std::make_tuple(p.x / 1000, p.y / 1000, p.z / 1000));
+                colors->emplace_back(std::make_tuple(1.0, 0.5, 0.5)); // Color rosado/rojo para inválidos
+            }
+        }
+
+        // 2. Si está marcado "Filtered" (los puntos válidos estándar)
+        if (check_filtered == 1)
+        {
+            // Usamos string vacío o "filtered" según tu componente Lidar
+            auto ldata_filtered = lidar3d_proxy->getLidarData("", qDegreesToRadians(slider_start-180), qDegreesToRadians(slider_len), slider_dec);
+            for(const auto &p : ldata_filtered.points)
+            {
+                points->emplace_back(std::make_tuple(p.x / 1000, p.y / 1000, p.z / 1000));
+                colors->emplace_back(std::make_tuple(pc_red, pc_green, pc_blue)); // Color de configuración
+            }
+        }
+
+        viewer_3d->update();
+    }
+    catch(const Ice::Exception &e)
+    {
+        std::cout << "Error reading from Lidar3D: " << e << std::endl;
+    }
     cv::waitKey(1);
+}
+
+void SpecificWorker::emergency()
+{
+    std::cout << "Emergency worker" << std::endl;
+	//computeCODE
+	//
+	//if (SUCCESSFUL)
+    //  emmit goToRestore()
+}
+
+//Execute one when exiting to emergencyState
+void SpecificWorker::restore()
+{
+    std::cout << "Restore worker" << std::endl;
+	//computeCODE
+	//Restore emergency component
 
 }
 
@@ -132,12 +187,6 @@ void SpecificWorker::on_len(int pos, void *data)
     worker->slider_len = pos;
 }
 
-void SpecificWorker::on_zfilter(int pos, void *data)
-{
-    auto *worker = static_cast<SpecificWorker*>(data);
-    worker->slider_z = pos;
-}
-
 void SpecificWorker::on_decfilter(int pos, void *data)
 {
     auto *worker = static_cast<SpecificWorker*>(data);
@@ -150,10 +199,6 @@ int SpecificWorker::startup_check()
 	QTimer::singleShot(200, qApp, SLOT(quit()));
 	return 0;
 }
-
-
-
-
 
 
 /**************************************/

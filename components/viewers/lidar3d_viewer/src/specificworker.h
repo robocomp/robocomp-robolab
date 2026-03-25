@@ -27,6 +27,9 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+// If you want reduce compute period automaticaly for lack of use
+//#define HIBERNATION_ENABLED
+
 #include <genericworker.h>
 #include <QGLViewer/qglviewer.h>
 #include <cppitertools/zip.hpp>
@@ -87,31 +90,54 @@ class SpecificWorker : public GenericWorker
 {
     Q_OBJECT
     public:
-        SpecificWorker(TuplePrx tprx, bool startup_check);
+        SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check);
         ~SpecificWorker();
-        bool setParams(RoboCompCommonBehavior::ParameterList params);
-
     public slots:
-        void compute();
-        int startup_check();
-        void initialize(int period);
+        /**
+         * \brief Initializes the worker one time.
+         */
+        void initialize();
 
+        /**
+         * \brief Main compute loop of the worker.
+         */
+        void compute();
+
+        /**
+         * \brief Handles the emergency state loop.
+         */
+        void emergency();
+
+        /**
+         * \brief Restores the component from an emergency state.
+         */
+        void restore();
+
+        int startup_check();
     private:
         bool startup_check_flag;
         double pc_red;
         double pc_green;
         double pc_blue;
+        std::string option = "";
 
         Viewer *viewer_3d;
         std::shared_ptr<std::vector<point3f>> points, colors;
         std::shared_ptr<std::vector<std::tuple<point3f, point3f, point3f, point3f>>> planes;
         std::string window_name;
 
-    static int slider_start, slider_len, slider_z, slider_dec;
+    int check_filtered = 1; 
+    int check_invalid = 0;
+    int slider_start = 180;
+    int slider_len = 100;
+    int slider_dec = 1;
+
     static void on_start(int pos,void *data);
     static void on_len(int pos,void *data);
-    static void on_zfilter(int pos,void *data);
     static void on_decfilter(int pos,void *data);
+
+signals:
+        //void customSignal();
 };
 
 #endif

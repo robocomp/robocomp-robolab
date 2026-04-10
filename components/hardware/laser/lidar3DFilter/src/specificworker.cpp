@@ -258,7 +258,7 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
         buffer.points.erase(it_end, buffer.points.end());
     }
 
-    std::cout << "Num Points After Filter: " << buffer.points.size() << std::endl;
+    //std::cout << "Num Points After Filter: " << buffer.points.size() << std::endl;
     return buffer;
 }
 

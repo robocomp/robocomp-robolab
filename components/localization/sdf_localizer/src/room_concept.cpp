@@ -149,15 +149,12 @@ namespace rc
         if (run_ctx_.sensor_buffer == nullptr)
             return false;
 
-        const auto& [gt_, lidar_high_] = run_ctx_.sensor_buffer->read_last();
-        if (!lidar_high_.has_value() || lidar_high_->first.empty())
-            return false;
-
-        const auto& pts = lidar_high_->first;
         Eigen::Vector2f init_xy = Eigen::Vector2f::Zero();
         float init_phi = 0.f;
         bool have_saved_pose = false;
 
+        // Try saved pose first — if available we can initialize the model immediately
+        // without needing a lidar scan (lidar is only required for pose estimation).
         if (!seed_pose_file_path_.empty())
         {
             std::ifstream in(seed_pose_file_path_);
@@ -177,8 +174,16 @@ namespace rc
             }
         }
 
+        // When we have a saved pose the model can be seeded without lidar.
+        // When we have no saved pose we need lidar to estimate the initial position.
+        std::vector<Eigen::Vector3f> pts;
         if (!have_saved_pose)
         {
+            const auto& [gt_, lidar_high_] = run_ctx_.sensor_buffer->read_last();
+            if (!lidar_high_.has_value() || lidar_high_->first.empty())
+                return false;
+            pts = lidar_high_->first;
+
             PointcloudCenterEstimator estimator;
             Eigen::Vector2d room_center_in_robot = Eigen::Vector2d::Zero();
             if (const auto obb = estimator.estimate_obb(pts); obb.has_value())

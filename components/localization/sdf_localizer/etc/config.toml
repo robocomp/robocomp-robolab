@@ -2,7 +2,7 @@
 # This property is used by the clients to connect to IceStorm.
 TopicManager = "IceStorm/TopicManager:default -p 9999"
 # Proxies for required interfaces
-Lidar3D = "lidar3d:tcp -h localhost -p 11990" # HELIOS"
+Lidar3D = "lidar3d:tcp -h localhost -p 11995" # FILTER"
 Webots2Robocomp = "webots2robocomp:tcp -h localhost -p 10006"
 
 [Endpoints]
@@ -17,11 +17,11 @@ Compute = 100
 Emergency = 500
 
 [RoomConcept]
-PredictionEarlyExit = true  # Skip RFE optimization when predicted pose SDF error is already low
-NumIterations  = 10     # Adam steps per update (25 = accurate, 5 = fast)
-WindowSize     = 50      # Past lidar slots optimized jointly (10 = accurate, 3 = fast)
-MaxLidarPoints = 300   # Max points in newest slot (1000 = accurate, 300 = fast)
-MaxLidarOldSlot = 200  # Max points in older slots (300 = accurate, 100 = fast)
+PredictionEarlyExit = true    # Skip RFE optimization when predicted pose SDF error is already low
+NumIterations  = 10           # Adam steps per update (25 = accurate, 5 = fast)
+WindowSize     = 50           # Past lidar slots optimized jointly (10 = accurate, 3 = fast)
+MaxLidarPoints = 300          # Max points in newest slot (1000 = accurate, 300 = fast)
+MaxLidarOldSlot = 200         # Max points in older slots (300 = accurate, 100 = fast)
 RecoveryLossThreshold = 0.3   # avg SDF error (sqrt(sdf_mse)) above this = bad localization (meters)
 RecoveryConsecutiveCount = 3  # Bad frames in a row before triggering grid search recovery
 

@@ -217,21 +217,21 @@ void SpecificWorker::read_lidar()
                 lidar_buffer.put<0>(std::move(eig_pose), timestamp);
             }
 
-            const float body_offset_sq = params.ROBOT_SEMI_WIDTH * params.ROBOT_SEMI_WIDTH;
+            //const float body_offset_sq = params.ROBOT_SEMI_WIDTH * params.ROBOT_SEMI_WIDTH;
 
             // HELIOS ----
             RoboCompLidar3D::TData data_high;
             try
             {
-                data_high = lidar3d_proxy->getLidarDataWithThreshold2d(
-                        params.LIDAR_NAME_HIGH,
-                        params.MAX_LIDAR_HIGH_RANGE * 1000.f,
-                        params.LIDAR_LOW_DECIMATION_FACTOR);
+                // data_high = lidar3d_proxy->getLidarDataWithThreshold2d(
+                //         params.LIDAR_NAME_HIGH,
+                //         params.MAX_LIDAR_HIGH_RANGE * 1000.f,
+                //         params.LIDAR_LOW_DECIMATION_FACTOR);
+                data_high = lidar3d_proxy->getLidarData("", 0.f, M_PI*2.f, params.LIDAR_LOW_DECIMATION_FACTOR);                    
             }
             catch (const Ice::Exception &e)
             { qWarning() << "[read_lidar] HELIOS failed:" << e.what(); continue;}
 
-            // ---- Wait process HELIOS ----
             std::vector<Eigen::Vector3f> points_high;
             points_high.reserve(data_high.points.size());
             for (const auto &p : data_high.points)
@@ -239,10 +239,11 @@ void SpecificWorker::read_lidar()
                 const float pmx = p.x / 1000.f;
                 const float pmy = p.y / 1000.f;
                 const float pmz = p.z / 1000.f;
-                if (pmx*pmx + pmy*pmy > body_offset_sq && pmz < params.LIDAR_HIGH_MAX_HEIGHT and pmz > params.LIDAR_HIGH_MIN_HEIGHT)
+                if(pmz > params.LIDAR_HIGH_MIN_HEIGHT)
                     points_high.emplace_back(pmx, pmy, pmz);
             }
             const size_t n_pts = points_high.size();
+            qInfo() << "[read_lidar] HELIOS points read:" << n_pts;
             lidar_buffer.put<1>(std::make_pair(std::move(points_high), data_high.timestamp), timestamp);
 
             // Adjust period with hysteresis

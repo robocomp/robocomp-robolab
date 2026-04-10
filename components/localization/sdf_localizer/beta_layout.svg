@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="1741" height="937.9"
+     viewBox="-8.828 -4.668 17.41 9.379">
+  <!-- Room layout polygon - editable in Inkscape -->
+  <!-- Coordinates are in meters. Scale: 100 pixels/meter -->
+  <!-- Note: Y-axis is flipped (SVG Y increases downward) -->
+
+  <g inkscape:groupmode="layer" inkscape:label="Grid" style="opacity:0.3">
+    <line x1="-9" y1="-4.668" x2="-9" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8" y1="-4.668" x2="-8" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-7" y1="-4.668" x2="-7" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-6" y1="-4.668" x2="-6" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-5" y1="-4.668" x2="-5" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-4" y1="-4.668" x2="-4" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-3" y1="-4.668" x2="-3" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-2" y1="-4.668" x2="-2" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-1" y1="-4.668" x2="-1" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="0" y1="-4.668" x2="0" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="1" y1="-4.668" x2="1" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="2" y1="-4.668" x2="2" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="3" y1="-4.668" x2="3" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="4" y1="-4.668" x2="4" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="5" y1="-4.668" x2="5" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="6" y1="-4.668" x2="6" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="7" y1="-4.668" x2="7" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="8" y1="-4.668" x2="8" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="9" y1="-4.668" x2="9" y2="4.712" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="5" x2="8.587" y2="5" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="4" x2="8.587" y2="4" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="3" x2="8.587" y2="3" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="2" x2="8.587" y2="2" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="1" x2="8.587" y2="1" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="0" x2="8.587" y2="0" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="-1" x2="8.587" y2="-1" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="-2" x2="8.587" y2="-2" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="-3" x2="8.587" y2="-3" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="-4" x2="8.587" y2="-4" stroke="#cccccc" stroke-width="0.01"/>
+    <line x1="-8.828" y1="-5" x2="8.587" y2="-5" stroke="#cccccc" stroke-width="0.01"/>
+  </g>
+
+  <g inkscape:groupmode="layer" inkscape:label="Origin">
+    <circle cx="0" cy="0" r="0.1" fill="red" opacity="0.7"/>
+    <line x1="-0.3" y1="0" x2="0.3" y2="0" stroke="red" stroke-width="0.02"/>
+    <line x1="0" y1="-0.3" x2="0" y2="0.3" stroke="red" stroke-width="0.02"/>
+  </g>
+
+  <g inkscape:groupmode="layer" inkscape:label="Room Polygon">
+    <polygon
+      id="room_contour"
+      inkscape:label="Room Contour"
+      points="-6.455,-3.842 -6.433,-0.8343 -7.377,-0.8123 -7.267,3.93 7.048,3.93 7.07,3.93 7.135,-3.886"
+      style="fill:none;stroke:#ff00ff;stroke-width:0.05;stroke-linejoin:round"/>
+    <!-- Vertex markers -->
+    <circle cx="-6.455" cy="-3.842" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 0"/>
+    <circle cx="-6.433" cy="-0.8343" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 1"/>
+    <circle cx="-7.377" cy="-0.8123" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 2"/>
+    <circle cx="-7.267" cy="3.93" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 3"/>
+    <circle cx="7.048" cy="3.93" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 4"/>
+    <circle cx="7.07" cy="3.93" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 5"/>
+    <circle cx="7.135" cy="-3.886" r="0.08" fill="#ffff00" stroke="#000000" stroke-width="0.01" inkscape:label="Vertex 6"/>
+  </g>
+</svg>

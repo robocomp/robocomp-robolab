@@ -298,6 +298,36 @@ namespace rc
             if (res.ok && !loc_initialized_.load())
                 loc_initialized_ = true;
 
+            // ===== 8. RECOVERY DETECTION =====
+            // Use sdf_mse (sqrt = avg SDF error in meters) — not final_loss which is
+            // the full RFE cost including prior/motion terms and can be in the hundreds.
+            if (res.iterations_used > 0 && recovery_cooldown_ == 0)
+            {
+                const float avg_sdf_err = std::sqrt(res.sdf_mse);  // meters
+                if (avg_sdf_err > params.recovery_loss_threshold)
+                {
+                    consecutive_bad_frames_++;
+                    if (consecutive_bad_frames_ >= params.recovery_consecutive_count)
+                    {
+                        qWarning() << "[LocThread] Recovery triggered after" << consecutive_bad_frames_
+                                   << "bad frames. avg_sdf_err=" << avg_sdf_err << "m"
+                                   << "Running grid search...";
+                        const auto& pts = lidar_high_->first;
+                        grid_search_initial_pose(pts, 0.5f, static_cast<float>(M_PI_4));
+                        window_.clear();
+                        boundary_prior_.valid = false;
+                        consecutive_bad_frames_ = 0;
+                        recovery_cooldown_ = 30;  // skip recovery checks for 30 frames
+                        qInfo() << "[LocThread] Recovery complete.";
+                    }
+                }
+                else
+                {
+                    consecutive_bad_frames_ = 0;  // reset on good frame
+                }
+            }
+            if (recovery_cooldown_ > 0) recovery_cooldown_--;
+
             last_ts = current_ts;
             wait_period = std::max(wait_period - std::chrono::milliseconds(1), kMinWait);
             update_ms_accum_ += update_ms;
@@ -897,9 +927,17 @@ namespace rc
         new_slot.timestamp_ms = lidar.second;
 
         // ===== SLIDE THE WINDOW (if full) =====
-        if (static_cast<int>(window_.size()) >= params.rfe_window_size)
+        // Only recompute the boundary prior when Adam will actually run
+        // (early exit path returns before reaching Adam, so boundary prior recomputation there is wasted)
+        const bool window_will_slide = (static_cast<int>(window_.size()) >= params.rfe_window_size);
+        if (window_will_slide)
         {
-            slide_window();
+            // Cheap slide: just pop the oldest slot and copy its pose as boundary mu.
+            // Full Hessian recomputation happens only after Adam runs (see end of update()).
+            auto pose_cpu = window_.front().pose.detach().to(torch::kCPU);
+            auto pose_acc = pose_cpu.accessor<float, 1>();
+            boundary_prior_.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+            window_.pop_front();
         }
 
         // ===== APPEND NEW SLOT =====
@@ -926,15 +964,16 @@ namespace rc
 
         // ===== PREDICTION-BASED EARLY EXIT =====
         // If the predicted pose already has low SDF error, skip optimization entirely.
-        // Still slide the window to keep data fresh.
+        // The SDF value is a direct measurement of pose quality — use it alone as the gate.
+        // Do NOT gate on covariance: covariance only models uncertainty, but if SDF is low
+        // the pose is actually good regardless of what the covariance says. Gating on covariance
+        // causes a sawtooth cycle where process noise accumulates until the gate blocks early exit,
+        // Adam runs and resets covariance, then the cycle repeats.
         if (params.prediction_early_exit &&
             last_update_result.ok &&
             odometry_prior.valid &&
             tracking_step_count_ > params.min_tracking_steps)
         {
-            const float pose_uncertainty = current_covariance(0,0) + current_covariance(1,1);
-
-            if (pose_uncertainty < params.max_uncertainty_for_early_exit)
             {
                 torch::NoGradGuard no_grad;
                 const auto& newest = window_.back();
@@ -1160,6 +1199,11 @@ namespace rc
         }
 
         // ===== UPDATE MODEL STATE FOR NEXT ITERATION =====
+        // Recompute boundary prior with full Hessian now that Adam has refined the poses.
+        // This only runs when Adam actually executed (not on early exit).
+        if (window_.size() > 0)
+            slide_window_boundary_prior_only();
+
         model_->robot_prev_pose = res.robot_pose;
 
         auto cov_cpu = torch::zeros({3, 3}, torch::kFloat32);
@@ -1638,7 +1682,7 @@ namespace rc
         return total_loss;
     }
 
-    void RoomConcept::slide_window()
+    void RoomConcept::slide_window_boundary_prior_only()
     {
         if (window_.empty())
             return;
@@ -1720,8 +1764,8 @@ namespace rc
 
         boundary_prior_.valid = true;
 
-        // Drop oldest slot
-        window_.pop_front();
+        // NOTE: pop_front is NOT done here — the caller (cheap slide in update())
+        // already removed the slot before Adam ran.
     }
 
     std::vector<torch::Tensor> RoomConcept::collect_window_params() const

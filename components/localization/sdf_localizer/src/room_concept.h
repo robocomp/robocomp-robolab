@@ -101,6 +101,11 @@ public:
         int min_tracking_steps = 20;          // Wait for system to stabilize before early exit
         float max_uncertainty_for_early_exit = 0.1f;  // Max pose uncertainty to allow early exit
 
+        // ===== Recovery Detection =====
+        // Trigger grid search when full Adam keeps returning high loss
+        float recovery_loss_threshold = 0.3f;  // final_loss above this = bad localization
+        int recovery_consecutive_count = 3;    // How many bad frames before triggering recovery
+
         // ===== Velocity-Adaptive Gradient Weights =====
         // Adjust optimization emphasis based on current motion profile
         bool velocity_adaptive_weights = true;
@@ -300,6 +305,11 @@ private:
    int tracking_step_count_ = 0;        // Number of tracking steps since init
    int prediction_early_exits_ = 0;     // Counter for statistics
 
+   // Recovery detection
+   int consecutive_bad_frames_ = 0;     // Full Adam runs with avg SDF error > recovery_loss_threshold
+   bool recovery_in_progress_ = false;  // True while grid search recovery is running
+   int recovery_cooldown_ = 0;          // Frames to skip after recovery before re-enabling detection
+
    // Velocity-adaptive gradient weights [x, y, theta]
    Eigen::Vector3f current_velocity_weights_ = Eigen::Vector3f::Ones();
 
@@ -362,7 +372,7 @@ private:
     torch::Tensor compute_rfe_loss() const;
 
     // Slide the window: compute boundary prior from oldest slot, drop it
-    void slide_window();
+    void slide_window_boundary_prior_only();  // Recompute boundary prior from oldest slot (no pop)
 
     // Collect all window pose tensors into a flat list (for optimizer)
     std::vector<torch::Tensor> collect_window_params() const;

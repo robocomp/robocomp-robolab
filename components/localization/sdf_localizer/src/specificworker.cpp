@@ -82,6 +82,8 @@ void SpecificWorker::initialize()
     room_concept_.params.rfe_window_size         = configLoader.get<int>("RoomConcept.WindowSize");
     room_concept_.params.max_lidar_points        = configLoader.get<int>("RoomConcept.MaxLidarPoints");
     room_concept_.params.rfe_max_lidar_per_old_slot = configLoader.get<int>("RoomConcept.MaxLidarOldSlot");
+    room_concept_.params.recovery_loss_threshold    = static_cast<float>(configLoader.get<double>("RoomConcept.RecoveryLossThreshold"));
+    room_concept_.params.recovery_consecutive_count = configLoader.get<int>("RoomConcept.RecoveryConsecutiveCount");
 
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);

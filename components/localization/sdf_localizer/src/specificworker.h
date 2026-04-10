@@ -99,7 +99,9 @@ class SpecificWorker : public GenericWorker
 			std::string LIDAR_NAME_HIGH = "helios";
 			float MAX_LIDAR_HIGH_RANGE = 100;  // m
 			int LIDAR_LOW_DECIMATION_FACTOR = 1;
-			float LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
+			float 
+			
+			LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
 			float LIDAR_HIGH_MAX_HEIGHT = 2.2f; // m, points above this height in the high lidar will be ignored
 			
 			// General
@@ -149,6 +151,10 @@ class SpecificWorker : public GenericWorker
 		               const Eigen::Affine2f& pose_for_draw);
 		void initialize_room_model_from_svg();
 		void save_robot_pose_on_exit() const;
+
+	private slots:
+		void slot_robot_moved(QPointF p);
+		void slot_robot_rotate(QPointF p);
 
 	signals:
 		//void customSignal();

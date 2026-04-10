@@ -94,6 +94,7 @@ class Viewer2D : public QObject
         void clear_path_items();
 
     Q_SIGNALS:
+        void robot_moved(QPointF);
         void robot_rotate(QPointF);
         void robot_dragging(QPointF);
         void robot_drag_end(QPointF);

@@ -152,6 +152,10 @@ public:
         float condition_number = 0.f;
         int iterations_used = 0;
 
+        // Timestamp (system-clock epoch ms) of the lidar scan used for this result.
+        // Consumers can measure the age of this result as (now_ms - timestamp_ms).
+        std::int64_t timestamp_ms = 0;
+
         // Innovation: difference between optimized pose and prediction (Kalman innovation)
         Eigen::Vector3f innovation = Eigen::Vector3f::Zero();  // [dx, dy, dtheta]
         float innovation_norm = 0.f;  // ||innovation|| for quick health check
@@ -366,6 +370,10 @@ private:
     PredictionState predict_step(std::shared_ptr<Model> &room,
                                   const OdometryPrior &odometry_prior,
                                   bool is_localized);
+
+    // Compute the exact 3×3 Hessian of a scalar loss w.r.t. a 3-vector via double-backprop.
+    static Eigen::Matrix3f autograd_hessian_3x3(const torch::Tensor& loss,
+                                                 const torch::Tensor& param);
 
     // ===== Sliding-window RFE methods =====
     // Build the full RFE loss over the current window (Eq. 27 of the paper)

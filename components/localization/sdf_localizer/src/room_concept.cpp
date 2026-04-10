@@ -677,11 +677,10 @@ namespace rc
             return Eigen::Vector3f::Ones();
         }
 
-        // Get velocities from odometry prior
-        const float linear_speed = odometry_prior.delta_pose.head<2>().norm() /
-                                   std::max(odometry_prior.dt, 0.001f);
-        const float angular_speed = std::abs(odometry_prior.delta_pose[2]) /
-                                    std::max(odometry_prior.dt, 0.001f);
+        // Get velocities from odometry prior (dt is in milliseconds, convert to seconds)
+        const float dt_sec = std::max(odometry_prior.dt / 1000.0f, 0.001f);
+        const float linear_speed = odometry_prior.delta_pose.head<2>().norm() / dt_sec;
+        const float angular_speed = std::abs(odometry_prior.delta_pose[2]) / dt_sec;
 
         // Determine motion profile
         const bool is_rotating = angular_speed > params.angular_velocity_threshold;
@@ -767,6 +766,7 @@ namespace rc
             res.covariance = current_covariance;
             res.final_loss = 0.0f;
             res.sdf_mse = 0.0f;
+            res.timestamp_ms = lidar.second;
 
             last_update_result = res;
             last_lidar_timestamp = lidar.second;
@@ -974,10 +974,17 @@ namespace rc
         // the pose is actually good regardless of what the covariance says. Gating on covariance
         // causes a sawtooth cycle where process noise accumulates until the gate blocks early exit,
         // Adam runs and resets covariance, then the cycle repeats.
+        // Inhibit early exit when angular motion is significant: the predicted
+        // pose is unreliable during fast rotation and skipping Adam causes the
+        // SDF to spike and the drawn lidar to lag behind the room model.
+        const float angular_delta = std::abs(slot_odom_delta[2]);
+        const bool fast_rotation = angular_delta > params.angular_velocity_threshold * std::max(odometry_prior.dt / 1000.0f, 0.001f);
+
         if (params.prediction_early_exit &&
             last_update_result.ok &&
             odometry_prior.valid &&
-            tracking_step_count_ > params.min_tracking_steps)
+            tracking_step_count_ > params.min_tracking_steps &&
+            !fast_rotation)
         {
             {
                 torch::NoGradGuard no_grad;
@@ -1031,6 +1038,7 @@ namespace rc
                     model_->robot_prev_pose = res.robot_pose;
                     model_->has_prediction = false;
 
+                    res.timestamp_ms = lidar.second;
                     last_update_result = res;
                     last_lidar_timestamp = lidar.second;
 
@@ -1097,8 +1105,7 @@ namespace rc
         }
 
         // ===== COVARIANCE UPDATE =====
-        // Diagonal Hessian approximation at the current (newest) pose
-        // from the full RFE loss (Paper Eq. 28 applied to S_t)
+        // Exact Hessian of SDF likelihood via double-backprop (Paper Eq. 28)
         try {
             auto& newest = window_.back();
             auto pose_for_hess = newest.pose.clone().detach().requires_grad_(true);
@@ -1107,25 +1114,20 @@ namespace rc
 
             const auto sdf_vals = model_->sdf_at_pose(points_tensor, pose_xy, pose_theta_h);
             const float huber_delta = params.rfe_huber_delta;
-            const torch::Tensor likelihood_loss = torch::nn::functional::huber_loss(
-                sdf_vals,
-                torch::zeros_like(sdf_vals),
-                torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta)
-            );
+            const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
+            const torch::Tensor likelihood_loss = 0.5f * inv_var *
+                torch::nn::functional::huber_loss(
+                    sdf_vals,
+                    torch::zeros_like(sdf_vals),
+                    torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta)
+                );
 
-            auto grads = torch::autograd::grad({likelihood_loss}, {pose_for_hess},
-                                               /*grad_outputs=*/{},
-                                               /*retain_graph=*/false,
-                                               /*create_graph=*/false);
+            Eigen::Matrix3f H_likelihood = autograd_hessian_3x3(likelihood_loss, pose_for_hess);
 
-            auto grad_cpu = grads[0].to(torch::kCPU);
-            auto g_acc = grad_cpu.accessor<float, 1>();
-            float loss_val = likelihood_loss.item<float>();
-
-            Eigen::Matrix3f H_likelihood = Eigen::Matrix3f::Zero();
-            float scale = static_cast<float>(points_tensor.size(0)) / (loss_val + 1e-6f);
-            for (int ii = 0; ii < 3; ii++)
-                H_likelihood(ii, ii) = std::abs(g_acc[ii]) * scale + 1e-4f;
+            // Ensure positive-definiteness: clamp eigenvalues
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H_likelihood);
+            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(1e-4f);
+            H_likelihood = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
 
             Eigen::Matrix3f prior_precision = current_covariance.inverse();
             constexpr float lambda = 1e-4f;
@@ -1158,7 +1160,6 @@ namespace rc
         // ===== EXTRACT RESULT FROM NEWEST WINDOW SLOT =====
         res.ok = true;
         res.final_loss = last_loss;
-        res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);  // uses model's current pose
         res.iterations_used = iterations;
 
         {
@@ -1174,10 +1175,14 @@ namespace rc
             while (phi < -M_PI) phi += 2.0f * M_PI;
 
             // Update model's internal pose to match the optimised window result
+            // BEFORE computing sdf_mse so it reflects the optimised pose, not the prediction.
             model_->robot_pos.data().copy_(torch::tensor({x, y},
                 torch::TensorOptions().device(get_device())));
             model_->robot_theta.data().copy_(torch::tensor({phi},
                 torch::TensorOptions().device(get_device())));
+
+            // Now compute sdf_mse at the optimised pose (not prediction)
+            res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);
 
             res.state = model_->get_state();
             res.state[2] = x;
@@ -1220,6 +1225,7 @@ namespace rc
 
         model_->has_prediction = false;
 
+        res.timestamp_ms = lidar.second;
         last_update_result = res;
         return res;
     }
@@ -1605,6 +1611,34 @@ namespace rc
     }
 
     // =====================================================================
+    //  Exact 3×3 Hessian via double-backprop
+    //  H_ij = ∂²L/∂p_i∂p_j computed by differentiating through the gradient
+    // =====================================================================
+    Eigen::Matrix3f RoomConcept::autograd_hessian_3x3(const torch::Tensor& loss,
+                                                       const torch::Tensor& param)
+    {
+        // First-order gradient with graph retained for second pass
+        auto grad = torch::autograd::grad({loss}, {param},
+            /*grad_outputs=*/{}, /*retain_graph=*/true, /*create_graph=*/true)[0];
+
+        Eigen::Matrix3f H;
+        for (int i = 0; i < 3; i++)
+        {
+            // Differentiate grad[i] w.r.t. param → row i of the Hessian
+            auto gi = grad.index({i});
+            auto row = torch::autograd::grad({gi}, {param},
+                /*grad_outputs=*/{}, /*retain_graph=*/(i < 2), /*create_graph=*/false)[0];
+            auto row_cpu = row.to(torch::kCPU);
+            auto acc = row_cpu.accessor<float, 1>();
+            for (int j = 0; j < 3; j++)
+                H(i, j) = acc[j];
+        }
+        // Symmetrise to absorb any floating-point asymmetry
+        H = 0.5f * (H + H.transpose());
+        return H;
+    }
+
+    // =====================================================================
     //  Sliding-Window RFE: compute_rfe_loss, slide_window, collect_window_params
     //  (Paper: "Total-Time Active Inference", Section 6.4, Algorithm 1)
     // =====================================================================
@@ -1633,7 +1667,12 @@ namespace rc
                 for (int j = 0; j < 3; j++)
                     prec_data[i][j] = boundary_prior_.precision(i, j);
 
-            auto diff = (oldest_pose - mu).unsqueeze(1);  // [3,1]
+            auto raw_diff = oldest_pose - mu;
+            // Wrap theta component to [-π, π] (differentiable)
+            auto angle_diff = raw_diff.index({2});
+            auto wrapped_diff = torch::cat({raw_diff.index({torch::indexing::Slice(0, 2)}),
+                                             torch::atan2(torch::sin(angle_diff), torch::cos(angle_diff)).unsqueeze(0)});
+            auto diff = wrapped_diff.unsqueeze(1);  // [3,1]
             auto boundary_loss = 0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze();
             total_loss = total_loss + boundary_loss;
         }
@@ -1670,7 +1709,13 @@ namespace rc
 
             // Handle angle wrapping for the theta component
             // residual = actual_delta - odom_delta
-            auto residual = pose_delta - odom_delta;
+            auto raw_residual = pose_delta - odom_delta;
+
+            // Wrap the angular residual to [-π, π] (differentiable, no in-place ops)
+            auto angle_res = raw_residual.index({2});
+            auto wrapped_angle = torch::atan2(torch::sin(angle_res), torch::cos(angle_res));
+            auto residual = torch::cat({raw_residual.index({torch::indexing::Slice(0, 2)}),
+                                        wrapped_angle.unsqueeze(0)});
 
             // Build precision tensor from motion covariance
             Eigen::Matrix3f motion_prec = curr.motion_cov.inverse();
@@ -1726,7 +1771,11 @@ namespace rc
                 auto odom = torch::tensor(
                     {next.odometry_delta[0], next.odometry_delta[1], next.odometry_delta[2]},
                     torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
-                auto residual = delta - odom;
+                auto raw_res = delta - odom;
+                // Wrap theta component to [-π, π]
+                auto angle_r = raw_res.index({2});
+                auto residual = torch::cat({raw_res.index({torch::indexing::Slice(0, 2)}),
+                                            torch::atan2(torch::sin(angle_r), torch::cos(angle_r)).unsqueeze(0)});
                 Eigen::Matrix3f prec = next.motion_cov.inverse();
                 auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
                 for (int r = 0; r < 3; r++)
@@ -1750,21 +1799,15 @@ namespace rc
                 loss = loss + 0.5f * torch::matmul(diff.t(), torch::matmul(prec_t, diff)).squeeze();
             }
 
-            // Compute gradients for diagonal Hessian approximation
-            auto grads = torch::autograd::grad({loss}, {oldest_pose_for_hess},
-                /*grad_outputs=*/{}, /*retain_graph=*/false, /*create_graph=*/false);
+            // Compute exact 3×3 Hessian via double-backprop
+            Eigen::Matrix3f H = autograd_hessian_3x3(loss, oldest_pose_for_hess);
 
-            auto g = grads[0].to(torch::kCPU);
-            auto g_acc = g.accessor<float, 1>();
-            float loss_val = loss.item<float>() + 1e-6f;
-            float n_pts = static_cast<float>(oldest.lidar_points.size(0));
-            float scale = n_pts / loss_val;
+            // Clamp eigenvalues to ensure positive-definiteness
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H);
+            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(1e-3f);
+            H = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
 
-            Eigen::Matrix3f hessian_diag = Eigen::Matrix3f::Zero();
-            for (int i = 0; i < 3; i++)
-                hessian_diag(i, i) = std::abs(g_acc[i]) * scale + 1e-3f;  // ensure positive definite
-
-            boundary_prior_.precision = hessian_diag;
+            boundary_prior_.precision = H;
         }
 
         boundary_prior_.valid = true;

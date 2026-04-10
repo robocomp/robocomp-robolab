@@ -21,6 +21,8 @@ Viewer2D::Viewer2D(QWidget* parent, const QRectF& grid_dim, bool show_axis)
     agv_ = new AbstractGraphicViewer(parent, grid_dim, show_axis);
 
     // Forward all AGV signals as Viewer2D signals
+    connect(agv_, &AbstractGraphicViewer::robot_moved,
+            this, &Viewer2D::robot_moved);
     connect(agv_, &AbstractGraphicViewer::robot_rotate,
             this, &Viewer2D::robot_rotate);
     connect(agv_, &AbstractGraphicViewer::robot_dragging,

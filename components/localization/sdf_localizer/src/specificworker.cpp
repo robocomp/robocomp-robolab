@@ -118,6 +118,12 @@ void SpecificWorker::initialize()
         viewer_2d_->update_estimated_room_rect(params.GRID_MAX_DIM.width(), params.GRID_MAX_DIM.height(), false);
     }
 
+    // Connect mouse interaction signals for manual robot repositioning
+    connect(viewer_2d_.get(), &rc::Viewer2D::robot_moved,
+            this, &SpecificWorker::slot_robot_moved);
+    connect(viewer_2d_.get(), &rc::Viewer2D::robot_rotate,
+            this, &SpecificWorker::slot_robot_rotate);
+
     room_concept_.start();
 }
 
@@ -151,11 +157,74 @@ void SpecificWorker::compute()
         pose_for_draw.linear() = Eigen::Rotation2Df(state[4]).toRotationMatrix();
     }
 
-    viewer_2d_->draw_lidar_points(lidar_data_->first, {}, pose_for_draw, params.MAX_LIDAR_DRAW_POINTS);
+    // Forward-project the localization pose to the time of the displayed scan.
+    // Both lidar_data_->second and loc_res->timestamp_ms are driver-clock
+    // acquisition timestamps, so their difference is the real inter-scan lag
+    // (includes buffer delay + Adam optimization time).
+    Eigen::Affine2f display_pose = pose_for_draw;
+    {
+        const std::int64_t loc_ts = (loc_res.has_value() && loc_res->ok && loc_res->timestamp_ms > 0)
+                                      ? loc_res->timestamp_ms : 0;
+        const std::int64_t lag_ms = (loc_ts > 0) ? (lidar_data_->second - loc_ts) : 0;
+        const float theta_before = std::atan2(pose_for_draw.linear()(1, 0),
+                                              pose_for_draw.linear()(0, 0));
+        float theta_after = theta_before;
 
-    // Keep robot glyph synced with the pose currently used for drawing (seed pose included).
+        if (loc_ts > 0)
+        {
+            const float dt_s = static_cast<float>(lag_ms) / 1000.0f;
+            if (dt_s > 0.001f && dt_s < 1.0f)
+            {
+                float v_adv = 0.f, v_side = 0.f, v_rot = 0.f;
+                bool have_vel = false;
+                if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
+                {
+                    v_adv  = odom_opt->adv;
+                    v_side = odom_opt->side;
+                    v_rot  = odom_opt->rot;
+                    have_vel = true;
+                }
+                else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
+                {
+                    v_adv  = vel_opt->adv_y;
+                    v_side = vel_opt->adv_x;
+                    v_rot  = vel_opt->rot;
+                    have_vel = true;
+                }
+
+                if (have_vel)
+                {
+                    const float cos_t = std::cos(theta_before);
+                    const float sin_t = std::sin(theta_before);
+                    const float dx =  (v_side * cos_t - v_adv * sin_t) * dt_s;
+                    const float dy =  (v_side * sin_t + v_adv * cos_t) * dt_s;
+                    const float dtheta = v_rot * dt_s;
+
+                    display_pose.translation() += Eigen::Vector2f(dx, dy);
+                    display_pose.linear() = Eigen::Rotation2Df(theta_before + dtheta).toRotationMatrix();
+                    theta_after = theta_before + dtheta;
+                }
+            }
+        }
+
+        // Diagnostic — throttled every 500ms to see correction per frame
+        static auto last_diag = std::chrono::steady_clock::now();
+        if (std::chrono::steady_clock::now() - last_diag > std::chrono::milliseconds(500))
+        {
+            last_diag = std::chrono::steady_clock::now();
+            std::cout << "[FwdProj] lag_ms=" << lag_ms
+                      << " th_before=" << theta_before
+                      << " th_after=" << theta_after
+                      << " delta=" << (theta_after - theta_before)
+                      << " lidar_ts=" << lidar_data_->second
+                      << " pose_ts=" << loc_ts << std::endl;
+        }
+    }
+    viewer_2d_->draw_lidar_points(lidar_data_->first, {}, display_pose, params.MAX_LIDAR_DRAW_POINTS);
+
+    // Keep robot glyph synced with the forward-projected display pose.
     if (room_concept_.is_initialized() || (loc_res.has_value() && loc_res->ok))
-        viewer_2d_->update_robot(pose_for_draw);
+        viewer_2d_->update_robot(display_pose);
 
     if (loc_res.has_value() && loc_res->ok)
     {
@@ -194,6 +263,29 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
                 .arg(t.y(), 0, 'f', 3)
                 .arg(theta, 0, 'f', 3));
     }
+}
+
+/////////////////////////////////////////////////////////////////////////
+void SpecificWorker::slot_robot_moved(QPointF p)
+{
+    // Shift+Left click: reposition robot at the clicked scene point, keeping current theta
+    const auto state = room_concept_.get_current_state();
+    const float theta = state[4];
+    room_concept_.push_command(rc::RoomConcept::CmdSetPose{
+        static_cast<float>(p.x()), static_cast<float>(p.y()), theta});
+    qInfo() << "[UI] Robot repositioned to" << p.x() << p.y() << "theta=" << theta;
+}
+
+void SpecificWorker::slot_robot_rotate(QPointF p)
+{
+    // Ctrl+Left click/drag: rotate robot to face the cursor position
+    const auto state = room_concept_.get_current_state();
+    const float rx = state[2];
+    const float ry = state[3];
+    const float dx = static_cast<float>(p.x()) - rx;
+    const float dy = static_cast<float>(p.y()) - ry;
+    const float new_theta = std::atan2(dy, dx);
+    room_concept_.push_command(rc::RoomConcept::CmdSetPose{rx, ry, new_theta});
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -243,8 +335,9 @@ void SpecificWorker::read_lidar()
                     points_high.emplace_back(pmx, pmy, pmz);
             }
             const size_t n_pts = points_high.size();
-            qInfo() << "[read_lidar] HELIOS points read:" << n_pts;
-            lidar_buffer.put<1>(std::make_pair(std::move(points_high), data_high.timestamp), timestamp);
+            // Store system-clock timestamp (not driver timestamp) so consumers
+            // can compute real wall-clock age of this scan.
+            lidar_buffer.put<1>(std::make_pair(std::move(points_high), static_cast<std::int64_t>(data_high.timestamp)), timestamp);
 
             // Adjust period with hysteresis
             if (wait_period > std::chrono::milliseconds((long) data_high.period + 2)) --wait_period;
@@ -424,7 +517,8 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     odom.adv  = add_noise(pose.adv);    // forward velocity, m/s
     odom.side = add_noise(pose.side);   // lateral velocity, m/s
     odom.rot  = add_noise(pose.rot);    // angular velocity, rad/s
-    odom.timestamp = std::chrono::high_resolution_clock::now();
+    odom.timestamp = std::chrono::high_resolution_clock::time_point(
+        std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     odometry_buffer_.put<0>(std::move(odom), ts);

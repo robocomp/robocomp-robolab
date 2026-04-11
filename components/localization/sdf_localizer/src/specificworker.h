@@ -32,6 +32,7 @@
 #include "buffer_types.h"
 #include "room_concept.h"
 #include "viewer_2d.h"
+#include "timeseries_plot.h"
 #include <atomic>
 #include <fps/fps.h>
 
@@ -130,6 +131,8 @@ class SpecificWorker : public GenericWorker
 
 		//Viewer
 		std::unique_ptr<rc::Viewer2D> viewer_2d_;
+		rc::TimeSeriesPlot* ts_plot_sdf_ = nullptr;
+		rc::TimeSeriesPlot* ts_plot_fe_  = nullptr;
 
 		// Localization model
 		rc::RoomConcept room_concept_;
@@ -149,6 +152,13 @@ class SpecificWorker : public GenericWorker
 		std::string pose_file_path() const;
 		void update_ui(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		               const Eigen::Affine2f& pose_for_draw);
+		Eigen::Affine2f forward_project_pose(const Eigen::Affine2f& base_pose,
+		                                     const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
+		                                     std::int64_t lidar_ts);
+		// EMA state for smoothing forward projection deltas
+		float smooth_dx_ = 0.f, smooth_dy_ = 0.f, smooth_dtheta_ = 0.f;
+		bool fwd_proj_initialized_ = false;
+
 		void initialize_room_model_from_svg();
 		void save_robot_pose_on_exit() const;
 

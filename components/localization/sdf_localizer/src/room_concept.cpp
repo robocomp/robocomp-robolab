@@ -334,9 +334,173 @@ namespace rc
             if (recovery_cooldown_ > 0) recovery_cooldown_--;
 
             last_ts = current_ts;
-            wait_period = std::max(wait_period - std::chrono::milliseconds(1), kMinWait);
+            // Adaptive polling: throttle when stationary + early-exiting (pose is good),
+            // snap back to fast polling when Adam runs (motion or correction needed).
+            if (res.iterations_used > 0)
+                wait_period = kMinWait;   // motion or correction needed → full rate
+            else
+                wait_period = std::min(wait_period + std::chrono::milliseconds(2), kMaxWait);
             update_ms_accum_ += update_ms;
             update_ms_count_++;
+
+            // ===== DIFFERENTIAL TEST: RFE vs single-step vs prediction-only =====
+            // Compares SDF accuracy AND pose jitter (temporal consistency).
+            // Single-step will typically achieve lower SDF (it's unconstrained), but
+            // RFE should show lower jitter (the window regularises across time).
+            // Enable via params.differential_test_enabled.
+            if (params.differential_test_enabled && res.ok)
+            {
+                const bool adam_ran = res.iterations_used > 0;
+                const bool sample_early_exit = !adam_ran && (diff_test_.early_exit_seen++ % 50 == 0);
+
+                if (adam_ran || sample_early_exit)
+                {
+                    // Recover (or use) the predicted pose
+                    float pred_x, pred_y, pred_theta;
+                    if (adam_ran)
+                    {
+                        pred_x     = res.state[2] - res.innovation[0];
+                        pred_y     = res.state[3] - res.innovation[1];
+                        pred_theta = res.state[4] - res.innovation[2];
+                    }
+                    else
+                    {
+                        pred_x     = res.state[2];
+                        pred_y     = res.state[3];
+                        pred_theta = res.state[4];
+                    }
+
+                    const auto& pts = lidar_high_->first;
+                    auto pts_tensor = points_to_tensor_xyz(pts, get_device());
+
+                    // 1. Prediction-only SDF
+                    float pred_sdf;
+                    {
+                        torch::NoGradGuard no_grad;
+                        auto xy = torch::tensor({pred_x, pred_y},
+                            torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                        auto th = torch::tensor({pred_theta},
+                            torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                        auto sdf_vals = model_->sdf_at_pose(pts_tensor, xy, th);
+                        pred_sdf = torch::median(torch::abs(sdf_vals)).item<float>();
+                    }
+
+                    // 2. Single-step Adam (no window, no motion factors) — returns pose + SDF
+                    const float rfe_sdf = res.sdf_mse;
+                    const float rfe_x = res.state[2], rfe_y = res.state[3], rfe_theta = res.state[4];
+
+                    auto single_pose = torch::tensor({pred_x, pred_y, pred_theta},
+                        torch::TensorOptions().dtype(torch::kFloat32).device(get_device())).requires_grad_(true);
+                    {
+                        const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
+                        torch::optim::Adam opt({torch::optim::OptimizerParamGroup({single_pose},
+                            std::make_unique<torch::optim::AdamOptions>(params.learning_rate_pos))});
+                        for (int i = 0; i < params.num_iterations; ++i)
+                        {
+                            opt.zero_grad();
+                            auto xy = single_pose.index({torch::indexing::Slice(0, 2)});
+                            auto th = single_pose.index({torch::indexing::Slice(2, 3)});
+                            auto loss = 0.5f * inv_var * torch::nn::functional::huber_loss(
+                                model_->sdf_at_pose(pts_tensor, xy, th),
+                                torch::zeros({pts_tensor.size(0)}, pts_tensor.options()),
+                                torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean)
+                                    .delta(params.rfe_huber_delta));
+                            loss.backward();
+                            opt.step();
+                        }
+                    }
+                    float single_sdf;
+                    {
+                        torch::NoGradGuard no_grad;
+                        auto xy = single_pose.index({torch::indexing::Slice(0, 2)});
+                        auto th = single_pose.index({torch::indexing::Slice(2, 3)});
+                        auto sdf_vals = model_->sdf_at_pose(pts_tensor, xy, th);
+                        single_sdf = torch::median(torch::abs(sdf_vals)).item<float>();
+                    }
+                    auto sp_cpu = single_pose.detach().to(torch::kCPU);
+                    auto sp = sp_cpu.accessor<float, 1>();
+                    const float s_x = sp[0], s_y = sp[1], s_theta = sp[2];
+
+                    // --- Correction jitter (how far each method moved from prediction) ---
+                    const float rfe_corr = std::sqrt((rfe_x - pred_x) * (rfe_x - pred_x) +
+                                                     (rfe_y - pred_y) * (rfe_y - pred_y));
+                    const float single_corr = std::sqrt((s_x - pred_x) * (s_x - pred_x) +
+                                                        (s_y - pred_y) * (s_y - pred_y));
+                    auto wrap = [](float a) { while (a > M_PI) a -= 2*M_PI; while (a < -M_PI) a += 2*M_PI; return a; };
+                    const float rfe_tcorr = std::abs(wrap(rfe_theta - pred_theta));
+                    const float single_tcorr = std::abs(wrap(s_theta - pred_theta));
+
+                    diff_test_.rfe_jitter_sum += rfe_corr;
+                    diff_test_.single_jitter_sum += single_corr;
+                    diff_test_.rfe_theta_jitter_sum += rfe_tcorr;
+                    diff_test_.single_theta_jitter_sum += single_tcorr;
+
+                    // --- Correction consistency (how stable corrections are across frames) ---
+                    // correction = optimised - predicted (for each method)
+                    const float rfe_cx = rfe_x - pred_x, rfe_cy = rfe_y - pred_y;
+                    const float rfe_ctheta = wrap(rfe_theta - pred_theta);
+                    const float single_cx = s_x - pred_x, single_cy = s_y - pred_y;
+                    const float single_ctheta = wrap(s_theta - pred_theta);
+
+                    if (diff_test_.has_prev)
+                    {
+                        // RFE correction change
+                        const float drx = rfe_cx - diff_test_.prev_rfe_cx;
+                        const float dry = rfe_cy - diff_test_.prev_rfe_cy;
+                        diff_test_.rfe_corr_consistency_sum += std::sqrt(drx*drx + dry*dry);
+                        diff_test_.rfe_theta_consistency_sum += std::abs(wrap(rfe_ctheta - diff_test_.prev_rfe_ctheta));
+
+                        // Single-step correction change
+                        const float dsx = single_cx - diff_test_.prev_single_cx;
+                        const float dsy = single_cy - diff_test_.prev_single_cy;
+                        diff_test_.single_corr_consistency_sum += std::sqrt(dsx*dsx + dsy*dsy);
+                        diff_test_.single_theta_consistency_sum += std::abs(wrap(single_ctheta - diff_test_.prev_single_ctheta));
+                    }
+                    diff_test_.prev_rfe_cx = rfe_cx; diff_test_.prev_rfe_cy = rfe_cy; diff_test_.prev_rfe_ctheta = rfe_ctheta;
+                    diff_test_.prev_single_cx = single_cx; diff_test_.prev_single_cy = single_cy; diff_test_.prev_single_ctheta = single_ctheta;
+                    diff_test_.has_prev = true;
+
+                    // --- Accumulate SDF stats ---
+                    diff_test_.pred_sdf_sum   += pred_sdf;
+                    diff_test_.single_sdf_sum += single_sdf;
+                    diff_test_.rfe_sdf_sum    += rfe_sdf;
+                    diff_test_.count++;
+                    if (adam_ran) diff_test_.adam_frames++;
+                    if (rfe_sdf < single_sdf - 1e-5f)      diff_test_.rfe_wins++;
+                    else if (single_sdf < rfe_sdf - 1e-5f)  diff_test_.single_wins++;
+
+                    // Periodic report every 100 frames
+                    if (diff_test_.count % 100 == 0 && diff_test_.count > 0)
+                    {
+                        const int n = diff_test_.count;
+                        std::cout << "\n===== DIFFERENTIAL TEST (" << n << " frames, "
+                                  << diff_test_.adam_frames << " Adam + "
+                                  << (n - diff_test_.adam_frames) << " early-exit) =====\n"
+                                  << "  --- SDF accuracy (lower = better fit to room) ---\n"
+                                  << "  Prediction-only  avg SDF: " << (diff_test_.pred_sdf_sum / n) << " m\n"
+                                  << "  Single-step Adam avg SDF: " << (diff_test_.single_sdf_sum / n) << " m\n"
+                                  << "  Full RFE (W=" << params.rfe_window_size << ")   avg SDF: "
+                                  << (diff_test_.rfe_sdf_sum / n) << " m\n"
+                                  << "  SDF wins — RFE: " << diff_test_.rfe_wins
+                                  << "  Single: " << diff_test_.single_wins << "\n"
+                                  << "  --- Correction jitter (lower = more stable) ---\n"
+                                  << "  RFE    avg pos correction: " << (diff_test_.rfe_jitter_sum / n * 1000) << " mm"
+                                  << "  avg θ correction: " << (diff_test_.rfe_theta_jitter_sum / n * 180 / M_PI) << " deg\n"
+                                  << "  Single avg pos correction: " << (diff_test_.single_jitter_sum / n * 1000) << " mm"
+                                  << "  avg θ correction: " << (diff_test_.single_theta_jitter_sum / n * 180 / M_PI) << " deg\n";
+                        if (n > 1)
+                        {
+                            const int np = n - 1;
+                            std::cout << "  --- Correction consistency (lower = smoother) ---\n"
+                                      << "  RFE    avg Δcorr: " << (diff_test_.rfe_corr_consistency_sum / np * 1000) << " mm/frame"
+                                      << "  avg Δθcorr: " << (diff_test_.rfe_theta_consistency_sum / np * 180 / M_PI) << " deg/frame\n"
+                                      << "  Single avg Δcorr: " << (diff_test_.single_corr_consistency_sum / np * 1000) << " mm/frame"
+                                      << "  avg Δθcorr: " << (diff_test_.single_theta_consistency_sum / np * 180 / M_PI) << " deg/frame\n";
+                        }
+                        std::cout << "===========================================\n" << std::endl;
+                    }
+                }
+            }
             const float avg_update_ms = update_ms_accum_ / update_ms_count_;
             const int fps = loc_fps_.print("[LocThread] update_ms(last/avg)=" + std::to_string(static_cast<int>(update_ms))
                                + "/" + std::to_string(static_cast<int>(avg_update_ms)), 2000);
@@ -1210,8 +1374,10 @@ namespace rc
 
         // ===== UPDATE MODEL STATE FOR NEXT ITERATION =====
         // Recompute boundary prior with full Hessian now that Adam has refined the poses.
-        // This only runs when Adam actually executed (not on early exit).
-        if (window_.size() > 0)
+        // Only activate the boundary prior once the window has actually slid (is full),
+        // because before that no information is being evicted — the prior would just add
+        // noise from a poorly-conditioned Hessian estimated from very few slots.
+        if (window_will_slide && window_.size() > 0)
             slide_window_boundary_prior_only();
 
         model_->robot_prev_pose = res.robot_pose;
@@ -1286,9 +1452,9 @@ namespace rc
                                                              bool is_measured_odometry)
     {
         // Select noise model: odometry (encoder/IMU) is tighter than commanded velocity
-        const float noise_trans = is_measured_odometry ? params.odom_noise_trans : params.cmd_noise_trans;
-        const float noise_rot   = is_measured_odometry ? params.odom_noise_rot   : params.cmd_noise_rot;
-        const float noise_base  = is_measured_odometry ? params.odom_noise_base  : params.cmd_noise_base;
+        const float noise_trans = is_measured_odometry ? params.odom_noise_trans * params.odom_noise_scale : params.cmd_noise_trans;
+        const float noise_rot   = is_measured_odometry ? params.odom_noise_rot   * params.odom_noise_scale : params.cmd_noise_rot;
+        const float noise_base  = is_measured_odometry ? params.odom_noise_base  * params.odom_noise_scale : params.cmd_noise_base;
 
         float motion_magnitude = std::sqrt(
             odometry_prior.delta_pose[0] * odometry_prior.delta_pose[0] +
@@ -1608,6 +1774,47 @@ namespace rc
         result[2] = theta;
 
         return {result, fused_precision};
+    }
+
+    // =====================================================================
+    //  Differential test: shadow single-step Adam evaluator
+    // =====================================================================
+    float RoomConcept::shadow_single_step_adam(const torch::Tensor& points_tensor,
+                                               float pred_x, float pred_y, float pred_theta) const
+    {
+        const auto device = get_device();
+
+        // Create an isolated pose tensor starting from the predicted pose
+        auto pose = torch::tensor({pred_x, pred_y, pred_theta},
+            torch::TensorOptions().dtype(torch::kFloat32).device(device)).requires_grad_(true);
+
+        const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
+        const float huber_delta = params.rfe_huber_delta;
+
+        torch::optim::Adam optimizer(
+            {torch::optim::OptimizerParamGroup({pose},
+                std::make_unique<torch::optim::AdamOptions>(params.learning_rate_pos))});
+
+        // Run the same number of iterations as the main loop
+        for (int i = 0; i < params.num_iterations; ++i)
+        {
+            optimizer.zero_grad();
+            auto xy = pose.index({torch::indexing::Slice(0, 2)});
+            auto th = pose.index({torch::indexing::Slice(2, 3)});
+            auto sdf_vals = model_->sdf_at_pose(points_tensor, xy, th);
+            auto loss = 0.5f * inv_var * torch::nn::functional::huber_loss(
+                sdf_vals, torch::zeros_like(sdf_vals),
+                torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta));
+            loss.backward();
+            optimizer.step();
+        }
+
+        // Evaluate SDF at optimised pose (same metric as main pipeline)
+        torch::NoGradGuard no_grad;
+        auto xy = pose.index({torch::indexing::Slice(0, 2)});
+        auto th = pose.index({torch::indexing::Slice(2, 3)});
+        auto sdf_vals = model_->sdf_at_pose(points_tensor, xy, th);
+        return torch::median(torch::abs(sdf_vals)).item<float>();
     }
 
     // =====================================================================

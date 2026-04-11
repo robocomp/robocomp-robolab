@@ -101,7 +101,10 @@ public:
         int min_tracking_steps = 20;          // Wait for system to stabilize before early exit
         float max_uncertainty_for_early_exit = 0.1f;  // Max pose uncertainty to allow early exit
 
-        // ===== Recovery Detection =====
+        // ===== Differential Test (A/B comparison) =====
+        bool differential_test_enabled = false;  // Enable shadow single-step evaluator for RFE vs baseline comparison
+
+        // ===== Recovery Detection ===
         // Trigger grid search when full Adam keeps returning high loss
         float recovery_loss_threshold = 0.3f;  // final_loss above this = bad localization
         int recovery_consecutive_count = 3;    // How many bad frames before triggering recovery
@@ -127,6 +130,7 @@ public:
         float odom_noise_trans = 0.08f;  // Fractional position noise per meter of motion
         float odom_noise_rot   = 0.04f;  // Fractional rotation noise per radian of rotation
         float odom_noise_base  = 0.01f;  // Base position noise even when stationary (m)
+        float odom_noise_scale = 1.0f;   // Multiplier on all odom noise params (>1 simulates worse odometry)
 
         // Torch threading configuration
         int torch_num_threads = 5;          // Limit CPU threads to avoid overload
@@ -327,6 +331,43 @@ private:
    FPSCounter loc_fps_;  // Timing for the localization thread
    float update_ms_accum_ = 0.f;
    int   update_ms_count_ = 0;
+
+   // ===== Differential test: RFE vs single-step =====
+   struct DiffTestStats
+   {
+       double pred_sdf_sum = 0;     // sum of prediction-only SDF median
+       double single_sdf_sum = 0;   // sum of single-step Adam SDF median
+       double rfe_sdf_sum = 0;      // sum of full-RFE SDF median
+       int count = 0;
+       int adam_frames = 0;         // frames where Adam actually ran
+       int rfe_wins = 0;            // frames where RFE < single-step (SDF)
+       int single_wins = 0;         // frames where single-step < RFE (SDF)
+       int early_exit_seen = 0;     // total early-exit frames seen (for sampling)
+
+       // Pose jitter: residual motion after subtracting odometry prediction.
+       // Lower jitter = more temporally consistent.
+       double rfe_jitter_sum = 0;       // sum of ||RFE_pose - predicted_pose||₂
+       double single_jitter_sum = 0;    // sum of ||single_pose - predicted_pose||₂
+       double rfe_theta_jitter_sum = 0; // sum of |wrap(RFE_theta - pred_theta)|
+       double single_theta_jitter_sum = 0;
+
+       // Correction consistency: how much each method's correction vector
+       // changes between consecutive frames. Lower = smoother.
+       // correction[t] = optimised_pose[t] - predicted_pose[t]
+       float prev_rfe_cx = 0, prev_rfe_cy = 0, prev_rfe_ctheta = 0;
+       float prev_single_cx = 0, prev_single_cy = 0, prev_single_ctheta = 0;
+       bool has_prev = false;
+       double rfe_corr_consistency_sum = 0;     // sum ||rfe_corr[t] - rfe_corr[t-1]||₂
+       double single_corr_consistency_sum = 0;  // sum ||single_corr[t] - single_corr[t-1]||₂
+       double rfe_theta_consistency_sum = 0;    // sum |wrap(rfe_θcorr[t] - rfe_θcorr[t-1])|
+       double single_theta_consistency_sum = 0;
+   };
+   DiffTestStats diff_test_;
+
+   /// Run a single-step Adam (no window) on the given scan at the predicted pose.
+   /// Returns the SDF median-absolute-error after optimisation.
+   float shadow_single_step_adam(const torch::Tensor& points_tensor,
+                                 float pred_x, float pred_y, float pred_theta) const;
 
    // Compute velocity-adaptive weights based on motion profile
    Eigen::Vector3f compute_velocity_adaptive_weights(const OdometryPrior& odometry_prior);

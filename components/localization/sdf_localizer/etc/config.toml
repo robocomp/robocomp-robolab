@@ -24,6 +24,8 @@ MaxLidarPoints = 300          # Max points in newest slot (1000 = accurate, 300 
 MaxLidarOldSlot = 200         # Max points in older slots (300 = accurate, 100 = fast)
 RecoveryLossThreshold = 0.3   # avg SDF error (sqrt(sdf_mse)) above this = bad localization (meters)
 RecoveryConsecutiveCount = 3  # Bad frames in a row before triggering grid search recovery
+OdomNoiseScale = 1.0          # Multiplier on odometry noise (>1 simulates worse odometry, e.g. 5.0)
+DifferentialTest = false     # Enable shadow single-step evaluator for RFE vs baseline A/B comparison
 
 [Component.Debug]
 Verbose = true

@@ -77,6 +77,8 @@ LIST(APPEND SOURCES
   ../src/room_concept.cpp
   ../src/room_model.cpp
   ../src/pointcloud_center_estimator.cpp
+  ../src/epistemic_planner.cpp
+  ../src/timeseries_plot.cpp
 )
 
 # Headers set
@@ -87,6 +89,8 @@ LIST(APPEND HEADERS
   ../src/room_concept.h
   ../src/room_model.h
   ../src/pointcloud_center_estimator.h
+  ../src/epistemic_planner.h
+  ../src/timeseries_plot.h
 )
 
 

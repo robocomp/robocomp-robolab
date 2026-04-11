@@ -20,6 +20,7 @@
 #include "svg_room_loader.h"
 
 #include <fstream>
+#include <unistd.h>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
@@ -84,6 +85,8 @@ void SpecificWorker::initialize()
     room_concept_.params.rfe_max_lidar_per_old_slot = configLoader.get<int>("RoomConcept.MaxLidarOldSlot");
     room_concept_.params.recovery_loss_threshold    = static_cast<float>(configLoader.get<double>("RoomConcept.RecoveryLossThreshold"));
     room_concept_.params.recovery_consecutive_count = configLoader.get<int>("RoomConcept.RecoveryConsecutiveCount");
+    try { room_concept_.params.odom_noise_scale = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseScale")); } catch (...) {}
+    try { room_concept_.params.differential_test_enabled = configLoader.get<bool>("RoomConcept.DifferentialTest"); } catch (...) {}
 
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);
@@ -104,6 +107,21 @@ void SpecificWorker::initialize()
 
     viewer_2d_ = std::make_unique<rc::Viewer2D>(frame, params.GRID_MAX_DIM, true);
     viewer_2d_->show();
+
+    // Time-series plots inside the bottom frames
+    ts_plot_sdf_ = new rc::TimeSeriesPlot(plotFrame);
+    ts_plot_sdf_->add_series("sdf_mse", QColor(255, 80, 80), 1.5f, 30);
+    ts_plot_sdf_->set_visible_window(30.f);
+    auto* sdf_layout = new QVBoxLayout(plotFrame);
+    sdf_layout->setContentsMargins(0, 0, 0, 0);
+    sdf_layout->addWidget(ts_plot_sdf_);
+
+    ts_plot_fe_ = new rc::TimeSeriesPlot(plotFrame2);
+    ts_plot_fe_->add_series("free_energy", QColor(80, 180, 255), 1.5f, 30);
+    ts_plot_fe_->set_visible_window(30.f);
+    auto* fe_layout = new QVBoxLayout(plotFrame2);
+    fe_layout->setContentsMargins(0, 0, 0, 0);
+    fe_layout->addWidget(ts_plot_fe_);
 
     viewer_2d_->add_robot(params.ROBOT_WIDTH, params.ROBOT_LENGTH, 0.f, 0.f, QColor("blue"));
 
@@ -126,7 +144,6 @@ void SpecificWorker::initialize()
 
     room_concept_.start();
 }
-
 
 
 void SpecificWorker::compute()
@@ -158,68 +175,7 @@ void SpecificWorker::compute()
     }
 
     // Forward-project the localization pose to the time of the displayed scan.
-    // Both lidar_data_->second and loc_res->timestamp_ms are driver-clock
-    // acquisition timestamps, so their difference is the real inter-scan lag
-    // (includes buffer delay + Adam optimization time).
-    Eigen::Affine2f display_pose = pose_for_draw;
-    {
-        const std::int64_t loc_ts = (loc_res.has_value() && loc_res->ok && loc_res->timestamp_ms > 0)
-                                      ? loc_res->timestamp_ms : 0;
-        const std::int64_t lag_ms = (loc_ts > 0) ? (lidar_data_->second - loc_ts) : 0;
-        const float theta_before = std::atan2(pose_for_draw.linear()(1, 0),
-                                              pose_for_draw.linear()(0, 0));
-        float theta_after = theta_before;
-
-        if (loc_ts > 0)
-        {
-            const float dt_s = static_cast<float>(lag_ms) / 1000.0f;
-            if (dt_s > 0.001f && dt_s < 1.0f)
-            {
-                float v_adv = 0.f, v_side = 0.f, v_rot = 0.f;
-                bool have_vel = false;
-                if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
-                {
-                    v_adv  = odom_opt->adv;
-                    v_side = odom_opt->side;
-                    v_rot  = odom_opt->rot;
-                    have_vel = true;
-                }
-                else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
-                {
-                    v_adv  = vel_opt->adv_y;
-                    v_side = vel_opt->adv_x;
-                    v_rot  = vel_opt->rot;
-                    have_vel = true;
-                }
-
-                if (have_vel)
-                {
-                    const float cos_t = std::cos(theta_before);
-                    const float sin_t = std::sin(theta_before);
-                    const float dx =  (v_side * cos_t - v_adv * sin_t) * dt_s;
-                    const float dy =  (v_side * sin_t + v_adv * cos_t) * dt_s;
-                    const float dtheta = v_rot * dt_s;
-
-                    display_pose.translation() += Eigen::Vector2f(dx, dy);
-                    display_pose.linear() = Eigen::Rotation2Df(theta_before + dtheta).toRotationMatrix();
-                    theta_after = theta_before + dtheta;
-                }
-            }
-        }
-
-        // Diagnostic — throttled every 500ms to see correction per frame
-        static auto last_diag = std::chrono::steady_clock::now();
-        if (std::chrono::steady_clock::now() - last_diag > std::chrono::milliseconds(500))
-        {
-            last_diag = std::chrono::steady_clock::now();
-            std::cout << "[FwdProj] lag_ms=" << lag_ms
-                      << " th_before=" << theta_before
-                      << " th_after=" << theta_after
-                      << " delta=" << (theta_after - theta_before)
-                      << " lidar_ts=" << lidar_data_->second
-                      << " pose_ts=" << loc_ts << std::endl;
-        }
-    }
+    Eigen::Affine2f display_pose = forward_project_pose(pose_for_draw, loc_res, lidar_data_->second);
     viewer_2d_->draw_lidar_points(lidar_data_->first, {}, display_pose, params.MAX_LIDAR_DRAW_POINTS);
 
     // Keep robot glyph synced with the forward-projected display pose.
@@ -242,13 +198,101 @@ void SpecificWorker::compute()
 
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+Eigen::Affine2f SpecificWorker::forward_project_pose(
+        const Eigen::Affine2f& base_pose,
+        const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
+        std::int64_t lidar_ts)
+{
+    constexpr float kAlpha = 0.35f;   // EMA smoothing factor (0 = full smooth, 1 = no smooth)
+
+    const std::int64_t loc_ts = (loc_res.has_value() && loc_res->ok && loc_res->timestamp_ms > 0)
+                                  ? loc_res->timestamp_ms : 0;
+    const std::int64_t lag_ms = (loc_ts > 0) ? (lidar_ts - loc_ts) : 0;
+    const float theta_base = std::atan2(base_pose.linear()(1, 0), base_pose.linear()(0, 0));
+
+    float raw_dx = 0.f, raw_dy = 0.f, raw_dtheta = 0.f;
+
+    if (loc_ts > 0)
+    {
+        const float dt_s = static_cast<float>(lag_ms) / 1000.0f;
+        if (dt_s > 0.001f && dt_s < 1.0f)
+        {
+            float v_adv = 0.f, v_side = 0.f, v_rot = 0.f;
+            bool have_vel = false;
+            if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
+            {
+                v_adv  = odom_opt->adv;
+                v_side = odom_opt->side;
+                v_rot  = odom_opt->rot;
+                have_vel = true;
+            }
+            else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
+            {
+                v_adv  = vel_opt->adv_y;
+                v_side = vel_opt->adv_x;
+                v_rot  = vel_opt->rot;
+                have_vel = true;
+            }
+            if (have_vel)
+            {
+                const float cos_t = std::cos(theta_base);
+                const float sin_t = std::sin(theta_base);
+                raw_dx     = (v_side * cos_t - v_adv * sin_t) * dt_s;
+                raw_dy     = (v_side * sin_t + v_adv * cos_t) * dt_s;
+                raw_dtheta = v_rot * dt_s;
+            }
+        }
+    }
+
+    // EMA smoothing to avoid abrupt jumps between frames
+    if (!fwd_proj_initialized_)
+    {
+        smooth_dx_ = raw_dx;
+        smooth_dy_ = raw_dy;
+        smooth_dtheta_ = raw_dtheta;
+        fwd_proj_initialized_ = true;
+    }
+    else
+    {
+        smooth_dx_     = kAlpha * raw_dx     + (1.f - kAlpha) * smooth_dx_;
+        smooth_dy_     = kAlpha * raw_dy     + (1.f - kAlpha) * smooth_dy_;
+        smooth_dtheta_ = kAlpha * raw_dtheta + (1.f - kAlpha) * smooth_dtheta_;
+    }
+
+    Eigen::Affine2f result = base_pose;
+    result.translation() += Eigen::Vector2f(smooth_dx_, smooth_dy_);
+    result.linear() = Eigen::Rotation2Df(theta_base + smooth_dtheta_).toRotationMatrix();
+
+    // Diagnostic — throttled every 500ms
+    static auto last_diag = std::chrono::steady_clock::now();
+    if (std::chrono::steady_clock::now() - last_diag > std::chrono::milliseconds(500))
+    {
+        last_diag = std::chrono::steady_clock::now();
+        const float theta_after = theta_base + smooth_dtheta_;
+        std::cout << "[FwdProj] lag_ms=" << lag_ms
+                  << " th_before=" << theta_base
+                  << " th_after=" << theta_after
+                  << " delta=" << smooth_dtheta_
+                  << " lidar_ts=" << lidar_ts
+                  << " pose_ts=" << loc_ts << std::endl;
+    }
+    return result;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
 void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
                                const Eigen::Affine2f& pose_for_draw)
 {
     if (sdfStatusLabel != nullptr)
     {
         if (loc_res.has_value() && loc_res->ok)
-            sdfStatusLabel->setText(QString("SDF: %1 m").arg(loc_res->sdf_mse, 0, 'f', 3));
+        {
+            sdfStatusLabel->setText(QString("SDF: %1 m  FE: %2").arg(loc_res->sdf_mse, 0, 'f', 3)
+                                                                    .arg(loc_res->final_loss, 0, 'f', 3));
+            if (ts_plot_sdf_) ts_plot_sdf_->add_point("sdf_mse", loc_res->sdf_mse);
+            if (ts_plot_fe_)  ts_plot_fe_->add_point("free_energy", loc_res->final_loss);
+        }
         else
             sdfStatusLabel->setText("SDF: n/a");
     }
@@ -262,6 +306,44 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
                 .arg(t.x(), 0, 'f', 3)
                 .arg(t.y(), 0, 'f', 3)
                 .arg(theta, 0, 'f', 3));
+    }
+
+    // CPU usage — read /proc/self/stat, update label every ~1 s
+    if (cpuLabel != nullptr)
+    {
+        static std::int64_t prev_utime = 0, prev_stime = 0;
+        static std::chrono::steady_clock::time_point prev_wall = std::chrono::steady_clock::now();
+        static bool first_cpu = true;
+
+        auto now = std::chrono::steady_clock::now();
+        const float wall_s = std::chrono::duration<float>(now - prev_wall).count();
+        if (wall_s >= 1.0f)
+        {
+            std::ifstream stat_file("/proc/self/stat");
+            if (stat_file.is_open())
+            {
+                std::string ignore;
+                std::int64_t utime = 0, stime = 0;
+                // Fields: pid comm state ppid ... (14th=utime, 15th=stime)
+                stat_file >> ignore; // pid
+                stat_file >> ignore; // comm
+                stat_file >> ignore; // state
+                for (int i = 4; i <= 13; ++i) stat_file >> ignore;
+                stat_file >> utime >> stime;
+
+                if (!first_cpu)
+                {
+                    const long ticks_hz = sysconf(_SC_CLK_TCK);
+                    const float cpu_sec = static_cast<float>((utime - prev_utime) + (stime - prev_stime)) / static_cast<float>(ticks_hz);
+                    const float cpu_pct = (cpu_sec / wall_s) * 100.f;
+                    cpuLabel->setText(QString("CPU: %1%").arg(cpu_pct, 0, 'f', 1));
+                }
+                first_cpu = false;
+                prev_utime = utime;
+                prev_stime = stime;
+                prev_wall = now;
+            }
+        }
     }
 }
 
@@ -315,10 +397,6 @@ void SpecificWorker::read_lidar()
             RoboCompLidar3D::TData data_high;
             try
             {
-                // data_high = lidar3d_proxy->getLidarDataWithThreshold2d(
-                //         params.LIDAR_NAME_HIGH,
-                //         params.MAX_LIDAR_HIGH_RANGE * 1000.f,
-                //         params.LIDAR_LOW_DECIMATION_FACTOR);
                 data_high = lidar3d_proxy->getLidarData("", 0.f, M_PI*2.f, params.LIDAR_LOW_DECIMATION_FACTOR);                    
             }
             catch (const Ice::Exception &e)

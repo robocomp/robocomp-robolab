@@ -36,6 +36,7 @@ public:
         int    model_index;         // index into the ORIGINAL polygon vertex list
         Eigen::Vector2f detected;   // detected position (robot frame, meters)
         Eigen::Vector2f predicted;  // predicted position (robot frame, meters)
+        Eigen::Vector2f model_world;// model corner world position (for display)
         float  distance;            // ||detected - predicted||
         float  angle_deg;           // angle between the two fitted lines
         Eigen::Matrix2f covariance; // 2×2 detection uncertainty (robot frame)

@@ -487,9 +487,10 @@ void Viewer2D::draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& 
     {
         const auto& m = matches[i];
 
-        // Transform robot-frame detections to world frame for drawing
+        // Detected: transform from robot frame to world using display pose
         const Eigen::Vector2f det_world = R * m.detected + t;
-        const Eigen::Vector2f pred_world = R * m.predicted + t;
+        // Predicted: use known model world position (exact, no lag)
+        const Eigen::Vector2f pred_world = m.model_world;
 
         corner_detected_items_[i]->setPos(det_world.x(), det_world.y());
         corner_predicted_items_[i]->setPos(pred_world.x(), pred_world.y());

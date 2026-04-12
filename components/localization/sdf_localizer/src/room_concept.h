@@ -413,10 +413,6 @@ private:
        torch::Tensor compute_rfe_loss(const Model& model, const Params& params,
                                        torch::Device device) const;
 
-       // [ROT_DIAG] Last loss breakdown for diagnostics
-       struct LossBreakdown { float boundary, obs, motion, corner, total; int win_size; };
-       mutable LossBreakdown last_loss_breakdown_{};
-
        /// Recompute boundary prior Hessian from oldest surviving slot.
        void recompute_boundary_prior(const Model& model, const Params& params,
                                       torch::Device device);

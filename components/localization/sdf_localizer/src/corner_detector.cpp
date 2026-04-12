@@ -177,6 +177,7 @@ CornerDetector::DetectionResult CornerDetector::detect(
         match.model_index = mc.original_index;
         match.detected    = *intersection;
         match.predicted   = predicted;
+        match.model_world = mc.position;
         match.distance    = dist;
         match.angle_deg   = angle_deg;
         match.covariance  = cov;

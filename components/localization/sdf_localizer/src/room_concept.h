@@ -159,6 +159,7 @@ public:
         float base_rotation_noise_fraction = 0.5f;     // Base rotation noise relative to base translation noise
         float stationary_motion_threshold = 0.001f;    // meters; below this = stationary for covariance
         float stationary_speed_threshold = 0.03f;      // m/s; below this = near-stationary for process noise
+        float rotation_position_coupling = 0.15f;      // meters of position uncertainty per radian of rotation
         float rotation_noise_base = 0.01f;             // Base rotation std when no commanded motion
         float default_slot_motion_cov = 0.01f;         // Default diagonal for slot motion covariance
 
@@ -168,6 +169,8 @@ public:
         // ===== Corner Detection =====
         float corner_obs_sigma = 0.04f;                // Corner measurement noise (meters)
         int   min_tracking_steps_for_corners = 5;      // Require this many tracking steps before adding corner factors
+        int   corner_max_slots = 5;                    // Only apply corner factors to the newest N slots
+        float corner_huber_delta = 0.3f;               // Huber saturation for corner residuals (meters)
 
         // Torch threading configuration
         int torch_num_threads = 5;          // Limit CPU threads to avoid overload
@@ -409,6 +412,10 @@ private:
        /// Build the full RFE loss over the current window (Eq. 27).
        torch::Tensor compute_rfe_loss(const Model& model, const Params& params,
                                        torch::Device device) const;
+
+       // [ROT_DIAG] Last loss breakdown for diagnostics
+       struct LossBreakdown { float boundary, obs, motion, corner, total; int win_size; };
+       mutable LossBreakdown last_loss_breakdown_{};
 
        /// Recompute boundary prior Hessian from oldest surviving slot.
        void recompute_boundary_prior(const Model& model, const Params& params,

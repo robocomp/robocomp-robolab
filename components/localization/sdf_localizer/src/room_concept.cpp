@@ -1097,6 +1097,27 @@ namespace rc
         model_->has_prediction = false;
         res.timestamp_ms = lidar.second;
         last_update_result = res;
+
+        // [ROT_DIAG] Per-frame diagnostic for rotation debugging
+        {
+            const auto& lb = window_mgr_.last_loss_breakdown_;
+            const auto& p = res.robot_pose;
+            float th = std::atan2(p.linear()(1,0), p.linear()(0,0));
+            std::cout << "[ROT_DIAG] "
+                << "dt=" << odometry_prior.dt
+                << " odom(" << slot_odom_delta[0] << "," << slot_odom_delta[1] << "," << slot_odom_delta[2] << ")"
+                << " iters=" << res.iterations_used
+                << " loss=" << res.final_loss
+                << " sdf=" << res.sdf_mse
+                << " L{bnd=" << lb.boundary << " obs=" << lb.obs << " mot=" << lb.motion << " crn=" << lb.corner << "}"
+                << " pose(" << p.translation().x() << "," << p.translation().y() << "," << th << ")"
+                << " innov(" << res.innovation[0] << "," << res.innovation[1] << "," << res.innovation[2] << ")"
+                << " corners=" << res.corner_matches.size() << "/" << res.corners_in_fov
+                << " wnd=" << lb.win_size
+                << " cond=" << res.condition_number
+                << std::endl;
+        }
+
         return res;
     }
 
@@ -1248,6 +1269,15 @@ namespace rc
         last_update_result = res;
         last_lidar_timestamp = lidar_timestamp_ms;
 
+        // [ROT_DIAG] Early-exit diagnostic
+        std::cout << "[ROT_DIAG] EARLY_EXIT"
+            << " dt=" << odometry_prior.dt
+            << " odom(" << slot_odom_delta[0] << "," << slot_odom_delta[1] << "," << slot_odom_delta[2] << ")"
+            << " sdf=" << res.sdf_mse
+            << " pose(" << x << "," << y << "," << phi << ")"
+            << " innov(" << res.innovation[0] << "," << res.innovation[1] << "," << res.innovation[2] << ")"
+            << std::endl;
+
         return res;
     }
 
@@ -1296,6 +1326,13 @@ namespace rc
                 std::abs(prev_loss - last_loss) < params.convergence_relative_tol * prev_loss)
                 break;
         }
+
+        // [ROT_DIAG] Adam convergence + velocity weights
+        std::cout << "[ROT_DIAG_ADAM] iters=" << iterations
+            << " loss_start=" << (iterations > 0 ? prev_loss : last_loss)
+            << " loss_end=" << last_loss
+            << " vw(" << velocity_weights[0] << "," << velocity_weights[1] << "," << velocity_weights[2] << ")"
+            << std::endl;
 
         return {last_loss, iterations};
     }
@@ -1426,6 +1463,11 @@ namespace rc
 
         float position_std = base_uncertainty + noise_trans * motion_magnitude;
         float rotation_std = params.rotation_noise_base + noise_rot * std::abs(odometry_prior.delta_pose[2]);
+
+        // Rotation-position coupling: rotation creates position uncertainty
+        // (pivot wobble, wheel slip, lever arm effects)
+        float rot_induced_pos = params.rotation_position_coupling * std::abs(odometry_prior.delta_pose[2]);
+        position_std = std::sqrt(position_std * position_std + rot_induced_pos * rot_induced_pos);
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Identity();
         cov(0, 0) = position_std * position_std;
@@ -1862,6 +1904,9 @@ namespace rc
         const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
         const float huber_delta = params.rfe_huber_delta;
 
+        // [ROT_DIAG] per-section loss accumulators
+        float dbg_boundary = 0.f, dbg_obs = 0.f, dbg_motion = 0.f, dbg_corner = 0.f;
+
         torch::Tensor total_loss = torch::tensor(0.0f, torch::TensorOptions().device(device));
 
         // --- 1. Boundary prior on oldest surviving state (Eq. 28) ---
@@ -1883,6 +1928,7 @@ namespace rc
                                              torch::atan2(torch::sin(angle_diff), torch::cos(angle_diff)).unsqueeze(0)});
             auto diff = wrapped_diff.unsqueeze(1);
             auto boundary_loss = 0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze();
+            dbg_boundary = boundary_loss.item<float>();
             total_loss = total_loss + boundary_loss;
         }
 
@@ -1899,7 +1945,9 @@ namespace rc
                 torch::zeros({sdf_vals.size(0)}, sdf_vals.options()),
                 torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta)
             );
-            total_loss = total_loss + 0.5f * inv_var * obs_huber;
+            auto slot_obs_loss = 0.5f * inv_var * obs_huber;
+            dbg_obs += slot_obs_loss.item<float>();
+            total_loss = total_loss + slot_obs_loss;
         }
 
         // --- 3. Motion factors between consecutive slots ---
@@ -1918,13 +1966,17 @@ namespace rc
 
             auto res_col = residual.unsqueeze(1);
             auto motion_loss = 0.5f * torch::matmul(res_col.t(), torch::matmul(curr.motion_prec_tensor, res_col)).squeeze();
+            dbg_motion += motion_loss.item<float>();
             total_loss = total_loss + motion_loss;
         }
 
-        // --- 4. Corner observation factors ---
+        // --- 4. Corner observation factors (newest slots only, Huber-saturated) ---
         const float corner_inv_var = 1.0f / (params.corner_obs_sigma * params.corner_obs_sigma);
-        for (const auto& slot : window)
+        const float corner_huber = params.corner_huber_delta;
+        const int corner_start = std::max(0, static_cast<int>(window.size()) - params.corner_max_slots);
+        for (size_t si = corner_start; si < window.size(); si++)
         {
+            const auto& slot = window[si];
             if (slot.corner_obs.empty()) continue;
 
             auto pose_xy    = slot.pose.index({torch::indexing::Slice(0, 2)});
@@ -1947,19 +1999,23 @@ namespace rc
 
                 auto residual = detected - predicted;
 
-                // Weighted Mahalanobis: 0.5 * (1/σ²) * r^T Σ_c^{-1} r
-                auto prec = torch::zeros({2, 2}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
-                prec[0][0] = obs.precision(0, 0);
-                prec[0][1] = obs.precision(0, 1);
-                prec[1][0] = obs.precision(1, 0);
-                prec[1][1] = obs.precision(1, 1);
-
-                auto r_col = residual.unsqueeze(1);
-                auto corner_loss = 0.5f * corner_inv_var *
-                    torch::matmul(r_col.t(), torch::matmul(prec, r_col)).squeeze();
+                // Huber-saturated Mahalanobis: use only per-corner precision (no double σ²)
+                auto r_sq = torch::dot(residual, residual);
+                auto r_norm = torch::sqrt(r_sq + 1e-8f);
+                auto huber_weight = torch::where(r_norm <= corner_huber,
+                    torch::ones_like(r_norm),
+                    corner_huber / r_norm);
+                auto corner_loss = 0.5f * corner_inv_var * huber_weight * r_sq;
+                dbg_corner += corner_loss.item<float>();
                 total_loss = total_loss + corner_loss;
             }
         }
+
+        // [ROT_DIAG] Loss breakdown (print on last Adam iteration only, tracked by caller)
+        static int rfe_call_count = 0;
+        rfe_call_count++;
+        last_loss_breakdown_ = {dbg_boundary, dbg_obs, dbg_motion, dbg_corner,
+                                total_loss.item<float>(), static_cast<int>(window.size())};
 
         return total_loss;
     }

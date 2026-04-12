@@ -186,6 +186,12 @@ void SpecificWorker::compute()
         .room_length     = have_loc ? loc_res->state[1] : 0.f,
     });
 
+    // Draw corner detections if available
+    if (have_loc && !loc_res->corner_matches.empty())
+        viewer_2d_->draw_corners(loc_res->corner_matches, display_pose);
+    else
+        viewer_2d_->draw_corners({}, display_pose);  // hide all markers
+
     // Active-inference self-targeting: plan and send commands when enabled
     if (self_target_active_ && have_loc)
         navigate_to_target(loc_res, obstacle_data_);
@@ -288,12 +294,12 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
     {
         last_diag = std::chrono::steady_clock::now();
         const float theta_after = theta_base + smooth_dtheta_;
-        std::cout << "[FwdProj] lag_ms=" << lag_ms
-                  << " th_before=" << theta_base
-                  << " th_after=" << theta_after
-                  << " delta=" << smooth_dtheta_
-                  << " lidar_ts=" << lidar_ts
-                  << " pose_ts=" << loc_ts << std::endl;
+        // std::cout << "[FwdProj] lag_ms=" << lag_ms
+        //           << " th_before=" << theta_base
+        //           << " th_after=" << theta_after
+        //           << " delta=" << smooth_dtheta_
+        //           << " lidar_ts=" << lidar_ts
+        //           << " pose_ts=" << loc_ts << std::endl;
     }
     return result;
 }

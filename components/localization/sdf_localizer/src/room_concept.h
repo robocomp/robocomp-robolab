@@ -48,6 +48,7 @@
 #include "common_types.h"
 #include "buffer_types.h"
 #include "room_model.h"
+#include "corner_detector.h"
 
 namespace rc
 {
@@ -164,6 +165,10 @@ public:
         // ===== Velocity-Adaptive =====
         float combined_motion_weight = 1.2f;           // Weight when both translating and rotating
 
+        // ===== Corner Detection =====
+        float corner_obs_sigma = 0.04f;                // Corner measurement noise (meters)
+        int   min_tracking_steps_for_corners = 5;      // Require this many tracking steps before adding corner factors
+
         // Torch threading configuration
         int torch_num_threads = 5;          // Limit CPU threads to avoid overload
         int torch_num_interop_threads = 2;  // Limit inter-op threads for better latency
@@ -195,6 +200,10 @@ public:
         // Innovation: difference between optimized pose and prediction (Kalman innovation)
         Eigen::Vector3f innovation = Eigen::Vector3f::Zero();  // [dx, dy, dtheta]
         float innovation_norm = 0.f;  // ||innovation|| for quick health check
+
+        // Corner detections for this frame (world frame, for drawing)
+        std::vector<CornerDetector::CornerMatch> corner_matches;
+        int corners_in_fov = 0;
     };
 
     struct OdometryPrior
@@ -287,6 +296,19 @@ public:
         Eigen::Vector3f odometry_delta = Eigen::Vector3f::Zero(); // delta from prev slot
         Eigen::Matrix3f motion_cov = Eigen::Matrix3f::Identity(); // Σ_dyn
         int64_t timestamp_ms = 0;
+
+        // Cached tensors (computed once at append-time, reused every Adam iteration)
+        torch::Tensor odom_delta_tensor;   // [3], on device
+        torch::Tensor motion_prec_tensor;  // [3,3], Σ_dyn^{-1} on device
+        bool subsampled = false;           // true once old-slot subsampling has been applied
+
+        // Corner observations for this slot (robot frame)
+        struct CornerObs {
+            Eigen::Vector2f model_corner_world;  // world-frame model corner
+            Eigen::Vector2f detected_robot;      // detected position in robot frame
+            Eigen::Matrix2f precision;           // Σ_c^{-1}
+        };
+        std::vector<CornerObs> corner_obs;
     };
 
     struct BoundaryPrior
@@ -401,6 +423,9 @@ private:
    // Velocity-adaptive gradient weights [x, y, theta]
    Eigen::Vector3f current_velocity_weights_ = Eigen::Vector3f::Ones();
 
+    // Corner detector
+    CornerDetector corner_detector_;
+
     // Startup initialization configuration
     bool init_use_polygon_ = false;
     std::vector<Eigen::Vector2f> init_polygon_vertices_;
@@ -462,6 +487,11 @@ private:
         std::vector<float> previous_pose;  // Robot pose BEFORE prediction (for prior loss)
         std::vector<float> predicted_pose; // Robot pose after prediction
     };
+
+    // Pre-allocated tensors for predict_step (avoid per-frame allocation)
+    torch::Tensor predict_F_;   // [dim x dim] Jacobian
+    torch::Tensor predict_Q_;   // [dim x dim] process noise
+    int predict_alloc_dim_ = 0; // dimension they were allocated for
 
     Eigen::Matrix3f compute_motion_covariance(const OdometryPrior &odometry_prior,
                                               bool is_measured_odometry = false);
@@ -529,16 +559,13 @@ private:
     static torch::Tensor points_to_tensor_xyz(const std::vector<Eigen::Vector3f> &points,
                                                torch::Device device = torch::kCPU)
     {
-        std::vector<float> data(points.size() * 3);
-        for (size_t i = 0; i < points.size(); ++i)
-        {
-            const auto &p = points[i];
-            const size_t idx = i * 3;
-            data[idx] = p.x();
-            data[idx + 1] = p.y();
-            data[idx + 2] = p.z();
-        }
-        return torch::from_blob(data.data(), {static_cast<long>(points.size()), 3}, torch::kFloat32).clone().to(device);
+        const auto N = static_cast<long>(points.size());
+        auto tensor = torch::empty({N, 3}, torch::TensorOptions().dtype(torch::kFloat32));
+        auto ptr = tensor.data_ptr<float>();
+        // Eigen::Vector3f is 3 contiguous floats — bulk-copy each point
+        for (long i = 0; i < N; ++i)
+            std::memcpy(ptr + i * 3, points[i].data(), 3 * sizeof(float));
+        return tensor.to(device);
     }
 
     // points to tensor [N,3] - overload for RoboCompLidar3D::TPoints
@@ -554,27 +581,6 @@ private:
             data.push_back(p.z);
         }
         return torch::from_blob(data.data(), {static_cast<long>(points.size()), 3}, torch::kFloat32).clone().to(device);
-    }
-
-    static torch::Tensor loss_sdf_mse(const torch::Tensor &points_xyz, const Model &m)
-    {
-        const auto sdf_vals = m.sdf(points_xyz);
-
-        // Active Inference: Variational Free Energy with Huber loss for robustness
-        constexpr float sigma_obs = 0.05f;  // 5cm observation noise
-        constexpr float huber_delta = 0.15f; // 15cm threshold
-        const float inv_var = 1.0f / (sigma_obs * sigma_obs);
-
-        const auto huber_loss = torch::nn::functional::huber_loss(
-            sdf_vals,
-            torch::zeros_like(sdf_vals),
-            torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta)
-        );
-
-        const auto likelihood_loss = 0.5f * inv_var * huber_loss;
-        const auto prior_term = m.prior_loss();
-
-        return likelihood_loss + prior_term;
     }
 
     // Returns median absolute SDF error for UI display (robust to outliers)

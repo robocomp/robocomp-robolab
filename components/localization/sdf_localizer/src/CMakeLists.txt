@@ -79,6 +79,7 @@ LIST(APPEND SOURCES
   ../src/pointcloud_center_estimator.cpp
   ../src/epistemic_planner.cpp
   ../src/timeseries_plot.cpp
+  ../src/corner_detector.cpp
 )
 
 # Headers set
@@ -91,6 +92,7 @@ LIST(APPEND HEADERS
   ../src/pointcloud_center_estimator.h
   ../src/epistemic_planner.h
   ../src/timeseries_plot.h
+  ../src/corner_detector.h
 )
 
 
@@ -99,5 +101,5 @@ LIST(APPEND LIBS ${LIBS} "${TORCH_LIBRARIES}" tbb Qt6PrintSupport Qt6Xml
 
 
 # no-char8_t to avoid a problem with ICE Connection lib.
-add_definitions(-O3 -flto -fmax-errors=1 -fno-char8_t)
-
+#add_definitions(-O3 -flto -fmax-errors=1 -fno-char8_t)
+add_definitions(-O3 -fmax-errors=1 -fno-char8_t)

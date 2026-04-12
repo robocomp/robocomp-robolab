@@ -16,6 +16,7 @@
 #include <QGraphicsTextItem>
 #include <Eigen/Dense>
 #include <vector>
+#include "corner_detector.h"
 
 class AbstractGraphicViewer;
 
@@ -111,6 +112,10 @@ class Viewer2D : public QObject
         /// Show a target marker at the given room-frame position, or hide it.
         void update_target_marker(float x, float y, bool visible);
 
+        /// Draw detected corners: green circles for accepted, yellow for predicted/in-FOV
+        void draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& matches,
+                          const Eigen::Affine2f& robot_pose);
+
     Q_SIGNALS:
         void robot_moved(QPointF);
         void robot_rotate(QPointF);
@@ -153,6 +158,11 @@ class Viewer2D : public QObject
 
         // Epistemic target
         QGraphicsEllipseItem* epistemic_target_item_ = nullptr;
+
+        // Corner detection markers
+        std::vector<QGraphicsEllipseItem*> corner_detected_items_;
+        std::vector<QGraphicsEllipseItem*> corner_predicted_items_;
+        std::vector<QGraphicsLineItem*>    corner_line_items_;
 
     };
 

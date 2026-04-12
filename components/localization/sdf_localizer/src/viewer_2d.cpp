@@ -437,4 +437,65 @@ void Viewer2D::update_target_marker(float x, float y, bool visible)
     epistemic_target_item_->setVisible(visible);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Corner detection markers
+// ─────────────────────────────────────────────────────────────────────────────
+void Viewer2D::draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& matches,
+                             const Eigen::Affine2f& robot_pose)
+{
+    const size_t n = matches.size();
+
+    // Helper: ensure a pool has exactly `count` items, hiding extras
+    auto resize_pool = [&](auto& pool, size_t count, auto make_item)
+    {
+        while (pool.size() < count)
+            pool.push_back(make_item());
+        for (size_t i = 0; i < pool.size(); ++i)
+            pool[i]->setVisible(i < count);
+    };
+
+    // Detected corners — solid cyan dots in world frame
+    resize_pool(corner_detected_items_, n, [&]() {
+        constexpr float r = 0.30f;
+        auto* item = agv_->scene.addEllipse(-r, -r, 2*r, 2*r,
+            QPen(QColor(0, 220, 255), 0.03), QBrush(QColor(0, 220, 255, 200)));
+        item->setZValue(30);
+        return item;
+    });
+
+    // Predicted corners — hollow red circles in world frame
+    resize_pool(corner_predicted_items_, n, [&]() {
+        constexpr float r = 0.35f;
+        auto* item = agv_->scene.addEllipse(-r, -r, 2*r, 2*r,
+            QPen(QColor(255, 140, 0), 0.06), QBrush(Qt::NoBrush));
+        item->setZValue(29);
+        return item;
+    });
+
+    // Lines connecting predicted → detected
+    resize_pool(corner_line_items_, n, [&]() {
+        QPen pen(QColor(255, 100, 0, 200), 0.03);
+        auto* item = agv_->scene.addLine(0, 0, 0, 0, pen);
+        item->setZValue(28);
+        return item;
+    });
+
+    const Eigen::Matrix2f R = robot_pose.linear();
+    const Eigen::Vector2f t = robot_pose.translation();
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        const auto& m = matches[i];
+
+        // Transform robot-frame detections to world frame for drawing
+        const Eigen::Vector2f det_world = R * m.detected + t;
+        const Eigen::Vector2f pred_world = R * m.predicted + t;
+
+        corner_detected_items_[i]->setPos(det_world.x(), det_world.y());
+        corner_predicted_items_[i]->setPos(pred_world.x(), pred_world.y());
+        corner_line_items_[i]->setLine(pred_world.x(), pred_world.y(),
+                                        det_world.x(), det_world.y());
+    }
+}
+
 } // namespace rc

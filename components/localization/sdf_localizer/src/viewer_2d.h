@@ -79,6 +79,20 @@ class Viewer2D : public QObject
                        const std::vector<Eigen::Vector3f>& points_low,
                        const Eigen::Affine2f& robot_pose,
                        int max_points_high);
+
+        // ----- Composite per-frame update -----
+        struct FrameData
+        {
+            const std::vector<Eigen::Vector3f>& lidar_points;
+            Eigen::Affine2f display_pose;
+            int max_lidar_points;
+            bool have_loc;
+            bool is_initialized;
+            bool has_room_polygon;
+            float room_width;
+            float room_length;
+        };
+        void update_frame(const FrameData& fd);
     
         // ----- Path -----
         struct PathDrawData

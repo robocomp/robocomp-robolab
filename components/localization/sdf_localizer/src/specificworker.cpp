@@ -148,45 +148,39 @@ void SpecificWorker::initialize()
 
 void SpecificWorker::compute()
 {
-   const auto t0 = std::chrono::high_resolution_clock::now();
+    const auto t0 = std::chrono::high_resolution_clock::now();
 
-   const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+    const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
-    // Read lidar
+    // Read lidar — nothing to do without a scan
     const auto &[robot_pose_gt_, lidar_data_] = lidar_buffer.read(timestamp);
     if (!lidar_data_.has_value())
-    { qWarning() << "No lidar data from lidar_buffer"; return; };
+    { qWarning() << "No lidar data from lidar_buffer"; return; }
 
     const auto t1 = std::chrono::high_resolution_clock::now();
 
-    // Draw lidar in room frame using RoomConcept robot pose estimate.
-    Eigen::Affine2f pose_for_draw = Eigen::Affine2f::Identity();
+    // Get latest localization result (may be empty before first convergence)
     const auto loc_res = room_concept_.get_last_result();
-    if (loc_res.has_value() && loc_res->ok)
-    {
-        pose_for_draw = loc_res->robot_pose;
-    }
-    else if (room_concept_.is_initialized())
-    {
-        const auto state = room_concept_.get_current_state();
-        pose_for_draw.translation() = Eigen::Vector2f(state[2], state[3]);
-        pose_for_draw.linear() = Eigen::Rotation2Df(state[4]).toRotationMatrix();
-    }
+    const bool have_loc = loc_res.has_value() and loc_res->ok;
 
-    // Forward-project the localization pose to the time of the displayed scan.
-    Eigen::Affine2f display_pose = forward_project_pose(pose_for_draw, loc_res, lidar_data_->second);
-    viewer_2d_->draw_lidar_points(lidar_data_->first, {}, display_pose, params.MAX_LIDAR_DRAW_POINTS);
+    // Build the best available pose: localized → current model state → identity
+    const Eigen::Affine2f pose_for_draw = best_available_pose(loc_res, have_loc);
 
-    // Keep robot glyph synced with the forward-projected display pose.
-    if (room_concept_.is_initialized() || (loc_res.has_value() && loc_res->ok))
-        viewer_2d_->update_robot(display_pose);
-
-    if (loc_res.has_value() && loc_res->ok)
-    {
-        if (!room_initialized_from_svg_polygon_)
-            viewer_2d_->update_estimated_room_rect(loc_res->state[0], loc_res->state[1], false);
-    }
+    // Forward-project to compensate localizer-to-display lag, then draw
+    const Eigen::Affine2f display_pose = forward_project_pose(pose_for_draw, loc_res, lidar_data_->second);
+    
+    // Update 2D viewer with new scan and pose
+    viewer_2d_->update_frame({
+        .lidar_points    = lidar_data_->first,
+        .display_pose    = display_pose,
+        .max_lidar_points = params.MAX_LIDAR_DRAW_POINTS,
+        .have_loc        = have_loc,
+        .is_initialized  = room_concept_.is_initialized(),
+        .has_room_polygon = room_initialized_from_svg_polygon_,
+        .room_width      = have_loc ? loc_res->state[0] : 0.f,
+        .room_length     = have_loc ? loc_res->state[1] : 0.f,
+    });
 
     update_ui(loc_res, pose_for_draw);
 
@@ -195,7 +189,23 @@ void SpecificWorker::compute()
     const float ms_draw = std::chrono::duration<float, std::milli>(t2 - t1).count();
     fps_counter_.print("[Compute] buf=" + std::to_string(static_cast<int>(ms_buf))
                        + "ms draw="    + std::to_string(static_cast<int>(ms_draw)) + "ms", 2000);
+}
 
+/////////////////////////////////////////////////////////////////////////////////////
+Eigen::Affine2f SpecificWorker::best_available_pose(
+        const std::optional<rc::RoomConcept::UpdateResult>& loc_res, bool have_loc) const
+{
+    if (have_loc)
+        return loc_res->robot_pose;
+    if (room_concept_.is_initialized())
+    {
+        const auto s = room_concept_.get_current_state();
+        Eigen::Affine2f p = Eigen::Affine2f::Identity();
+        p.translation() = Eigen::Vector2f(s[2], s[3]);
+        p.linear() = Eigen::Rotation2Df(s[4]).toRotationMatrix();
+        return p;
+    }
+    return Eigen::Affine2f(Eigen::Affine2f::Identity());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -284,67 +294,64 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
 void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
                                const Eigen::Affine2f& pose_for_draw)
 {
-    if (sdfStatusLabel != nullptr)
+    const bool have_loc = loc_res.has_value() && loc_res->ok;
+
+    // SDF / Free-Energy status
+    if (have_loc)
     {
-        if (loc_res.has_value() && loc_res->ok)
-        {
-            sdfStatusLabel->setText(QString("SDF: %1 m  FE: %2").arg(loc_res->sdf_mse, 0, 'f', 3)
-                                                                    .arg(loc_res->final_loss, 0, 'f', 3));
-            if (ts_plot_sdf_) ts_plot_sdf_->add_point("sdf_mse", loc_res->sdf_mse);
-            if (ts_plot_fe_)  ts_plot_fe_->add_point("free_energy", loc_res->final_loss);
-        }
-        else
-            sdfStatusLabel->setText("SDF: n/a");
+        sdfStatusLabel->setText(QString("SDF: %1 m  FE: %2").arg(loc_res->sdf_mse, 0, 'f', 3)
+                                                                .arg(loc_res->final_loss, 0, 'f', 3));
+        if (ts_plot_sdf_) ts_plot_sdf_->add_point("sdf_mse", loc_res->sdf_mse);
+        if (ts_plot_fe_)  ts_plot_fe_->add_point("free_energy", loc_res->final_loss);
     }
+    else
+        sdfStatusLabel->setText("SDF: n/a");
 
-    if (poseStatusLabel != nullptr)
+    // Pose status
+    const auto t = pose_for_draw.translation();
+    const float theta = std::atan2(pose_for_draw.linear()(1, 0), pose_for_draw.linear()(0, 0));
+    poseStatusLabel->setText(
+        QString("Pose: x=%1  y=%2  th=%3 rad")
+            .arg(t.x(), 0, 'f', 3)
+            .arg(t.y(), 0, 'f', 3)
+            .arg(theta, 0, 'f', 3));
+
+    // CPU usage — update ~1 Hz
+    update_cpu_label();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+void SpecificWorker::update_cpu_label()
+{
+    static std::int64_t prev_utime = 0, prev_stime = 0;
+    static std::chrono::steady_clock::time_point prev_wall = std::chrono::steady_clock::now();
+    static bool first_cpu = true;
+
+    auto now = std::chrono::steady_clock::now();
+    const float wall_s = std::chrono::duration<float>(now - prev_wall).count();
+    if (wall_s < 1.0f) return;
+
+    std::ifstream stat_file("/proc/self/stat");
+    if (!stat_file.is_open()) return;
+
+    std::string ignore;
+    std::int64_t utime = 0, stime = 0;
+    stat_file >> ignore >> ignore >> ignore;          // pid, comm, state
+    for (int i = 4; i <= 13; ++i) stat_file >> ignore;
+    stat_file >> utime >> stime;
+
+    if (!first_cpu)
     {
-        const auto t = pose_for_draw.translation();
-        const float theta = std::atan2(pose_for_draw.linear()(1, 0), pose_for_draw.linear()(0, 0));
-        poseStatusLabel->setText(
-            QString("Pose: x=%1  y=%2  th=%3 rad")
-                .arg(t.x(), 0, 'f', 3)
-                .arg(t.y(), 0, 'f', 3)
-                .arg(theta, 0, 'f', 3));
+        const long ticks_hz = sysconf(_SC_CLK_TCK);
+        const float cpu_sec = static_cast<float>((utime - prev_utime) + (stime - prev_stime))
+                              / static_cast<float>(ticks_hz);
+        const float cpu_pct = (cpu_sec / wall_s) * 100.f;
+        cpuLabel->setText(QString("CPU: %1%").arg(cpu_pct, 0, 'f', 1));
     }
-
-    // CPU usage — read /proc/self/stat, update label every ~1 s
-    if (cpuLabel != nullptr)
-    {
-        static std::int64_t prev_utime = 0, prev_stime = 0;
-        static std::chrono::steady_clock::time_point prev_wall = std::chrono::steady_clock::now();
-        static bool first_cpu = true;
-
-        auto now = std::chrono::steady_clock::now();
-        const float wall_s = std::chrono::duration<float>(now - prev_wall).count();
-        if (wall_s >= 1.0f)
-        {
-            std::ifstream stat_file("/proc/self/stat");
-            if (stat_file.is_open())
-            {
-                std::string ignore;
-                std::int64_t utime = 0, stime = 0;
-                // Fields: pid comm state ppid ... (14th=utime, 15th=stime)
-                stat_file >> ignore; // pid
-                stat_file >> ignore; // comm
-                stat_file >> ignore; // state
-                for (int i = 4; i <= 13; ++i) stat_file >> ignore;
-                stat_file >> utime >> stime;
-
-                if (!first_cpu)
-                {
-                    const long ticks_hz = sysconf(_SC_CLK_TCK);
-                    const float cpu_sec = static_cast<float>((utime - prev_utime) + (stime - prev_stime)) / static_cast<float>(ticks_hz);
-                    const float cpu_pct = (cpu_sec / wall_s) * 100.f;
-                    cpuLabel->setText(QString("CPU: %1%").arg(cpu_pct, 0, 'f', 1));
-                }
-                first_cpu = false;
-                prev_utime = utime;
-                prev_stime = stime;
-                prev_wall = now;
-            }
-        }
-    }
+    first_cpu = false;
+    prev_utime = utime;
+    prev_stime = stime;
+    prev_wall = now;
 }
 
 /////////////////////////////////////////////////////////////////////////

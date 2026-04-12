@@ -152,6 +152,9 @@ class SpecificWorker : public GenericWorker
 		std::string pose_file_path() const;
 		void update_ui(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		               const Eigen::Affine2f& pose_for_draw);
+		void update_cpu_label();
+		Eigen::Affine2f best_available_pose(
+		        const std::optional<rc::RoomConcept::UpdateResult>& loc_res, bool have_loc) const;
 		Eigen::Affine2f forward_project_pose(const Eigen::Affine2f& base_pose,
 		                                     const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		                                     std::int64_t lidar_ts);

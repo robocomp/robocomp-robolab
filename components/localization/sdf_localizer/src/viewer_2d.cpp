@@ -268,6 +268,20 @@ void Viewer2D::draw_lidar_points(const std::vector<Eigen::Vector3f>& points_high
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Composite per-frame update
+// ─────────────────────────────────────────────────────────────────────────────
+void Viewer2D::update_frame(const FrameData& fd)
+{
+    draw_lidar_points(fd.lidar_points, {}, fd.display_pose, fd.max_lidar_points);
+
+    if (fd.have_loc || fd.is_initialized)
+        update_robot(fd.display_pose);
+
+    if (fd.have_loc && !fd.has_room_polygon)
+        update_estimated_room_rect(fd.room_width, fd.room_length, false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Path
 // ─────────────────────────────────────────────────────────────────────────────
 void Viewer2D::draw_path(const PathDrawData& data)

@@ -122,31 +122,28 @@ The robot's body frame follows the same Y+ = Forward convention:
 |---|---|---|---|
 | **X** (lateral) | Right | `advx` (1st arg) | `adv_x` |
 | **Y** (forward) | Forward | `advz` (2nd arg) | `adv_y` |
-| **θ** (angular) | **CW positive** | `rot` (3rd arg) | `rot` |
+| **θ** (angular) | **CCW positive** | `rot` (3rd arg) | `rot` |
 
-**OmniRobot proxy call:** `omnirobot_proxy->setSpeedBase(adv_x, adv_y, rot)` — no swap, no sign flip.
+### Unified Rotation Convention: CCW+ Everywhere
 
-### Rotation Sign Convention Reference
+All internal buffers, integrators, and the planner use **CCW+** (standard math).
+Sign conversion happens **only at the two hardware boundaries**:
 
-| Source | Convention | Notes |
+| Hardware boundary | Raw convention | Conversion |
 |---|---|---|
-| **OmniRobot API** (`setSpeedBase`) | **CW+** | Hardware convention |
-| **Joystick** (`axis "rotate"`) | **CW+** | Matches API directly |
-| **Planner** (`ControlCommand.rot`) | **CW+** | `atan2(x_body, y_body)` is naturally CW+ |
-| **FullPoseEstimation** (odometry `pose.rot`) | **CCW+** | Measured empirically — do NOT negate |
-| **Velocity buffer** (`VelocityCommand.rot`) | **CW+** | Joystick & planner values stored directly |
-| **Odometry buffer** (`OdometryReading.rot`) | **CCW+** | FullPoseEstimation values stored directly |
+| **Joystick** (input) | CCW+ | Stored directly (after Webots proto fix) |
+| **OmniRobot API** (output) | CCW+ | Sent directly (after Webots proto fix) |
+| **FullPoseEstimation** (input) | CCW+ | Stored directly (after Webots proto fix) |
 
-**Consumer negation rules (CW+ buffer → CCW+ math convention):**
-
-| Consumer | velocity buffer (CW+) | odometry buffer (CCW+) |
+| Internal component | Convention | Notes |
 |---|---|---|
-| `integrate_velocity_over_window` | `dtheta = -rot * dt` | — |
-| `integrate_odometry_over_window` | — | `dtheta = rot * dt` |
-| `forward_project_pose` | `v_rot = -vel->rot` | `v_rot = odom->rot` |
+| **Velocity buffer** (`VelocityCommand.rot`) | **CCW+** | After joystick/planner entry conversion |
+| **Odometry buffer** (`OdometryReading.rot`) | **CCW+** | FullPoseEstimation stored directly |
+| **Planner** (`ControlCommand.rot`) | **CCW+** | `atan2(-x_body, y_body)` gives CCW+ |
+| **All integrators** | **CCW+** | `dtheta = rot * dt` — no negation anywhere |
+| **forward_project_pose** | **CCW+** | `v_rot = odom->rot` or `vel->rot` — no negation |
 
-⚠️ **Critical rule**: Never negate values at buffer entry — adapt at consumers.
-The joystick and API are CW+. FullPoseEstimation is CCW+. These are fixed hardware truths.
+⚠️ **Critical rule**: Negate at the hardware boundary, never in the math.
 
 **Forward direction in world frame** for a robot at heading θ:
 - `forward = (-sin θ, cos θ)` — **NOT** `(cos θ, sin θ)` because θ=0 faces Y+.
@@ -162,7 +159,7 @@ body_y = -sin θ · world_x + cos θ · world_y   (forward component)
 ```
 dx = (adv_x · cos θ − adv_y · sin θ) · dt
 dy = (adv_x · sin θ + adv_y · cos θ) · dt
-dθ = rot · dt                                  (use appropriate sign per buffer)
+dθ = rot · dt
 ```
 
 **Target heading** (desired θ so robot faces target with Y+ axis):

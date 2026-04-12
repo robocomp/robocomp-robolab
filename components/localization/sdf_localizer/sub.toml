@@ -43,5 +43,5 @@ ice_name = "VisionSegmentation:tcp -h localhost -p 14111"
 [[components]]
 name = "joy"
 cwd = "~/robocomp/components/robocomp-robolab/components/hardware/external_control/joystickpublish"
-cmd = "bin/JoystickPublish etc/config_shadow"
+cmd = "bin/JoystickPublish etc/config_shadow_webots"
 ice_name = "JoystickPublish:tcp -h localhost -p 11230"

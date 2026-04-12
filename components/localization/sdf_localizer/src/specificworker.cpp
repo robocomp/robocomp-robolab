@@ -242,18 +242,23 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
             {
                 v_adv  = odom_opt->adv;
                 v_side = odom_opt->side;
-                v_rot  = -odom_opt->rot;  // odometry buffer is CW+; negate to CCW+ world frame
+                v_rot  = odom_opt->rot;   // odometry buffer is CCW+; use directly
                 have_vel = true;
             }
             else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
             {
                 v_adv  = vel_opt->adv_y;
                 v_side = vel_opt->adv_x;
-                v_rot  = -vel_opt->rot;   // velocity buffer is CW+; negate to CCW+ world frame
+                v_rot  = vel_opt->rot;    // velocity buffer is CCW+; use directly
                 have_vel = true;
             }
             if (have_vel)
             {
+                // DIAG
+                { static auto t = std::chrono::steady_clock::now();
+                  if (std::abs(v_rot) > 0.01f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
+                    t = std::chrono::steady_clock::now();
+                    std::cout << "[DIAG-3-FwdProj] v_rot=" << v_rot << " dt=" << dt_s << " raw_dtheta=" << v_rot*dt_s << std::endl; }}
                 const float cos_t = std::cos(theta_base);
                 const float sin_t = std::sin(theta_base);
                 raw_dx     = (v_side * cos_t - v_adv * sin_t) * dt_s;
@@ -467,7 +472,7 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     const auto& cmd = result->command;
     try
     {
-        // Planner and OmniRobot API both use CW+ rotation
+        // Planner and OmniRobot API both CCW+ after Webots proto fix
         omnirobot_proxy->setSpeedBase(cmd.adv_x * 1000.f, cmd.adv_y * 1000.f, cmd.rot);
     }
     catch (const Ice::Exception& e)
@@ -685,7 +690,14 @@ void SpecificWorker::JoystickAdapter_sendData(RoboCompJoystickAdapter::TData dat
 	for (const auto &axis: data.axes)
 	{
 		if (axis.name == "rotate")
-			cmd.rot = axis.value;    // joystick is CW+, buffer is CW+
+		{
+			cmd.rot = axis.value;    // joystick is CCW+ after proto fix; store directly
+			// DIAG
+			{ static auto t = std::chrono::steady_clock::now();
+			  if (std::abs(axis.value) > 0.05f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
+			    t = std::chrono::steady_clock::now();
+			    std::cout << "[DIAG-1-Joy] raw=" << axis.value << " stored=" << cmd.rot << std::endl; }}
+		}
 		else if (axis.name == "advance") // forward is positive Z. Right-hand rule
 			cmd.adv_y = axis.value/1000.0f; // from mm/s to m/s
 		else if (axis.name == "side")
@@ -714,7 +726,12 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     rc::OdometryReading odom;
     odom.adv  = add_noise(pose.adv);    // forward velocity, m/s
     odom.side = add_noise(pose.side);   // lateral velocity, m/s
-    odom.rot  = add_noise(pose.rot);    // FullPoseEstimation is already CCW+
+    odom.rot  = add_noise(pose.rot);   // FPE is CCW+ after proto fix; store directly
+    // DIAG
+    { static auto t = std::chrono::steady_clock::now();
+      if (std::abs(pose.rot) > 0.05f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
+        t = std::chrono::steady_clock::now();
+        std::cout << "[DIAG-2-Odom] raw=" << pose.rot << " stored=" << odom.rot << std::endl; }}
     odom.timestamp = std::chrono::high_resolution_clock::time_point(
         std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(

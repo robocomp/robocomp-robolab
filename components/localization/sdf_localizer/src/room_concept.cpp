@@ -179,7 +179,7 @@ namespace rc
         std::vector<Eigen::Vector3f> pts;
         if (!have_saved_pose)
         {
-            const auto& [gt_, lidar_high_] = run_ctx_.sensor_buffer->read_last();
+            const auto& [gt_, lidar_high_, obstacles_] = run_ctx_.sensor_buffer->read_last();
             if (!lidar_high_.has_value() || lidar_high_->first.empty())
                 return false;
             pts = lidar_high_->first;
@@ -270,7 +270,7 @@ namespace rc
             }
             
             // ===== 3. READ LIDAR DATA =====
-            const auto& [gt_, lidar_high_] = run_ctx_.sensor_buffer->read_last();
+            const auto& [gt_, lidar_high_, obstacles_] = run_ctx_.sensor_buffer->read_last();
             if (!lidar_high_.has_value())
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -1427,7 +1427,8 @@ namespace rc
             // Integrate this segment
             const float dx_local = (adv_x * dt);
             const float dy_local = (adv_z * dt);
-            const float dtheta = -rot * dt;  // Negative for right-hand rule
+
+            const float dtheta = -rot * dt;  // velocity buffer is CW+; negate to CCW+ world frame
 
             // Transform to global frame using RUNNING theta
             total_delta[0] += dx_local * std::cos(running_theta) - dy_local * std::sin(running_theta);
@@ -1605,7 +1606,7 @@ namespace rc
             // Odometry velocities are in robot frame: adv=forward(Y), side=lateral(X), rot=angular
             const float dx_local = odom.side * dt;   // lateral (X in robot frame)
             const float dy_local = odom.adv * dt;    // forward (Y in robot frame)
-            const float dtheta = -odom.rot * dt;     // same sign convention as commanded
+            const float dtheta = -odom.rot * dt;     // buffer is CW+; negate to CCW+ world frame
 
             // Transform to global frame using running theta
             total_delta[0] += dx_local * std::cos(running_theta) - dy_local * std::sin(running_theta);

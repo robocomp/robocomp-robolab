@@ -422,4 +422,19 @@ void Viewer2D::clear_path_items()
         target_marker_->setVisible(false);
 }
 
+void Viewer2D::update_target_marker(float x, float y, bool visible)
+{
+    if (epistemic_target_item_ == nullptr)
+    {
+        constexpr float r = 0.10f;
+        epistemic_target_item_ = agv_->scene.addEllipse(
+            -r, -r, 2.f * r, 2.f * r,
+            QPen(QColor(50, 200, 50), 0.03),
+            QBrush(QColor(50, 200, 50, 140)));
+        epistemic_target_item_->setZValue(25);
+    }
+    epistemic_target_item_->setPos(x, y);
+    epistemic_target_item_->setVisible(visible);
+}
+
 } // namespace rc

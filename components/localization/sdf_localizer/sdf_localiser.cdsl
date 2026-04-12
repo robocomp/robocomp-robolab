@@ -2,12 +2,13 @@ import "Lidar3D.idsl";
 import "FullPoseEstimationPub.idsl";
 import "Webots2Robocomp.idsl";
 import "JoystickAdapter.idsl";
+import "OmniRobot.idsl";
 
 Component sdf_localiser
 {
     Communications
     {
-        requires Lidar3D, Webots2Robocomp;
+        requires Lidar3D, Webots2Robocomp, OmniRobot;
         subscribesTo FullPoseEstimationPub, JoystickAdapter;
     };
     language Cpp11;

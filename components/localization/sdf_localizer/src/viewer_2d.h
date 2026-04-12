@@ -107,6 +107,10 @@ class Viewer2D : public QObject
         /// Remove path lines / waypoints / expanded-obstacle overlays; hide target marker.
         void clear_path_items();
 
+        // ----- Epistemic target marker -----
+        /// Show a target marker at the given room-frame position, or hide it.
+        void update_target_marker(float x, float y, bool visible);
+
     Q_SIGNALS:
         void robot_moved(QPointF);
         void robot_rotate(QPointF);
@@ -146,6 +150,9 @@ class Viewer2D : public QObject
         QGraphicsEllipseItem*               target_marker_        = nullptr;
         QGraphicsPolygonItem*               navigable_poly_item_  = nullptr;
         std::vector<QGraphicsPolygonItem*>  obstacle_expanded_items_;
+
+        // Epistemic target
+        QGraphicsEllipseItem* epistemic_target_item_ = nullptr;
 
     };
 

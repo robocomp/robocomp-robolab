@@ -17,9 +17,13 @@ namespace rc
     /// Timestamped lidar scan (points + epoch-ms timestamp)
     using LidarData = std::pair<std::vector<Eigen::Vector3f>, std::int64_t>;
 
-    /// Main sensor buffer: slot 0 = GT pose, slot 1 = high lidar, slot 2 = low lidar
+    /// Floor-projected 2D obstacle points (for obstacle avoidance)
+    using ObstacleData = std::vector<Eigen::Vector2f>;
+
+    /// Main sensor buffer: slot 0 = GT pose, slot 1 = high lidar, slot 2 = obstacle cloud
     using SensorBuffer = BufferSync<InOut<Eigen::Affine2f, Eigen::Affine2f>,
-                                    InOut<LidarData, LidarData>>;
+                                    InOut<LidarData, LidarData>,
+                                    InOut<ObstacleData, ObstacleData>>;
 
     /// Single-channel circular buffer for velocity commands (joystick / controller)
     using VelocityBuffer = BufferSync<InOut<VelocityCommand, VelocityCommand>>;

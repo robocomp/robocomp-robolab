@@ -4,6 +4,7 @@ TopicManager = "IceStorm/TopicManager:default -p 9999"
 # Proxies for required interfaces
 Lidar3D = "lidar3d:tcp -h localhost -p 11995" # FILTER"
 Webots2Robocomp = "webots2robocomp:tcp -h localhost -p 10006"
+OmniRobot = "omnirobot:tcp -h localhost -p 10004"
 
 [Endpoints]
 # Endpoints for subscriptions interfaces

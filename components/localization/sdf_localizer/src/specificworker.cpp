@@ -99,6 +99,10 @@ void SpecificWorker::initialize()
     run_ctx.odometry_buffer = &odometry_buffer_;
     room_concept_.set_run_context(run_ctx);
     room_concept_.params.prediction_early_exit = params.PREDICTION_EARLY_EXIT;
+    rfe_saved_window_size_ = room_concept_.params.rfe_window_size;
+
+    connect(rfeToggleButton, &QPushButton::toggled, this, &SpecificWorker::slot_rfe_toggled);
+    connect(selfTargetButton, &QPushButton::toggled, this, &SpecificWorker::slot_self_target_toggled);
 
     initialize_room_model_from_svg();
     const std::string pose_path = pose_file_path();
@@ -154,7 +158,7 @@ void SpecificWorker::compute()
         std::chrono::system_clock::now().time_since_epoch()).count();
 
     // Read lidar — nothing to do without a scan
-    const auto &[robot_pose_gt_, lidar_data_] = lidar_buffer.read(timestamp);
+    const auto &[robot_pose_gt_, lidar_data_, obstacle_data_] = lidar_buffer.read(timestamp);
     if (!lidar_data_.has_value())
     { qWarning() << "No lidar data from lidar_buffer"; return; }
 
@@ -181,6 +185,10 @@ void SpecificWorker::compute()
         .room_width      = have_loc ? loc_res->state[0] : 0.f,
         .room_length     = have_loc ? loc_res->state[1] : 0.f,
     });
+
+    // Active-inference self-targeting: plan and send commands when enabled
+    if (self_target_active_ && have_loc)
+        navigate_to_target(loc_res, obstacle_data_);
 
     update_ui(loc_res, pose_for_draw);
 
@@ -234,14 +242,14 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
             {
                 v_adv  = odom_opt->adv;
                 v_side = odom_opt->side;
-                v_rot  = odom_opt->rot;
+                v_rot  = -odom_opt->rot;  // odometry buffer is CW+; negate to CCW+ world frame
                 have_vel = true;
             }
             else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
             {
                 v_adv  = vel_opt->adv_y;
                 v_side = vel_opt->adv_x;
-                v_rot  = vel_opt->rot;
+                v_rot  = -vel_opt->rot;   // velocity buffer is CW+; negate to CCW+ world frame
                 have_vel = true;
             }
             if (have_vel)
@@ -318,6 +326,16 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
 
     // CPU usage — update ~1 Hz
     update_cpu_label();
+
+    // Velocity display — show latest command or odometry
+    float vx = 0.f, vy = 0.f, vr = 0.f;
+    if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
+    { vx = vel_opt->adv_x; vy = vel_opt->adv_y; vr = vel_opt->rot; }
+    else if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
+    { vx = odom_opt->side; vy = odom_opt->adv; vr = odom_opt->rot; }
+    velocityLabel->setText(
+        QString("Vel: vx=%1  vy=%2  rot=%3")
+            .arg(vx, 0, 'f', 3).arg(vy, 0, 'f', 3).arg(vr, 0, 'f', 3));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -377,6 +395,96 @@ void SpecificWorker::slot_robot_rotate(QPointF p)
     room_concept_.push_command(rc::RoomConcept::CmdSetPose{rx, ry, new_theta});
 }
 
+void SpecificWorker::slot_rfe_toggled(bool checked)
+{
+    if (checked)
+    {
+        room_concept_.params.rfe_window_size = rfe_saved_window_size_;
+        rfeToggleButton->setText("RFE ON");
+        qInfo() << "[UI] RFE enabled, window size =" << rfe_saved_window_size_;
+    }
+    else
+    {
+        rfe_saved_window_size_ = room_concept_.params.rfe_window_size;
+        room_concept_.params.rfe_window_size = 1;
+        rfeToggleButton->setText("RFE OFF");
+        qInfo() << "[UI] RFE disabled (window size = 1)";
+    }
+}
+
+void SpecificWorker::slot_self_target_toggled(bool checked)
+{
+    self_target_active_ = checked;
+    if (checked)
+    {
+        selfTargetButton->setText("Self-Target ON");
+        qInfo() << "[UI] Self-targeting enabled";
+    }
+    else
+    {
+        selfTargetButton->setText("Self-Target OFF");
+        // Stop the robot, clear planner target, hide target marker
+        try { omnirobot_proxy->setSpeedBase(0.f, 0.f, 0.f); }
+        catch (const Ice::Exception& e) { qWarning() << "[SelfTarget] stop failed:" << e.what(); }
+        epistemic_planner_.clear_target();
+        viewer_2d_->update_target_marker(0.f, 0.f, false);
+        qInfo() << "[UI] Self-targeting disabled, robot stopped";
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////
+void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
+                                         const std::optional<rc::ObstacleData>& obstacles)
+{
+    // Update planner with current robot state
+    const Eigen::Matrix3f cov = loc_res->covariance;
+
+    // Room bounds from localized state: state = [half_w, half_h, x, y, theta]
+    const float hw = loc_res->state[0];
+    const float hh = loc_res->state[1];
+    epistemic_planner_.set_room_bounds({-hw, -hh}, {hw, hh});
+    epistemic_planner_.set_robot_state(loc_res->robot_pose, cov);
+
+    // Pass floor-projected obstacle cloud
+    if (obstacles.has_value())
+        epistemic_planner_.set_lidar_obstacles(*obstacles);
+
+    // Plan and execute
+    auto result = epistemic_planner_.plan();
+    if (!result || !result->valid)
+        return;
+
+    // Diagnostic: covariance diag and target type
+    qInfo() << "[SelfTarget] cov_diag:" << cov(0,0) << cov(1,1) << cov(2,2)
+            << "rotate_in_place:" << result->target.rotate_in_place
+            << "cmd: lat=" << result->command.adv_x << "fwd=" << result->command.adv_y
+            << "rot=" << result->command.rot;
+
+    // Show target on the 2D canvas
+    const auto& tgt = result->target.position;
+    viewer_2d_->update_target_marker(tgt.x(), tgt.y(), true);
+
+    const auto& cmd = result->command;
+    try
+    {
+        // Planner and OmniRobot API both use CW+ rotation
+        omnirobot_proxy->setSpeedBase(cmd.adv_x * 1000.f, cmd.adv_y * 1000.f, cmd.rot);
+    }
+    catch (const Ice::Exception& e)
+    {
+        qWarning() << "[SelfTarget] setSpeedBase failed:" << e.what();
+    }
+
+    // Buffer the command velocity so forward projection and SDF prediction can use it.
+    // After the API negation, the robot actually moves in the direction cmd.rot says (CCW+),
+    // so we buffer the planner's value directly.
+    rc::VelocityCommand vel_cmd(cmd.adv_x, cmd.adv_y, cmd.rot);
+    const auto ts = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+    velocity_buffer_.put<0>(std::move(vel_cmd), ts);
+}
+
 /////////////////////////////////////////////////////////////////////////
 void SpecificWorker::read_lidar()
 {
@@ -410,7 +518,9 @@ void SpecificWorker::read_lidar()
             { qWarning() << "[read_lidar] HELIOS failed:" << e.what(); continue;}
 
             std::vector<Eigen::Vector3f> points_high;
+            std::vector<Eigen::Vector2f> obstacle_points;
             points_high.reserve(data_high.points.size());
+            obstacle_points.reserve(data_high.points.size());
             for (const auto &p : data_high.points)
             {
                 const float pmx = p.x / 1000.f;
@@ -418,11 +528,14 @@ void SpecificWorker::read_lidar()
                 const float pmz = p.z / 1000.f;
                 if(pmz > params.LIDAR_HIGH_MIN_HEIGHT)
                     points_high.emplace_back(pmx, pmy, pmz);
+                if(pmz > 0.1f && pmz < params.ROBOT_HEIGHT)
+                    obstacle_points.emplace_back(pmx, pmy);
             }
             const size_t n_pts = points_high.size();
             // Store system-clock timestamp (not driver timestamp) so consumers
             // can compute real wall-clock age of this scan.
             lidar_buffer.put<1>(std::make_pair(std::move(points_high), static_cast<std::int64_t>(data_high.timestamp)), timestamp);
+            lidar_buffer.put<2>(std::move(obstacle_points), timestamp);
 
             // Adjust period with hysteresis
             if (wait_period > std::chrono::milliseconds((long) data_high.period + 2)) --wait_period;
@@ -572,7 +685,7 @@ void SpecificWorker::JoystickAdapter_sendData(RoboCompJoystickAdapter::TData dat
 	for (const auto &axis: data.axes)
 	{
 		if (axis.name == "rotate")
-			cmd.rot = axis.value;
+			cmd.rot = axis.value;    // joystick is CW+, buffer is CW+
 		else if (axis.name == "advance") // forward is positive Z. Right-hand rule
 			cmd.adv_y = axis.value/1000.0f; // from mm/s to m/s
 		else if (axis.name == "side")
@@ -601,7 +714,7 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     rc::OdometryReading odom;
     odom.adv  = add_noise(pose.adv);    // forward velocity, m/s
     odom.side = add_noise(pose.side);   // lateral velocity, m/s
-    odom.rot  = add_noise(pose.rot);    // angular velocity, rad/s
+    odom.rot  = add_noise(pose.rot);    // FullPoseEstimation is already CCW+
     odom.timestamp = std::chrono::high_resolution_clock::time_point(
         std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(

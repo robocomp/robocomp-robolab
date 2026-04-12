@@ -60,7 +60,6 @@
  *
  */
 #include <signal.h>
-#include <memory>
 
 // QT includes
 #include <QtCore>
@@ -83,9 +82,11 @@
 
 #include <FullPoseEstimation.h>
 #include <FullPoseEstimationPub.h>
+#include <GenericBase.h>
 #include <Gridder.h>
 #include <JoystickAdapter.h>
 #include <Lidar3D.h>
+#include <OmniRobot.h>
 #include <Webots2Robocomp.h>
 
 #define USE_QTGUI
@@ -242,12 +243,15 @@ int sdf_localiser::run(int argc, char* argv[])
 	Ice::ObjectPrxPtr joystickadapter;
 
 	RoboCompLidar3D::Lidar3DPrxPtr lidar3d_proxy;
+	RoboCompOmniRobot::OmniRobotPrxPtr omnirobot_proxy;
 	RoboCompWebots2Robocomp::Webots2RobocompPrxPtr webots2robocomp_proxy;
 
 
 	//Require code
 	require<RoboCompLidar3D::Lidar3DPrx, RoboCompLidar3D::Lidar3DPrxPtr>(communicator(),
 	                    configLoader.get<std::string>("Proxies.Lidar3D"), "Lidar3DProxy", lidar3d_proxy);
+	require<RoboCompOmniRobot::OmniRobotPrx, RoboCompOmniRobot::OmniRobotPrxPtr>(communicator(),
+	                    configLoader.get<std::string>("Proxies.OmniRobot"), "OmniRobotProxy", omnirobot_proxy);
 	require<RoboCompWebots2Robocomp::Webots2RobocompPrx, RoboCompWebots2Robocomp::Webots2RobocompPrxPtr>(communicator(),
 	                    configLoader.get<std::string>("Proxies.Webots2Robocomp"), "Webots2RobocompProxy", webots2robocomp_proxy);
 
@@ -270,7 +274,7 @@ int sdf_localiser::run(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	tprx = std::make_tuple(lidar3d_proxy,webots2robocomp_proxy);
+	tprx = std::make_tuple(lidar3d_proxy,omnirobot_proxy,webots2robocomp_proxy);
 	SpecificWorker *worker = new SpecificWorker(this->configLoader, tprx, startup_check_flag);
 	QObject::connect(worker, SIGNAL(kill()), &a, SLOT(quit()));
 
@@ -301,16 +305,11 @@ int sdf_localiser::run(int argc, char* argv[])
 
 		try
 		{
-			if(fullposeestimationpub_topic && fullposeestimationpub)
-			{
-				std::cout << "Unsubscribing topic: fullposeestimationpub " <<std::endl;
-				fullposeestimationpub_topic->unsubscribe(fullposeestimationpub);
-			}
-			if(joystickadapter_topic && joystickadapter)
-			{
-				std::cout << "Unsubscribing topic: joystickadapter " <<std::endl;
-				joystickadapter_topic->unsubscribe(joystickadapter);
-			}
+			std::cout << "Unsubscribing topic: fullposeestimationpub " <<std::endl;
+			fullposeestimationpub_topic->unsubscribe(fullposeestimationpub);
+			std::cout << "Unsubscribing topic: joystickadapter " <<std::endl;
+			joystickadapter_topic->unsubscribe(joystickadapter);
+
 		}
 		catch(const Ice::Exception& ex)
 		{
@@ -332,10 +331,8 @@ int sdf_localiser::run(int argc, char* argv[])
 		a.quit();
 	#endif
 
-	delete worker;
-	worker = nullptr;
-
 	status = EXIT_SUCCESS;
+	delete worker;
 	return status;
 }
 

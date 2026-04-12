@@ -31,6 +31,7 @@
 #include <genericworker.h>
 #include "buffer_types.h"
 #include "room_concept.h"
+#include "epistemic_planner.h"
 #include "viewer_2d.h"
 #include "timeseries_plot.h"
 #include <atomic>
@@ -93,6 +94,7 @@ class SpecificWorker : public GenericWorker
 		{
 			float ROBOT_WIDTH = 0.460;  // m
 			float ROBOT_LENGTH = 0.480;  // m
+			float ROBOT_HEIGHT = 1.6f;   // m, obstacle cloud ceiling
 			float ROBOT_SEMI_WIDTH = ROBOT_WIDTH / 2.f;     // m
 			float ROBOT_SEMI_LENGTH = ROBOT_LENGTH / 2.f;    // m
 			
@@ -137,6 +139,13 @@ class SpecificWorker : public GenericWorker
 		// Localization model
 		rc::RoomConcept room_concept_;
 		bool room_initialized_from_svg_polygon_ = false;
+		int rfe_saved_window_size_ = 10;  // saved value when RFE is toggled off
+
+		// Epistemic planner (active inference self-targeting)
+		rc::EpistemicPlanner epistemic_planner_;
+		bool self_target_active_ = false;
+		void navigate_to_target(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
+		                        const std::optional<rc::ObstacleData>& obstacles);
 
 		// Lidar
 		// Sync Buffer: slot 0 = GT pose, slot 1 = HELIOS high lidar, slot 2 = BPEARL low lidar
@@ -168,6 +177,8 @@ class SpecificWorker : public GenericWorker
 	private slots:
 		void slot_robot_moved(QPointF p);
 		void slot_robot_rotate(QPointF p);
+		void slot_rfe_toggled(bool checked);
+		void slot_self_target_toggled(bool checked);
 
 	signals:
 		//void customSignal();

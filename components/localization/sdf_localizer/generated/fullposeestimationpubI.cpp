@@ -17,18 +17,11 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "fullposeestimationpubI.h"
-#include <QObject>
 
 FullPoseEstimationPubI::FullPoseEstimationPubI(GenericWorker *_worker, const size_t id): worker(_worker), id(id)
 {
-	QObject::connect(worker, &QObject::destroyed, [this]() { this->worker = nullptr; });
-
 	newFullPoseHandlers = {
-		[this](auto &a)
-		{
-			if (worker != nullptr)
-				worker->FullPoseEstimationPub_newFullPose(a);
-		}
+		[this](auto &a) { return worker->FullPoseEstimationPub_newFullPose(a); }
 	};
 
 }
@@ -41,8 +34,6 @@ FullPoseEstimationPubI::~FullPoseEstimationPubI()
 
 void FullPoseEstimationPubI::newFullPose(RoboCompFullPoseEstimation::FullPoseEuler pose, const Ice::Current&)
 {
-	if (worker == nullptr)
-		return;
 
     #ifdef HIBERNATION_ENABLED
 		worker->hibernationTick();

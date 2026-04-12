@@ -126,8 +126,8 @@ The robot's body frame follows the same Y+ = Forward convention:
 
 ### Unified Rotation Convention: CCW+ Everywhere
 
-All internal buffers, integrators, and the planner use **CCW+** (standard math).
-Sign conversion happens **only at the two hardware boundaries**:
+All internal buffers, integrators, the planner, and all hardware boundaries use **CCW+** (standard math).
+After the Webots proto fix, all sources and sinks are natively CCW+ — **no sign conversions anywhere**.
 
 | Hardware boundary | Raw convention | Conversion |
 |---|---|---|
@@ -137,13 +137,13 @@ Sign conversion happens **only at the two hardware boundaries**:
 
 | Internal component | Convention | Notes |
 |---|---|---|
-| **Velocity buffer** (`VelocityCommand.rot`) | **CCW+** | After joystick/planner entry conversion |
+| **Velocity buffer** (`VelocityCommand.rot`) | **CCW+** | Joystick/planner stored directly |
 | **Odometry buffer** (`OdometryReading.rot`) | **CCW+** | FullPoseEstimation stored directly |
 | **Planner** (`ControlCommand.rot`) | **CCW+** | `atan2(-x_body, y_body)` gives CCW+ |
 | **All integrators** | **CCW+** | `dtheta = rot * dt` — no negation anywhere |
 | **forward_project_pose** | **CCW+** | `v_rot = odom->rot` or `vel->rot` — no negation |
 
-⚠️ **Critical rule**: Negate at the hardware boundary, never in the math.
+⚠️ **Critical rule**: No sign conversions needed — all boundaries are natively CCW+ after the Webots proto fix.
 
 **Forward direction in world frame** for a robot at heading θ:
 - `forward = (-sin θ, cos θ)` — **NOT** `(cos θ, sin θ)` because θ=0 faces Y+.

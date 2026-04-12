@@ -254,11 +254,6 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
             }
             if (have_vel)
             {
-                // DIAG
-                { static auto t = std::chrono::steady_clock::now();
-                  if (std::abs(v_rot) > 0.01f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-                    t = std::chrono::steady_clock::now();
-                    std::cout << "[DIAG-3-FwdProj] v_rot=" << v_rot << " dt=" << dt_s << " raw_dtheta=" << v_rot*dt_s << std::endl; }}
                 const float cos_t = std::cos(theta_base);
                 const float sin_t = std::sin(theta_base);
                 raw_dx     = (v_side * cos_t - v_adv * sin_t) * dt_s;
@@ -481,8 +476,6 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     }
 
     // Buffer the command velocity so forward projection and SDF prediction can use it.
-    // After the API negation, the robot actually moves in the direction cmd.rot says (CCW+),
-    // so we buffer the planner's value directly.
     rc::VelocityCommand vel_cmd(cmd.adv_x, cmd.adv_y, cmd.rot);
     const auto ts = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -692,11 +685,6 @@ void SpecificWorker::JoystickAdapter_sendData(RoboCompJoystickAdapter::TData dat
 		if (axis.name == "rotate")
 		{
 			cmd.rot = axis.value;    // joystick is CCW+ after proto fix; store directly
-			// DIAG
-			{ static auto t = std::chrono::steady_clock::now();
-			  if (std::abs(axis.value) > 0.05f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-			    t = std::chrono::steady_clock::now();
-			    std::cout << "[DIAG-1-Joy] raw=" << axis.value << " stored=" << cmd.rot << std::endl; }}
 		}
 		else if (axis.name == "advance") // forward is positive Z. Right-hand rule
 			cmd.adv_y = axis.value/1000.0f; // from mm/s to m/s
@@ -727,11 +715,6 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     odom.adv  = add_noise(pose.adv);    // forward velocity, m/s
     odom.side = add_noise(pose.side);   // lateral velocity, m/s
     odom.rot  = add_noise(pose.rot);   // FPE is CCW+ after proto fix; store directly
-    // DIAG
-    { static auto t = std::chrono::steady_clock::now();
-      if (std::abs(pose.rot) > 0.05f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-        t = std::chrono::steady_clock::now();
-        std::cout << "[DIAG-2-Odom] raw=" << pose.rot << " stored=" << odom.rot << std::endl; }}
     odom.timestamp = std::chrono::high_resolution_clock::time_point(
         std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(

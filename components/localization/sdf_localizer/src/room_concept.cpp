@@ -1010,17 +1010,6 @@ namespace rc
 
             res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);
 
-            // DIAG: per-frame SDF result
-            { static auto t = std::chrono::steady_clock::now();
-              if (std::chrono::steady_clock::now() - t > std::chrono::milliseconds(400)) {
-                t = std::chrono::steady_clock::now();
-                std::cout << "[DIAG-8-SDF] pred_th=" << pred_theta
-                          << " opt_th=" << phi
-                          << " delta=" << (phi - pred_theta)
-                          << " sdf_mse=" << res.sdf_mse
-                          << " iters=" << iterations
-                          << " loss=" << last_loss << std::endl; }}
-
             res.state = model_->get_state();
             res.state[2] = x; res.state[3] = y; res.state[4] = phi;
 
@@ -1090,13 +1079,6 @@ namespace rc
 
         const Eigen::Vector3f pred_cmd(cmd_pos.x(), cmd_pos.y(), cmd_theta);
 
-        // DIAG: show command prior delta
-        { static auto t = std::chrono::steady_clock::now();
-          if (std::abs(odometry_prior.delta_pose[2]) > 0.001f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-            t = std::chrono::steady_clock::now();
-            std::cout << "[DIAG-5-CmdPrior] delta_theta=" << odometry_prior.delta_pose[2]
-                      << " cmd_theta=" << cmd_theta << std::endl; }}
-
         // Measured odometry prior: predict from encoder/IMU readings
         auto measured_prior = compute_measured_odometry_prior(odometry_history, lidar);
 
@@ -1112,13 +1094,6 @@ namespace rc
 
             const Eigen::Vector3f pred_odom(odom_pos.x(), odom_pos.y(), odom_theta);
 
-            // DIAG: show measured odom prior delta
-            { static auto t = std::chrono::steady_clock::now();
-              if (std::abs(measured_prior.delta_pose[2]) > 0.001f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-                t = std::chrono::steady_clock::now();
-                std::cout << "[DIAG-6-OdomPrior] delta_theta=" << measured_prior.delta_pose[2]
-                          << " odom_theta=" << odom_theta << std::endl; }}
-
             const Eigen::Matrix3f cov_cmd = compute_motion_covariance(odometry_prior, false);
             const Eigen::Matrix3f cov_odom = compute_motion_covariance(measured_prior, true);
 
@@ -1127,14 +1102,6 @@ namespace rc
 
             pred_pos = fused_mean.head<2>();
             pred_theta = fused_mean[2];
-
-            // DIAG: show fused result
-            { static auto t = std::chrono::steady_clock::now();
-              if (std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-                t = std::chrono::steady_clock::now();
-                std::cout << "[DIAG-7-Fused] cmd_th=" << cmd_theta
-                          << " odom_th=" << odom_theta
-                          << " fused_th=" << pred_theta << std::endl; }}
 
             model_->robot_pos.data().copy_(torch::tensor({pred_pos.x(), pred_pos.y()},
                 torch::TensorOptions().device(get_device())));
@@ -1640,11 +1607,6 @@ namespace rc
             const float dx_local = odom.side * dt;   // lateral (X in robot frame)
             const float dy_local = odom.adv * dt;    // forward (Y in robot frame)
             const float dtheta = odom.rot * dt;      // odometry buffer is CCW+; use directly
-            // DIAG
-            { static auto t = std::chrono::steady_clock::now();
-              if (std::abs(dtheta) > 0.001f && std::chrono::steady_clock::now() - t > std::chrono::milliseconds(500)) {
-                t = std::chrono::steady_clock::now();
-                std::cout << "[DIAG-4-IntegOdom] odom.rot=" << odom.rot << " dtheta=" << dtheta << " dt=" << dt << std::endl; }}
 
             // Transform to global frame using running theta
             total_delta[0] += dx_local * std::cos(running_theta) - dy_local * std::sin(running_theta);
@@ -1665,17 +1627,8 @@ namespace rc
         prior.valid = false;
         const auto& [points, lidar_timestamp] = lidar;
 
-        // DIAG: show why measured prior is/isn't valid
         if (last_lidar_timestamp == 0 || odometry_history.empty() || !last_update_result.ok)
-        {
-            static auto t = std::chrono::steady_clock::now();
-            if (std::chrono::steady_clock::now() - t > std::chrono::milliseconds(1000)) {
-                t = std::chrono::steady_clock::now();
-                std::cout << "[DIAG-9-MeasPrior] INVALID: last_lidar_ts=" << last_lidar_timestamp
-                          << " odom_empty=" << odometry_history.empty()
-                          << " last_ok=" << last_update_result.ok << std::endl; }
             return prior;
-        }
 
         const auto dt = lidar_timestamp - last_lidar_timestamp;
         if (dt <= 0)

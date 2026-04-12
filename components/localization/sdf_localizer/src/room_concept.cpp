@@ -304,34 +304,21 @@ namespace rc
                 loc_initialized_ = true;
 
             // ===== 8. RECOVERY DETECTION =====
-            // Use sdf_mse (sqrt = avg SDF error in meters) — not final_loss which is
-            // the full RFE cost including prior/motion terms and can be in the hundreds.
-            if (res.iterations_used > 0 && recovery_cooldown_ == 0)
             {
-                const float avg_sdf_err = std::sqrt(res.sdf_mse);  // meters
-                if (avg_sdf_err > params.recovery_loss_threshold)
+                const float avg_sdf_err = std::sqrt(res.sdf_mse);
+                if (recovery_.check(avg_sdf_err, res.iterations_used,
+                                    params.recovery_loss_threshold, params.recovery_consecutive_count))
                 {
-                    consecutive_bad_frames_++;
-                    if (consecutive_bad_frames_ >= params.recovery_consecutive_count)
-                    {
-                        qWarning() << "[LocThread] Recovery triggered after" << consecutive_bad_frames_
-                                   << "bad frames. avg_sdf_err=" << avg_sdf_err << "m"
-                                   << "Running grid search...";
-                        const auto& pts = lidar_high_->first;
-                        grid_search_initial_pose(pts, 0.5f, static_cast<float>(M_PI_4));
-                        window_.clear();
-                        boundary_prior_.valid = false;
-                        consecutive_bad_frames_ = 0;
-                        recovery_cooldown_ = 30;  // skip recovery checks for 30 frames
-                        qInfo() << "[LocThread] Recovery complete.";
-                    }
-                }
-                else
-                {
-                    consecutive_bad_frames_ = 0;  // reset on good frame
+                    qWarning() << "[LocThread] Recovery triggered after" << recovery_.consecutive_bad_frames
+                               << "bad frames. avg_sdf_err=" << avg_sdf_err << "m"
+                               << "Running grid search...";
+                    const auto& pts = lidar_high_->first;
+                    grid_search_initial_pose(pts, 0.5f, static_cast<float>(M_PI_4));
+                    window_mgr_.clear();
+                    recovery_.on_recovery_done(params.recovery_cooldown_frames);
+                    qInfo() << "[LocThread] Recovery complete.";
                 }
             }
-            if (recovery_cooldown_ > 0) recovery_cooldown_--;
 
             last_ts = current_ts;
             // Adaptive polling: throttle when stationary + early-exiting (pose is good),
@@ -532,7 +519,7 @@ namespace rc
 
         // Subsample points for faster evaluation
         std::vector<Eigen::Vector3f> sample_points;
-        const int max_samples = 100;
+        const int max_samples = params.orientation_search_max_samples;
         const int stride = std::max(1, static_cast<int>(lidar_points.size()) / max_samples);
         for (size_t i = 0; i < lidar_points.size(); i += stride)
             sample_points.push_back(lidar_points[i]);
@@ -622,13 +609,13 @@ namespace rc
         }
 
         // Add margin inside the room (robot shouldn't be at the walls)
-        const float margin = 0.3f;  // 30cm from walls
+        const float margin = params.grid_search_wall_margin;
         min_x += margin; max_x -= margin;
         min_y += margin; max_y -= margin;
 
         // Subsample lidar points for faster evaluation
         std::vector<Eigen::Vector3f> sample_points;
-        const int max_samples = 150;
+        const int max_samples = params.grid_search_max_samples;
         const int stride = std::max(1, static_cast<int>(lidar_points.size()) / max_samples);
         for (size_t i = 0; i < lidar_points.size(); i += stride)
             sample_points.push_back(lidar_points[i]);
@@ -694,7 +681,7 @@ namespace rc
                 << qRadiansToDegrees(best_theta) << "° (loss=" << best_loss << ")";
 
         // Return true if we found a reasonable pose (loss < threshold)
-        return best_loss < 1.0f;  // Threshold for "good" pose
+        return best_loss < params.grid_search_good_threshold;
     }
 
     void RoomConcept::set_initial_state(float width, float length, float x, float y, float phi)
@@ -707,7 +694,7 @@ namespace rc
         tracking_step_count_ = 0;  // Reset early exit tracking
         prediction_early_exits_ = 0;
         current_velocity_weights_ = Eigen::Vector3f::Ones();  // Reset velocity weights
-        window_.clear(); boundary_prior_.valid = false;  // Clear RFE window
+        window_mgr_.clear();
 
         qInfo() << "RoomConcept using device:" << (get_device() == torch::kCUDA ? "CUDA" : "CPU");
     }
@@ -749,7 +736,7 @@ namespace rc
         tracking_step_count_ = 0;  // Reset early exit tracking
         prediction_early_exits_ = 0;
         current_velocity_weights_ = Eigen::Vector3f::Ones();  // Reset velocity weights
-        window_.clear(); boundary_prior_.valid = false;  // Clear RFE window
+        window_mgr_.clear();
 
         qInfo() << "RoomConcept initialized with polygon room:" << polygon_vertices.size()
                 << "vertices. Robot at (" << init_x << "," << init_y << "," << init_phi << ")";
@@ -780,15 +767,14 @@ namespace rc
         last_lidar_timestamp = 0;  // Force fresh start
 
         // Optional skip optimization for a few frames to let manual reset settle.
-        manual_reset_frames_ = manual_reset ? 5 : 0;
+        manual_reset_frames_ = manual_reset ? params.manual_reset_skip_frames : 0;
 
         // Clear any previous prediction
         model_->has_prediction = false;
         model_->robot_prev_pose = std::nullopt;
 
         // Clear sliding window (stale poses are invalid after manual reset)
-        window_.clear();
-        boundary_prior_.valid = false;
+        window_mgr_.clear();
 
         // Reset last update result with new pose
         last_update_result = UpdateResult{};
@@ -883,9 +869,9 @@ namespace rc
         else if (is_rotating && is_translating)
         {
             // Combined motion: moderate boost for all
-            w_x = 1.2f;
-            w_y = 1.2f;
-            w_theta = 1.2f;
+            w_x = params.combined_motion_weight;
+            w_y = params.combined_motion_weight;
+            w_theta = params.combined_motion_weight;
         }
         else
         {
@@ -910,37 +896,27 @@ namespace rc
                 const std::vector<OdometryReading> &odometry_history)
     {
         UpdateResult res;
-        if(lidar.first.empty())
+        if (lidar.first.empty() || model_ == nullptr)
             return res;
 
-        if(model_ == nullptr)
-            return res;
-
-        // ===== MANUAL RESET: Skip optimization and use current pose =====
+        // ===== MANUAL RESET: skip optimization during settle period =====
         if (manual_reset_frames_ > 0)
         {
             manual_reset_frames_--;
-
-            // Just return current pose without optimization
             const auto state = model_->get_state();
             res.ok = true;
             res.state = state;
             res.robot_pose.translation() = Eigen::Vector2f(state[2], state[3]);
             res.robot_pose.linear() = Eigen::Rotation2Df(state[4]).toRotationMatrix();
             res.covariance = current_covariance;
-            res.final_loss = 0.0f;
-            res.sdf_mse = 0.0f;
             res.timestamp_ms = lidar.second;
-
             last_update_result = res;
             last_lidar_timestamp = lidar.second;
-
             qInfo() << "Manual reset: skipping optimization (" << manual_reset_frames_ << " frames remaining)";
             return res;
         }
 
         // ===== ORIENTATION SEARCH ON FIRST UPDATE =====
-        // Test multiple orientations (0°, 90°, 180°, 270°) to avoid symmetry traps
         if (needs_orientation_search_)
         {
             const auto state = model_->get_state();
@@ -951,19 +927,12 @@ namespace rc
             qInfo() << "Initial orientation search complete. Using phi=" << qRadiansToDegrees(best_phi) << "°";
         }
 
-        // ===== ODOMETRY PRIOR BETWEEN LIDAR MEASUREMENTS =====
+        // ===== PREDICTION =====
         auto odometry_prior = compute_odometry_prior(velocity_history, lidar);
-
-        // ===== PREDICT STEP =====
-        // Propagates state: x_pred = x_prev + f(u, dt)
-        // Propagates covariance: P_pred = F*P*F^T + Q where F is motion model Jacobian
         const PredictionState prediction = predict_step(model_, odometry_prior, true);
 
-        // ===== UPDATE PRIOR COVARIANCE WITH PROPAGATED VALUE =====
-        // EKF predict: P_prior = F * P_prev * F^T + Q
         if (prediction.have_propagated && prediction.propagated_cov.defined())
         {
-            // Convert propagated covariance from torch tensor to Eigen (must be on CPU for accessor)
             auto cov_cpu = prediction.propagated_cov.to(torch::kCPU);
             auto cov_acc = cov_cpu.accessor<float, 2>();
             for (int i = 0; i < 3; i++)
@@ -971,90 +940,10 @@ namespace rc
                     current_covariance(i, j) = cov_acc[i][j];
         }
 
-        // ===== ACTIVE INFERENCE: Dual-prior fusion (command + odometry) =====
-        Eigen::Vector2f pred_pos;
-        float pred_theta;
+        // ===== DUAL-PRIOR FUSION =====
+        auto [pred_pos, pred_theta] = apply_dual_prior_fusion(odometry_prior, odometry_history, lidar);
 
-        // Default: use model's current state (first call or no valid odometry)
-        {
-            auto state = model_->get_state();
-            pred_pos = Eigen::Vector2f(state[2], state[3]);
-            pred_theta = state[4];
-        }
-
-        if (last_update_result.ok && odometry_prior.valid)
-        {
-            // --- Command prior: predict from commanded velocity ---
-            const Eigen::Vector2f cmd_pos = last_update_result.robot_pose.translation()
-                     + odometry_prior.delta_pose.head<2>();
-            float cmd_theta = std::atan2(last_update_result.robot_pose.linear()(1, 0),
-                                    last_update_result.robot_pose.linear()(0, 0))
-                       + odometry_prior.delta_pose[2];
-            while (cmd_theta > M_PI) cmd_theta -= 2.0f * M_PI;
-            while (cmd_theta < -M_PI) cmd_theta += 2.0f * M_PI;
-
-            const Eigen::Vector3f pred_cmd(cmd_pos.x(), cmd_pos.y(), cmd_theta);
-
-            // --- Measured odometry prior: predict from encoder/IMU readings ---
-            auto measured_prior = compute_measured_odometry_prior(odometry_history, lidar);
-
-            if (measured_prior.valid)
-            {
-                const Eigen::Vector2f odom_pos = last_update_result.robot_pose.translation()
-                         + measured_prior.delta_pose.head<2>();
-                float odom_theta = std::atan2(last_update_result.robot_pose.linear()(1, 0),
-                                        last_update_result.robot_pose.linear()(0, 0))
-                           + measured_prior.delta_pose[2];
-                while (odom_theta > M_PI) odom_theta -= 2.0f * M_PI;
-                while (odom_theta < -M_PI) odom_theta += 2.0f * M_PI;
-
-                const Eigen::Vector3f pred_odom(odom_pos.x(), odom_pos.y(), odom_theta);
-
-                // Compute covariances: command prior is less trusted, odometry is tighter
-                const Eigen::Matrix3f cov_cmd = compute_motion_covariance(odometry_prior, false);
-                const Eigen::Matrix3f cov_odom = compute_motion_covariance(measured_prior, true);
-
-                // Fuse into single Gaussian: μ_fused, Σ_fused
-                const auto [fused_mean, fused_precision] = fuse_priors(
-                    pred_cmd, cov_cmd, pred_odom, cov_odom);
-
-                pred_pos = fused_mean.head<2>();
-                pred_theta = fused_mean[2];
-
-                // Initialize optimizer state with fused prediction
-                model_->robot_pos.data().copy_(torch::tensor({pred_pos.x(), pred_pos.y()},
-                    torch::TensorOptions().device(get_device())));
-                model_->robot_theta.data().copy_(torch::tensor({pred_theta},
-                    torch::TensorOptions().device(get_device())));
-
-                // Set fused prediction for prior loss computation
-                model_->set_prediction(pred_pos, pred_theta, fused_precision);
-            }
-            else
-            {
-                // No odometry available: fall back to command-only prior
-                pred_pos = cmd_pos;
-                pred_theta = cmd_theta;
-
-                model_->robot_pos.data().copy_(torch::tensor({pred_pos.x(), pred_pos.y()},
-                    torch::TensorOptions().device(get_device())));
-                model_->robot_theta.data().copy_(torch::tensor({pred_theta},
-                    torch::TensorOptions().device(get_device())));
-
-                Eigen::Matrix3f prior_precision = current_covariance.inverse();
-                model_->set_prediction(pred_pos, pred_theta, prior_precision);
-            }
-        }
-
-        // ===== MINIMISATION STEP (Minimize Realized Free Energy over sliding window) =====
-        // Paper: "Total-Time Active Inference", Section 6.4, Algorithm 1
-        //
-        // Instead of optimising a single pose S_t against a single scan O_t,
-        // we jointly optimise the last W poses S_{t-W:t} against their respective
-        // scans O_{t-W:t}, linked by motion factors and a boundary prior that
-        // summarises discarded history.
-
-        // Subsample lidar points for the newest slot
+        // ===== BUILD NEW WINDOW SLOT =====
         const auto& all_points = lidar.first;
         std::vector<Eigen::Vector3f> sampled_points;
         if (static_cast<int>(all_points.size()) > params.max_lidar_points)
@@ -1065,28 +954,19 @@ namespace rc
                 sampled_points.push_back(all_points[i]);
         }
         else
-        {
             sampled_points = all_points;
-        }
 
         const torch::Tensor points_tensor = points_to_tensor_xyz(sampled_points, get_device());
-
-        // Increment tracking step counter
         tracking_step_count_++;
 
-        // ===== COMPUTE ODOMETRY DELTA & COVARIANCE FOR NEW SLOT =====
         Eigen::Vector3f slot_odom_delta = Eigen::Vector3f::Zero();
-        Eigen::Matrix3f slot_motion_cov = Eigen::Matrix3f::Identity() * 0.01f;
+        Eigen::Matrix3f slot_motion_cov = Eigen::Matrix3f::Identity() * params.default_slot_motion_cov;
         if (odometry_prior.valid)
         {
             slot_odom_delta = odometry_prior.delta_pose;
             slot_motion_cov = compute_motion_covariance(odometry_prior, false);
-
-            // If measured odometry is available, try to get tighter covariance
-            // (This is done during dual-prior fusion above which already set pred_pos/pred_theta)
         }
 
-        // ===== CREATE NEW WINDOW SLOT =====
         WindowSlot new_slot;
         new_slot.pose = torch::tensor({pred_pos.x(), pred_pos.y(), pred_theta},
             torch::TensorOptions().dtype(torch::kFloat32).device(get_device()).requires_grad(true));
@@ -1095,164 +975,267 @@ namespace rc
         new_slot.motion_cov = slot_motion_cov;
         new_slot.timestamp_ms = lidar.second;
 
-        // ===== SLIDE THE WINDOW (if full) =====
-        // Only recompute the boundary prior when Adam will actually run
-        // (early exit path returns before reaching Adam, so boundary prior recomputation there is wasted)
-        const bool window_will_slide = (static_cast<int>(window_.size()) >= params.rfe_window_size);
-        if (window_will_slide)
-        {
-            // Cheap slide: just pop the oldest slot and copy its pose as boundary mu.
-            // Full Hessian recomputation happens only after Adam runs (see end of update()).
-            auto pose_cpu = window_.front().pose.detach().to(torch::kCPU);
-            auto pose_acc = pose_cpu.accessor<float, 1>();
-            boundary_prior_.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
-            window_.pop_front();
-        }
+        const bool window_slid = window_mgr_.append(std::move(new_slot), params.rfe_window_size);
+        window_mgr_.subsample_old_slots(params.rfe_max_lidar_per_old_slot);
 
-        // ===== APPEND NEW SLOT =====
-        window_.push_back(std::move(new_slot));
+        // ===== EARLY EXIT CHECK =====
+        if (auto early = try_prediction_early_exit(points_tensor, slot_odom_delta, odometry_prior, lidar.second))
+            return *early;
 
-        // ===== SUBSAMPLE OLDER SLOTS' LIDAR for efficiency =====
-        // Keep full resolution only for the newest slot
-        if (window_.size() > 1 && params.rfe_max_lidar_per_old_slot > 0)
+        // ===== ADAM OPTIMISATION =====
+        auto [last_loss, iterations] = run_adam_loop(odometry_prior);
+
+        // ===== COVARIANCE UPDATE =====
+        auto [covariance, condition_number] = compute_posterior_covariance(points_tensor);
+        res.covariance = covariance;
+        res.condition_number = condition_number;
+
+        // ===== EXTRACT RESULT FROM NEWEST SLOT =====
+        res.ok = true;
+        res.final_loss = last_loss;
+        res.iterations_used = iterations;
+
         {
-            for (size_t i = 0; i < window_.size() - 1; i++)
+            auto newest_cpu = window_mgr_.newest().pose.detach().to(torch::kCPU);
+            auto p_acc = newest_cpu.accessor<float, 1>();
+            float x = p_acc[0], y = p_acc[1], phi = p_acc[2];
+
+            while (phi > M_PI) phi -= 2.0f * M_PI;
+            while (phi < -M_PI) phi += 2.0f * M_PI;
+
+            model_->robot_pos.data().copy_(torch::tensor({x, y},
+                torch::TensorOptions().device(get_device())));
+            model_->robot_theta.data().copy_(torch::tensor({phi},
+                torch::TensorOptions().device(get_device())));
+
+            res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);
+
+            res.state = model_->get_state();
+            res.state[2] = x; res.state[3] = y; res.state[4] = phi;
+
+            Eigen::Affine2f pose = Eigen::Affine2f::Identity();
+            pose.translation() = Eigen::Vector2f{x, y};
+            pose.linear() = Eigen::Rotation2Df(phi).toRotationMatrix();
+            res.robot_pose = pose;
+
+            if (model_->has_prediction)
             {
-                auto& slot = window_[i];
-                const int64_t n_pts = slot.lidar_points.size(0);
-                if (n_pts > params.rfe_max_lidar_per_old_slot)
-                {
-                    // Subsample by stride
-                    const int64_t stride = n_pts / params.rfe_max_lidar_per_old_slot;
-                    auto indices = torch::arange(0, n_pts, stride,
-                        torch::TensorOptions().dtype(torch::kLong).device(slot.lidar_points.device()));
-                    slot.lidar_points = slot.lidar_points.index_select(0, indices).contiguous();
-                }
+                res.innovation[0] = x - model_->predicted_pos[0].item<float>();
+                res.innovation[1] = y - model_->predicted_pos[1].item<float>();
+                float pred_th = model_->predicted_theta[0].item<float>();
+                res.innovation[2] = phi - pred_th;
+                while (res.innovation[2] > M_PI) res.innovation[2] -= 2.0f * M_PI;
+                while (res.innovation[2] < -M_PI) res.innovation[2] += 2.0f * M_PI;
+                res.innovation_norm = std::sqrt(res.innovation[0]*res.innovation[0] +
+                                                res.innovation[1]*res.innovation[1]);
             }
         }
 
-        // ===== PREDICTION-BASED EARLY EXIT =====
-        // If the predicted pose already has low SDF error, skip optimization entirely.
-        // The SDF value is a direct measurement of pose quality — use it alone as the gate.
-        // Do NOT gate on covariance: covariance only models uncertainty, but if SDF is low
-        // the pose is actually good regardless of what the covariance says. Gating on covariance
-        // causes a sawtooth cycle where process noise accumulates until the gate blocks early exit,
-        // Adam runs and resets covariance, then the cycle repeats.
-        // Inhibit early exit when angular motion is significant: the predicted
-        // pose is unreliable during fast rotation and skipping Adam causes the
-        // SDF to spike and the drawn lidar to lag behind the room model.
+        // ===== FINALIZE =====
+        if (window_slid && window_mgr_.size() > 0)
+            window_mgr_.recompute_boundary_prior(*model_, params, get_device());
+
+        model_->robot_prev_pose = res.robot_pose;
+
+        {
+            auto cov_cpu = torch::zeros({3, 3}, torch::kFloat32);
+            auto cov_acc = cov_cpu.accessor<float, 2>();
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    cov_acc[i][j] = res.covariance(i, j);
+            model_->prev_cov = cov_cpu.to(get_device());
+        }
+
+        model_->has_prediction = false;
+        res.timestamp_ms = lidar.second;
+        last_update_result = res;
+        return res;
+    }
+
+    // =========================================================================
+    //  update() helper methods
+    // =========================================================================
+
+    std::pair<Eigen::Vector2f, float> RoomConcept::apply_dual_prior_fusion(
+        const OdometryPrior& odometry_prior,
+        const std::vector<OdometryReading>& odometry_history,
+        const std::pair<std::vector<Eigen::Vector3f>, std::int64_t>& lidar)
+    {
+        auto state = model_->get_state();
+        Eigen::Vector2f pred_pos(state[2], state[3]);
+        float pred_theta = state[4];
+
+        if (!last_update_result.ok || !odometry_prior.valid)
+            return {pred_pos, pred_theta};
+
+        // Command prior: predict from commanded velocity
+        const Eigen::Vector2f cmd_pos = last_update_result.robot_pose.translation()
+                 + odometry_prior.delta_pose.head<2>();
+        float cmd_theta = std::atan2(last_update_result.robot_pose.linear()(1, 0),
+                                last_update_result.robot_pose.linear()(0, 0))
+                   + odometry_prior.delta_pose[2];
+        while (cmd_theta > M_PI) cmd_theta -= 2.0f * M_PI;
+        while (cmd_theta < -M_PI) cmd_theta += 2.0f * M_PI;
+
+        const Eigen::Vector3f pred_cmd(cmd_pos.x(), cmd_pos.y(), cmd_theta);
+
+        // Measured odometry prior: predict from encoder/IMU readings
+        auto measured_prior = compute_measured_odometry_prior(odometry_history, lidar);
+
+        if (measured_prior.valid)
+        {
+            const Eigen::Vector2f odom_pos = last_update_result.robot_pose.translation()
+                     + measured_prior.delta_pose.head<2>();
+            float odom_theta = std::atan2(last_update_result.robot_pose.linear()(1, 0),
+                                    last_update_result.robot_pose.linear()(0, 0))
+                       + measured_prior.delta_pose[2];
+            while (odom_theta > M_PI) odom_theta -= 2.0f * M_PI;
+            while (odom_theta < -M_PI) odom_theta += 2.0f * M_PI;
+
+            const Eigen::Vector3f pred_odom(odom_pos.x(), odom_pos.y(), odom_theta);
+
+            const Eigen::Matrix3f cov_cmd = compute_motion_covariance(odometry_prior, false);
+            const Eigen::Matrix3f cov_odom = compute_motion_covariance(measured_prior, true);
+
+            const auto [fused_mean, fused_precision] = fuse_priors(
+                pred_cmd, cov_cmd, pred_odom, cov_odom);
+
+            pred_pos = fused_mean.head<2>();
+            pred_theta = fused_mean[2];
+
+            model_->robot_pos.data().copy_(torch::tensor({pred_pos.x(), pred_pos.y()},
+                torch::TensorOptions().device(get_device())));
+            model_->robot_theta.data().copy_(torch::tensor({pred_theta},
+                torch::TensorOptions().device(get_device())));
+            model_->set_prediction(pred_pos, pred_theta, fused_precision);
+        }
+        else
+        {
+            pred_pos = cmd_pos;
+            pred_theta = cmd_theta;
+
+            model_->robot_pos.data().copy_(torch::tensor({pred_pos.x(), pred_pos.y()},
+                torch::TensorOptions().device(get_device())));
+            model_->robot_theta.data().copy_(torch::tensor({pred_theta},
+                torch::TensorOptions().device(get_device())));
+
+            Eigen::Matrix3f prior_precision = current_covariance.inverse();
+            model_->set_prediction(pred_pos, pred_theta, prior_precision);
+        }
+
+        return {pred_pos, pred_theta};
+    }
+
+    std::optional<RoomConcept::UpdateResult> RoomConcept::try_prediction_early_exit(
+        const torch::Tensor& points_tensor,
+        const Eigen::Vector3f& slot_odom_delta,
+        const OdometryPrior& odometry_prior,
+        std::int64_t lidar_timestamp_ms)
+    {
         const float angular_delta = std::abs(slot_odom_delta[2]);
-        const bool fast_rotation = angular_delta > params.angular_velocity_threshold * std::max(odometry_prior.dt / 1000.0f, 0.001f);
+        const bool fast_rotation = angular_delta > params.angular_velocity_threshold
+                                    * std::max(odometry_prior.dt / 1000.0f, 0.001f);
 
-        if (params.prediction_early_exit &&
-            last_update_result.ok &&
-            odometry_prior.valid &&
-            tracking_step_count_ > params.min_tracking_steps &&
-            !fast_rotation)
+        if (!params.prediction_early_exit ||
+            !last_update_result.ok ||
+            !odometry_prior.valid ||
+            tracking_step_count_ <= params.min_tracking_steps ||
+            fast_rotation)
+            return std::nullopt;
+
+        torch::NoGradGuard no_grad;
+        const auto& newest = window_mgr_.newest();
+        auto pose_xy = newest.pose.index({torch::indexing::Slice(0, 2)});
+        auto pose_th = newest.pose.index({torch::indexing::Slice(2, 3)});
+        const auto sdf_pred = model_->sdf_at_pose(points_tensor, pose_xy, pose_th);
+        const float mean_sdf_pred = torch::mean(torch::abs(sdf_pred)).item<float>();
+
+        const float prediction_trust_threshold = params.sigma_sdf * params.prediction_trust_factor;
+        if (mean_sdf_pred >= prediction_trust_threshold)
+            return std::nullopt;
+
+        prediction_early_exits_++;
+
+        auto pose_cpu = newest.pose.detach().to(torch::kCPU);
+        auto p_acc = pose_cpu.accessor<float, 1>();
+        const float x = p_acc[0], y = p_acc[1], phi = p_acc[2];
+
+        UpdateResult res;
+        res.ok = true;
+        res.final_loss = mean_sdf_pred;
+        res.sdf_mse = mean_sdf_pred;
+        res.iterations_used = 0;
+        res.state = model_->get_state();
+        res.state[2] = x; res.state[3] = y; res.state[4] = phi;
+
+        Eigen::Affine2f pose_aff = Eigen::Affine2f::Identity();
+        pose_aff.translation() = Eigen::Vector2f{x, y};
+        pose_aff.linear() = Eigen::Rotation2Df(phi).toRotationMatrix();
+        res.robot_pose = pose_aff;
+        res.covariance = current_covariance;
+
+        if (model_->has_prediction)
         {
-            {
-                torch::NoGradGuard no_grad;
-                const auto& newest = window_.back();
-                auto pose_xy = newest.pose.index({torch::indexing::Slice(0, 2)});
-                auto pose_th = newest.pose.index({torch::indexing::Slice(2, 3)});
-                const auto sdf_pred = model_->sdf_at_pose(points_tensor, pose_xy, pose_th);
-                const float mean_sdf_pred = torch::mean(torch::abs(sdf_pred)).item<float>();
-
-                const float prediction_trust_threshold = params.sigma_sdf * params.prediction_trust_factor;
-
-                if (mean_sdf_pred < prediction_trust_threshold)
-                {
-                    prediction_early_exits_++;
-
-                    // Extract pose from newest slot
-                    auto pose_cpu = newest.pose.detach().to(torch::kCPU);
-                    auto p_acc = pose_cpu.accessor<float, 1>();
-                    const float x = p_acc[0], y = p_acc[1], phi = p_acc[2];
-
-                    res.ok = true;
-                    res.final_loss = mean_sdf_pred;
-                    res.sdf_mse = mean_sdf_pred;
-                    res.iterations_used = 0;
-                    res.state = model_->get_state();
-                    res.state[2] = x; res.state[3] = y; res.state[4] = phi;
-
-                    Eigen::Affine2f pose_aff = Eigen::Affine2f::Identity();
-                    pose_aff.translation() = Eigen::Vector2f{x, y};
-                    pose_aff.linear() = Eigen::Rotation2Df(phi).toRotationMatrix();
-                    res.robot_pose = pose_aff;
-                    res.covariance = current_covariance;
-
-                    if (model_->has_prediction)
-                    {
-                        res.innovation[0] = x - model_->predicted_pos[0].item<float>();
-                        res.innovation[1] = y - model_->predicted_pos[1].item<float>();
-                        float p_theta = model_->predicted_theta[0].item<float>();
-                        res.innovation[2] = phi - p_theta;
-                        while (res.innovation[2] > M_PI) res.innovation[2] -= 2.0f * M_PI;
-                        while (res.innovation[2] < -M_PI) res.innovation[2] += 2.0f * M_PI;
-                        res.innovation_norm = std::sqrt(res.innovation[0]*res.innovation[0] +
-                                                        res.innovation[1]*res.innovation[1]);
-                    }
-
-                    // Sync model with window pose
-                    model_->robot_pos.data().copy_(torch::tensor({x, y},
-                        torch::TensorOptions().device(get_device())));
-                    model_->robot_theta.data().copy_(torch::tensor({phi},
-                        torch::TensorOptions().device(get_device())));
-                    model_->robot_prev_pose = res.robot_pose;
-                    model_->has_prediction = false;
-
-                    res.timestamp_ms = lidar.second;
-                    last_update_result = res;
-                    last_lidar_timestamp = lidar.second;
-
-                    if (prediction_early_exits_ % 50 == 0)
-                    {
-                        qDebug() << "[EARLY_EXIT] Skipped RFE optimization. SDF:" << mean_sdf_pred
-                                 << "m, window:" << window_.size()
-                                 << ", total early exits:" << prediction_early_exits_;
-                    }
-                    return res;
-                }
-            }
+            res.innovation[0] = x - model_->predicted_pos[0].item<float>();
+            res.innovation[1] = y - model_->predicted_pos[1].item<float>();
+            float p_theta = model_->predicted_theta[0].item<float>();
+            res.innovation[2] = phi - p_theta;
+            while (res.innovation[2] > M_PI) res.innovation[2] -= 2.0f * M_PI;
+            while (res.innovation[2] < -M_PI) res.innovation[2] += 2.0f * M_PI;
+            res.innovation_norm = std::sqrt(res.innovation[0]*res.innovation[0] +
+                                            res.innovation[1]*res.innovation[1]);
         }
 
-        // ===== JOINT OPTIMISATION OVER SLIDING WINDOW (RFE minimisation) =====
-        // Collect all window poses as parameters for the optimizer
-        auto window_params = collect_window_params();
+        model_->robot_pos.data().copy_(torch::tensor({x, y},
+            torch::TensorOptions().device(get_device())));
+        model_->robot_theta.data().copy_(torch::tensor({phi},
+            torch::TensorOptions().device(get_device())));
+        model_->robot_prev_pose = res.robot_pose;
+        model_->has_prediction = false;
 
-        // Build optimizer with all window poses
-        // Use a single learning rate for the combined [x,y,theta] pose tensor
-        const float lr = params.learning_rate_pos;  // dominant LR
+        res.timestamp_ms = lidar_timestamp_ms;
+        last_update_result = res;
+        last_lidar_timestamp = lidar_timestamp_ms;
+
+        if (prediction_early_exits_ % 50 == 0)
+        {
+            qDebug() << "[EARLY_EXIT] Skipped RFE optimization. SDF:" << mean_sdf_pred
+                     << "m, window:" << window_mgr_.size()
+                     << ", total early exits:" << prediction_early_exits_;
+        }
+        return res;
+    }
+
+    std::pair<float, int> RoomConcept::run_adam_loop(const OdometryPrior& odometry_prior)
+    {
+        auto window_params = window_mgr_.collect_params();
+
+        const float lr = params.learning_rate_pos;
         torch::optim::Adam optimizer(
             {torch::optim::OptimizerParamGroup(window_params,
                 std::make_unique<torch::optim::AdamOptions>(lr))});
 
-        // Compute velocity-adaptive weights for gradient scaling (applied to newest pose only)
         const Eigen::Vector3f velocity_weights = compute_velocity_adaptive_weights(odometry_prior);
 
-        const int max_iters = params.num_iterations;
         float last_loss = std::numeric_limits<float>::infinity();
         float prev_loss = std::numeric_limits<float>::infinity();
         int iterations = 0;
 
-        for (int i = 0; i < max_iters; ++i)
+        for (int i = 0; i < params.num_iterations; ++i)
         {
             optimizer.zero_grad();
 
-            // Compute the full RFE loss over the window
-            const torch::Tensor loss = compute_rfe_loss();
+            const torch::Tensor loss = window_mgr_.compute_rfe_loss(*model_, params, get_device());
             loss.backward();
 
-            // Apply velocity-adaptive gradient weighting to the NEWEST pose only
             {
                 torch::NoGradGuard no_grad;
-                auto& newest_pose = window_.back().pose;
+                auto& newest_pose = window_mgr_.newest().pose;
                 if (newest_pose.grad().defined())
                 {
-                    newest_pose.mutable_grad().index({0}) *= velocity_weights[0];  // x
-                    newest_pose.mutable_grad().index({1}) *= velocity_weights[1];  // y
-                    newest_pose.mutable_grad().index({2}) *= velocity_weights[2];  // theta
+                    newest_pose.mutable_grad().index({0}) *= velocity_weights[0];
+                    newest_pose.mutable_grad().index({1}) *= velocity_weights[1];
+                    newest_pose.mutable_grad().index({2}) *= velocity_weights[2];
                 }
             }
 
@@ -1264,14 +1247,19 @@ namespace rc
 
             if (last_loss < params.min_loss_threshold)
                 break;
-            if (i > 5 && std::abs(prev_loss - last_loss) < 0.01f * prev_loss)
+            if (i > params.convergence_min_iters &&
+                std::abs(prev_loss - last_loss) < params.convergence_relative_tol * prev_loss)
                 break;
         }
 
-        // ===== COVARIANCE UPDATE =====
-        // Exact Hessian of SDF likelihood via double-backprop (Paper Eq. 28)
+        return {last_loss, iterations};
+    }
+
+    std::pair<Eigen::Matrix3f, float> RoomConcept::compute_posterior_covariance(
+        const torch::Tensor& points_tensor)
+    {
         try {
-            auto& newest = window_.back();
+            auto& newest = window_mgr_.newest();
             auto pose_for_hess = newest.pose.clone().detach().requires_grad_(true);
             auto pose_xy = pose_for_hess.index({torch::indexing::Slice(0, 2)});
             auto pose_theta_h = pose_for_hess.index({torch::indexing::Slice(2, 3)});
@@ -1288,13 +1276,12 @@ namespace rc
 
             Eigen::Matrix3f H_likelihood = autograd_hessian_3x3(likelihood_loss, pose_for_hess);
 
-            // Ensure positive-definiteness: clamp eigenvalues
             Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H_likelihood);
-            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(1e-4f);
+            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(params.eigenvalue_clamp_posterior);
             H_likelihood = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
 
             Eigen::Matrix3f prior_precision = current_covariance.inverse();
-            constexpr float lambda = 1e-4f;
+            const float lambda = params.covariance_regularization;
             Eigen::Matrix3f posterior_precision = prior_precision + H_likelihood
                                                  + lambda * Eigen::Matrix3f::Identity();
 
@@ -1304,96 +1291,19 @@ namespace rc
             const auto eigenvalues = solver.eigenvalues();
             const float max_ev = eigenvalues.maxCoeff();
             const float min_ev = eigenvalues.minCoeff();
-            res.condition_number = (min_ev > 1e-8f) ? (max_ev / min_ev) : 1e8f;
+            const float cond = (min_ev > 1e-8f) ? (max_ev / min_ev) : 1e8f;
 
-            if (new_cov.allFinite() && new_cov.determinant() > 1e-10f && res.condition_number < 1e6f)
+            if (new_cov.allFinite() && new_cov.determinant() > params.covariance_det_min
+                && cond < params.condition_number_max)
             {
                 current_covariance = new_cov;
-                res.covariance = new_cov;
+                return {new_cov, cond};
             }
-            else
-            {
-                res.covariance = current_covariance;
-            }
+            return {current_covariance, cond};
         } catch (const std::exception &e) {
             std::cerr << "RFE covariance update failed: " << e.what() << std::endl;
-            res.covariance = current_covariance;
-            res.condition_number = -1.0f;
+            return {current_covariance, -1.0f};
         }
-
-        // ===== EXTRACT RESULT FROM NEWEST WINDOW SLOT =====
-        res.ok = true;
-        res.final_loss = last_loss;
-        res.iterations_used = iterations;
-
-        {
-            // Read optimised pose from the newest window slot
-            auto newest_cpu = window_.back().pose.detach().to(torch::kCPU);
-            auto p_acc = newest_cpu.accessor<float, 1>();
-            float x = p_acc[0];
-            float y = p_acc[1];
-            float phi = p_acc[2];
-
-            // Normalize angle
-            while (phi > M_PI) phi -= 2.0f * M_PI;
-            while (phi < -M_PI) phi += 2.0f * M_PI;
-
-            // Update model's internal pose to match the optimised window result
-            // BEFORE computing sdf_mse so it reflects the optimised pose, not the prediction.
-            model_->robot_pos.data().copy_(torch::tensor({x, y},
-                torch::TensorOptions().device(get_device())));
-            model_->robot_theta.data().copy_(torch::tensor({phi},
-                torch::TensorOptions().device(get_device())));
-
-            // Now compute sdf_mse at the optimised pose (not prediction)
-            res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);
-
-            res.state = model_->get_state();
-            res.state[2] = x;
-            res.state[3] = y;
-            res.state[4] = phi;
-
-            Eigen::Affine2f pose = Eigen::Affine2f::Identity();
-            pose.translation() = Eigen::Vector2f{x, y};
-            pose.linear() = Eigen::Rotation2Df(phi).toRotationMatrix();
-            res.robot_pose = pose;
-
-            // ===== COMPUTE INNOVATION (Kalman residual) =====
-            if (model_->has_prediction)
-            {
-                res.innovation[0] = x - model_->predicted_pos[0].item<float>();
-                res.innovation[1] = y - model_->predicted_pos[1].item<float>();
-                float pred_th = model_->predicted_theta[0].item<float>();
-                res.innovation[2] = phi - pred_th;
-                while (res.innovation[2] > M_PI) res.innovation[2] -= 2.0f * M_PI;
-                while (res.innovation[2] < -M_PI) res.innovation[2] += 2.0f * M_PI;
-                res.innovation_norm = std::sqrt(res.innovation[0]*res.innovation[0] +
-                                                res.innovation[1]*res.innovation[1]);
-            }
-        }
-
-        // ===== UPDATE MODEL STATE FOR NEXT ITERATION =====
-        // Recompute boundary prior with full Hessian now that Adam has refined the poses.
-        // Only activate the boundary prior once the window has actually slid (is full),
-        // because before that no information is being evicted — the prior would just add
-        // noise from a poorly-conditioned Hessian estimated from very few slots.
-        if (window_will_slide && window_.size() > 0)
-            slide_window_boundary_prior_only();
-
-        model_->robot_prev_pose = res.robot_pose;
-
-        auto cov_cpu = torch::zeros({3, 3}, torch::kFloat32);
-        auto cov_acc = cov_cpu.accessor<float, 2>();
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                cov_acc[i][j] = res.covariance(i, j);
-        model_->prev_cov = cov_cpu.to(get_device());
-
-        model_->has_prediction = false;
-
-        res.timestamp_ms = lidar.second;
-        last_update_result = res;
-        return res;
     }
 
     RoomConcept::OdometryPrior RoomConcept::compute_odometry_prior(
@@ -1463,14 +1373,14 @@ namespace rc
 
         // Uncertainty grows with distance; when stationary use tight constraint
         float base_uncertainty;
-        if (motion_magnitude < 0.01f) {
-            base_uncertainty = 0.001f;  // 1mm when stationary
+        if (motion_magnitude < params.stationary_motion_threshold) {
+            base_uncertainty = params.stationary_motion_threshold;
         } else {
             base_uncertainty = noise_base;
         }
 
         float position_std = base_uncertainty + noise_trans * motion_magnitude;
-        float rotation_std = 0.01f + noise_rot * std::abs(odometry_prior.delta_pose[2]);
+        float rotation_std = params.rotation_noise_base + noise_rot * std::abs(odometry_prior.delta_pose[2]);
 
         Eigen::Matrix3f cov = Eigen::Matrix3f::Identity();
         cov(0, 0) = position_std * position_std;
@@ -1602,7 +1512,7 @@ namespace rc
         const float dt_s = std::max(0.001f, odometry_prior.dt * 0.001f);
         const float linear_speed = (forward_motion + lateral_motion) / dt_s;
         const float angular_speed = angular_motion / dt_s;
-        const bool near_stationary = linear_speed < 0.03f && angular_speed < 0.03f;
+        const bool near_stationary = linear_speed < params.stationary_speed_threshold && angular_speed < params.stationary_speed_threshold;
 
         // Base noise grows with elapsed time (random-walk style) and is heavily reduced at rest.
         // This keeps slow covariance inflation when stopped, avoiding constant re-minimization.
@@ -1614,11 +1524,11 @@ namespace rc
         // Forward uncertainty: grows with forward motion
         float forward_noise = base_trans_noise + params.cmd_noise_trans * forward_motion;
 
-        // Lateral uncertainty: smaller for differential drive (30% of forward)
-        float lateral_noise = base_trans_noise + 0.3f * params.cmd_noise_trans * lateral_motion;
+        // Lateral uncertainty: smaller for differential drive
+        float lateral_noise = base_trans_noise + params.lateral_noise_fraction * params.cmd_noise_trans * lateral_motion;
 
         // Rotation noise: base + motion-dependent
-        float base_rot_noise = 0.5f * base_trans_noise;
+        float base_rot_noise = params.base_rotation_noise_fraction * base_trans_noise;
         float rot_noise = base_rot_noise + params.cmd_noise_rot * std::abs(dtheta);
 
         torch::Tensor Q = torch::zeros({dim, dim}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
@@ -1846,51 +1756,91 @@ namespace rc
     }
 
     // =====================================================================
-    //  Sliding-Window RFE: compute_rfe_loss, slide_window, collect_window_params
-    //  (Paper: "Total-Time Active Inference", Section 6.4, Algorithm 1)
+    //  WindowManager methods
     // =====================================================================
 
-    torch::Tensor RoomConcept::compute_rfe_loss() const
+    bool RoomConcept::WindowManager::append(WindowSlot slot, int max_window_size)
     {
-        if (window_.empty() || !model_)
-            return torch::tensor(0.0f, torch::TensorOptions().device(get_device()));
+        bool slid = false;
+        if (static_cast<int>(window.size()) >= max_window_size)
+        {
+            // Cheap slide: save oldest pose as boundary mu before dropping
+            auto pose_cpu = window.front().pose.detach().to(torch::kCPU);
+            auto pose_acc = pose_cpu.accessor<float, 1>();
+            boundary_prior.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+            window.pop_front();
+            slid = true;
+        }
+        window.push_back(std::move(slot));
+        return slid;
+    }
 
-        const auto device = get_device();
+    void RoomConcept::WindowManager::subsample_old_slots(int max_pts_per_slot)
+    {
+        if (window.size() <= 1 || max_pts_per_slot <= 0) return;
+        for (size_t i = 0; i < window.size() - 1; i++)
+        {
+            auto& slot = window[i];
+            const int64_t n_pts = slot.lidar_points.size(0);
+            if (n_pts > max_pts_per_slot)
+            {
+                const int64_t stride = n_pts / max_pts_per_slot;
+                auto indices = torch::arange(0, n_pts, stride,
+                    torch::TensorOptions().dtype(torch::kLong).device(slot.lidar_points.device()));
+                slot.lidar_points = slot.lidar_points.index_select(0, indices).contiguous();
+            }
+        }
+    }
+
+    std::vector<torch::Tensor> RoomConcept::WindowManager::collect_params() const
+    {
+        std::vector<torch::Tensor> p;
+        p.reserve(window.size());
+        for (const auto& slot : window)
+            p.push_back(slot.pose);
+        return p;
+    }
+
+    torch::Tensor RoomConcept::WindowManager::compute_rfe_loss(
+        const Model& model, const Params& params, torch::Device device) const
+    {
+        if (window.empty())
+            return torch::tensor(0.0f, torch::TensorOptions().device(device));
+
         const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
         const float huber_delta = params.rfe_huber_delta;
 
         torch::Tensor total_loss = torch::tensor(0.0f, torch::TensorOptions().device(device));
 
         // --- 1. Boundary prior on oldest surviving state (Eq. 28) ---
-        if (boundary_prior_.valid && !window_.empty())
+        if (boundary_prior.valid && !window.empty())
         {
-            const auto& oldest_pose = window_.front().pose;  // [3] with grad
-            const auto mu = torch::tensor({boundary_prior_.mu[0], boundary_prior_.mu[1], boundary_prior_.mu[2]},
+            const auto& oldest_pose = window.front().pose;
+            const auto mu = torch::tensor(
+                {boundary_prior.mu[0], boundary_prior.mu[1], boundary_prior.mu[2]},
                 torch::TensorOptions().dtype(torch::kFloat32).device(device));
 
-            // Build precision tensor from Eigen matrix
             auto prec_data = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
-                    prec_data[i][j] = boundary_prior_.precision(i, j);
+                    prec_data[i][j] = boundary_prior.precision(i, j);
 
             auto raw_diff = oldest_pose - mu;
-            // Wrap theta component to [-π, π] (differentiable)
             auto angle_diff = raw_diff.index({2});
             auto wrapped_diff = torch::cat({raw_diff.index({torch::indexing::Slice(0, 2)}),
                                              torch::atan2(torch::sin(angle_diff), torch::cos(angle_diff)).unsqueeze(0)});
-            auto diff = wrapped_diff.unsqueeze(1);  // [3,1]
+            auto diff = wrapped_diff.unsqueeze(1);
             auto boundary_loss = 0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze();
             total_loss = total_loss + boundary_loss;
         }
 
-        // --- 2. Observation factors: SDF likelihood at each timestep (Eq. 36 / Formulation B) ---
-        for (const auto& slot : window_)
+        // --- 2. Observation factors: SDF likelihood at each timestep ---
+        for (const auto& slot : window)
         {
-            auto pose_xy = slot.pose.index({torch::indexing::Slice(0, 2)});    // [2]
-            auto pose_theta = slot.pose.index({torch::indexing::Slice(2, 3)});  // [1]
+            auto pose_xy = slot.pose.index({torch::indexing::Slice(0, 2)});
+            auto pose_theta = slot.pose.index({torch::indexing::Slice(2, 3)});
 
-            const auto sdf_vals = model_->sdf_at_pose(slot.lidar_points, pose_xy, pose_theta);
+            const auto sdf_vals = model.sdf_at_pose(slot.lidar_points, pose_xy, pose_theta);
 
             const auto obs_huber = torch::nn::functional::huber_loss(
                 sdf_vals,
@@ -1900,38 +1850,31 @@ namespace rc
             total_loss = total_loss + 0.5f * inv_var * obs_huber;
         }
 
-        // --- 3. Motion factors between consecutive slots (Eq. 27, ℓ_dyn) ---
-        for (size_t i = 1; i < window_.size(); i++)
+        // --- 3. Motion factors between consecutive slots ---
+        for (size_t i = 1; i < window.size(); i++)
         {
-            const auto& curr = window_[i];
-            const auto& prev = window_[i - 1];
+            const auto& curr = window[i];
+            const auto& prev = window[i - 1];
 
-            // Predicted delta from odometry
             auto odom_delta = torch::tensor(
                 {curr.odometry_delta[0], curr.odometry_delta[1], curr.odometry_delta[2]},
                 torch::TensorOptions().dtype(torch::kFloat32).device(device));
 
-            // Actual delta from the pose parameters (differentiable)
             auto pose_delta = curr.pose - prev.pose;
-
-            // Handle angle wrapping for the theta component
-            // residual = actual_delta - odom_delta
             auto raw_residual = pose_delta - odom_delta;
 
-            // Wrap the angular residual to [-π, π] (differentiable, no in-place ops)
             auto angle_res = raw_residual.index({2});
             auto wrapped_angle = torch::atan2(torch::sin(angle_res), torch::cos(angle_res));
             auto residual = torch::cat({raw_residual.index({torch::indexing::Slice(0, 2)}),
                                         wrapped_angle.unsqueeze(0)});
 
-            // Build precision tensor from motion covariance
             Eigen::Matrix3f motion_prec = curr.motion_cov.inverse();
             auto prec_data = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
             for (int r = 0; r < 3; r++)
                 for (int c = 0; c < 3; c++)
                     prec_data[r][c] = motion_prec(r, c);
 
-            auto res_col = residual.unsqueeze(1);  // [3,1]
+            auto res_col = residual.unsqueeze(1);
             auto motion_loss = 0.5f * torch::matmul(res_col.t(), torch::matmul(prec_data, res_col)).squeeze();
             total_loss = total_loss + motion_loss;
         }
@@ -1939,52 +1882,47 @@ namespace rc
         return total_loss;
     }
 
-    void RoomConcept::slide_window_boundary_prior_only()
+    void RoomConcept::WindowManager::recompute_boundary_prior(
+        const Model& model, const Params& params, torch::Device device)
     {
-        if (window_.empty())
+        if (window.empty())
             return;
 
-        // Compute boundary prior from the oldest slot BEFORE dropping it
-        // (Paper Eq. 28: μ_∂ = MAP value, Σ_∂ = diag(∇²L)^{-1})
-        const auto& oldest = window_.front();
+        const auto& oldest = window.front();
 
-        // Extract MAP pose (detached)
+        // Extract MAP pose
         auto pose_cpu = oldest.pose.detach().to(torch::kCPU);
         auto pose_acc = pose_cpu.accessor<float, 1>();
-        boundary_prior_.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+        boundary_prior.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
 
-        // Compute diagonal Hessian of the full RFE loss at the oldest pose
-        // We approximate using the gradient magnitude: H_ii ≈ |∂L/∂θ_i| * scale
+        // Compute exact 3×3 Hessian of a mini-loss at the oldest slot
         {
             auto oldest_pose_for_hess = oldest.pose.clone().detach().requires_grad_(true);
 
-            // Build a mini-loss involving only the oldest slot's observation
-            // and its motion factor to the next slot (if any)
             auto pose_xy = oldest_pose_for_hess.index({torch::indexing::Slice(0, 2)});
             auto pose_theta = oldest_pose_for_hess.index({torch::indexing::Slice(2, 3)});
 
             const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
-            auto sdf_vals = model_->sdf_at_pose(oldest.lidar_points, pose_xy, pose_theta);
+            auto sdf_vals = model.sdf_at_pose(oldest.lidar_points, pose_xy, pose_theta);
             auto loss = 0.5f * inv_var * torch::nn::functional::huber_loss(
                 sdf_vals, torch::zeros_like(sdf_vals),
                 torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(params.rfe_huber_delta));
 
             // Add motion factor to next slot if it exists
-            if (window_.size() > 1)
+            if (window.size() > 1)
             {
-                const auto& next = window_[1];
-                auto next_pose = next.pose.detach();  // fixed for Hessian computation
+                const auto& next = window[1];
+                auto next_pose = next.pose.detach();
                 auto delta = next_pose - oldest_pose_for_hess;
                 auto odom = torch::tensor(
                     {next.odometry_delta[0], next.odometry_delta[1], next.odometry_delta[2]},
-                    torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                    torch::TensorOptions().dtype(torch::kFloat32).device(device));
                 auto raw_res = delta - odom;
-                // Wrap theta component to [-π, π]
                 auto angle_r = raw_res.index({2});
                 auto residual = torch::cat({raw_res.index({torch::indexing::Slice(0, 2)}),
                                             torch::atan2(torch::sin(angle_r), torch::cos(angle_r)).unsqueeze(0)});
                 Eigen::Matrix3f prec = next.motion_cov.inverse();
-                auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
                 for (int r = 0; r < 3; r++)
                     for (int c = 0; c < 3; c++)
                         prec_t[r][c] = prec(r, c);
@@ -1993,43 +1931,29 @@ namespace rc
             }
 
             // Add existing boundary prior if any
-            if (boundary_prior_.valid)
+            if (boundary_prior.valid)
             {
                 auto mu_t = torch::tensor(
-                    {boundary_prior_.mu[0], boundary_prior_.mu[1], boundary_prior_.mu[2]},
-                    torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                    {boundary_prior.mu[0], boundary_prior.mu[1], boundary_prior.mu[2]},
+                    torch::TensorOptions().dtype(torch::kFloat32).device(device));
                 auto diff = (oldest_pose_for_hess - mu_t).unsqueeze(1);
-                auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+                auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
                 for (int r = 0; r < 3; r++)
                     for (int c = 0; c < 3; c++)
-                        prec_t[r][c] = boundary_prior_.precision(r, c);
+                        prec_t[r][c] = boundary_prior.precision(r, c);
                 loss = loss + 0.5f * torch::matmul(diff.t(), torch::matmul(prec_t, diff)).squeeze();
             }
 
-            // Compute exact 3×3 Hessian via double-backprop
-            Eigen::Matrix3f H = autograd_hessian_3x3(loss, oldest_pose_for_hess);
+            Eigen::Matrix3f H = RoomConcept::autograd_hessian_3x3(loss, oldest_pose_for_hess);
 
-            // Clamp eigenvalues to ensure positive-definiteness
             Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H);
-            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(1e-3f);
+            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(params.eigenvalue_clamp_boundary);
             H = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
 
-            boundary_prior_.precision = H;
+            boundary_prior.precision = H;
         }
 
-        boundary_prior_.valid = true;
-
-        // NOTE: pop_front is NOT done here — the caller (cheap slide in update())
-        // already removed the slot before Adam ran.
-    }
-
-    std::vector<torch::Tensor> RoomConcept::collect_window_params() const
-    {
-        std::vector<torch::Tensor> params;
-        params.reserve(window_.size());
-        for (const auto& slot : window_)
-            params.push_back(slot.pose);
-        return params;
+        boundary_prior.valid = true;
     }
 
 } // namespace rc

@@ -132,6 +132,38 @@ public:
         float odom_noise_base  = 0.01f;  // Base position noise even when stationary (m)
         float odom_noise_scale = 1.0f;   // Multiplier on all odom noise params (>1 simulates worse odometry)
 
+        // ===== Recovery =====
+        int recovery_cooldown_frames = 30;     // Frames to skip detection after recovery
+        int manual_reset_skip_frames = 5;      // Frames to skip optimization after manual pose set
+
+        // ===== Grid Search / Orientation Search =====
+        float grid_search_wall_margin = 0.3f;        // meters from room walls
+        int grid_search_max_samples = 150;            // Lidar subsample for grid evaluation
+        float grid_search_good_threshold = 1.0f;      // SDF loss < this = acceptable pose
+        int orientation_search_max_samples = 100;      // Lidar subsample for orientation candidates
+
+        // ===== Adam Convergence =====
+        float convergence_relative_tol = 0.01f;       // Relative loss-change stopping criterion
+        int convergence_min_iters = 5;                 // Minimum iterations before convergence check
+
+        // ===== Covariance Numerics =====
+        float eigenvalue_clamp_posterior = 1e-4f;      // Min eigenvalue for posterior precision
+        float eigenvalue_clamp_boundary = 1e-3f;       // Min eigenvalue for boundary-prior Hessian
+        float covariance_regularization = 1e-4f;       // λ added to posterior precision diagonal
+        float covariance_det_min = 1e-10f;             // Min determinant for valid covariance
+        float condition_number_max = 1e6f;             // Max condition number for valid covariance
+
+        // ===== Motion Model =====
+        float lateral_noise_fraction = 0.3f;           // Lateral noise as fraction of forward noise
+        float base_rotation_noise_fraction = 0.5f;     // Base rotation noise relative to base translation noise
+        float stationary_motion_threshold = 0.001f;    // meters; below this = stationary for covariance
+        float stationary_speed_threshold = 0.03f;      // m/s; below this = near-stationary for process noise
+        float rotation_noise_base = 0.01f;             // Base rotation std when no commanded motion
+        float default_slot_motion_cov = 0.01f;         // Default diagonal for slot motion covariance
+
+        // ===== Velocity-Adaptive =====
+        float combined_motion_weight = 1.2f;           // Weight when both translating and rotating
+
         // Torch threading configuration
         int torch_num_threads = 5;          // Limit CPU threads to avoid overload
         int torch_num_interop_threads = 2;  // Limit inter-op threads for better latency
@@ -305,18 +337,66 @@ private:
    Eigen::Vector3f smoothed_pose_ = Eigen::Vector3f::Zero();  // [x, y, theta]
    bool has_smoothed_pose_ = false;
 
-   // ===== Sliding Window (RFE) state =====
-   std::deque<WindowSlot> window_;
-   BoundaryPrior boundary_prior_;
+   // ===== Recovery Manager =====
+   struct RecoveryManager
+   {
+       int consecutive_bad_frames = 0;
+       int cooldown = 0;
+
+       /// Returns true if recovery should be triggered now.
+       bool check(float avg_sdf_err, int iterations_used,
+                  float threshold, int consecutive_count)
+       {
+           if (cooldown > 0) { --cooldown; return false; }
+           if (iterations_used <= 0) return false;
+           if (avg_sdf_err > threshold)
+           {
+               ++consecutive_bad_frames;
+               return consecutive_bad_frames >= consecutive_count;
+           }
+           consecutive_bad_frames = 0;
+           return false;
+       }
+       void on_recovery_done(int cooldown_frames)
+       { consecutive_bad_frames = 0; cooldown = cooldown_frames; }
+       void reset() { consecutive_bad_frames = 0; cooldown = 0; }
+   };
+   RecoveryManager recovery_;
+
+   // ===== Window Manager (RFE sliding window) =====
+   struct WindowManager
+   {
+       std::deque<WindowSlot> window;
+       BoundaryPrior boundary_prior;
+
+       bool empty() const { return window.empty(); }
+       size_t size() const { return window.size(); }
+       void clear() { window.clear(); boundary_prior.valid = false; }
+       WindowSlot& newest() { return window.back(); }
+       const WindowSlot& newest() const { return window.back(); }
+
+       /// Slide if full, append new slot.  Returns true if window was slid.
+       bool append(WindowSlot slot, int max_window_size);
+
+       /// Subsample lidar in all slots except the newest.
+       void subsample_old_slots(int max_pts_per_slot);
+
+       /// Collect all pose tensors for the optimizer.
+       std::vector<torch::Tensor> collect_params() const;
+
+       /// Build the full RFE loss over the current window (Eq. 27).
+       torch::Tensor compute_rfe_loss(const Model& model, const Params& params,
+                                       torch::Device device) const;
+
+       /// Recompute boundary prior Hessian from oldest surviving slot.
+       void recompute_boundary_prior(const Model& model, const Params& params,
+                                      torch::Device device);
+   };
+   WindowManager window_mgr_;
 
    // Prediction-based early exit tracking
-   int tracking_step_count_ = 0;        // Number of tracking steps since init
-   int prediction_early_exits_ = 0;     // Counter for statistics
-
-   // Recovery detection
-   int consecutive_bad_frames_ = 0;     // Full Adam runs with avg SDF error > recovery_loss_threshold
-   bool recovery_in_progress_ = false;  // True while grid search recovery is running
-   int recovery_cooldown_ = 0;          // Frames to skip after recovery before re-enabling detection
+   int tracking_step_count_ = 0;
+   int prediction_early_exits_ = 0;
 
    // Velocity-adaptive gradient weights [x, y, theta]
    Eigen::Vector3f current_velocity_weights_ = Eigen::Vector3f::Ones();
@@ -412,19 +492,34 @@ private:
                                   const OdometryPrior &odometry_prior,
                                   bool is_localized);
 
+    // ===== update() helper methods =====
+    /// Fuse command prior with measured odometry into a single prediction.
+    /// Returns {pred_pos, pred_theta} and sets model prediction state.
+    std::pair<Eigen::Vector2f, float> apply_dual_prior_fusion(
+        const OdometryPrior& odometry_prior,
+        const std::vector<OdometryReading>& odometry_history,
+        const std::pair<std::vector<Eigen::Vector3f>, std::int64_t>& lidar);
+
+    /// Check if the predicted pose already has low SDF error and can skip Adam.
+    /// Returns an UpdateResult if early exit is taken, nullopt otherwise.
+    std::optional<UpdateResult> try_prediction_early_exit(
+        const torch::Tensor& points_tensor,
+        const Eigen::Vector3f& slot_odom_delta,
+        const OdometryPrior& odometry_prior,
+        std::int64_t lidar_timestamp_ms);
+
+    /// Run the Adam optimisation loop over the sliding window.
+    /// Returns {last_loss, iterations_used}.
+    std::pair<float, int> run_adam_loop(const OdometryPrior& odometry_prior);
+
+    /// Compute posterior covariance via autograd Hessian.
+    /// Updates current_covariance and returns {covariance, condition_number}.
+    std::pair<Eigen::Matrix3f, float> compute_posterior_covariance(
+        const torch::Tensor& points_tensor);
+
     // Compute the exact 3×3 Hessian of a scalar loss w.r.t. a 3-vector via double-backprop.
     static Eigen::Matrix3f autograd_hessian_3x3(const torch::Tensor& loss,
                                                  const torch::Tensor& param);
-
-    // ===== Sliding-window RFE methods =====
-    // Build the full RFE loss over the current window (Eq. 27 of the paper)
-    torch::Tensor compute_rfe_loss() const;
-
-    // Slide the window: compute boundary prior from oldest slot, drop it
-    void slide_window_boundary_prior_only();  // Recompute boundary prior from oldest slot (no pop)
-
-    // Collect all window pose tensors into a flat list (for optimizer)
-    std::vector<torch::Tensor> collect_window_params() const;
 
     // Find best initial orientation by testing multiple candidates (0°, 90°, 180°, 270°)
     float find_best_initial_orientation(const std::vector<Eigen::Vector3f>& lidar_points,

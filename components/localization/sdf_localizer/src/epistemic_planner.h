@@ -25,9 +25,9 @@ class EpistemicPlanner
 public:
     struct Params
     {
-        float grid_resolution = 0.25f;       // spacing between candidate targets (m)
+        float grid_resolution = 0.5f;        // spacing between candidate targets (m)
         float min_distance = 1.0f;           // ignore candidates closer than this to robot (m)
-        int   max_candidates = 200;          // cap on number of evaluated candidates
+        int   max_candidates = 2000;         // cap on number of evaluated candidates
         float target_wall_margin = 1.0f;     // reject targets closer than this to walls (m)
 
         float w_eigenvector = 1.0f;          // weight: alignment with dominant uncertainty axis

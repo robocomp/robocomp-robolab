@@ -225,6 +225,13 @@ the SDF optimisation is skipped.
    - Each group has $\geq 3$ points.
    - The inter-line angle is in $[25°, 155°]$.
    - $\|\mathbf{z}_{k,j} - \hat{\mathbf{c}}_j\| < 1.5$ m.
+   - **Orientation consistency:** each PCA-fitted line direction must align
+     with its model edge direction (in robot frame) within
+     `max_orientation_dev` (30°).  Formally,
+     $|\hat{\mathbf{d}}_{\mathrm{PCA}} \cdot \hat{\mathbf{d}}_{\mathrm{model}}| \geq \cos(30°) \approx 0.866$
+     for both the *in*-wall and *out*-wall directions.
+     This rejects false matches where the fitted wall angle is correct
+     but the wall orientations are flipped or rotated.
 
 6. **Covariance.**  Geometric uncertainty from the line-fit normals:
    $\Sigma_c = \sigma^2 (\mathbf{n}_{\mathrm{in}} \mathbf{n}_{\mathrm{in}}^\top
@@ -545,6 +552,7 @@ during which Adam runs without early-exit to let the filter reconverge.
 | `min_points_per_line` | 3 | Min lidar points per wall group |
 | `max_match_distance` | 1.5 m | Max detected-vs-predicted corner distance |
 | `min_corner_angle` / `max_corner_angle` | 25° / 155° | Inter-wall angle acceptance band |
+| `max_orientation_dev` | 30° | Max angular deviation between PCA line and model edge direction |
 | `rotation_position_coupling` | 0.15 m/rad | Position uncertainty induced per radian of rotation |
 
 ---
@@ -589,15 +597,19 @@ active-inference pipeline implemented in `EpistemicPlanner`.
 
 ### 11.1 Candidate Generation
 
-A uniform grid of points at spacing `grid_resolution` (0.25 m) is
+A uniform grid of points at spacing `grid_resolution` (0.5 m) is
 generated inside the room polygon.  Candidates are filtered by:
 
-- **Distance band:** $d \in [\texttt{min\_distance},\, \texttt{max\_distance}]$ from the robot (1.0–5.0 m).
+- **Minimum distance:** $d \geq \texttt{min\_distance}$ (1.0 m) from the
+  robot.
 - **Inside polygon:** `point_in_polygon()` rejects positions outside
-  non-convex room boundaries.
+  non-convex room boundaries.  There is no upper distance limit — the
+  polygon boundary and wall margin naturally bound the candidates.
 - **Wall margin:** candidates closer than `target_wall_margin` (1.0 m)
   to any polygon edge are discarded to keep the robot away from walls.
-- **Count cap:** at most `max_candidates` (200) survive.
+- **Count cap:** at most `max_candidates` (2000) survive.  With 0.5 m
+  resolution the cap is rarely reached, ensuring the **entire** room
+  is covered uniformly.
 
 ### 11.2 Angular Dominance Check
 
@@ -674,16 +686,16 @@ it dwells for `dwell_time` (2 s) and then selects a new target.
 Pure FIM scoring is nearly distance-invariant: a candidate 1 m away sees
 the same corners at similar angles as one 4 m away, producing equal
 $\Delta_D$.  To break this tie in favour of exploration, the raw FIM gain
-is scaled by a saturating distance factor:
+is scaled by a **linear** distance factor:
 
 $$
-f_{\mathrm{dist}}(d) = 1 + \tanh(w_{\mathrm{exp}} \cdot d)
+f_{\mathrm{dist}}(d) = 1 + w_{\mathrm{exp}} \cdot d
 $$
 
-with $w_{\mathrm{exp}} = 0.3$.  At $d = 1$ m the multiplier is 1.29;
-at $d = 4$ m it is 1.85.  This ensures that a truly informative nearby
-position can still win, but equal-FIM candidates are resolved in favour
-of the farther one.
+with $w_{\mathrm{exp}} = 0.5$.  At $d = 2$ m the multiplier is 2.0;
+at $d = 6$ m it is 4.0.  The linear (non-saturating) shape
+ensures that distant candidates always retain a meaningful advantage,
+preventing the robot from lingering in one portion of the room.
 
 ### 11.5 Inhibition of Return (Visit Grid)
 
@@ -715,7 +727,7 @@ $$
 - **After $\tau_{\mathrm{decay}}$ seconds** → staleness recovers to $1$
   (full attraction restored).
 
-Default decay time is $\tau_{\mathrm{decay}} = 30$ s.
+Default decay time is $\tau_{\mathrm{decay}} = 120$ s.
 
 #### Score integration
 
@@ -931,14 +943,14 @@ chosen arc was preferred.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `grid_resolution` | 0.25 m | Candidate target spacing |
+| `grid_resolution` | 0.5 m | Candidate target spacing |
 | `min_distance` | 1.0 m | Min candidate distance from robot |
-| `max_distance` | 5.0 m | Max candidate distance from robot |
+| `max_candidates` | 2000 | Max evaluated candidates (ensures full room coverage) |
 | `target_wall_margin` | 1.0 m | Min distance from candidate to polygon edge |
 | `angular_dominance_ratio` | 50.0 | $\sigma_\theta^2 / \sigma_{\mathrm{pos}}^2$ threshold for rotate-in-place |
-| `w_exploration` | 0.3 | Distance bonus weight (exploration) |
+| `w_exploration` | 0.5 | Linear distance bonus weight (exploration) |
 | `ior_cell_size` | 0.5 m | Spatial resolution of the visit grid |
-| `ior_decay_time` | 30.0 s | Seconds until visit suppression fully decays |
+| `ior_decay_time` | 120.0 s | Seconds until visit suppression fully decays |
 | `w_ior` | 2.0 | Inhibition-of-return staleness weight |
 | `fim_corner_sigma` | 0.04 m | Corner detection noise for FIM |
 | `num_arc_curvatures` | 9 | Number of discrete arc curvatures $K$ |

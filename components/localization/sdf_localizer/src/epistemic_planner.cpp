@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <iostream>
 
 namespace rc
 {
@@ -207,13 +206,6 @@ std::optional<EpistemicPlanner::Target> EpistemicPlanner::update_target()
         if (!target_opt)
             return std::nullopt;
         current_target_ = *target_opt;
-        std::cout << "[Planner] new target d=" << current_target_->distance
-                  << " score=" << current_target_->score
-                  << " fim=" << current_target_->eigenvector_score
-                  << " pos=(" << current_target_->position.x()
-                  << "," << current_target_->position.y() << ")"
-                  << (current_target_->rotate_in_place ? " [ROTATE]" : "")
-                  << std::endl;
     }
 
     return current_target_;

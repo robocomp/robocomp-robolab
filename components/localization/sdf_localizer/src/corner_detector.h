@@ -27,6 +27,7 @@ public:
         float max_match_distance  = 1.5f;   // max distance between detected and predicted corner
         float min_corner_angle    = 25.0f;   // degrees — reject nearly-parallel intersections
         float max_corner_angle    = 155.0f;  // degrees — reject nearly-flat intersections
+        float max_orientation_dev = 30.0f;   // degrees — max deviation between PCA line and model edge direction
     };
 
     // ===== Output types =====

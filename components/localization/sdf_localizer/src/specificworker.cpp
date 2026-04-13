@@ -464,27 +464,6 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     if (!result || !result->valid)
         return;
 
-    // Diagnostic: covariance diag and target type
-    const Eigen::Vector2f robot_p{loc_res->robot_pose.translation()};
-    const float dist_to_tgt = (result->target.position - robot_p).norm();
-    const Eigen::Vector2f tb_diag = loc_res->robot_pose.inverse() * result->target.position;
-    const float angle_err_diag = std::atan2(-tb_diag.x(), tb_diag.y());
-
-    qInfo().nospace()
-        << "[SelfTarget] d=" << QString::number(dist_to_tgt, 'f', 2)
-        << " ae=" << QString::number(angle_err_diag, 'f', 2)
-        << " cmd:(" << QString::number(result->command.adv_x, 'f', 3)
-        << "," << QString::number(result->command.adv_y, 'f', 3)
-        << "," << QString::number(result->command.rot, 'f', 2)
-        << ") efe=" << QString::number(result->best_policy.efe, 'f', 1)
-        << " epist=" << QString::number(result->best_policy.epistemic_value, 'f', 2)
-        << " pragm=" << QString::number(result->best_policy.pragmatic_value, 'f', 2)
-        << " obs=" << QString::number(result->best_policy.obstacle_value, 'f', 1)
-        << " bnd=" << QString::number(result->best_policy.boundary_value, 'f', 1)
-        << " tgt:(" << QString::number(result->target.position.x(), 'f', 1)
-        << "," << QString::number(result->target.position.y(), 'f', 1)
-        << ") rot_ip:" << result->target.rotate_in_place;
-
     // Show target on the 2D canvas
     const auto& tgt = result->target.position;
     viewer_2d_->update_target_marker(tgt.x(), tgt.y(), true);
@@ -563,8 +542,9 @@ void SpecificWorker::read_lidar()
                 const float pmz = p.z / 1000.f;
                 if(pmz > params.LIDAR_HIGH_MIN_HEIGHT)
                     points_high.emplace_back(pmx, pmy, pmz);
-                if(pmz > 0.1f && pmz < params.ROBOT_HEIGHT)
-                    obstacle_points.emplace_back(pmx, pmy);
+                if(pmz > params.LIDAR_HIGH_FLOOR_HEIGHT and
+                   pmz < params.ROBOT_HEIGHT)
+                        obstacle_points.emplace_back(pmx, pmy);
             }
             const size_t n_pts = points_high.size();
             // Store system-clock timestamp (not driver timestamp) so consumers

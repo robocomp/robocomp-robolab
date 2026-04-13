@@ -166,6 +166,19 @@ CornerDetector::DetectionResult CornerDetector::detect(
             continue;
         }
 
+        // --- Orientation consistency: PCA line direction must align with model edge ---
+        {
+            const float cos_thresh = std::cos(params_.max_orientation_dev * static_cast<float>(M_PI) / 180.f);
+            // line direction() is ⊥ to normal; model dirs are in robot frame
+            const float dot_in  = std::abs(line_in->direction().dot(dir_in));
+            const float dot_out = std::abs(line_out->direction().dot(dir_out));
+            if (dot_in < cos_thresh || dot_out < cos_thresh)
+            {
+                if (verbose) qInfo() << "    orientation rejected: dot_in=" << dot_in << "dot_out=" << dot_out;
+                continue;
+            }
+        }
+
         result.corners_accepted++;
 
         // Covariance: σ² (n_in n_in^T + n_out n_out^T)

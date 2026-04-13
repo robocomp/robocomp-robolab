@@ -102,10 +102,9 @@ class SpecificWorker : public GenericWorker
 			std::string LIDAR_NAME_HIGH = "helios";
 			float MAX_LIDAR_HIGH_RANGE = 100;  // m
 			int LIDAR_LOW_DECIMATION_FACTOR = 1;
-			float 
-			
-			LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
+			float LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
 			float LIDAR_HIGH_MAX_HEIGHT = 2.2f; // m, points above this height in the high lidar will be ignored
+			float LIDAR_HIGH_FLOOR_HEIGHT = 0.15f; // m, points below this height will be considered floor and ignored for obstacle avoidance
 			
 			// General
 			QRectF GRID_MAX_DIM{-5, -5, 10, 10};

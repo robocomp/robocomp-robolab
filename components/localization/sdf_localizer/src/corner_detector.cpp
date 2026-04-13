@@ -50,9 +50,7 @@ CornerDetector::DetectionResult CornerDetector::detect(
     if (model_corners_.empty() || lidar_points.empty())
         return result;
 
-    static int call_count = 0;
     const bool verbose = false;
-    (void)call_count;
 
     // Build 2D lidar points in robot frame (drop z)
     std::vector<Eigen::Vector2f> pts2d;

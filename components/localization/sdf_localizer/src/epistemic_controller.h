@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <optional>
-#include <random>
 #include <Eigen/Dense>
 #include "epistemic_planner.h"
 
@@ -27,14 +26,11 @@ public:
         // ---- Arc trajectory generation ----
         int   num_arc_curvatures = 9;        // discrete curvatures (odd ⟹ includes κ=0)
 
-        // ---- Policy sampling & EFE ----
-        int   num_policies   = 30;
+        // ---- Policy rollout & EFE ----
         int   horizon_steps  = 20;
         float dt             = 0.2f;
         float max_adv_speed  = 0.3f;
         float max_rot_speed  = 0.5f;
-        float policy_noise_lin = 0.1f;
-        float policy_noise_rot = 0.2f;
         float w_epistemic    = 1.0f;
         float w_pragmatic    = 1.0f;
         float w_heading      = 2.0f;
@@ -50,6 +46,12 @@ public:
         float obstacle_step_cap = 10.0f;
         float w_obstacle       = 2.0f;
         float wall_filter_margin = 0.30f;
+
+        // ---- Perceptual bandwidth speed limit ----
+        // Couples rotation and translation so that sharp turns reduce the
+        // allowed translation speed.  Models a finite perceptual bandwidth:
+        //   effective_max_adv = max_adv_speed × (1 − bandwidth_coupling × |ω|/max_rot_speed)
+        float bandwidth_coupling = 0.7f;
 
         // ---- FIM scoring at final state (epistemic EFE term) ----
         float fim_corner_sigma  = 0.04f;
@@ -110,12 +112,17 @@ private:
     // ---- Level 2 internals ----
     std::vector<Policy> generate_arc_policies(const EpistemicPlanner::Target& target) const;
     void rollout_policy(Policy& policy) const;
-    void evaluate_policy_efe(Policy& policy, const EpistemicPlanner::Target& target) const;
+    void evaluate_policy_efe(Policy& policy, const EpistemicPlanner::Target& target,
+                             const Eigen::Matrix3f& prior_precision) const;
+    ControlCommand apply_speed_limit(ControlCommand cmd) const;
+
+    // ---- Pre-computed edge segment data (set by set_room_polygon) ----
+    struct EdgeSegment { Eigen::Vector2f a, ab; float ab_sq_norm; };
+    std::vector<EdgeSegment> edge_segments_;
 
     // ---- Composition ----
     EpistemicPlanner epistemic_planner_;
     std::vector<Eigen::Vector2f> lidar_obstacles_;
-    mutable std::mt19937 rng_{42};
 };
 
 } // namespace rc

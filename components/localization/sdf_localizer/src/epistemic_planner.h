@@ -30,10 +30,7 @@ public:
         int   max_candidates = 2000;         // cap on number of evaluated candidates
         float target_wall_margin = 1.0f;     // reject targets closer than this to walls (m)
 
-        float w_eigenvector = 1.0f;          // weight: alignment with dominant uncertainty axis
-        float w_corner      = 0.5f;          // weight: proximity to room corners
         float angular_dominance_ratio = 50.0f; // σ²_θ / max(σ²_x, σ²_y) threshold
-        float w_sdf_surprise = 2.0f;         // weight: SDF surprise score (legacy)
         float w_exploration  = 0.5f;         // weight: linear distance bonus (explore farther)
 
         // ---- Inhibition of Return (visit grid) ----
@@ -57,8 +54,6 @@ public:
         float score = 0.0f;
         float distance = 0.0f;
         float eigenvector_score = 0.0f;
-        float corner_score = 0.0f;
-        float sdf_surprise_score = 0.0f;
         bool  rotate_in_place = false;
     };
 
@@ -106,6 +101,8 @@ private:
     bool room_bounds_set_ = false;
 
     std::vector<Eigen::Vector2f> room_corners_;
+    mutable std::vector<Eigen::Vector2f> cached_grid_;
+    mutable bool grid_dirty_ = true;
 
     Eigen::Affine2f robot_pose_ = Eigen::Affine2f::Identity();
     Eigen::Matrix3f robot_cov_ = Eigen::Matrix3f::Identity();
@@ -152,12 +149,13 @@ private:
             cells[to_index(pos)] = std::chrono::steady_clock::now();
         }
 
-        float staleness(const Eigen::Vector2f& pos, float decay_s) const
+        float staleness(const Eigen::Vector2f& pos, float decay_s,
+                        std::chrono::steady_clock::time_point now) const
         {
             if (!initialized) return 1.f;
             const auto& tp = cells[to_index(pos)];
             if (tp == std::chrono::steady_clock::time_point{}) return 1.f;
-            const float elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - tp).count();
+            const float elapsed = std::chrono::duration<float>(now - tp).count();
             return std::min(1.f, elapsed / std::max(0.1f, decay_s));
         }
     };

@@ -18,6 +18,7 @@ void EpistemicPlanner::set_room_bounds(const Eigen::Vector2f& min_corner,
     room_min_ = min_corner;
     room_max_ = max_corner;
     room_bounds_set_ = true;
+    grid_dirty_ = true;
     if (!visit_grid_.initialized)
         visit_grid_.init(room_min_, room_max_, params.ior_cell_size);
 }
@@ -25,6 +26,7 @@ void EpistemicPlanner::set_room_bounds(const Eigen::Vector2f& min_corner,
 void EpistemicPlanner::set_room_polygon(const std::vector<Eigen::Vector2f>& vertices)
 {
     room_corners_ = vertices;
+    grid_dirty_ = true;
 }
 
 void EpistemicPlanner::set_robot_state(const Eigen::Affine2f& pose,
@@ -43,41 +45,52 @@ std::vector<Eigen::Vector2f> EpistemicPlanner::generate_candidates() const
     if (!room_bounds_set_)
         return {};
 
-    std::vector<Eigen::Vector2f> candidates;
-    candidates.reserve(params.max_candidates);
-
-    const float res = params.grid_resolution;
-    const float min_d2 = params.min_distance * params.min_distance;
-
-    for (float x = room_min_.x() + res * 0.5f; x < room_max_.x(); x += res)
+    // Rebuild static grid cache when room geometry changes
+    if (grid_dirty_)
     {
-        for (float y = room_min_.y() + res * 0.5f; y < room_max_.y(); y += res)
+        cached_grid_.clear();
+        const float res = params.grid_resolution;
+        const float wm2 = params.target_wall_margin * params.target_wall_margin;
+
+        for (float x = room_min_.x() + res * 0.5f; x < room_max_.x(); x += res)
         {
-            const Eigen::Vector2f p{x, y};
-            const float d2 = (p - robot_pos()).squaredNorm();
-            if (d2 < min_d2)
-                continue;
-            if (!room_corners_.empty() &&
-                !corner_visibility::point_in_polygon(p, room_corners_))
-                continue;
-            if (!room_corners_.empty())
+            for (float y = room_min_.y() + res * 0.5f; y < room_max_.y(); y += res)
             {
-                const float wm2 = params.target_wall_margin * params.target_wall_margin;
-                bool too_close = false;
-                for (std::size_t i = 0; i < room_corners_.size(); ++i)
+                const Eigen::Vector2f p{x, y};
+                if (!room_corners_.empty() &&
+                    !corner_visibility::point_in_polygon(p, room_corners_))
+                    continue;
+                if (!room_corners_.empty())
                 {
-                    const auto& a = room_corners_[i];
-                    const auto& b = room_corners_[(i + 1) % room_corners_.size()];
-                    const Eigen::Vector2f ab = b - a;
-                    const float t = std::clamp((p - a).dot(ab) / ab.squaredNorm(), 0.f, 1.f);
-                    if ((p - (a + t * ab)).squaredNorm() < wm2) { too_close = true; break; }
+                    bool too_close = false;
+                    for (std::size_t i = 0; i < room_corners_.size(); ++i)
+                    {
+                        const auto& a = room_corners_[i];
+                        const auto& b = room_corners_[(i + 1) % room_corners_.size()];
+                        const Eigen::Vector2f ab = b - a;
+                        const float t = std::clamp((p - a).dot(ab) / ab.squaredNorm(), 0.f, 1.f);
+                        if ((p - (a + t * ab)).squaredNorm() < wm2) { too_close = true; break; }
+                    }
+                    if (too_close) continue;
                 }
-                if (too_close) continue;
+                cached_grid_.emplace_back(p);
             }
-            candidates.emplace_back(p);
-            if (static_cast<int>(candidates.size()) >= params.max_candidates)
-                return candidates;
         }
+        grid_dirty_ = false;
+    }
+
+    // Filter cached grid by min_distance from robot (dynamic per cycle)
+    const float min_d2 = params.min_distance * params.min_distance;
+    std::vector<Eigen::Vector2f> candidates;
+    candidates.reserve(std::min(static_cast<int>(cached_grid_.size()), params.max_candidates));
+
+    for (const auto& p : cached_grid_)
+    {
+        if ((p - robot_pos()).squaredNorm() < min_d2)
+            continue;
+        candidates.emplace_back(p);
+        if (static_cast<int>(candidates.size()) >= params.max_candidates)
+            break;
     }
     return candidates;
 }
@@ -138,6 +151,7 @@ std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
 
     const Eigen::Matrix3f reg_cov = robot_cov_ + 1e-6f * Eigen::Matrix3f::Identity();
     const Eigen::Matrix3f prior_precision = reg_cov.inverse();
+    const auto now = std::chrono::steady_clock::now();
 
     std::vector<Target> targets;
     targets.reserve(candidates.size());
@@ -149,7 +163,7 @@ std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
         t.distance = (pos - robot_pos()).norm();
         const float fim_gain = score_fim_gain(pos, prior_precision);
         const float dist_bonus = 1.f + params.w_exploration * t.distance;
-        const float ior_bonus = 1.f + params.w_ior * visit_grid_.staleness(pos, params.ior_decay_time);
+        const float ior_bonus = 1.f + params.w_ior * visit_grid_.staleness(pos, params.ior_decay_time, now);
         t.score = fim_gain * dist_bonus * ior_bonus;
         t.eigenvector_score = fim_gain;
         targets.push_back(t);

@@ -1,7 +1,6 @@
 #include "epistemic_controller.h"
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 namespace rc
 {
@@ -22,6 +21,16 @@ void EpistemicController::set_room_bounds(const Eigen::Vector2f& min_corner,
 void EpistemicController::set_room_polygon(const std::vector<Eigen::Vector2f>& vertices)
 {
     epistemic_planner_.set_room_polygon(vertices);
+
+    // Pre-compute edge segment data for wall filtering
+    edge_segments_.clear();
+    edge_segments_.reserve(vertices.size());
+    for (std::size_t i = 0; i < vertices.size(); ++i)
+    {
+        const auto& a = vertices[i];
+        const Eigen::Vector2f ab = vertices[(i + 1) % vertices.size()] - a;
+        edge_segments_.push_back({a, ab, ab.squaredNorm()});
+    }
 }
 
 void EpistemicController::set_robot_state(const Eigen::Affine2f& pose,
@@ -32,8 +41,7 @@ void EpistemicController::set_robot_state(const Eigen::Affine2f& pose,
 
 void EpistemicController::set_lidar_obstacles(std::vector<Eigen::Vector2f> points)
 {
-    const auto& room_corners = epistemic_planner_.room_corners();
-    if (!room_corners.empty() && room_corners.size() >= 3)
+    if (!edge_segments_.empty())
     {
         const float margin2 = params.wall_filter_margin * params.wall_filter_margin;
         std::vector<Eigen::Vector2f> filtered;
@@ -42,13 +50,10 @@ void EpistemicController::set_lidar_obstacles(std::vector<Eigen::Vector2f> point
         for (const auto& p : points)
         {
             bool near_wall = false;
-            for (std::size_t i = 0; i < room_corners.size(); ++i)
+            for (const auto& e : edge_segments_)
             {
-                const auto& a = room_corners[i];
-                const auto& b = room_corners[(i + 1) % room_corners.size()];
-                const Eigen::Vector2f ab = b - a;
-                const float t = std::clamp((p - a).dot(ab) / ab.squaredNorm(), 0.f, 1.f);
-                const float d2 = (p - (a + t * ab)).squaredNorm();
+                const float t = std::clamp((p - e.a).dot(e.ab) / e.ab_sq_norm, 0.f, 1.f);
+                const float d2 = (p - (e.a + t * e.ab)).squaredNorm();
                 if (d2 < margin2) { near_wall = true; break; }
             }
             if (!near_wall)
@@ -60,6 +65,26 @@ void EpistemicController::set_lidar_obstacles(std::vector<Eigen::Vector2f> point
     {
         lidar_obstacles_ = std::move(points);
     }
+}
+
+// ===========================================================================
+// Perceptual-bandwidth speed limit
+// ===========================================================================
+EpistemicController::ControlCommand
+EpistemicController::apply_speed_limit(ControlCommand cmd) const
+{
+    cmd.rot = std::clamp(cmd.rot, -params.max_rot_speed, params.max_rot_speed);
+    const float rot_frac = std::abs(cmd.rot) / std::max(1e-6f, params.max_rot_speed);
+    const float eff_max  = params.max_adv_speed
+                         * std::max(0.f, 1.f - params.bandwidth_coupling * rot_frac);
+    const float adv_norm = std::sqrt(cmd.adv_x * cmd.adv_x + cmd.adv_y * cmd.adv_y);
+    if (adv_norm > eff_max && adv_norm > 1e-6f)
+    {
+        const float scale = eff_max / adv_norm;
+        cmd.adv_x *= scale;
+        cmd.adv_y *= scale;
+    }
+    return cmd;
 }
 
 // ===========================================================================
@@ -106,8 +131,9 @@ EpistemicController::generate_arc_policies(const EpistemicPlanner::Target& targe
                                       -params.max_rot_speed, params.max_rot_speed);
         const float speed = std::max(0.f, nom_speed * (1.f - 0.5f * std::abs(frac)));
 
+        const auto arc_cmd = apply_speed_limit({0.f, speed, rot});
         Policy p;
-        p.commands.resize(params.horizon_steps, {0.f, speed, rot});
+        p.commands.resize(params.horizon_steps, arc_cmd);
         policies.push_back(std::move(p));
     }
 
@@ -154,7 +180,8 @@ void EpistemicController::rollout_policy(Policy& policy) const
 // EFE evaluation
 // ===========================================================================
 void EpistemicController::evaluate_policy_efe(Policy& policy,
-                                            const EpistemicPlanner::Target& target) const
+                                            const EpistemicPlanner::Target& target,
+                                            const Eigen::Matrix3f& prior_precision) const
 {
     float pragmatic = 0.f;
     float boundary  = 0.f;
@@ -216,11 +243,9 @@ void EpistemicController::evaluate_policy_efe(Policy& policy,
                                                        params.fim_max_range);
         if (!vis.empty())
         {
-            const Eigen::Matrix3f reg_cov = epistemic_planner_.robot_cov() + 1e-6f * Eigen::Matrix3f::Identity();
-            const Eigen::Matrix3f prior_prec = reg_cov.inverse();
             const auto fim = corner_visibility::corner_fim(final_pos, final_theta, vis,
                                                             room_corners, params.fim_corner_sigma);
-            epistemic = corner_visibility::d_optimality_gain(prior_prec, fim);
+            epistemic = corner_visibility::d_optimality_gain(prior_precision, fim);
         }
     }
 
@@ -250,11 +275,14 @@ std::optional<EpistemicController::PlanResult> EpistemicController::plan()
     const auto& target = *target_opt;
 
     // ---- Level 2: generate arcs, rollout, evaluate EFE, pick best ----
+    const Eigen::Matrix3f reg_cov = epistemic_planner_.robot_cov() + 1e-6f * Eigen::Matrix3f::Identity();
+    const Eigen::Matrix3f prior_precision = reg_cov.inverse();
+
     auto policies = generate_arc_policies(target);
     for (auto& p : policies)
     {
         rollout_policy(p);
-        evaluate_policy_efe(p, target);
+        evaluate_policy_efe(p, target, prior_precision);
     }
 
     auto best = std::min_element(policies.begin(), policies.end(),
@@ -264,7 +292,7 @@ std::optional<EpistemicController::PlanResult> EpistemicController::plan()
     {
         auto best_policy = *best;
         return PlanResult{
-            .command       = best_policy.commands.front(),
+            .command       = apply_speed_limit(best_policy.commands.front()),
             .target        = target,
             .best_policy   = std::move(best_policy),
             .all_policies  = std::move(policies),
@@ -286,7 +314,7 @@ std::optional<EpistemicController::PlanResult> EpistemicController::plan()
         cmd.adv_y = params.max_adv_speed
                   * std::exp(-0.5f * ae * ae / (params.gaussian_sigma * params.gaussian_sigma));
     }
-    return PlanResult{.command = cmd, .target = target, .best_policy = {}, .valid = true};
+    return PlanResult{.command = apply_speed_limit(cmd), .target = target, .best_policy = {}, .valid = true};
 }
 
 } // namespace rc

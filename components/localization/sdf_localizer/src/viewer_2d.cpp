@@ -8,6 +8,7 @@
 #include <QtMath>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 
@@ -272,7 +273,8 @@ void Viewer2D::draw_lidar_points(const std::vector<Eigen::Vector3f>& points_high
 // ─────────────────────────────────────────────────────────────────────────────
 void Viewer2D::update_frame(const FrameData& fd)
 {
-    draw_lidar_points(fd.lidar_points, {}, fd.display_pose, fd.max_lidar_points);
+    const Eigen::Affine2f& lidar_pose = fd.use_loc_pose ? fd.loc_pose : fd.display_pose;
+    draw_lidar_points(fd.lidar_points, {}, lidar_pose, fd.max_lidar_points);
 
     if (fd.have_loc || fd.is_initialized)
         update_robot(fd.display_pose);
@@ -435,6 +437,86 @@ void Viewer2D::update_target_marker(float x, float y, bool visible)
     }
     epistemic_target_item_->setPos(x, y);
     epistemic_target_item_->setVisible(visible);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trajectory overlay — draw the selected arc as a polyline with dots
+// ─────────────────────────────────────────────────────────────────────────────
+void Viewer2D::draw_trajectory(const std::vector<Eigen::Vector3f>& states)
+{
+    const size_t n = states.size();
+    const size_t n_seg = (n > 1) ? n - 1 : 0;
+
+    // Resize line pool
+    while (traj_line_items_.size() < n_seg)
+    {
+        auto* item = agv_->scene.addLine(0, 0, 0, 0,
+            QPen(QColor(255, 50, 255), 0.07));
+        item->setZValue(35);
+        traj_line_items_.push_back(item);
+    }
+    for (size_t i = 0; i < traj_line_items_.size(); ++i)
+        traj_line_items_[i]->setVisible(i < n_seg);
+
+    // Resize dot pool
+    while (traj_dot_items_.size() < n)
+    {
+        constexpr float r = 0.08f;
+        auto* item = agv_->scene.addEllipse(-r, -r, 2*r, 2*r,
+            QPen(Qt::NoPen), QBrush(QColor(255, 50, 255, 240)));
+        item->setZValue(36);
+        traj_dot_items_.push_back(item);
+    }
+    for (size_t i = 0; i < traj_dot_items_.size(); ++i)
+        traj_dot_items_[i]->setVisible(i < n);
+
+    // Position items
+    for (size_t i = 0; i < n; ++i)
+    {
+        traj_dot_items_[i]->setPos(states[i][0], states[i][1]);
+        if (i > 0)
+            traj_line_items_[i - 1]->setLine(
+                states[i - 1][0], states[i - 1][1],
+                states[i][0], states[i][1]);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+void Viewer2D::draw_all_trajectories(
+    const std::vector<std::vector<Eigen::Vector3f>>& candidates,
+    const std::vector<Eigen::Vector3f>& best)
+{
+    // Count total candidate segments
+    size_t total_segs = 0;
+    for (const auto& c : candidates)
+        if (c.size() > 1) total_segs += c.size() - 1;
+
+    // Resize candidate line pool
+    while (cand_line_items_.size() < total_segs)
+    {
+        auto* item = agv_->scene.addLine(0, 0, 0, 0,
+            QPen(QColor(180, 130, 255, 70), 0.025));
+        item->setZValue(33);
+        cand_line_items_.push_back(item);
+    }
+    for (size_t i = 0; i < cand_line_items_.size(); ++i)
+        cand_line_items_[i]->setVisible(i < total_segs);
+
+    // Position candidate line segments
+    size_t idx = 0;
+    for (const auto& c : candidates)
+    {
+        for (size_t i = 1; i < c.size(); ++i)
+        {
+            cand_line_items_[idx]->setLine(
+                c[i - 1][0], c[i - 1][1],
+                c[i][0], c[i][1]);
+            ++idx;
+        }
+    }
+
+    // Draw the best trajectory on top (thick, opaque)
+    draw_trajectory(best);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

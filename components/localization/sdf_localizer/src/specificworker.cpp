@@ -121,7 +121,8 @@ void SpecificWorker::initialize()
     sdf_layout->addWidget(ts_plot_sdf_);
 
     ts_plot_fe_ = new rc::TimeSeriesPlot(plotFrame2);
-    ts_plot_fe_->add_series("free_energy", QColor(80, 180, 255), 1.5f, 30);
+    ts_plot_fe_->add_series("fe_adam", QColor(80, 180, 255), 1.5f, 30);
+    ts_plot_fe_->add_series("fe_pred", QColor(255, 160, 50), 1.5f, 30);
     ts_plot_fe_->set_visible_window(30.f);
     auto* fe_layout = new QVBoxLayout(plotFrame2);
     fe_layout->setContentsMargins(0, 0, 0, 0);
@@ -175,8 +176,14 @@ void SpecificWorker::compute()
     const Eigen::Affine2f display_pose = forward_project_pose(pose_for_draw, loc_res, lidar_data_->second);
     
     // Update 2D viewer with new scan and pose
+    // Use the localization's own lidar scan when available for spatial consistency
+    const Eigen::Affine2f loc_pose = have_loc ? loc_res->robot_pose : display_pose;
+    const bool use_loc = have_loc && !loc_res->lidar_scan.empty();
+    const std::vector<Eigen::Vector3f>& draw_points =
+        use_loc ? loc_res->lidar_scan : lidar_data_->first;
+
     viewer_2d_->update_frame({
-        .lidar_points    = lidar_data_->first,
+        .lidar_points    = draw_points,
         .display_pose    = display_pose,
         .max_lidar_points = params.MAX_LIDAR_DRAW_POINTS,
         .have_loc        = have_loc,
@@ -184,6 +191,8 @@ void SpecificWorker::compute()
         .has_room_polygon = room_initialized_from_svg_polygon_,
         .room_width      = have_loc ? loc_res->state[0] : 0.f,
         .room_length     = have_loc ? loc_res->state[1] : 0.f,
+        .loc_pose        = loc_pose,
+        .use_loc_pose    = use_loc,
     });
 
     // Draw corner detections if available
@@ -235,72 +244,52 @@ Eigen::Affine2f SpecificWorker::forward_project_pose(
     const std::int64_t lag_ms = (loc_ts > 0) ? (lidar_ts - loc_ts) : 0;
     const float theta_base = std::atan2(base_pose.linear()(1, 0), base_pose.linear()(0, 0));
 
-    float raw_dx = 0.f, raw_dy = 0.f, raw_dtheta = 0.f;
-
+    // Read latest velocity in robot frame
+    float v_adv = 0.f, v_side = 0.f, v_rot = 0.f;
     if (loc_ts > 0)
     {
-        const float dt_s = static_cast<float>(lag_ms) / 1000.0f;
-        if (dt_s > 0.001f && dt_s < 1.0f)
+        if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
         {
-            float v_adv = 0.f, v_side = 0.f, v_rot = 0.f;
-            bool have_vel = false;
-            if (const auto [odom_opt] = odometry_buffer_.read_last(); odom_opt.has_value())
-            {
-                v_adv  = odom_opt->adv;
-                v_side = odom_opt->side;
-                v_rot  = odom_opt->rot;   // odometry buffer is CCW+; use directly
-                have_vel = true;
-            }
-            else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
-            {
-                v_adv  = vel_opt->adv_y;
-                v_side = vel_opt->adv_x;
-                v_rot  = vel_opt->rot;    // velocity buffer is CCW+; use directly
-                have_vel = true;
-            }
-            if (have_vel)
-            {
-                const float cos_t = std::cos(theta_base);
-                const float sin_t = std::sin(theta_base);
-                raw_dx     = (v_side * cos_t - v_adv * sin_t) * dt_s;
-                raw_dy     = (v_side * sin_t + v_adv * cos_t) * dt_s;
-                raw_dtheta = v_rot * dt_s;
-            }
+            v_adv  = odom_opt->adv;
+            v_side = odom_opt->side;
+            v_rot  = odom_opt->rot;
+        }
+        else if (const auto [vel_opt] = velocity_buffer_.read_last(); vel_opt.has_value())
+        {
+            v_adv  = vel_opt->adv_y;
+            v_side = vel_opt->adv_x;
+            v_rot  = vel_opt->rot;
         }
     }
 
-    // EMA smoothing to avoid abrupt jumps between frames
+    // EMA smoothing on velocities (robot frame), not on deltas
     if (!fwd_proj_initialized_)
     {
-        smooth_dx_ = raw_dx;
-        smooth_dy_ = raw_dy;
-        smooth_dtheta_ = raw_dtheta;
+        smooth_v_adv_  = v_adv;
+        smooth_v_side_ = v_side;
+        smooth_v_rot_  = v_rot;
         fwd_proj_initialized_ = true;
     }
     else
     {
-        smooth_dx_     = kAlpha * raw_dx     + (1.f - kAlpha) * smooth_dx_;
-        smooth_dy_     = kAlpha * raw_dy     + (1.f - kAlpha) * smooth_dy_;
-        smooth_dtheta_ = kAlpha * raw_dtheta + (1.f - kAlpha) * smooth_dtheta_;
+        smooth_v_adv_  = kAlpha * v_adv  + (1.f - kAlpha) * smooth_v_adv_;
+        smooth_v_side_ = kAlpha * v_side + (1.f - kAlpha) * smooth_v_side_;
+        smooth_v_rot_  = kAlpha * v_rot  + (1.f - kAlpha) * smooth_v_rot_;
     }
+
+    // Recompute delta from smoothed velocity × current lag
+    const float dt_s = static_cast<float>(lag_ms) / 1000.0f;
+    const float clamped_dt = (dt_s > 0.001f && dt_s < 1.0f) ? dt_s : 0.f;
+    const float cos_t = std::cos(theta_base);
+    const float sin_t = std::sin(theta_base);
+    const float dx     = (smooth_v_side_ * cos_t - smooth_v_adv_ * sin_t) * clamped_dt;
+    const float dy     = (smooth_v_side_ * sin_t + smooth_v_adv_ * cos_t) * clamped_dt;
+    const float dtheta = smooth_v_rot_ * clamped_dt;
 
     Eigen::Affine2f result = base_pose;
-    result.translation() += Eigen::Vector2f(smooth_dx_, smooth_dy_);
-    result.linear() = Eigen::Rotation2Df(theta_base + smooth_dtheta_).toRotationMatrix();
+    result.translation() += Eigen::Vector2f(dx, dy);
+    result.linear() = Eigen::Rotation2Df(theta_base + dtheta).toRotationMatrix();
 
-    // Diagnostic — throttled every 500ms
-    static auto last_diag = std::chrono::steady_clock::now();
-    if (std::chrono::steady_clock::now() - last_diag > std::chrono::milliseconds(500))
-    {
-        last_diag = std::chrono::steady_clock::now();
-        const float theta_after = theta_base + smooth_dtheta_;
-        // std::cout << "[FwdProj] lag_ms=" << lag_ms
-        //           << " th_before=" << theta_base
-        //           << " th_after=" << theta_after
-        //           << " delta=" << smooth_dtheta_
-        //           << " lidar_ts=" << lidar_ts
-        //           << " pose_ts=" << loc_ts << std::endl;
-    }
     return result;
 }
 
@@ -313,10 +302,20 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
     // SDF / Free-Energy status
     if (have_loc)
     {
-        sdfStatusLabel->setText(QString("SDF: %1 m  FE: %2").arg(loc_res->sdf_mse, 0, 'f', 3)
-                                                                .arg(loc_res->final_loss, 0, 'f', 3));
+        const bool used_adam = loc_res->iterations_used > 0;
+        const QString tag = used_adam ? "[Adam]" : "[Pred]";
+        sdfStatusLabel->setText(QString("%1 SDF: %2 m  FE: %3")
+                                    .arg(tag)
+                                    .arg(loc_res->sdf_mse, 0, 'f', 3)
+                                    .arg(loc_res->final_loss, 0, 'f', 3));
         if (ts_plot_sdf_) ts_plot_sdf_->add_point("sdf_mse", loc_res->sdf_mse);
-        if (ts_plot_fe_)  ts_plot_fe_->add_point("free_energy", loc_res->final_loss);
+        if (ts_plot_fe_)
+        {
+            if (used_adam)
+                ts_plot_fe_->add_point("fe_adam", loc_res->final_loss);
+            else
+                ts_plot_fe_->add_point("fe_pred", loc_res->final_loss);
+        }
     }
     else
         sdfStatusLabel->setText("SDF: n/a");
@@ -432,7 +431,7 @@ void SpecificWorker::slot_self_target_toggled(bool checked)
         // Stop the robot, clear planner target, hide target marker
         try { omnirobot_proxy->setSpeedBase(0.f, 0.f, 0.f); }
         catch (const Ice::Exception& e) { qWarning() << "[SelfTarget] stop failed:" << e.what(); }
-        epistemic_planner_.clear_target();
+        epistemic_controller_.clear_target();
         viewer_2d_->update_target_marker(0.f, 0.f, false);
         qInfo() << "[UI] Self-targeting disabled, robot stopped";
     }
@@ -448,27 +447,58 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     // Room bounds from localized state: state = [half_w, half_h, x, y, theta]
     const float hw = loc_res->state[0];
     const float hh = loc_res->state[1];
-    epistemic_planner_.set_room_bounds({-hw, -hh}, {hw, hh});
-    epistemic_planner_.set_robot_state(loc_res->robot_pose, cov);
+    epistemic_controller_.set_room_bounds({-hw, -hh}, {hw, hh});
+    epistemic_controller_.set_robot_state(loc_res->robot_pose, cov);
+
+    // Pass room polygon for FIM-based corner visibility scoring
+    const auto& poly = room_concept_.polygon_vertices();
+    if (!poly.empty())
+        epistemic_controller_.set_room_polygon(poly);
 
     // Pass floor-projected obstacle cloud
     if (obstacles.has_value())
-        epistemic_planner_.set_lidar_obstacles(*obstacles);
+        epistemic_controller_.set_lidar_obstacles(*obstacles);
 
     // Plan and execute
-    auto result = epistemic_planner_.plan();
+    auto result = epistemic_controller_.plan();
     if (!result || !result->valid)
         return;
 
     // Diagnostic: covariance diag and target type
-    qInfo() << "[SelfTarget] cov_diag:" << cov(0,0) << cov(1,1) << cov(2,2)
-            << "rotate_in_place:" << result->target.rotate_in_place
-            << "cmd: lat=" << result->command.adv_x << "fwd=" << result->command.adv_y
-            << "rot=" << result->command.rot;
+    const Eigen::Vector2f robot_p{loc_res->robot_pose.translation()};
+    const float dist_to_tgt = (result->target.position - robot_p).norm();
+    const Eigen::Vector2f tb_diag = loc_res->robot_pose.inverse() * result->target.position;
+    const float angle_err_diag = std::atan2(-tb_diag.x(), tb_diag.y());
+
+    qInfo().nospace()
+        << "[SelfTarget] d=" << QString::number(dist_to_tgt, 'f', 2)
+        << " ae=" << QString::number(angle_err_diag, 'f', 2)
+        << " cmd:(" << QString::number(result->command.adv_x, 'f', 3)
+        << "," << QString::number(result->command.adv_y, 'f', 3)
+        << "," << QString::number(result->command.rot, 'f', 2)
+        << ") efe=" << QString::number(result->best_policy.efe, 'f', 1)
+        << " epist=" << QString::number(result->best_policy.epistemic_value, 'f', 2)
+        << " pragm=" << QString::number(result->best_policy.pragmatic_value, 'f', 2)
+        << " obs=" << QString::number(result->best_policy.obstacle_value, 'f', 1)
+        << " bnd=" << QString::number(result->best_policy.boundary_value, 'f', 1)
+        << " tgt:(" << QString::number(result->target.position.x(), 'f', 1)
+        << "," << QString::number(result->target.position.y(), 'f', 1)
+        << ") rot_ip:" << result->target.rotate_in_place;
 
     // Show target on the 2D canvas
     const auto& tgt = result->target.position;
     viewer_2d_->update_target_marker(tgt.x(), tgt.y(), true);
+
+    // Draw the selected trajectory arc (and candidates)
+    if (!result->best_policy.predicted_states.empty())
+    {
+        std::vector<std::vector<Eigen::Vector3f>> cand_states;
+        cand_states.reserve(result->all_policies.size());
+        for (const auto& p : result->all_policies)
+            if (!p.predicted_states.empty())
+                cand_states.push_back(p.predicted_states);
+        viewer_2d_->draw_all_trajectories(cand_states, result->best_policy.predicted_states);
+    }
 
     const auto& cmd = result->command;
     try
@@ -483,9 +513,10 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
 
     // Buffer the command velocity so forward projection and SDF prediction can use it.
     rc::VelocityCommand vel_cmd(cmd.adv_x, cmd.adv_y, cmd.rot);
-    const auto ts = static_cast<std::uint64_t>(
+    vel_cmd.recv_ts_ms = static_cast<std::int64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
+    const auto ts = static_cast<std::uint64_t>(vel_cmd.recv_ts_ms);
     velocity_buffer_.put<0>(std::move(vel_cmd), ts);
 }
 
@@ -698,8 +729,10 @@ void SpecificWorker::JoystickAdapter_sendData(RoboCompJoystickAdapter::TData dat
 			cmd.adv_x = 0.0f; // not lateral motion allowed
 	}
     cmd.timestamp = std::chrono::high_resolution_clock::now();
-    const auto ts = static_cast<std::uint64_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    cmd.recv_ts_ms = static_cast<std::int64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+    const auto ts = static_cast<std::uint64_t>(cmd.recv_ts_ms);
 	velocity_buffer_.put<0>(std::move(cmd), ts);
 }
 
@@ -718,9 +751,13 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     };
 
     rc::OdometryReading odom;
-    odom.adv  = add_noise(pose.adv);    // forward velocity, m/s
+    odom.adv  = add_noise(-pose.adv);    // forward velocity, m/s
     odom.side = add_noise(pose.side);   // lateral velocity, m/s
     odom.rot  = add_noise(pose.rot);   // FPE is CCW+ after proto fix; store directly
+    odom.source_ts_ms = pose.timestamp; // sensor-side epoch-ms
+    odom.recv_ts_ms   = static_cast<std::int64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
     odom.timestamp = std::chrono::high_resolution_clock::time_point(
         std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(

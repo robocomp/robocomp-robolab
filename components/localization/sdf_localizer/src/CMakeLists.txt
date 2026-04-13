@@ -60,12 +60,8 @@ endif()
 
 # 1. Enable CUDA language so CMake initializes detection scripts
 enable_language(CUDA)
-
-
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-
-
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 
@@ -77,7 +73,9 @@ LIST(APPEND SOURCES
   ../src/room_concept.cpp
   ../src/room_model.cpp
   ../src/pointcloud_center_estimator.cpp
+  ../src/epistemic_controller.cpp
   ../src/epistemic_planner.cpp
+  
   ../src/timeseries_plot.cpp
   ../src/corner_detector.cpp
 )
@@ -90,16 +88,15 @@ LIST(APPEND HEADERS
   ../src/room_concept.h
   ../src/room_model.h
   ../src/pointcloud_center_estimator.h
+  ../src/epistemic_controller.h
   ../src/epistemic_planner.h
+  
+  ../src/corner_visibility.h
   ../src/timeseries_plot.h
   ../src/corner_detector.h
 )
-
-
 LIST(APPEND LIBS ${LIBS} "${TORCH_LIBRARIES}" tbb Qt6PrintSupport Qt6Xml
             Eigen3::Eigen Boost::system Boost::filesystem )
-
-
 # no-char8_t to avoid a problem with ICE Connection lib.
 #add_definitions(-O3 -flto -fmax-errors=1 -fno-char8_t)
 add_definitions(-O3 -fmax-errors=1 -fno-char8_t)

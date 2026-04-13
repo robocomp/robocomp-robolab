@@ -92,6 +92,8 @@ class Viewer2D : public QObject
             bool has_room_polygon;
             float room_width;
             float room_length;
+            Eigen::Affine2f loc_pose;    // Raw localization pose (no forward projection)
+            bool use_loc_pose;           // If true, draw lidar with loc_pose
         };
         void update_frame(const FrameData& fd);
     
@@ -111,6 +113,13 @@ class Viewer2D : public QObject
         // ----- Epistemic target marker -----
         /// Show a target marker at the given room-frame position, or hide it.
         void update_target_marker(float x, float y, bool visible);
+
+        /// Draw the selected arc trajectory as a polyline on the canvas.
+        void draw_trajectory(const std::vector<Eigen::Vector3f>& predicted_states);
+
+        /// Draw all candidate trajectories as faded polylines, then the best one on top.
+        void draw_all_trajectories(const std::vector<std::vector<Eigen::Vector3f>>& candidates,
+                                   const std::vector<Eigen::Vector3f>& best);
 
         /// Draw detected corners: green circles for accepted, yellow for predicted/in-FOV
         void draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& matches,
@@ -163,6 +172,13 @@ class Viewer2D : public QObject
         std::vector<QGraphicsEllipseItem*> corner_detected_items_;
         std::vector<QGraphicsEllipseItem*> corner_predicted_items_;
         std::vector<QGraphicsLineItem*>    corner_line_items_;
+
+        // Trajectory overlay
+        std::vector<QGraphicsLineItem*>   traj_line_items_;
+        std::vector<QGraphicsEllipseItem*> traj_dot_items_;
+
+        // Candidate trajectory overlay (faded)
+        std::vector<QGraphicsLineItem*>   cand_line_items_;
 
     };
 

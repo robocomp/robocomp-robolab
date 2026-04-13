@@ -899,6 +899,8 @@ namespace rc
         if (lidar.first.empty() || model_ == nullptr)
             return res;
 
+        res.lidar_scan = lidar.first;   // store scan for synchronized visualization
+
         // ===== MANUAL RESET: skip optimization during settle period =====
         if (manual_reset_frames_ > 0)
         {
@@ -1023,6 +1025,7 @@ namespace rc
         {
             early->corners_in_fov = res.corners_in_fov;
             early->corner_matches = std::move(res.corner_matches);
+            early->lidar_scan = std::move(res.lidar_scan);
             return *early;
         }
 
@@ -1255,7 +1258,9 @@ namespace rc
     {
         auto window_params = window_mgr_.collect_params();
 
-        const float lr = params.learning_rate_pos;
+        const int ws = static_cast<int>(window_mgr_.size());
+        const float ws_scale = 1.0f / std::sqrt(static_cast<float>(std::max(1, ws)));
+        const float lr = params.learning_rate_pos * ws_scale;
         torch::optim::Adam optimizer(
             {torch::optim::OptimizerParamGroup(window_params,
                 std::make_unique<torch::optim::AdamOptions>(lr))});
@@ -1456,10 +1461,10 @@ namespace rc
 
         // Integrate over all velocity commands in [t_start, t_end]
         for (size_t i = 0; i < velocity_history.size(); ++i) {
-            const auto&[adv_x, adv_z, rot, timestamp] = velocity_history[i];
+            const auto& vcmd = velocity_history[i];
 
             // Get time window for this command
-            auto cmd_start = timestamp;
+            auto cmd_start = vcmd.timestamp;
             auto cmd_end = (i + 1 < velocity_history.size())
                            ? velocity_history[i + 1].timestamp
                            : t_end;
@@ -1475,14 +1480,15 @@ namespace rc
             if (dt <= 0) continue;
 
             // Integrate this segment
-            const float dx_local = (adv_x * dt);
-            const float dy_local = (adv_z * dt);
+            const float dx_local = (vcmd.adv_x * dt);
+            const float dy_local = (vcmd.adv_y * dt);
 
-            const float dtheta = rot * dt;   // velocity buffer is CCW+; use directly
+            const float dtheta = vcmd.rot * dt;   // velocity buffer is CCW+; use directly
 
-            // Transform to global frame using RUNNING theta
-            total_delta[0] += dx_local * std::cos(running_theta) - dy_local * std::sin(running_theta);
-            total_delta[1] += dx_local * std::sin(running_theta) + dy_local * std::cos(running_theta);
+            // Transform to global frame using MIDPOINT theta (reduces integration bias)
+            const float theta_mid = running_theta + 0.5f * dtheta;
+            total_delta[0] += dx_local * std::cos(theta_mid) - dy_local * std::sin(theta_mid);
+            total_delta[1] += dx_local * std::sin(theta_mid) + dy_local * std::cos(theta_mid);
             total_delta[2] += dtheta;
 
             // Update running theta for next segment
@@ -1546,11 +1552,13 @@ namespace rc
         auto Q = predict_Q_;
         // Reset the variable elements
         if (is_localized) {
-            F[0][2] = -dy_local * sin_t - dx_local * cos_t;
-            F[1][2] =  dy_local * cos_t - dx_local * sin_t;
+            // ∂x/∂θ = -dx_local·sin(θ) - dy_local·cos(θ)
+            // ∂y/∂θ =  dx_local·cos(θ) - dy_local·sin(θ)
+            F[0][2] = -dx_local * sin_t - dy_local * cos_t;
+            F[1][2] =  dx_local * cos_t - dy_local * sin_t;
         } else {
-            F[2][4] = -dy_local * sin_t - dx_local * cos_t;
-            F[3][4] =  dy_local * cos_t - dx_local * sin_t;
+            F[2][4] = -dx_local * sin_t - dy_local * cos_t;
+            F[3][4] =  dx_local * cos_t - dy_local * sin_t;
         }
 
         // ===== PROCESS NOISE =====
@@ -1662,9 +1670,10 @@ namespace rc
             const float dy_local = odom.adv * dt;    // forward (Y in robot frame)
             const float dtheta = odom.rot * dt;      // odometry buffer is CCW+; use directly
 
-            // Transform to global frame using running theta
-            total_delta[0] += dx_local * std::cos(running_theta) - dy_local * std::sin(running_theta);
-            total_delta[1] += dx_local * std::sin(running_theta) + dy_local * std::cos(running_theta);
+            // Transform to global frame using MIDPOINT theta (reduces integration bias)
+            const float theta_mid = running_theta + 0.5f * dtheta;
+            total_delta[0] += dx_local * std::cos(theta_mid) - dy_local * std::sin(theta_mid);
+            total_delta[1] += dx_local * std::sin(theta_mid) + dy_local * std::cos(theta_mid);
             total_delta[2] += dtheta;
 
             running_theta += dtheta;
@@ -1681,10 +1690,15 @@ namespace rc
         prior.valid = false;
         const auto& [points, lidar_timestamp] = lidar;
 
-        if (last_lidar_timestamp == 0 || odometry_history.empty() || !last_update_result.ok)
+        const int64_t prev_ts = last_update_result.timestamp_ms;
+        if (prev_ts == 0 || odometry_history.empty() || !last_update_result.ok)
             return prior;
+        const auto dt = lidar_timestamp - prev_ts;
+        // prior.delta_pose = integrate_odometry_over_window(..., prev_ts, lidar_timestamp);
 
-        const auto dt = lidar_timestamp - last_lidar_timestamp;
+        // if (last_lidar_timestamp == 0 || odometry_history.empty() || !last_update_result.ok)
+        //     return prior;
+        // const auto dt = lidar_timestamp - last_lidar_timestamp;
         if (dt <= 0)
             return prior;
         prior.dt = static_cast<float>(dt);
@@ -1692,7 +1706,7 @@ namespace rc
         prior.delta_pose = integrate_odometry_over_window(
             last_update_result.robot_pose,
             odometry_history,
-            last_lidar_timestamp,
+            prev_ts,
             lidar_timestamp);
 
         prior.valid = true;
@@ -1928,6 +1942,8 @@ namespace rc
         }
 
         // --- 4. Corner observation factors (newest slots only, Huber-saturated) ---
+        if (params.enable_corner_tracking)
+        {
         const float corner_inv_var = 1.0f / (params.corner_obs_sigma * params.corner_obs_sigma);
         const float corner_huber = params.corner_huber_delta;
         const int corner_start = std::max(0, static_cast<int>(window.size()) - params.corner_max_slots);
@@ -1966,6 +1982,7 @@ namespace rc
                 total_loss = total_loss + corner_loss;
             }
         }
+        } // enable_corner_tracking
 
         return total_loss;
     }

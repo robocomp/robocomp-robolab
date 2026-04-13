@@ -145,7 +145,7 @@ public:
 
         // ===== Adam Convergence =====
         float convergence_relative_tol = 0.01f;       // Relative loss-change stopping criterion
-        int convergence_min_iters = 5;                 // Minimum iterations before convergence check
+        int convergence_min_iters = 8;                 // Minimum iterations before convergence check
 
         // ===== Covariance Numerics =====
         float eigenvalue_clamp_posterior = 1e-4f;      // Min eigenvalue for posterior precision
@@ -167,6 +167,7 @@ public:
         float combined_motion_weight = 1.2f;           // Weight when both translating and rotating
 
         // ===== Corner Detection =====
+        bool  enable_corner_tracking = true;      // Master switch for corner factors in Adam loss
         float corner_obs_sigma = 0.04f;                // Corner measurement noise (meters)
         int   min_tracking_steps_for_corners = 5;      // Require this many tracking steps before adding corner factors
         int   corner_max_slots = 5;                    // Only apply corner factors to the newest N slots
@@ -207,6 +208,9 @@ public:
         // Corner detections for this frame (world frame, for drawing)
         std::vector<CornerDetector::CornerMatch> corner_matches;
         int corners_in_fov = 0;
+
+        // The lidar scan used for this result (robot frame, synchronized with robot_pose)
+        std::vector<Eigen::Vector3f> lidar_scan;
     };
 
     struct OdometryPrior
@@ -270,6 +274,7 @@ public:
     // ----- Initialization configuration -----
     void configure_room_from_polygon(const std::vector<Eigen::Vector2f>& polygon_vertices);
     void configure_room_from_rect(float width, float length);
+    const std::vector<Eigen::Vector2f>& polygon_vertices() const { return init_polygon_vertices_; }
     void set_seed_pose_file(const std::string& pose_file_path);
 
     void set_initial_state(float width, float length, float x, float y, float phi);

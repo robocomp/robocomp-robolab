@@ -2,119 +2,65 @@
 
 #include <vector>
 #include <optional>
-#include <functional>
 #include <chrono>
-#include <random>
 #include <Eigen/Dense>
+#include "corner_visibility.h"
 
 namespace rc
 {
 
 /**
- * EpistemicPlanner
- * ================
- * Active-inference action layer with a two-stage pipeline:
+ * EpistemicPlanner — Level 1: FIM-based information-gain target selection
+ * =====================================================================
+ * Generates candidate positions on a grid inside the room, scores them
+ * using the Fisher-Information-Matrix D-optimality gain, exploration
+ * distance bonus, and an Inhibition-of-Return (IoR) spatial visit grid,
+ * then returns the best candidate as the planner's navigation target.
  *
- * Stage 1 — Target selection (fast heuristics, no EFE):
- *  1a. Geometric: dominant uncertainty eigenvector + corner proximity.
- *  1b. Angular: detect heading-dominated uncertainty → rotate-in-place.
- *  2.  SDF surprise: predicted mean |SDF| at each candidate.
- *
- * Stage 2 — Policy evaluation (Expected Free Energy):
- *  Sample action policies (constant-command control sequences) toward the
- *  selected target, rollout their predicted trajectories via the kinematic
- *  model, evaluate each policy's EFE:
- *      G(π) = -w_e · epistemic(π) + w_p · pragmatic(π) + boundary(π)
- *  where epistemic = mutual information at the final predicted state and
- *  pragmatic = accumulated squared distance to the preferred state (target).
- *  The first control command of the minimum-EFE policy is returned.
+ * Also handles angular-dominance detection (rotate-in-place), target
+ * lifecycle (arrival, dwell timer), and visit-grid bookkeeping.
  */
 class EpistemicPlanner
 {
 public:
     struct Params
     {
-        // ---- Stage 1: target selection ----
         float grid_resolution = 0.25f;       // spacing between candidate targets (m)
-        float min_distance = 0.3f;           // ignore candidates closer than this to robot (m)
-        float max_distance = 5.0f;           // ignore candidates farther than this from robot (m)
+        float min_distance = 1.0f;           // ignore candidates closer than this to robot (m)
         int   max_candidates = 200;          // cap on number of evaluated candidates
+        float target_wall_margin = 1.0f;     // reject targets closer than this to walls (m)
 
         float w_eigenvector = 1.0f;          // weight: alignment with dominant uncertainty axis
         float w_corner      = 0.5f;          // weight: proximity to room corners
         float angular_dominance_ratio = 50.0f; // σ²_θ / max(σ²_x, σ²_y) threshold
-        float w_sdf_surprise = 2.0f;         // weight: SDF surprise score
+        float w_sdf_surprise = 2.0f;         // weight: SDF surprise score (legacy)
+        float w_exploration  = 0.5f;         // weight: linear distance bonus (explore farther)
 
-        // ---- Stage 2: policy sampling & EFE ----
-        int   num_policies   = 30;           // number of sampled policies (+ 1 nominal)
-        int   horizon_steps  = 10;           // planning horizon steps
-        float dt             = 0.2f;         // seconds per horizon step
-        float max_adv_speed  = 0.3f;         // max translational speed (m/s)
-        float max_rot_speed  = 0.5f;         // max angular speed (rad/s)
-        float policy_noise_lin = 0.1f;       // std dev of linear velocity noise (m/s)
-        float policy_noise_rot = 0.2f;       // std dev of angular velocity noise (rad/s)
-        float w_epistemic    = 1.0f;         // EFE weight: information gain
-        float w_pragmatic    = 1.0f;         // EFE weight: distance to preferred state
-        float w_boundary     = 10.0f;        // penalty per step outside room bounds
+        // ---- Inhibition of Return (visit grid) ----
+        float ior_cell_size   = 0.5f;        // spatial resolution of the visit grid (m)
+        float ior_decay_time  = 120.0f;      // seconds until a visited cell is fully "stale" again
+        float w_ior           = 2.0f;        // weight: staleness bonus
+
+        // ---- FIM scoring ----
+        float fim_corner_sigma  = 0.04f;     // isotropic corner detection noise σ (m)
+        float fim_max_range     = 10.0f;     // max range for corner visibility (m)
+
+        // ---- Target lifecycle ----
         float arrival_distance = 0.15f;      // target reached threshold (m)
-        float dwell_time = 2.0f;                // seconds to stop after reaching a target
-
-        // ---- Simple angle-distance controller gains ----
-        float k_rot  = 2.0f;                   // proportional gain for heading error (rad/s per rad)
-        float gaussian_sigma = 0.5f;            // σ for gaussian speed profile (rad)
-
-        // ---- Obstacle avoidance (lidar floor projection) ----
-        float obstacle_radius  = 0.5f;         // interaction distance around each lidar point (m)
-        float obstacle_k       = 1.0f;         // repulsive potential gain: k / d²
-        float w_obstacle       = 5.0f;         // EFE weight for obstacle cost
+        float dwell_time       = 2.0f;       // seconds to stop after reaching a target
     };
 
-    /// Control command in robot body frame (adv_x = lateral, adv_y = forward)
-    struct ControlCommand
-    {
-        float adv_x = 0.f;   // lateral speed (m/s)
-        float adv_y = 0.f;   // forward speed (m/s)
-        float rot   = 0.f;   // angular speed (rad/s)
-    };
-
-    /// Scored candidate target in room frame (Stage 1 output)
+    /// Scored candidate target in room frame
     struct Target
     {
-        Eigen::Vector2f position{0.f, 0.f};  // room-frame (x, y)
-        float score = 0.0f;                  // composite heuristic score (higher = better)
-        float distance = 0.0f;               // distance from current robot position
-
-        // Sub-scores (for diagnostics)
+        Eigen::Vector2f position{0.f, 0.f};
+        float score = 0.0f;
+        float distance = 0.0f;
         float eigenvector_score = 0.0f;
         float corner_score = 0.0f;
         float sdf_surprise_score = 0.0f;
-        bool  rotate_in_place = false;       // heading uncertainty dominates → rotate only
+        bool  rotate_in_place = false;
     };
-
-    /// A sampled action policy with its predicted trajectory and EFE
-    struct Policy
-    {
-        std::vector<ControlCommand> commands;              // one per horizon step
-        std::vector<Eigen::Vector3f> predicted_states;     // [x, y, θ] per step (size = horizon+1)
-        float efe             = 0.f;                       // total expected free energy (lower = better)
-        float epistemic_value = 0.f;                       // information gain component
-        float pragmatic_value = 0.f;                       // goal-distance component
-    };
-
-    /// Result of plan(): the first control command to execute
-    struct PlanResult
-    {
-        ControlCommand command;       // first action of the best policy
-        Target         target;        // the selected preferred state
-        Policy         best_policy;   // winning policy (for visualisation)
-        bool           valid = false;
-    };
-
-    /// Callback: (candidate_xy, robot_theta) → mean |SDF| at that pose.
-    using SdfEvalFn = std::function<float(const Eigen::Vector2f&, float)>;
-
-    /// Callback: (position, theta) → 3×3 predicted posterior covariance.
-    using PosteriorCovFn = std::function<Eigen::Matrix3f(const Eigen::Vector2f&, float)>;
 
     EpistemicPlanner();
     explicit EpistemicPlanner(Params params);
@@ -123,40 +69,36 @@ public:
     void set_room_bounds(const Eigen::Vector2f& min_corner, const Eigen::Vector2f& max_corner);
     void set_room_polygon(const std::vector<Eigen::Vector2f>& vertices);
     void set_robot_state(const Eigen::Affine2f& pose, const Eigen::Matrix3f& covariance);
-    void set_sdf_eval(SdfEvalFn fn);
-    void set_posterior_cov_eval(PosteriorCovFn fn);
 
-    /// Set floor-projected lidar points (room frame) for obstacle avoidance.
-    void set_lidar_obstacles(std::vector<Eigen::Vector2f> points);
-
-    /// Main entry: select target → drive toward it → return command.
-    std::optional<PlanResult> plan();
-
-    /// Clear the current target (e.g. when self-targeting is toggled off).
-    void clear_target() { current_target_.reset(); }
-
-    /// Stage 1 only: select best target by heuristic scoring (no EFE).
+    // ---- Target selection (public API) ----
+    std::vector<Target> evaluate_targets() const;
     std::optional<Target> select_target() const;
 
-    /// Stage 1: generate and score all candidate targets (sorted, highest score first).
-    std::vector<Target> evaluate_targets() const;
+    /// Called every plan cycle.  Returns the current navigation target,
+    /// handling dwell and arrival logic internally.  Returns std::nullopt
+    /// only when no valid target can be found.
+    std::optional<Target> update_target();
+
+    void clear_target() { current_target_.reset(); }
+    const std::optional<Target>& current_target() const { return current_target_; }
+
+    // ---- Accessors needed by Level 2 ----
+    Eigen::Vector2f robot_pos() const { return robot_pose_.translation(); }
+    float robot_theta() const { return std::atan2(robot_pose_.linear()(1,0), robot_pose_.linear()(0,0)); }
+    const Eigen::Affine2f& robot_pose() const { return robot_pose_; }
+    const Eigen::Matrix3f& robot_cov()  const { return robot_cov_; }
+    const std::vector<Eigen::Vector2f>& room_corners() const { return room_corners_; }
+    const Eigen::Vector2f& room_min() const { return room_min_; }
+    const Eigen::Vector2f& room_max() const { return room_max_; }
+    bool room_bounds_set() const { return room_bounds_set_; }
 
     Params params;
 
 private:
-    // ---- Stage 1: target selection ----
     std::vector<Eigen::Vector2f> generate_candidates() const;
-    void decompose_uncertainty(Eigen::Vector2f& dominant_dir, float& eigenvalue_ratio) const;
-    float score_eigenvector_alignment(const Eigen::Vector2f& candidate,
-                                      const Eigen::Vector2f& dominant_dir) const;
-    float score_corner_proximity(const Eigen::Vector2f& candidate) const;
     bool is_angular_dominated() const;
-    float score_sdf_surprise(const Eigen::Vector2f& candidate) const;
-
-    // ---- Stage 2: policy sampling & EFE ----
-    std::vector<Policy> sample_policies(const Target& target) const;
-    void rollout_policy(Policy& policy) const;
-    void evaluate_policy_efe(Policy& policy, const Target& target) const;
+    float score_fim_gain(const Eigen::Vector2f& candidate,
+                         const Eigen::Matrix3f& prior_precision) const;
 
     // ---- State ----
     Eigen::Vector2f room_min_{0, 0};
@@ -169,21 +111,57 @@ private:
     Eigen::Matrix3f robot_cov_ = Eigen::Matrix3f::Identity();
     bool robot_state_set_ = false;
 
-    // Convenience accessors
-    Eigen::Vector2f robot_pos() const { return robot_pose_.translation(); }
-    float robot_theta() const { return std::atan2(robot_pose_.linear()(1,0), robot_pose_.linear()(0,0)); }
-
-    SdfEvalFn sdf_eval_fn_;
-    PosteriorCovFn posterior_cov_fn_;
-    std::vector<Eigen::Vector2f> lidar_obstacles_;   // floor-projected lidar points (room frame)
-    mutable std::mt19937 rng_{42};
-
-    // Persistent target in room frame (fixed until arrived or cleared)
+    // Persistent target
     std::optional<Target> current_target_;
-
-    // Dwell timer: robot stops for dwell_time seconds after reaching a target
     std::chrono::steady_clock::time_point dwell_until_{};
     bool dwelling_ = false;
+
+    // ---- Inhibition of Return: spatial visit grid ----
+    struct VisitGrid
+    {
+        std::vector<std::chrono::steady_clock::time_point> cells;
+        int cols = 0, rows = 0;
+        float cell_size = 0.5f;
+        Eigen::Vector2f origin{0.f, 0.f};
+        bool initialized = false;
+
+        void init(const Eigen::Vector2f& room_min, const Eigen::Vector2f& room_max, float cs)
+        {
+            cell_size = cs;
+            origin = room_min;
+            cols = static_cast<int>(std::ceil((room_max.x() - room_min.x()) / cell_size));
+            rows = static_cast<int>(std::ceil((room_max.y() - room_min.y()) / cell_size));
+            cols = std::max(1, cols);
+            rows = std::max(1, rows);
+            cells.assign(cols * rows, std::chrono::steady_clock::time_point{});
+            initialized = true;
+        }
+
+        int to_index(const Eigen::Vector2f& pos) const
+        {
+            int c = static_cast<int>((pos.x() - origin.x()) / cell_size);
+            int r = static_cast<int>((pos.y() - origin.y()) / cell_size);
+            c = std::clamp(c, 0, cols - 1);
+            r = std::clamp(r, 0, rows - 1);
+            return r * cols + c;
+        }
+
+        void mark_visited(const Eigen::Vector2f& pos)
+        {
+            if (!initialized) return;
+            cells[to_index(pos)] = std::chrono::steady_clock::now();
+        }
+
+        float staleness(const Eigen::Vector2f& pos, float decay_s) const
+        {
+            if (!initialized) return 1.f;
+            const auto& tp = cells[to_index(pos)];
+            if (tp == std::chrono::steady_clock::time_point{}) return 1.f;
+            const float elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - tp).count();
+            return std::min(1.f, elapsed / std::max(0.1f, decay_s));
+        }
+    };
+    VisitGrid visit_grid_;
 };
 
 } // namespace rc

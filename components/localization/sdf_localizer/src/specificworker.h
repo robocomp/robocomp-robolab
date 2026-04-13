@@ -31,7 +31,7 @@
 #include <genericworker.h>
 #include "buffer_types.h"
 #include "room_concept.h"
-#include "epistemic_planner.h"
+#include "epistemic_controller.h"
 #include "viewer_2d.h"
 #include "timeseries_plot.h"
 #include <atomic>
@@ -142,7 +142,7 @@ class SpecificWorker : public GenericWorker
 		int rfe_saved_window_size_ = 10;  // saved value when RFE is toggled off
 
 		// Epistemic planner (active inference self-targeting)
-		rc::EpistemicPlanner epistemic_planner_;
+		rc::EpistemicController epistemic_controller_;
 		bool self_target_active_ = false;
 		void navigate_to_target(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		                        const std::optional<rc::ObstacleData>& obstacles);
@@ -167,8 +167,8 @@ class SpecificWorker : public GenericWorker
 		Eigen::Affine2f forward_project_pose(const Eigen::Affine2f& base_pose,
 		                                     const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		                                     std::int64_t lidar_ts);
-		// EMA state for smoothing forward projection deltas
-		float smooth_dx_ = 0.f, smooth_dy_ = 0.f, smooth_dtheta_ = 0.f;
+		// EMA state for smoothing forward projection velocities (robot frame)
+		float smooth_v_adv_ = 0.f, smooth_v_side_ = 0.f, smooth_v_rot_ = 0.f;
 		bool fwd_proj_initialized_ = false;
 
 		void initialize_room_model_from_svg();

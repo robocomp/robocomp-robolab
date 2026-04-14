@@ -581,4 +581,51 @@ void Viewer2D::draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& 
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Score grid overlay — soft-toned coloured rectangles per cell
+// ─────────────────────────────────────────────────────────────────────────────
+void Viewer2D::draw_score_grid(const std::vector<std::pair<Eigen::Vector2f, float>>& cells,
+                               float cell_size)
+{
+    // Find max score for normalisation
+    float max_score = 1e-9f;
+    for (const auto& [center, score] : cells)
+        max_score = std::max(max_score, score);
+
+    const std::size_t n = cells.size();
+
+    // Grow pool if needed
+    while (score_grid_items_.size() < n)
+    {
+        auto* item = agv_->scene.addRect(0, 0, cell_size, cell_size);
+        item->setZValue(-5);          // behind everything else
+        item->setPen(Qt::NoPen);
+        score_grid_items_.push_back(item);
+    }
+
+    // Update visible items
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        const auto& [center, score] = cells[i];
+        const float t = score / max_score;             // 0..1
+
+        // Interpolate:  low = pale blue (cool)  →  high = warm orange/red
+        const int r = static_cast<int>(30 + 225 * t);
+        const int g = static_cast<int>(120 - 60 * t);
+        const int b = static_cast<int>(200 * (1.f - t));
+        const int a = static_cast<int>(40 + 60 * t);  // soft transparency
+
+        auto* item = score_grid_items_[i];
+        item->setRect(center.x() - cell_size * 0.5f,
+                      center.y() - cell_size * 0.5f,
+                      cell_size, cell_size);
+        item->setBrush(QColor(r, g, b, a));
+        item->setVisible(true);
+    }
+
+    // Hide excess items
+    for (std::size_t i = n; i < score_grid_items_.size(); ++i)
+        score_grid_items_[i]->setVisible(false);
+}
+
 } // namespace rc

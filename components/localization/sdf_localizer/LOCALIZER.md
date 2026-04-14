@@ -690,10 +690,13 @@ For each candidate position $\mathbf{p}$, the planner:
    moving to $\mathbf{p}$ would yield the largest posterior precision
    increase.
 
-Candidates are sorted by composite score (descending), and the top candidate
-becomes the planner's **current target**.  The target is held fixed until
-the robot arrives within `arrival_distance` (0.15 m), at which point
-it dwells for `dwell_time` (2 s) and then selects a new target.
+Candidates are scored by composite score (descending).  Rather than
+greedy top-1 selection, the planner draws a **weighted random sample**
+from all candidates using `std::discrete_distribution`, where each
+candidate's probability is proportional to its composite score.  This
+ensures high-scoring cells are likely to be chosen while still allowing
+occasional exploration of lower-ranked alternatives, preventing
+repetitive cycling through the same cells.
 
 ### 11.4 Exploration Distance Bonus
 
@@ -720,10 +723,21 @@ inspired by attentional neuroscience.
 #### Data structure
 
 A coarse grid of cells (`ior_cell_size` = 0.5 m) covers the room.
-Each cell stores the last time $t_{\mathrm{visit}}$ the robot occupied it.
-All cells start at epoch (maximally stale).  The grid is initialised once
-when `set_room_bounds()` is called, and the robot's current cell is
-stamped at the beginning of every `plan()` call.
+Each cell stores two attributes:
+
+1. **Last visit time** $t_{\mathrm{visit}}$ — stamped whenever the robot
+   occupies the cell.
+2. **FIM information gain** — an exponential moving average of the
+   D-optimality gain $\Delta_D$ computed for candidates falling in this
+   cell, updated every `evaluate_targets()` call with smoothing
+   factor $\alpha = 0.3$:
+   $$g_{\mathrm{new}} = (1 - \alpha)\,g_{\mathrm{old}} + \alpha\,\Delta_D$$
+   This captures a persistent spatial map of where information is rich.
+
+All cells start at epoch time (maximally stale) and zero FIM gain.
+The grid is initialised once when `set_room_bounds()` is called, and
+the robot's current cell is stamped at the beginning of every
+`plan()` call.
 
 #### Staleness
 
@@ -759,6 +773,15 @@ With $w_{\mathrm{ior}} = 2.0$, a fully stale region receives a $3\times$
 score boost over a freshly visited one with identical FIM gain, strongly
 driving the robot to explore the entire room.
 
+#### Score grid visualisation
+
+The combined cell scores (FIM gain $\times$ IoR bonus) are exposed via
+`cell_scores()` and drawn on the 2D canvas as a soft overlay.  Each cell
+is a semi-transparent rectangle with Z-order −5 (behind all other items).
+The colour ramp interpolates from **pale blue** (low score) to **warm
+orange** (high score), with opacity 40–100.  This gives the operator an
+immediate view of where the planner considers information-rich and stale.
+
 ### 11.6 Target Lifecycle
 
 ```
@@ -766,8 +789,8 @@ current_target_ = ∅
           │
           ▼
   ┌───────────────┐     No target    ┌──────────────────┐
-  │  plan() call  │────────────────► │ Level 1: select  │
-  └───────┬───────┘                  │  highest ΔD      │
+  │  plan() call  │────────────────► │ Level 1: weighted │
+  └───────┬───────┘                  │  random sample    │
           │ has target               └────────┬─────────┘
           ▼                                   │
   ┌─────────────────┐                         ▼

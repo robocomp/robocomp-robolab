@@ -3,6 +3,7 @@
 #include <vector>
 #include <optional>
 #include <chrono>
+#include <random>
 #include <Eigen/Dense>
 #include "corner_visibility.h"
 
@@ -67,7 +68,7 @@ public:
 
     // ---- Target selection (public API) ----
     std::vector<Target> evaluate_targets() const;
-    std::optional<Target> select_target() const;
+    std::optional<Target> select_target();
 
     /// Called every plan cycle.  Returns the current navigation target,
     /// handling dwell and arrival logic internally.  Returns std::nullopt
@@ -76,6 +77,15 @@ public:
 
     void clear_target() { current_target_.reset(); }
     const std::optional<Target>& current_target() const { return current_target_; }
+
+    // ---- Cell score data for visualisation ----
+    struct CellScore
+    {
+        Eigen::Vector2f center;
+        float score;          // combined probability weight
+    };
+    const std::vector<CellScore>& cell_scores() const { return cell_scores_; }
+    float cell_size() const { return params.ior_cell_size; }
 
     // ---- Accessors needed by Level 2 ----
     Eigen::Vector2f robot_pos() const { return robot_pose_.translation(); }
@@ -113,10 +123,15 @@ private:
     std::chrono::steady_clock::time_point dwell_until_{};
     bool dwelling_ = false;
 
-    // ---- Inhibition of Return: spatial visit grid ----
+    // ---- Inhibition of Return: spatial visit grid with accumulated scores ----
     struct VisitGrid
     {
-        std::vector<std::chrono::steady_clock::time_point> cells;
+        struct Cell
+        {
+            std::chrono::steady_clock::time_point last_visit{};
+            float fim_gain = 0.f;   // running-average FIM info gain estimate
+        };
+        std::vector<Cell> cells;
         int cols = 0, rows = 0;
         float cell_size = 0.5f;
         Eigen::Vector2f origin{0.f, 0.f};
@@ -130,7 +145,7 @@ private:
             rows = static_cast<int>(std::ceil((room_max.y() - room_min.y()) / cell_size));
             cols = std::max(1, cols);
             rows = std::max(1, rows);
-            cells.assign(cols * rows, std::chrono::steady_clock::time_point{});
+            cells.assign(cols * rows, Cell{});
             initialized = true;
         }
 
@@ -143,23 +158,45 @@ private:
             return r * cols + c;
         }
 
+        Eigen::Vector2f cell_center(int idx) const
+        {
+            const int c = idx % cols;
+            const int r = idx / cols;
+            return {origin.x() + (c + 0.5f) * cell_size,
+                    origin.y() + (r + 0.5f) * cell_size};
+        }
+
         void mark_visited(const Eigen::Vector2f& pos)
         {
             if (!initialized) return;
-            cells[to_index(pos)] = std::chrono::steady_clock::now();
+            cells[to_index(pos)].last_visit = std::chrono::steady_clock::now();
+        }
+
+        /// Update running-average FIM gain for the cell containing pos.
+        void update_fim(const Eigen::Vector2f& pos, float gain, float alpha = 0.3f)
+        {
+            if (!initialized) return;
+            auto& cell = cells[to_index(pos)];
+            cell.fim_gain = (1.f - alpha) * cell.fim_gain + alpha * gain;
         }
 
         float staleness(const Eigen::Vector2f& pos, float decay_s,
                         std::chrono::steady_clock::time_point now) const
         {
             if (!initialized) return 1.f;
-            const auto& tp = cells[to_index(pos)];
+            const auto& tp = cells[to_index(pos)].last_visit;
             if (tp == std::chrono::steady_clock::time_point{}) return 1.f;
             const float elapsed = std::chrono::duration<float>(now - tp).count();
             return std::min(1.f, elapsed / std::max(0.1f, decay_s));
         }
     };
     VisitGrid visit_grid_;
+
+    // Cell score cache (updated each evaluate_targets call)
+    std::vector<CellScore> cell_scores_;
+
+    // RNG for weighted random selection
+    mutable std::mt19937 rng_{std::random_device{}()};
 };
 
 } // namespace rc

@@ -492,6 +492,16 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
         viewer_2d_->draw_all_trajectories(cand_states, result->best_policy.predicted_states);
     }
 
+    // Draw epistemic score grid overlay
+    {
+        const auto& cell_scores = epistemic_controller_.epistemic_planner().cell_scores();
+        std::vector<std::pair<Eigen::Vector2f, float>> cells;
+        cells.reserve(cell_scores.size());
+        for (const auto& cs : cell_scores)
+            cells.emplace_back(cs.center, cs.score);
+        viewer_2d_->draw_score_grid(cells, epistemic_controller_.epistemic_planner().cell_size());
+    }
+
     const auto& cmd_raw = result->command;
 
     // ---- Acceleration ramp: limit how fast velocities can change per cycle ----

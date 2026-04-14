@@ -125,6 +125,11 @@ class Viewer2D : public QObject
         void draw_corners(const std::vector<rc::CornerDetector::CornerMatch>& matches,
                           const Eigen::Affine2f& robot_pose);
 
+        /// Draw the epistemic score grid as semi-transparent coloured cells.
+        /// cell_size is in world-frame meters.
+        void draw_score_grid(const std::vector<std::pair<Eigen::Vector2f, float>>& cells,
+                             float cell_size);
+
     Q_SIGNALS:
         void robot_moved(QPointF);
         void robot_rotate(QPointF);
@@ -179,6 +184,9 @@ class Viewer2D : public QObject
 
         // Candidate trajectory overlay (faded)
         std::vector<QGraphicsLineItem*>   cand_line_items_;
+
+        // Score grid overlay
+        std::vector<QGraphicsRectItem*> score_grid_items_;
 
     };
 

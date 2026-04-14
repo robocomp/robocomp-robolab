@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <numeric>
 
 namespace rc
 {
@@ -129,12 +130,18 @@ float EpistemicPlanner::score_fim_gain(const Eigen::Vector2f& candidate,
 }
 
 // ===========================================================================
-// evaluate_targets — FIM-based D-optimality scoring
+// evaluate_targets — FIM-based D-optimality scoring + cell score cache
 // ===========================================================================
 std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
 {
+    // We update mutable cell_scores_ here
+    auto& self = const_cast<EpistemicPlanner&>(*this);
+
     if (!room_bounds_set_ || !robot_state_set_)
+    {
+        self.cell_scores_.clear();
         return {};
+    }
 
     if (is_angular_dominated())
     {
@@ -143,11 +150,16 @@ std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
         rot.distance = 0.f;
         rot.rotate_in_place = true;
         rot.score = robot_cov_(2, 2);
+        self.cell_scores_.clear();
         return {rot};
     }
 
     const auto candidates = generate_candidates();
-    if (candidates.empty()) return {};
+    if (candidates.empty())
+    {
+        self.cell_scores_.clear();
+        return {};
+    }
 
     const Eigen::Matrix3f reg_cov = robot_cov_ + 1e-6f * Eigen::Matrix3f::Identity();
     const Eigen::Matrix3f prior_precision = reg_cov.inverse();
@@ -162,6 +174,10 @@ std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
         t.position = pos;
         t.distance = (pos - robot_pos()).norm();
         const float fim_gain = score_fim_gain(pos, prior_precision);
+
+        // Update cell's running FIM average
+        self.visit_grid_.update_fim(pos, fim_gain);
+
         const float dist_bonus = 1.f + params.w_exploration * t.distance;
         const float ior_bonus = 1.f + params.w_ior * visit_grid_.staleness(pos, params.ior_decay_time, now);
         t.score = fim_gain * dist_bonus * ior_bonus;
@@ -172,15 +188,49 @@ std::vector<EpistemicPlanner::Target> EpistemicPlanner::evaluate_targets() const
     std::sort(targets.begin(), targets.end(),
               [](const Target& a, const Target& b) { return a.score > b.score; });
 
+    // Build cell score cache for visualisation (use grid cells, not candidates)
+    if (visit_grid_.initialized)
+    {
+        self.cell_scores_.clear();
+        self.cell_scores_.reserve(visit_grid_.cells.size());
+        for (int i = 0; i < static_cast<int>(visit_grid_.cells.size()); ++i)
+        {
+            const auto center = visit_grid_.cell_center(i);
+            // Only include cells inside the room polygon
+            if (!room_corners_.empty() &&
+                !corner_visibility::point_in_polygon(center, room_corners_))
+                continue;
+            const auto& cell = visit_grid_.cells[i];
+            const float stale = visit_grid_.staleness(center, params.ior_decay_time, now);
+            const float combined = cell.fim_gain * (1.f + params.w_ior * stale);
+            self.cell_scores_.push_back({center, combined});
+        }
+    }
+
     return targets;
 }
 
-std::optional<EpistemicPlanner::Target> EpistemicPlanner::select_target() const
+std::optional<EpistemicPlanner::Target> EpistemicPlanner::select_target()
 {
     auto targets = evaluate_targets();
     if (targets.empty())
         return std::nullopt;
-    return targets.front();
+
+    // Rotate-in-place: no randomness needed
+    if (targets.front().rotate_in_place)
+        return targets.front();
+
+    // Weighted random selection from all candidates
+    std::vector<float> weights(targets.size());
+    for (std::size_t i = 0; i < targets.size(); ++i)
+        weights[i] = std::max(0.f, targets[i].score);
+
+    const float total = std::accumulate(weights.begin(), weights.end(), 0.f);
+    if (total < 1e-12f)
+        return targets.front();
+
+    std::discrete_distribution<std::size_t> dist(weights.begin(), weights.end());
+    return targets[dist(rng_)];
 }
 
 // ===========================================================================

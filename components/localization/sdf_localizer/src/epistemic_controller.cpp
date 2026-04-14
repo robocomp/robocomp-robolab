@@ -1,6 +1,7 @@
 #include "epistemic_controller.h"
 #include <algorithm>
 #include <cmath>
+#include <QDebug>
 
 namespace rc
 {
@@ -68,14 +69,31 @@ void EpistemicController::set_lidar_obstacles(std::vector<Eigen::Vector2f> point
 }
 
 // ===========================================================================
+// Reactive speed governor — localization quality
+// ===========================================================================
+void EpistemicController::set_localization_quality(float sdf_mse)
+{
+    const float range = params.sdf_danger - params.sdf_safe;
+    if (range < 1e-9f)
+        governor_alpha_ = 1.f;
+    else
+        governor_alpha_ = std::clamp(1.f - (sdf_mse - params.sdf_safe) / range,
+                                     params.governor_alpha_min, 1.f);
+}
+
+// ===========================================================================
 // Perceptual-bandwidth speed limit
 // ===========================================================================
 EpistemicController::ControlCommand
 EpistemicController::apply_speed_limit(ControlCommand cmd) const
 {
-    cmd.rot = std::clamp(cmd.rot, -params.max_rot_speed, params.max_rot_speed);
-    const float rot_frac = std::abs(cmd.rot) / std::max(1e-6f, params.max_rot_speed);
-    const float eff_max  = params.max_adv_speed
+    // Governor: scale both limits by localization quality
+    const float eff_rot_max = params.max_rot_speed * governor_alpha_;
+    const float eff_adv_max = params.max_adv_speed * governor_alpha_;
+
+    cmd.rot = std::clamp(cmd.rot, -eff_rot_max, eff_rot_max);
+    const float rot_frac = std::abs(cmd.rot) / std::max(1e-6f, eff_rot_max);
+    const float eff_max  = eff_adv_max
                          * std::max(0.f, 1.f - params.bandwidth_coupling * rot_frac);
     const float adv_norm = std::sqrt(cmd.adv_x * cmd.adv_x + cmd.adv_y * cmd.adv_y);
     if (adv_norm > eff_max && adv_norm > 1e-6f)
@@ -268,7 +286,10 @@ std::optional<EpistemicController::PlanResult> EpistemicController::plan()
     // ---- Level 1: update / select target ----
     auto target_opt = epistemic_planner_.update_target();
     if (!target_opt)
+    {
+        qInfo() << "[Controller] plan(): no target from Level 1";
         return std::nullopt;
+    }
 
     // Dwell: if target selector is dwelling, return stop command
     // (update_target returns the current target during dwell)
@@ -291,8 +312,31 @@ std::optional<EpistemicController::PlanResult> EpistemicController::plan()
     if (best != policies.end() && !best->commands.empty())
     {
         auto best_policy = *best;
+        const auto final_cmd = apply_speed_limit(best_policy.commands.front());
+
+        // Periodic debug (every ~20 calls ≈ 2 s at 10 Hz)
+        static int dbg_cnt = 0;
+        if (++dbg_cnt % 20 == 0)
+        {
+            const auto& rp = epistemic_planner_.robot_pos();
+            const float dist_to_tgt = (target.position - rp).norm();
+            qInfo().nospace()
+                << "[Controller] tgt=(" << target.position.x() << "," << target.position.y() << ")"
+                << " rot_in_place=" << target.rotate_in_place
+                << " dist=" << dist_to_tgt
+                << " | cmd: vy=" << final_cmd.adv_y << " rot=" << final_cmd.rot
+                << " | best EFE=" << best_policy.efe
+                << " (E=" << best_policy.epistemic_value
+                << " P=" << best_policy.pragmatic_value
+                << " O=" << best_policy.obstacle_value
+                << " B=" << best_policy.boundary_value << ")"
+                << " | #obs=" << lidar_obstacles_.size()
+                << " #pol=" << policies.size()
+                << " gov=" << governor_alpha_;
+        }
+
         return PlanResult{
-            .command       = apply_speed_limit(best_policy.commands.front()),
+            .command       = final_cmd,
             .target        = target,
             .best_policy   = std::move(best_policy),
             .all_policies  = std::move(policies),

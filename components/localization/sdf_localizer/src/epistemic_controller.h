@@ -29,7 +29,7 @@ public:
         // ---- Policy rollout & EFE ----
         int   horizon_steps  = 20;
         float dt             = 0.2f;
-        float max_adv_speed  = 0.3f;
+        float max_adv_speed  = 0.6f;
         float max_rot_speed  = 0.5f;
         float w_epistemic    = 1.0f;
         float w_pragmatic    = 1.0f;
@@ -52,6 +52,13 @@ public:
         // allowed translation speed.  Models a finite perceptual bandwidth:
         //   effective_max_adv = max_adv_speed × (1 − bandwidth_coupling × |ω|/max_rot_speed)
         float bandwidth_coupling = 0.7f;
+
+        // ---- Reactive speed governor (localization quality) ----
+        // Scales both v_max and ω_max when SDF-MSE exceeds a safe threshold.
+        //   α = clamp(1 − (sdf_mse − sdf_safe) / (sdf_danger − sdf_safe), α_min, 1)
+        float sdf_safe    = 0.04f;       // below this SDF-MSE → full speed
+        float sdf_danger  = 0.025f;       // at/above this → minimum speed
+        float governor_alpha_min = 0.2f;  // minimum speed fraction
 
         // ---- FIM scoring at final state (epistemic EFE term) ----
         float fim_corner_sigma  = 0.04f;
@@ -96,6 +103,7 @@ public:
     void set_room_polygon(const std::vector<Eigen::Vector2f>& vertices);
     void set_robot_state(const Eigen::Affine2f& pose, const Eigen::Matrix3f& covariance);
     void set_lidar_obstacles(std::vector<Eigen::Vector2f> points);
+    void set_localization_quality(float sdf_mse);
 
     /// Main entry: select target (Level 1) → drive toward it (Level 2) → return command.
     std::optional<PlanResult> plan();
@@ -123,6 +131,7 @@ private:
     // ---- Composition ----
     EpistemicPlanner epistemic_planner_;
     std::vector<Eigen::Vector2f> lidar_obstacles_;
+    float governor_alpha_ = 1.f;   // current speed-governor scaling factor
 };
 
 } // namespace rc

@@ -304,12 +304,16 @@ int sdf_localiser::run(int argc, char* argv[])
 		a.exec();
 
 		try
-		{
-			std::cout << "Unsubscribing topic: fullposeestimationpub " <<std::endl;
-			fullposeestimationpub_topic->unsubscribe(fullposeestimationpub);
-			std::cout << "Unsubscribing topic: joystickadapter " <<std::endl;
-			joystickadapter_topic->unsubscribe(joystickadapter);
-
+		{   if(fullposeestimationpub_topic && fullposeestimationpub)
+			{
+				std::cout << "Unsubscribing topic: fullposeestimationpub " <<std::endl;
+				fullposeestimationpub_topic->unsubscribe(fullposeestimationpub);
+			}
+			if(joystickadapter_topic && joystickadapter)
+			{
+				std::cout << "Unsubscribing topic: joystickadapter " <<std::endl;
+				joystickadapter_topic->unsubscribe(joystickadapter);
+			}
 		}
 		catch(const Ice::Exception& ex)
 		{

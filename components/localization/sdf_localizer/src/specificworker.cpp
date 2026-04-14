@@ -459,10 +459,31 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     if (obstacles.has_value())
         epistemic_controller_.set_lidar_obstacles(*obstacles);
 
+    // Reactive speed governor: feed current localization quality
+    epistemic_controller_.set_localization_quality(loc_res->sdf_mse);
+
     // Plan and execute
     auto result = epistemic_controller_.plan();
     if (!result || !result->valid)
+    {
+        qInfo() << "[NavTarget] plan() returned" << (!result ? "nullopt" : "invalid");
         return;
+    }
+
+    // Warn when output command is near-zero (robot would stall)
+    const auto& cmd_dbg = result->command;
+    const float cmd_speed = std::sqrt(cmd_dbg.adv_x * cmd_dbg.adv_x + cmd_dbg.adv_y * cmd_dbg.adv_y);
+    if (cmd_speed < 0.01f && std::abs(cmd_dbg.rot) < 0.01f && !result->target.rotate_in_place)
+    {
+        qWarning().nospace()
+            << "[NavTarget] STALL: vy=" << cmd_dbg.adv_y
+            << " rot=" << cmd_dbg.rot
+            << " dist_to_tgt=" << result->target.distance
+            << " bestEFE=" << result->best_policy.efe
+            << " O=" << result->best_policy.obstacle_value
+            << " B=" << result->best_policy.boundary_value
+            << " #obs=" << (obstacles.has_value() ? obstacles->size() : 0u);
+    }
 
     // Show target on the 2D canvas
     const auto& tgt = result->target.position;
@@ -531,6 +552,7 @@ void SpecificWorker::read_lidar()
             catch (const Ice::Exception &e)
             { qWarning() << "[read_lidar] ALL failed:" << e.what(); continue;}
 
+            // Process high-res scan: separate into "high points" and "obstacle points" based on height thresholds
             std::vector<Eigen::Vector3f> points_high;
             std::vector<Eigen::Vector2f> obstacle_points;
             points_high.reserve(data_high.points.size());
@@ -539,7 +561,6 @@ void SpecificWorker::read_lidar()
             const float floor_h_mm = params.LIDAR_HIGH_FLOOR_HEIGHT * 1000.f;
             const float robot_h_mm = params.ROBOT_HEIGHT * 1000.f;
             constexpr float mm2m = 0.001f;
-
             for (const auto &p : data_high.points)
             {
                 const bool is_high     = p.z > min_h_mm;

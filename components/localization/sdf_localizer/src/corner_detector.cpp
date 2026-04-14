@@ -30,6 +30,8 @@ void CornerDetector::set_model_corners(const std::vector<Eigen::Vector2f>& polyg
             mc.position       = curr;
             mc.edge_in_dir    = (curr - prev).normalized();  // wall arriving at corner
             mc.edge_out_dir   = (next - curr).normalized();  // wall leaving corner
+            mc.convexity_sign = mc.edge_in_dir.x() * mc.edge_out_dir.y()
+                              - mc.edge_in_dir.y() * mc.edge_out_dir.x();
             mc.original_index = i;
             model_corners_.push_back(mc);
         }
@@ -165,14 +167,30 @@ CornerDetector::DetectionResult CornerDetector::detect(
         }
 
         // --- Orientation consistency: PCA line direction must align with model edge ---
+        const float raw_dot_in  = line_in->direction().dot(dir_in);
+        const float raw_dot_out = line_out->direction().dot(dir_out);
         {
             const float cos_thresh = std::cos(params_.max_orientation_dev * static_cast<float>(M_PI) / 180.f);
-            // line direction() is ⊥ to normal; model dirs are in robot frame
-            const float dot_in  = std::abs(line_in->direction().dot(dir_in));
-            const float dot_out = std::abs(line_out->direction().dot(dir_out));
-            if (dot_in < cos_thresh || dot_out < cos_thresh)
+            if (std::abs(raw_dot_in) < cos_thresh || std::abs(raw_dot_out) < cos_thresh)
             {
-                if (verbose) qInfo() << "    orientation rejected: dot_in=" << dot_in << "dot_out=" << dot_out;
+                if (verbose) qInfo() << "    orientation rejected: dot_in=" << std::abs(raw_dot_in)
+                                     << "dot_out=" << std::abs(raw_dot_out);
+                continue;
+            }
+        }
+
+        // --- Convexity consistency: detected turn direction must match model ---
+        {
+            // Orient PCA directions to agree with model edge directions
+            const Eigen::Vector2f ori_in  = (raw_dot_in  >= 0.f ? 1.f : -1.f) * line_in->direction();
+            const Eigen::Vector2f ori_out = (raw_dot_out >= 0.f ? 1.f : -1.f) * line_out->direction();
+            const float detected_cross = ori_in.x() * ori_out.y() - ori_in.y() * ori_out.x();
+            // Require same sign AND that detected magnitude is at least 25% of model's
+            const float min_cross = 0.25f * std::abs(mc.convexity_sign);
+            if (mc.convexity_sign * detected_cross < min_cross)
+            {
+                if (verbose) qInfo() << "    convexity rejected: model=" << mc.convexity_sign
+                                     << "detected=" << detected_cross << "min=" << min_cross;
                 continue;
             }
         }

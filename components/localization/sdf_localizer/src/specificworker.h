@@ -143,6 +143,12 @@ class SpecificWorker : public GenericWorker
 		// Epistemic planner (active inference self-targeting)
 		rc::EpistemicController epistemic_controller_;
 		bool self_target_active_ = false;
+
+		// Acceleration ramp state
+		rc::EpistemicController::ControlCommand prev_cmd_{};
+		std::chrono::steady_clock::time_point prev_cmd_time_ = std::chrono::steady_clock::now();
+		static constexpr float max_lin_accel_  = 1.5f;   // m/s² max translational acceleration
+		static constexpr float max_rot_accel_  = 3.0f;   // rad/s² max angular acceleration
 		void navigate_to_target(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		                        const std::optional<rc::ObstacleData>& obstacles);
 

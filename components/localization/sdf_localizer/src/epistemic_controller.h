@@ -57,7 +57,7 @@ public:
         // Scales both v_max and ω_max when SDF-MSE exceeds a safe threshold.
         //   α = clamp(1 − (sdf_mse − sdf_safe) / (sdf_danger − sdf_safe), α_min, 1)
         float sdf_safe    = 0.04f;       // below this SDF-MSE → full speed
-        float sdf_danger  = 0.025f;       // at/above this → minimum speed
+        float sdf_danger  = 0.08f;       // at/above this → minimum speed
         float governor_alpha_min = 0.2f;  // minimum speed fraction
 
         // ---- FIM scoring at final state (epistemic EFE term) ----
@@ -109,6 +109,8 @@ public:
     std::optional<PlanResult> plan();
 
     void clear_target() { epistemic_planner_.clear_target(); }
+
+    float governor_alpha() const { return governor_alpha_; }
 
     /// Access the Level 1 epistemic planner (e.g. for evaluate_targets()).
     EpistemicPlanner&       epistemic_planner()       { return epistemic_planner_; }

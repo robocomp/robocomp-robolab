@@ -227,11 +227,25 @@ the SDF optimisation is skipped.
    - $\|\mathbf{z}_{k,j} - \hat{\mathbf{c}}_j\| < 1.5$ m.
    - **Orientation consistency:** each PCA-fitted line direction must align
      with its model edge direction (in robot frame) within
-     `max_orientation_dev` (30°).  Formally,
-     $|\hat{\mathbf{d}}_{\mathrm{PCA}} \cdot \hat{\mathbf{d}}_{\mathrm{model}}| \geq \cos(30°) \approx 0.866$
+     `max_orientation_dev` (20°).  Formally,
+     $|\hat{\mathbf{d}}_{\mathrm{PCA}} \cdot \hat{\mathbf{d}}_{\mathrm{model}}| \geq \cos(20°) \approx 0.940$
      for both the *in*-wall and *out*-wall directions.
      This rejects false matches where the fitted wall angle is correct
      but the wall orientations are flipped or rotated.
+   - **Convexity consistency:** the model corner's convexity sign (2D
+     cross product $\hat{\mathbf{d}}_{\mathrm{in}} \times
+     \hat{\mathbf{d}}_{\mathrm{out}}$, positive for CCW turns) must
+     agree with the detected corner's cross product computed from the
+     oriented PCA directions.  PCA eigenvectors are oriented using the
+     sign of their dot product with the model edge direction, making the
+     cross product sign unambiguous.  The gate requires
+     $$s_{\mathrm{model}}\;s_{\mathrm{detected}} \;\geq\;
+       0.50\,|s_{\mathrm{model}}|$$
+     where $s = \hat{\mathbf{d}}_{\mathrm{in}} \times
+     \hat{\mathbf{d}}_{\mathrm{out}}$.  This prevents convex corners
+     (e.g. room protrusions) from matching concave corners (e.g. room
+     recesses) and also rejects ambiguously flat detections whose cross
+     product magnitude is too small.
 
 6. **Covariance.**  Geometric uncertainty from the line-fit normals:
    $\Sigma_c = \sigma^2 (\mathbf{n}_{\mathrm{in}} \mathbf{n}_{\mathrm{in}}^\top
@@ -552,7 +566,7 @@ during which Adam runs without early-exit to let the filter reconverge.
 | `min_points_per_line` | 3 | Min lidar points per wall group |
 | `max_match_distance` | 1.5 m | Max detected-vs-predicted corner distance |
 | `min_corner_angle` / `max_corner_angle` | 25° / 155° | Inter-wall angle acceptance band |
-| `max_orientation_dev` | 30° | Max angular deviation between PCA line and model edge direction |
+| `max_orientation_dev` | 20° | Max angular deviation between PCA line and model edge direction |
 | `rotation_position_coupling` | 0.15 m/rad | Position uncertainty induced per radian of rotation |
 
 ---
@@ -966,14 +980,76 @@ When both `adv_x` and `adv_y` are non-zero the translation vector is
 scaled proportionally (preserving direction) so that
 $\sqrt{v_x^2 + v_y^2} \le v_{\max}^{\mathrm{eff}}$.
 
-### 12.6 Visualisation
+### 12.6 Reactive Speed Governor
+
+While the bandwidth limit (§12.5) couples rotation to translation at the
+kinematic level, the **reactive speed governor** provides a second,
+independent scaling layer based on **localization quality** measured by
+the SDF mean-squared error.
+
+Before each planning cycle the latest `sdf_mse` is fed to
+`set_localization_quality()`, which computes a governor factor:
+
+$$
+\alpha = \mathrm{clamp}\!\left(
+  1 - \frac{\text{sdf\_mse} - \text{sdf\_safe}}
+           {\text{sdf\_danger} - \text{sdf\_safe}},\;
+  \alpha_{\min},\; 1\right)
+$$
+
+where `sdf_safe` and `sdf_danger` define the comfortable and degraded
+MSE thresholds, and $\alpha_{\min}$ = `governor_alpha_min` (default
+0.2) lower-bounds the scaling to prevent a full stop.
+
+Both $v_{\max}$ and $\omega_{\max}$ are multiplied by $\alpha$ at
+the start of `apply_speed_limit()`, so the governor acts *before* the
+bandwidth coupling.  The two mechanisms compose multiplicatively:
+
+$$
+v_{\max}^{\mathrm{final}} = \alpha \cdot v_{\max} \cdot
+  \max\!\bigl(0,\;1 - \beta\,|\omega|/\omega_{\max}\bigr)
+$$
+
+The current governor alpha is shown via the velocity label colour
+in the UI (red when $\alpha < 0.5$, orange when $\alpha < 0.95$,
+default otherwise).
+
+### 12.7 Acceleration Ramp
+
+The planner's output commands can change abruptly between cycles,
+especially when a new target is selected or during sharp turns.  To
+prevent unbounded angular (and translational) acceleration, a
+per-component ramp filter is applied to every command **before** it is
+sent to `setSpeedBase()`.
+
+For each velocity component $u \in \{v_x, v_y, \omega\}$:
+
+$$
+u_{\mathrm{out}} = u_{\mathrm{prev}} +
+  \mathrm{clamp}\!\bigl(u_{\mathrm{desired}} - u_{\mathrm{prev}},\;
+  -a_{\max}\,\Delta t,\; +a_{\max}\,\Delta t\bigr)
+$$
+
+where $\Delta t$ is the real elapsed time since the last command
+(measured via `steady_clock`), and $a_{\max}$ is the per-channel
+acceleration limit:
+
+| Channel | Limit | Effect at 17 Hz |
+|---------|-------|-----------------|
+| Translation ($v_x$, $v_y$) | `max_lin_accel` = 1.5 m/s² | ≈ 0.09 m/s per cycle |
+| Rotation ($\omega$) | `max_rot_accel` = 3.0 rad/s² | ≈ 0.18 rad/s per cycle |
+
+The ramp state (`prev_cmd_`) resets to zero when self-targeting is
+toggled off, so the robot ramps cleanly from rest when restarted.
+
+### 12.8 Visualisation
 
 The viewer draws all candidate arc trajectories as faded lilac polylines
 and the winning (minimum-EFE) arc in bold magenta.  This provides immediate
 visual feedback on which options the controller considered and why the
 chosen arc was preferred.
 
-### 12.7 Parameter Reference
+### 12.9 Parameter Reference
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -990,9 +1066,14 @@ chosen arc was preferred.
 | `num_arc_curvatures` | 9 | Number of discrete arc curvatures $K$ |
 | `horizon_steps` | 20 | Planning horizon steps $H$ |
 | `dt` | 0.2 s | Time step per horizon step |
-| `max_adv_speed` | 0.3 m/s | Max translational speed $v_{\max}$ |
+| `max_adv_speed` | 0.6 m/s | Max translational speed $v_{\max}$ |
 | `max_rot_speed` | 0.5 rad/s | Max angular speed $\omega_{\max}$ |
 | `bandwidth_coupling` | 0.7 | Rotation–translation coupling $\beta$ (§12.5) |
+| `sdf_safe` | 0.04 | SDF-MSE below which governor gives full speed (§12.6) |
+| `sdf_danger` | 0.025 | SDF-MSE at/above which governor gives $\alpha_{\min}$ (§12.6) |
+| `governor_alpha_min` | 0.2 | Minimum speed fraction under governor (§12.6) |
+| `max_lin_accel` | 1.5 m/s² | Translational acceleration ramp limit (§12.7) |
+| `max_rot_accel` | 3.0 rad/s² | Angular acceleration ramp limit (§12.7) |
 | `w_epistemic` | 1.0 | EFE weight for information gain |
 | `w_pragmatic` | 1.0 | EFE weight for goal distance |
 | `w_heading` | 2.0 | Heading alignment weight inside pragmatic |

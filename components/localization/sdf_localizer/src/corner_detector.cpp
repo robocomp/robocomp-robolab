@@ -185,8 +185,8 @@ CornerDetector::DetectionResult CornerDetector::detect(
             const Eigen::Vector2f ori_in  = (raw_dot_in  >= 0.f ? 1.f : -1.f) * line_in->direction();
             const Eigen::Vector2f ori_out = (raw_dot_out >= 0.f ? 1.f : -1.f) * line_out->direction();
             const float detected_cross = ori_in.x() * ori_out.y() - ori_in.y() * ori_out.x();
-            // Require same sign AND that detected magnitude is at least 25% of model's
-            const float min_cross = 0.25f * std::abs(mc.convexity_sign);
+            // Require same sign AND that detected magnitude is at least 50% of model's
+            const float min_cross = 0.50f * std::abs(mc.convexity_sign);
             if (mc.convexity_sign * detected_cross < min_cross)
             {
                 if (verbose) qInfo() << "    convexity rejected: model=" << mc.convexity_sign

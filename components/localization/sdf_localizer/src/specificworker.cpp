@@ -341,6 +341,15 @@ void SpecificWorker::update_ui(const std::optional<rc::RoomConcept::UpdateResult
     velocityLabel->setText(
         QString("Vel: vx=%1  vy=%2  rot=%3")
             .arg(vx, 0, 'f', 3).arg(vy, 0, 'f', 3).arg(vr, 0, 'f', 3));
+
+    // Color velocity label when the speed governor is throttling
+    const float alpha = epistemic_controller_.governor_alpha();
+    if (alpha < 0.5f)
+        velocityLabel->setStyleSheet("color: red;");
+    else if (alpha < 0.95f)
+        velocityLabel->setStyleSheet("color: orange;");
+    else
+        velocityLabel->setStyleSheet("");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -431,6 +440,7 @@ void SpecificWorker::slot_self_target_toggled(bool checked)
         // Stop the robot, clear planner target, hide target marker
         try { omnirobot_proxy->setSpeedBase(0.f, 0.f, 0.f); }
         catch (const Ice::Exception& e) { qWarning() << "[SelfTarget] stop failed:" << e.what(); }
+        prev_cmd_ = {};  // reset acceleration ramp
         epistemic_controller_.clear_target();
         viewer_2d_->update_target_marker(0.f, 0.f, false);
         qInfo() << "[UI] Self-targeting disabled, robot stopped";
@@ -465,25 +475,7 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     // Plan and execute
     auto result = epistemic_controller_.plan();
     if (!result || !result->valid)
-    {
-        qInfo() << "[NavTarget] plan() returned" << (!result ? "nullopt" : "invalid");
         return;
-    }
-
-    // Warn when output command is near-zero (robot would stall)
-    const auto& cmd_dbg = result->command;
-    const float cmd_speed = std::sqrt(cmd_dbg.adv_x * cmd_dbg.adv_x + cmd_dbg.adv_y * cmd_dbg.adv_y);
-    if (cmd_speed < 0.01f && std::abs(cmd_dbg.rot) < 0.01f && !result->target.rotate_in_place)
-    {
-        qWarning().nospace()
-            << "[NavTarget] STALL: vy=" << cmd_dbg.adv_y
-            << " rot=" << cmd_dbg.rot
-            << " dist_to_tgt=" << result->target.distance
-            << " bestEFE=" << result->best_policy.efe
-            << " O=" << result->best_policy.obstacle_value
-            << " B=" << result->best_policy.boundary_value
-            << " #obs=" << (obstacles.has_value() ? obstacles->size() : 0u);
-    }
 
     // Show target on the 2D canvas
     const auto& tgt = result->target.position;
@@ -500,7 +492,23 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
         viewer_2d_->draw_all_trajectories(cand_states, result->best_policy.predicted_states);
     }
 
-    const auto& cmd = result->command;
+    const auto& cmd_raw = result->command;
+
+    // ---- Acceleration ramp: limit how fast velocities can change per cycle ----
+    const auto now_cmd = std::chrono::steady_clock::now();
+    const float dt_s = std::chrono::duration<float>(now_cmd - prev_cmd_time_).count();
+    prev_cmd_time_ = now_cmd;
+    auto cmd = cmd_raw;
+    if (dt_s > 0.f && dt_s < 1.f)  // guard against first call / large gaps
+    {
+        const float max_dv = max_lin_accel_ * dt_s;
+        const float max_dw = max_rot_accel_ * dt_s;
+        cmd.adv_x = prev_cmd_.adv_x + std::clamp(cmd_raw.adv_x - prev_cmd_.adv_x, -max_dv, max_dv);
+        cmd.adv_y = prev_cmd_.adv_y + std::clamp(cmd_raw.adv_y - prev_cmd_.adv_y, -max_dv, max_dv);
+        cmd.rot   = prev_cmd_.rot   + std::clamp(cmd_raw.rot   - prev_cmd_.rot,   -max_dw, max_dw);
+    }
+    prev_cmd_ = cmd;
+
     try
     {
         // Planner and OmniRobot API both CCW+ after Webots proto fix

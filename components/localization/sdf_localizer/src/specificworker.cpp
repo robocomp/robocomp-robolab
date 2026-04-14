@@ -522,29 +522,37 @@ void SpecificWorker::read_lidar()
 
             //const float body_offset_sq = params.ROBOT_SEMI_WIDTH * params.ROBOT_SEMI_WIDTH;
 
-            // HELIOS ----
+            // ALL ----
             RoboCompLidar3D::TData data_high;
             try
             {
                 data_high = lidar3d_proxy->getLidarData("", 0.f, M_PI*2.f, params.LIDAR_LOW_DECIMATION_FACTOR);                    
             }
             catch (const Ice::Exception &e)
-            { qWarning() << "[read_lidar] HELIOS failed:" << e.what(); continue;}
+            { qWarning() << "[read_lidar] ALL failed:" << e.what(); continue;}
 
             std::vector<Eigen::Vector3f> points_high;
             std::vector<Eigen::Vector2f> obstacle_points;
             points_high.reserve(data_high.points.size());
             obstacle_points.reserve(data_high.points.size());
+            const float min_h_mm   = params.LIDAR_HIGH_MIN_HEIGHT * 1000.f;
+            const float floor_h_mm = params.LIDAR_HIGH_FLOOR_HEIGHT * 1000.f;
+            const float robot_h_mm = params.ROBOT_HEIGHT * 1000.f;
+            constexpr float mm2m = 0.001f;
+
             for (const auto &p : data_high.points)
             {
-                const float pmx = p.x / 1000.f;
-                const float pmy = p.y / 1000.f;
-                const float pmz = p.z / 1000.f;
-                if(pmz > params.LIDAR_HIGH_MIN_HEIGHT)
-                    points_high.emplace_back(pmx, pmy, pmz);
-                if(pmz > params.LIDAR_HIGH_FLOOR_HEIGHT and
-                   pmz < params.ROBOT_HEIGHT)
-                        obstacle_points.emplace_back(pmx, pmy);
+                const bool is_high     = p.z > min_h_mm;
+                const bool is_obstacle = p.z > floor_h_mm && p.z < robot_h_mm;
+                if (is_high || is_obstacle)
+                {
+                    const float mx = p.x * mm2m;
+                    const float my = p.y * mm2m;
+                    if (is_high)
+                        points_high.emplace_back(mx, my, p.z * mm2m);
+                    if (is_obstacle)
+                        obstacle_points.emplace_back(mx, my);
+                }
             }
             const size_t n_pts = points_high.size();
             // Store system-clock timestamp (not driver timestamp) so consumers

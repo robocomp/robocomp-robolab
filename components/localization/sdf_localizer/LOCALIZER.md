@@ -932,14 +932,48 @@ $$
 with $k_{\mathrm{rot}} = 2.0$ and $\sigma_g = 0.5$ rad, giving a
 Gaussian speed profile that peaks when the heading error is near zero.
 
-### 12.5 Visualisation
+### 12.5 Perceptual Bandwidth Speed Limit
+
+Sharp turns cause rapid scene change that can spike the observation
+residuals (and thus the free energy) before the optimiser has time to
+converge.  To model a **finite perceptual bandwidth**, the controller
+couples rotation and translation so that high yaw-rate automatically
+reduces the allowed translational speed.
+
+The effective maximum translation speed is:
+
+$$
+v_{\max}^{\mathrm{eff}} = v_{\max} \cdot
+  \max\!\Bigl(0,\;
+    1 - \beta\,\frac{|\omega|}{\omega_{\max}}\Bigr)
+$$
+
+where $\beta$ = `bandwidth_coupling` (default 0.7).  At full rotation
+($|\omega| = \omega_{\max}$) the robot can still translate at 30 % of
+its nominal speed; at zero rotation, full speed is available.
+
+The coupling is enforced at **three points**:
+
+1. **Arc generation** — each arc command is passed through
+   `apply_speed_limit()` before rollout, so the predicted trajectories
+   reflect the actual kinematics the robot will execute.
+2. **Best-policy output** — the winning command is clamped before being
+   sent to the base.
+3. **Fallback controller** — the proportional controller output is
+   clamped identically.
+
+When both `adv_x` and `adv_y` are non-zero the translation vector is
+scaled proportionally (preserving direction) so that
+$\sqrt{v_x^2 + v_y^2} \le v_{\max}^{\mathrm{eff}}$.
+
+### 12.6 Visualisation
 
 The viewer draws all candidate arc trajectories as faded lilac polylines
 and the winning (minimum-EFE) arc in bold magenta.  This provides immediate
 visual feedback on which options the controller considered and why the
 chosen arc was preferred.
 
-### 12.6 Parameter Reference
+### 12.7 Parameter Reference
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -958,6 +992,7 @@ chosen arc was preferred.
 | `dt` | 0.2 s | Time step per horizon step |
 | `max_adv_speed` | 0.3 m/s | Max translational speed $v_{\max}$ |
 | `max_rot_speed` | 0.5 rad/s | Max angular speed $\omega_{\max}$ |
+| `bandwidth_coupling` | 0.7 | Rotation–translation coupling $\beta$ (§12.5) |
 | `w_epistemic` | 1.0 | EFE weight for information gain |
 | `w_pragmatic` | 1.0 | EFE weight for goal distance |
 | `w_heading` | 2.0 | Heading alignment weight inside pragmatic |
@@ -971,3 +1006,163 @@ chosen arc was preferred.
 | `dwell_time` | 2.0 s | Pause duration after reaching a target |
 | `k_rot` | 2.0 | Proportional gain for heading (fallback) |
 | `gaussian_sigma` | 0.5 rad | Speed-profile $\sigma$ (fallback) |
+
+---
+
+## 13. Time Synchronisation
+
+The localizer runs three concurrent threads that produce and consume
+timestamped data at different rates.  A common **epoch-millisecond**
+clock (`std::chrono::system_clock`) is the single time reference shared
+by all buffers, so every datum — lidar scan, velocity command, odometry
+reading, and estimated pose — can be placed on the same timeline.
+
+### 13.1 Data Sources and Timestamps
+
+| Source | Rate | Timestamp | Buffer |
+|--------|------|-----------|--------|
+| Lidar (HELIOS) | ≈ 17 Hz | `system_clock::now()` at reception + driver-side `data.timestamp` | `lidar_buffer` (triple-slot: GT pose, points, obstacles) |
+| Velocity command (joystick / planner) | event-driven | `recv_ts_ms` = `system_clock::now()` at reception; `source_ts_ms` = 0 | `velocity_buffer_` |
+| Odometry (FullPoseEstimation) | ≈ 10 Hz | `source_ts_ms` = FPE sensor-side epoch-ms; `recv_ts_ms` = local reception | `odometry_buffer_` |
+| Estimated pose (localization output) | 5–14 Hz | `timestamp_ms` = lidar epoch-ms of the scan used | `last_result_` (mutex-guarded) |
+
+All three buffers (`SensorBuffer`, `VelocityBuffer`, `OdometryBuffer`)
+are **lock-free** `BufferSync` instances with single-writer / single-reader
+semantics.  The only mutex-guarded datum is the `last_result_` shared
+between the localization and display threads.
+
+### 13.2 Lidar Reader Thread
+
+```
+poll Lidar3D at adaptive period (~25–50 ms)
+  ├── timestamp reception with system_clock epoch-ms
+  ├── store driver timestamp alongside points
+  └── BufferSync.put<0,1,2> atomically (GT pose, lidar points, obstacles)
+```
+
+The reader adapts its polling period to the driver's reported cadence
+(±2 ms hysteresis around `data.period`), preventing both busy-wait and
+missed scans.
+
+### 13.3 Localization Thread — Window Matching
+
+The localization loop (`RoomConcept::run`) is paced entirely by
+**new lidar scans**: it reads the latest buffer entry and skips the
+iteration if the lidar timestamp has not changed since the last cycle.
+
+When a new scan arrives with timestamp $t_n$, the thread:
+
+1. **Snapshots** the full velocity and odometry histories from their
+   respective buffers (lock-free `get_snapshot<0>()`).
+
+2. **Clips** each velocity / odometry command to the time window
+   $[t_{n-1},\, t_n]$, where $t_{n-1}$ is the previous scan's timestamp.
+
+3. **Integrates** the clipped commands using a midpoint-angle rule to
+   produce a 3-DOF motion prior $\hat{\boldsymbol\delta} = (\Delta x,
+   \Delta y, \Delta\theta)$:
+
+   $$
+   \theta_{\mathrm{mid}} = \theta_{\mathrm{running}} + \tfrac{1}{2}\,\omega\,\Delta t
+   $$
+
+   $$
+   \Delta x \mathrel{+}= (v_x \cos\theta_{\mathrm{mid}} - v_y \sin\theta_{\mathrm{mid}})\,\Delta t
+   \,,\quad
+   \Delta y \mathrel{+}= (v_x \sin\theta_{\mathrm{mid}} + v_y \cos\theta_{\mathrm{mid}})\,\Delta t
+   $$
+
+   This integrates **all** commands whose validity interval overlaps the
+   scan-to-scan window, weighting each by its overlap duration.
+
+4. **Computes a motion covariance** that scales with the magnitude of the
+   integrated motion, including a rotation–position coupling term (wheel
+   slip).
+
+When no velocity or odometry data is available in the window, the motion
+prior defaults to zero displacement with a tight stationary covariance.
+
+### 13.4 Timestamp Flow Diagram
+
+```
+Lidar Reader          Joystick / Planner         FPE Odometry
+  ≈17 Hz                 event-driven              ≈10 Hz
+    │                        │                        │
+    │  epoch-ms              │  epoch-ms              │  epoch-ms
+    ▼                        ▼                        ▼
+┌────────────┐       ┌──────────────┐        ┌──────────────┐
+│lidar_buffer│       │velocity_buf_ │        │odometry_buf_ │
+│ (lock-free)│       │ (lock-free)  │        │ (lock-free)  │
+└─────┬──────┘       └──────┬───────┘        └──────┬───────┘
+      │                     │                       │
+      └──────────┬──────────┴───────────────────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Localization Thread │  (paced by new lidar scans)
+      │  read_last(lidar)   │
+      │  snapshot(vel,odom) │
+      │  clip to [t_{n-1}, t_n]
+      │  integrate → motion prior
+      │  predict → Adam → pose
+      └──────────┬──────────┘
+                 │  last_result_ {pose, timestamp_ms = t_n}
+                 │  (mutex)
+                 ▼
+      ┌─────────────────────┐
+      │  Display Thread      │  ≈10 Hz (Qt compute())
+      │  get_last_result()  │
+      │  forward_project()  │
+      └─────────────────────┘
+```
+
+### 13.5 Forward Projection (Display Lag Compensation)
+
+The display thread (`compute()`) runs at ≈10 Hz, whereas the localization
+result may refer to a lidar scan that is one or two frames old.  To avoid
+visible jitter the display thread **forward-projects** the estimated pose
+from the result timestamp $t_{\mathrm{loc}}$ to the current lidar
+timestamp $t_{\mathrm{lidar}}$:
+
+$$
+\mathrm{lag} = t_{\mathrm{lidar}} - t_{\mathrm{loc}}
+$$
+
+$$
+\hat{\mathbf{s}}_{\mathrm{display}} = \hat{\mathbf{s}}_{\mathrm{loc}}
+  + \mathbf{v}_{\mathrm{smooth}} \cdot \mathrm{lag}
+$$
+
+The velocity used for extrapolation is obtained from the latest odometry
+reading (preferred) or velocity command (fallback), smoothed with an
+**exponential moving average** ($\alpha = 0.35$) to suppress sensor jitter:
+
+$$
+\bar{v} \leftarrow \alpha\, v_{\mathrm{new}} + (1 - \alpha)\, \bar{v}
+$$
+
+### 13.6 Prediction Early Exit
+
+When the robot moves smoothly and the predicted pose (from the motion
+prior alone) already produces a low mean SDF error
+($\overline{|\mathrm{SDF}|} < \sigma_{\mathrm{obs}} \times 0.5$), the
+Adam optimisation is **skipped entirely** for that frame.  This
+effectively doubles the throughput of the localization loop during
+straight-line motion, freeing CPU for the epistemic planner.
+
+### 13.7 Key Design Choices
+
+- **No lidar point interpolation.**  Motion is accounted for by the
+  odometry prior applied *before* optimisation, not by warping scan
+  points.
+- **Dual timestamps on odometry.**  Both the sensor-side
+  (`source_ts_ms`) and local-reception (`recv_ts_ms`) timestamps are
+  stored, allowing future transport-delay compensation.
+- **Scan-paced loop.**  The localization thread has no fixed-rate timer;
+  it naturally runs at the lidar cadence and gracefully degrades when
+  lidar drops occur (the `read_last()` call simply returns the most
+  recent available scan).
+- **Epoch-millisecond everywhere.**  Integer `system_clock` epoch-ms is
+  used for all buffer digests and window arithmetic, avoiding
+  floating-point drift and making cross-component timestamp comparison
+  trivial.

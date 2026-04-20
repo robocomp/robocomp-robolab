@@ -792,6 +792,42 @@ ConfigLoader, que habitualmente incluye la clave que faltaba.
 
 ---
 
+## 29. Corrección de oscilación visual en QMainWindow (`viewer_2d.cpp`)
+
+**Problema**  
+En `Viewer2D::update_frame()`, el cuerpo del robot se dibujaba con `fd.display_pose`
+(pose forward-proyectada mediante `forward_project_pose()`, que aplica velocidades EMA
+para compensar el lag del optimizador Adam) mientras que la nube lidar se dibujaba con
+`fd.loc_pose` (resultado bruto de la localización, mismo timestamp que el scan).
+
+Cuando Adam tarda ~200 ms por frame a 0.5 m/s, la diferencia entre ambas poses es
+≈ 10 cm. Además, las velocidades EMA (α = 0.35) varían entre frames → el offset
+cambiaba de forma oscilatoria, produciendo un efecto de "temblor" del robot sobre el
+mapa en el visor.
+
+**Solución**  
+Unificar ambos usos a una única pose `draw_pose`:
+
+```diff
+- draw_lidar_points(fd.lidar_points, {}, fd.loc_pose, fd.max_lidar_points);
+- if (fd.have_loc || fd.is_initialized)
+-     update_robot(fd.display_pose);
+
++ const Eigen::Affine2f& draw_pose = fd.use_loc_pose ? fd.loc_pose : fd.display_pose;
++ draw_lidar_points(fd.lidar_points, {}, draw_pose, fd.max_lidar_points);
++ if (fd.have_loc || fd.is_initialized)
++     update_robot(draw_pose);
+```
+
+Cuando `use_loc_pose = true` (operación normal con localización activa), tanto el
+cuerpo del robot como la nube lidar usan `loc_pose`, que comparte timestamp con el
+scan → son espacialmente consistentes. Cuando `use_loc_pose = false` (sin localización
+aún), ambos usan `display_pose` como antes.
+
+**Fichero:** `src/viewer_2d.cpp` (función `update_frame`)
+
+---
+
 ## Resumen de ficheros modificados
 
 | Fichero | Cambios |
@@ -802,7 +838,7 @@ ConfigLoader, que habitualmente incluye la clave que faltaba.
 | `src/specificworker.cpp` | Fix signo `odom.adv`; EMA velocidades; visualización sincronizada; timestamps; UI Adam vs Pred; 20+ params config; params B/C/far_points; `catch(...){}` → logging (§28b) |
 | `src/specificworker.h` | EMA state renombrado a velocidades |
 | `src/viewer_2d.h` | `FrameData` añade `loc_pose`, `use_loc_pose` |
-| `src/viewer_2d.cpp` | `update_frame` usa `loc_pose` para dibujar el scan |
+| `src/viewer_2d.cpp` | `update_frame` unifica `draw_pose` para robot y lidar; elimina oscilación por desajuste de forward-projection (§29) |
 | `src/rerun_logger.h` | **Nuevo** — struct `RerunFrame`, clase `RerunLogger` (hilo sender, ring buffer); `frame_counter_` → `std::atomic<int>` (§28a) |
 | `src/rerun_logger.cpp` | **Nuevo** — serialización JSON, base64, TCP, reconexión automática |
 | `scripts/rerun_bridge.py` | **Nuevo** — bridge Python: TCP → Rerun SDK; blueprint 3D + 4 series |

@@ -553,6 +553,9 @@ private:
    OdometryPrior      last_measured_prior_; // saved by apply_dual_prior_fusion for logging
    Eigen::Matrix3f    last_cmd_cov_ = Eigen::Matrix3f::Identity();
    std::int64_t       prev_lidar_ts_for_log_ = 0;
+   std::string        slot_poses_pre_;    // packed slot poses before Adam  (debug log)
+   std::string        slot_poses_post_;   // packed slot poses after Adam
+   std::string        slot_sdf_mse_str_;  // packed sdf_mse_final per slot
    void init_debug_log();
 
    // ===== Differential test: RFE vs single-step =====

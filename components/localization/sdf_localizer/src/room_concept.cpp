@@ -117,6 +117,10 @@ namespace rc
             << ",t_adam_ms"
             << ",t_cov_ms"
             << ",t_breakdown_ms"
+            << ",slot_poses_pre"
+            << ",slot_poses_post"
+            << ",slot_sdf_mse"
+            << ",bp_valid,bp_x,bp_y,bp_theta"
             << "\n";
         debug_log_.flush();
         std::cout << "[DebugLog] Logging to " << path << std::endl;
@@ -1262,12 +1266,46 @@ namespace rc
 
         // ===== ADAM OPTIMISATION =====
         {
+            // Capture slot poses before Adam for debug log (pose persistence check)
+            if (params.debug_log_enabled)
+            {
+                std::string s;
+                for (size_t i = 0; i < window_mgr_.window.size(); ++i)
+                {
+                    if (i > 0) s += '|';
+                    auto cpu = window_mgr_.window[i].pose.detach().to(torch::kCPU);
+                    auto a = cpu.accessor<float, 1>();
+                    std::ostringstream ss;
+                    ss << std::fixed << std::setprecision(4)
+                       << a[0] << ',' << a[1] << ',' << a[2];
+                    s += ss.str();
+                }
+                slot_poses_pre_ = s.empty() ? "na" : s;
+            }
+
             const auto t0 = std::chrono::high_resolution_clock::now();
             auto [last_loss, iterations] = run_adam_loop(odometry_prior);
             last_t_adam_ms_ = std::chrono::duration<float, std::milli>(
                 std::chrono::high_resolution_clock::now() - t0).count();
             res.final_loss     = last_loss;
             res.iterations_used = iterations;
+
+            // Capture slot poses after Adam for debug log
+            if (params.debug_log_enabled)
+            {
+                std::string s;
+                for (size_t i = 0; i < window_mgr_.window.size(); ++i)
+                {
+                    if (i > 0) s += '|';
+                    auto cpu = window_mgr_.window[i].pose.detach().to(torch::kCPU);
+                    auto a = cpu.accessor<float, 1>();
+                    std::ostringstream ss;
+                    ss << std::fixed << std::setprecision(4)
+                       << a[0] << ',' << a[1] << ',' << a[2];
+                    s += ss.str();
+                }
+                slot_poses_post_ = s.empty() ? "na" : s;
+            }
         }
 
         // ===== FE TERM BREAKDOWN (diagnostic log, no gradient needed) =====
@@ -1447,8 +1485,36 @@ namespace rc
                                std::chrono::high_resolution_clock::now() - t_update_start_).count()
                 << ',' << last_t_adam_ms_
                 << ',' << last_t_cov_ms_
-                << ',' << last_t_breakdown_ms_
-                << '\n';
+                << ',' << last_t_breakdown_ms_;
+
+            // Per-slot pose persistence columns
+            debug_log_ << ',' << slot_poses_pre_
+                       << ',' << slot_poses_post_;
+
+            // Per-slot sdf_mse_final (built here so newest slot's value is already set)
+            {
+                std::string s;
+                for (size_t i = 0; i < window_mgr_.window.size(); ++i)
+                {
+                    if (i > 0) s += '|';
+                    std::ostringstream ss;
+                    ss << std::fixed << std::setprecision(4)
+                       << window_mgr_.window[i].sdf_mse_final;
+                    s += ss.str();
+                }
+                debug_log_ << ',' << (s.empty() ? "na" : s);
+            }
+
+            // Boundary prior anchor
+            {
+                const auto& bp = window_mgr_.boundary_prior;
+                debug_log_ << ',' << (int)bp.valid
+                           << ',' << bp.mu[0]
+                           << ',' << bp.mu[1]
+                           << ',' << bp.mu[2];
+            }
+
+            debug_log_ << '\n';
             debug_log_.flush();
         }
 
@@ -1665,7 +1731,31 @@ namespace rc
                 << ',' << std::chrono::duration<float, std::milli>(
                                std::chrono::high_resolution_clock::now() - t_update_start_).count()
                 << ',' << 0.f << ',' << 0.f << ',' << 0.f  // t_adam, t_cov, t_breakdown
-                << '\n';
+                << ',' << "na"   // slot_poses_pre (no Adam ran)
+                << ',' << "na"   // slot_poses_post
+                ;
+
+            // Per-slot sdf_mse and boundary prior are still meaningful on early exit
+            {
+                std::string s;
+                for (size_t i = 0; i < window_mgr_.window.size(); ++i)
+                {
+                    if (i > 0) s += '|';
+                    std::ostringstream ss;
+                    ss << std::fixed << std::setprecision(4)
+                       << window_mgr_.window[i].sdf_mse_final;
+                    s += ss.str();
+                }
+                debug_log_ << ',' << (s.empty() ? "na" : s);
+            }
+            {
+                const auto& bp = window_mgr_.boundary_prior;
+                debug_log_ << ',' << (int)bp.valid
+                           << ',' << bp.mu[0]
+                           << ',' << bp.mu[1]
+                           << ',' << bp.mu[2];
+            }
+            debug_log_ << '\n';
             debug_log_.flush();
         }
 

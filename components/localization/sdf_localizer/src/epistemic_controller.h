@@ -29,8 +29,8 @@ public:
         // ---- Policy rollout & EFE ----
         int   horizon_steps  = 20;
         float dt             = 0.2f;
-        float max_adv_speed  = 0.6f;
-        float max_rot_speed  = 0.5f;
+        float max_adv_speed  = 0.9f;
+        float max_rot_speed  = 0.75f;
         float w_epistemic    = 1.0f;
         float w_pragmatic    = 1.0f;
         float w_heading      = 2.0f;

@@ -4,6 +4,8 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <sstream>
+#include <sys/stat.h>
 #include <QDebug>
 
 namespace rc
@@ -26,8 +28,30 @@ namespace rc
 
     void RoomConcept::start()
     {
-        if (loc_running_.load()) return;
+        if (loc_running_.load() || loc_thread_.joinable()) return;
         stop_requested_ = false;
+
+        // If CUDA is requested, initialize the CUDA context HERE on the calling thread
+        // (main/Qt thread) before spawning the localization thread.
+        // libtorch requires that CUDA be initialized on the thread that will own the
+        // context, or at minimum that the CUDA dispatcher has been activated before
+        // worker threads try to create CUDA tensors.  Without this, is_available()
+        // returns true (driver found) but CUDA kernels fail to register.
+        if (params.use_cuda && torch::cuda::is_available())
+        {
+            try {
+                // Warm-up: create and discard a tiny CUDA tensor to trigger CUDA init
+                auto tmp = torch::zeros({1}, torch::TensorOptions().device(torch::kCUDA));
+                (void)tmp;
+                qInfo() << "[RoomConcept] CUDA initialized successfully on calling thread.";
+            } catch (const std::exception& e) {
+                qWarning() << "[RoomConcept] CUDA init failed:" << e.what()
+                           << "— falling back to CPU.";
+                params.use_cuda = false;
+            }
+        }
+
+        loc_running_ = true;
         loc_thread_ = std::thread(&RoomConcept::run, this);
     }
 
@@ -36,6 +60,66 @@ namespace rc
         stop_requested_ = true;
         if (loc_thread_.joinable())
             loc_thread_.join();
+        loc_running_ = false;
+    }
+
+    void RoomConcept::init_debug_log()
+    {
+        if (!params.debug_log_enabled) return;
+
+        ::mkdir("tmp", 0755);
+        ::mkdir("tmp/sdf_localizer", 0755);
+
+        const std::string path = "tmp/sdf_localizer/log.csv";
+        debug_log_.open(path, std::ios::out | std::ios::trunc);
+        if (!debug_log_.is_open())
+        {
+            std::cerr << "[DebugLog] ERROR: could not open " << path << std::endl;
+            return;
+        }
+
+        // CSV header — one row per update() call
+        debug_log_
+            << "ts_ms"
+            << ",wall_ms"
+            << ",dt_ms"
+            << ",n_lidar"
+            << ",vel_adv_y"
+            << ",vel_rot"
+            << ",odom_adv"
+            << ",odom_rot"
+            << ",cmd_valid"
+            << ",cmd_dx,cmd_dy,cmd_dth"
+            << ",cmd_cov_xx,cmd_cov_tt"
+            << ",meas_valid"
+            << ",meas_dx,meas_dy,meas_dth"
+            << ",meas_cov_xx,meas_cov_tt"
+            << ",pred_x,pred_y,pred_theta"
+            << ",slot_mcov_xx,slot_mcov_tt"
+            << ",early_exit"
+            << ",iters"
+            << ",final_loss"
+            << ",lr_eff"
+            << ",res_x,res_y,res_theta"
+            << ",innov_x,innov_y,innov_theta"
+            << ",innov_norm"
+            << ",sdf_mse"
+            << ",cov_xx,cov_tt"
+            << ",cond_num"
+            << ",window_size"
+            << ",tracking_steps"
+            << ",loss_boundary"
+            << ",loss_obs"
+            << ",loss_motion"
+            << ",loss_corner"
+            << ",loss_init"
+            << ",t_update_ms"
+            << ",t_adam_ms"
+            << ",t_cov_ms"
+            << ",t_breakdown_ms"
+            << "\n";
+        debug_log_.flush();
+        std::cout << "[DebugLog] Logging to " << path << std::endl;
     }
 
     std::optional<RoomConcept::UpdateResult> RoomConcept::get_last_result() const
@@ -229,7 +313,20 @@ namespace rc
     void RoomConcept::run()
     {
         qInfo() << "[LocThread] Localization thread started";
-        loc_running_ = true;
+        init_debug_log();
+        rerun_frame_counter_ = 0;
+
+        if (params.rerun_enabled)
+        {
+            RerunLogger::Config cfg;
+            cfg.enabled = true;
+            cfg.host = params.rerun_host;
+            cfg.port = params.rerun_port;
+            cfg.sdf_every_n = params.rerun_sdf_every_n;
+            cfg.sdf_resolution = params.rerun_sdf_resolution;
+            cfg.max_queue = params.rerun_max_queue;
+            rerun_logger_.init(cfg);
+        }
 
         auto wait_period = std::chrono::milliseconds(40);
         std::int64_t last_ts = -1;
@@ -290,10 +387,122 @@ namespace rc
             auto odom_snap = run_ctx_.odometry_buffer->get_snapshot<0>();
 
             // ===== 6. RUN LOCALIZATION UPDATE =====
-            const auto t_update_start = std::chrono::high_resolution_clock::now();
+            const auto t_update_start_ = std::chrono::high_resolution_clock::now();
             const auto res = update(lidar_high_.value(), vel_snap, odom_snap);
             const float update_ms = std::chrono::duration<float, std::milli>(
-                std::chrono::high_resolution_clock::now() - t_update_start).count();
+                std::chrono::high_resolution_clock::now() - t_update_start_).count();
+
+            if (params.rerun_enabled)
+            {
+                RerunFrame rf;
+                rf.ts_ms = res.timestamp_ms;
+                rf.x = res.state[2];
+                rf.y = res.state[3];
+                rf.theta = res.state[4];
+                rf.innov_x = res.innovation[0];
+                rf.innov_y = res.innovation[1];
+                rf.innov_theta = res.innovation[2];
+                rf.pred_x = rf.x - rf.innov_x;
+                rf.pred_y = rf.y - rf.innov_y;
+                rf.pred_theta = rf.theta - rf.innov_theta;
+                rf.early_exit = (res.iterations_used <= 0);
+                rf.window_size = static_cast<int>(window_mgr_.size());
+                rf.iters = res.iterations_used;
+
+                rf.loss_init = last_loss_init_;
+                rf.final_loss = res.final_loss;
+                rf.loss_boundary = last_loss_breakdown_.boundary;
+                rf.loss_obs = last_loss_breakdown_.obs;
+                rf.loss_motion = last_loss_breakdown_.motion;
+                rf.loss_corner = last_loss_breakdown_.corner;
+
+                rf.sdf_mse = res.sdf_mse;
+                rf.innov_norm = res.innovation_norm;
+                rf.cov_xx = res.covariance(0, 0);
+                rf.cov_xy = res.covariance(0, 1);
+                rf.cov_yy = res.covariance(1, 1);
+                rf.cov_tt = res.covariance(2, 2);
+                rf.cond_num = res.condition_number;
+
+                rf.t_update_ms = update_ms;
+                rf.t_adam_ms = last_t_adam_ms_;
+                rf.t_cov_ms = last_t_cov_ms_;
+                rf.t_breakdown_ms = last_t_breakdown_ms_;
+
+                // Send real room polygon once so the bridge can draw corner-to-corner contour.
+                if (!rerun_room_polygon_sent_ && model_ != nullptr && model_->use_polygon && model_->polygon_vertices.defined())
+                {
+                    auto poly_cpu = model_->polygon_vertices.to(torch::kCPU);
+                    if (poly_cpu.dim() == 2 && poly_cpu.size(1) == 2 && poly_cpu.size(0) >= 3)
+                    {
+                        auto acc = poly_cpu.accessor<float, 2>();
+                        rf.has_room_polygon = true;
+                        rf.room_polygon.reserve(static_cast<size_t>(poly_cpu.size(0)));
+                        for (int i = 0; i < poly_cpu.size(0); ++i)
+                            rf.room_polygon.push_back({acc[i][0], acc[i][1]});
+                        rerun_room_polygon_sent_ = true;
+                    }
+                }
+
+                rf.lidar_points.reserve(res.lidar_scan.size());
+                for (const auto &p : res.lidar_scan)
+                    rf.lidar_points.push_back({p.x(), p.y(), p.z()});
+
+                // Optional SDF grid every N frames.
+                rerun_frame_counter_++;
+                const int sdf_every_n = std::max(0, params.rerun_sdf_every_n);
+                const bool send_sdf = (sdf_every_n > 0) && (rerun_frame_counter_ % sdf_every_n == 0) && (model_ != nullptr);
+                if (send_sdf)
+                {
+                    const int res_grid = std::max(8, params.rerun_sdf_resolution);
+                    const float half_w = 0.5f * std::max(0.1f, res.state[0]);
+                    const float half_h = 0.5f * std::max(0.1f, res.state[1]);
+                    const float span = 2.f * std::max(half_w, half_h);
+                    const float cell = span / static_cast<float>(std::max(1, res_grid - 1));
+                    const float ox = -0.5f * span;
+                    const float oy = -0.5f * span;
+
+                    std::vector<Eigen::Vector3f> grid_robot;
+                    grid_robot.reserve(static_cast<size_t>(res_grid) * static_cast<size_t>(res_grid));
+
+                    const float x = res.state[2];
+                    const float y = res.state[3];
+                    const float th = res.state[4];
+                    const float c = std::cos(th);
+                    const float s = std::sin(th);
+
+                    for (int iy = 0; iy < res_grid; ++iy)
+                    {
+                        const float wy = oy + static_cast<float>(iy) * cell;
+                        for (int ix = 0; ix < res_grid; ++ix)
+                        {
+                            const float wx = ox + static_cast<float>(ix) * cell;
+                            const float dx = wx - x;
+                            const float dy = wy - y;
+                            const float rx = c * dx + s * dy;
+                            const float ry = -s * dx + c * dy;
+                            grid_robot.emplace_back(rx, ry, 0.f);
+                        }
+                    }
+
+                    torch::NoGradGuard no_grad;
+                    auto grid_t = points_to_tensor_xyz(grid_robot, get_device());
+                    auto sdf_t = model_->sdf(grid_t).to(torch::kCPU);
+                    auto acc = sdf_t.accessor<float, 1>();
+
+                    rf.has_sdf_grid = true;
+                    rf.sdf_w = res_grid;
+                    rf.sdf_h = res_grid;
+                    rf.sdf_origin_x = ox;
+                    rf.sdf_origin_y = oy;
+                    rf.sdf_cell_size = cell;
+                    rf.sdf_values.resize(static_cast<size_t>(res_grid) * static_cast<size_t>(res_grid));
+                    for (size_t i = 0; i < rf.sdf_values.size(); ++i)
+                        rf.sdf_values[i] = acc[i];
+                }
+
+                rerun_logger_.log_frame(std::move(rf));
+            }
 
             // ===== 7. PUBLISH RESULT =====
             {
@@ -495,6 +704,7 @@ namespace rc
             std::this_thread::sleep_for(wait_period);
         }
 
+        rerun_logger_.stop();
         loc_running_ = false;
         qInfo() << "[LocThread] Localization thread stopped";
     }
@@ -691,7 +901,9 @@ namespace rc
         tracking_step_count_ = 0;  // Reset early exit tracking
         prediction_early_exits_ = 0;
         current_velocity_weights_ = Eigen::Vector3f::Ones();  // Reset velocity weights
+        prev_sdf_mse_ = 0.f;  // Reset boundary quality gate
         window_mgr_.clear();
+        rerun_room_polygon_sent_ = false;
 
         qInfo() << "RoomConcept using device:" << (get_device() == torch::kCUDA ? "CUDA" : "CPU");
     }
@@ -733,7 +945,9 @@ namespace rc
         tracking_step_count_ = 0;  // Reset early exit tracking
         prediction_early_exits_ = 0;
         current_velocity_weights_ = Eigen::Vector3f::Ones();  // Reset velocity weights
+        prev_sdf_mse_ = 0.f;  // Reset boundary quality gate
         window_mgr_.clear();
+        rerun_room_polygon_sent_ = false;
 
         // Initialize corner detector with model polygon
         corner_detector_.set_model_corners(polygon_vertices);
@@ -895,6 +1109,7 @@ namespace rc
                 const std::vector<VelocityCommand> &velocity_history,
                 const std::vector<OdometryReading> &odometry_history)
     {
+        t_update_start_ = std::chrono::high_resolution_clock::now();
         UpdateResult res;
         if (lidar.first.empty() || model_ == nullptr)
             return res;
@@ -961,9 +1176,21 @@ namespace rc
         const torch::Tensor points_tensor = points_to_tensor_xyz(sampled_points, get_device());
         tracking_step_count_++;
 
+        // Motion constraint for the new slot.
+        // Prefer measured odometry (encoder/IMU) when available — it is more accurate than
+        // the commanded velocity, especially during rotation where wheel slip can differ from
+        // the commanded angular rate.  The initial pose (pred_pos, pred_theta) was already
+        // computed from the fused estimate inside apply_dual_prior_fusion, so using the same
+        // measured delta here removes the command/measured inconsistency that previously caused
+        // Adam to fight the motion factor during turns.
         Eigen::Vector3f slot_odom_delta = Eigen::Vector3f::Zero();
         Eigen::Matrix3f slot_motion_cov = Eigen::Matrix3f::Identity() * params.default_slot_motion_cov;
-        if (odometry_prior.valid)
+        if (last_measured_prior_.valid)
+        {
+            slot_odom_delta = last_measured_prior_.delta_pose;
+            slot_motion_cov = compute_motion_covariance(last_measured_prior_, true);  // tighter measured noise
+        }
+        else if (odometry_prior.valid)
         {
             slot_odom_delta = odometry_prior.delta_pose;
             slot_motion_cov = compute_motion_covariance(odometry_prior, false);
@@ -977,25 +1204,27 @@ namespace rc
         new_slot.motion_cov = slot_motion_cov;
         new_slot.timestamp_ms = lidar.second;
 
-        // Pre-cache tensors used every Adam iteration
+        // Pre-cache tensors used every Adam iteration.
+        // Always build on CPU first (accessor<> requires CPU), then move to device.
         new_slot.odom_delta_tensor = torch::tensor(
             {slot_odom_delta[0], slot_odom_delta[1], slot_odom_delta[2]},
-            torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
+            torch::kFloat32).to(get_device());
         {
             Eigen::Matrix3f prec = slot_motion_cov.inverse();
-            new_slot.motion_prec_tensor = torch::zeros({3, 3},
-                torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
-            auto acc = new_slot.motion_prec_tensor.accessor<float, 2>();
+            auto prec_cpu = torch::zeros({3, 3}, torch::kFloat32);
+            auto acc = prec_cpu.accessor<float, 2>();
             for (int r = 0; r < 3; r++)
                 for (int c = 0; c < 3; c++)
                     acc[r][c] = prec(r, c);
+            new_slot.motion_prec_tensor = prec_cpu.to(get_device());
         }
 
-        const bool window_slid = window_mgr_.append(std::move(new_slot), params.rfe_window_size);
+        const bool window_slid = window_mgr_.append(std::move(new_slot), params.rfe_window_size,
+                                                     params.boundary_mu_quality_threshold);
         window_mgr_.subsample_old_slots(params.rfe_max_lidar_per_old_slot);
 
-        // ===== CORNER DETECTION (runs on every frame, including early-exit) =====
-        if (!init_polygon_vertices_.empty())
+        // ===== CORNER DETECTION (optional, controlled by EnableCornerTracking) =====
+        if (params.enable_corner_tracking && !init_polygon_vertices_.empty())
         {
             auto newest_cpu = window_mgr_.newest().pose.detach().to(torch::kCPU);
             auto pa = newest_cpu.accessor<float, 1>();
@@ -1023,6 +1252,8 @@ namespace rc
         // ===== EARLY EXIT CHECK =====
         if (auto early = try_prediction_early_exit(points_tensor, slot_odom_delta, odometry_prior, lidar.second))
         {
+            // Store quality for future boundary prior gate (early exit = good pose).
+            window_mgr_.newest().sdf_mse_final = early->sdf_mse;
             early->corners_in_fov = res.corners_in_fov;
             early->corner_matches = std::move(res.corner_matches);
             early->lidar_scan = std::move(res.lidar_scan);
@@ -1030,17 +1261,41 @@ namespace rc
         }
 
         // ===== ADAM OPTIMISATION =====
-        auto [last_loss, iterations] = run_adam_loop(odometry_prior);
+        {
+            const auto t0 = std::chrono::high_resolution_clock::now();
+            auto [last_loss, iterations] = run_adam_loop(odometry_prior);
+            last_t_adam_ms_ = std::chrono::duration<float, std::milli>(
+                std::chrono::high_resolution_clock::now() - t0).count();
+            res.final_loss     = last_loss;
+            res.iterations_used = iterations;
+        }
+
+        // ===== FE TERM BREAKDOWN (diagnostic log, no gradient needed) =====
+        // Compute only every 5 frames to avoid re-running the full forward pass just for logging.
+        // This saves ~4 ms per Adam run (≈5% of spike duration) at the cost of slightly stale
+        // per-term breakdown values in the CSV.
+        if (params.debug_log_enabled && (tracking_step_count_ % 5 == 0)) {
+            const auto t0 = std::chrono::high_resolution_clock::now();
+            torch::NoGradGuard no_grad;
+            last_loss_breakdown_ = window_mgr_.compute_rfe_loss_breakdown(*model_, params, get_device());
+            last_t_breakdown_ms_ = std::chrono::duration<float, std::milli>(
+                std::chrono::high_resolution_clock::now() - t0).count();
+        } else {
+            last_t_breakdown_ms_ = 0.f;
+        }
 
         // ===== COVARIANCE UPDATE =====
-        auto [covariance, condition_number] = compute_posterior_covariance(points_tensor);
-        res.covariance = covariance;
-        res.condition_number = condition_number;
+        {
+            const auto t0 = std::chrono::high_resolution_clock::now();
+            auto [covariance, condition_number] = compute_posterior_covariance(points_tensor);
+            res.covariance = covariance;
+            res.condition_number = condition_number;
+            last_t_cov_ms_ = std::chrono::duration<float, std::milli>(
+                std::chrono::high_resolution_clock::now() - t0).count();
+        }
 
         // ===== EXTRACT RESULT FROM NEWEST SLOT =====
         res.ok = true;
-        res.final_loss = last_loss;
-        res.iterations_used = iterations;
 
         {
             auto newest_cpu = window_mgr_.newest().pose.detach().to(torch::kCPU);
@@ -1056,6 +1311,10 @@ namespace rc
                 torch::TensorOptions().device(get_device())));
 
             res.sdf_mse = compute_sdf_mse_unscaled(points_tensor, *model_);
+
+            // Store localization quality so future frames can quality-gate the boundary prior
+            // (Solutions B & C): when this slot becomes the oldest it carries its own sdf_mse.
+            window_mgr_.newest().sdf_mse_final = res.sdf_mse;
 
             // Build state vector without calling get_state() (avoids 3 GPU→CPU transfers)
             {
@@ -1100,6 +1359,99 @@ namespace rc
         model_->has_prediction = false;
         res.timestamp_ms = lidar.second;
         last_update_result = res;
+        prev_sdf_mse_ = res.sdf_mse;   // track for boundary quality gate next frame
+
+        // ===== DEBUG LOG =====
+        if (debug_log_.is_open())
+        {
+            const auto wall_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+
+            const float vel_adv_y = velocity_history.empty() ? 0.f : velocity_history.back().adv_y;
+            const float vel_rot   = velocity_history.empty() ? 0.f : velocity_history.back().rot;
+            const float odom_adv  = odometry_history.empty() ? 0.f : odometry_history.back().adv;
+            const float odom_rot  = odometry_history.empty() ? 0.f : odometry_history.back().rot;
+
+            const float cmd_cov_xx = last_cmd_cov_(0,0);
+            const float cmd_cov_tt = last_cmd_cov_(2,2);
+            float meas_cov_xx = 0.f, meas_cov_tt = 0.f;
+            if (last_measured_prior_.valid && last_measured_prior_.covariance.defined())
+            {
+                auto mc = last_measured_prior_.covariance.to(torch::kCPU);
+                auto ma = mc.accessor<float, 2>();
+                meas_cov_xx = ma[0][0];
+                meas_cov_tt = ma[2][2];
+            }
+
+            std::string losses_str;
+            for (size_t ai = 0; ai < last_adam_losses_.size(); ++ai)
+            {
+                if (ai > 0) losses_str += '|';
+                std::ostringstream ss; ss << last_adam_losses_[ai];
+                losses_str += ss.str();
+            }
+            if (losses_str.empty()) losses_str = "na";
+
+            const float lr_eff = params.learning_rate_pos /
+                std::sqrt(static_cast<float>(std::max(1, (int)window_mgr_.size())));
+
+            debug_log_
+                << lidar.second
+                << ',' << wall_now_ms
+                << ',' << odometry_prior.dt
+                << ',' << sampled_points.size()
+                << ',' << vel_adv_y
+                << ',' << vel_rot
+                << ',' << odom_adv
+                << ',' << odom_rot
+                << ',' << (int)odometry_prior.valid
+                << ',' << odometry_prior.delta_pose[0]
+                << ',' << odometry_prior.delta_pose[1]
+                << ',' << odometry_prior.delta_pose[2]
+                << ',' << cmd_cov_xx
+                << ',' << cmd_cov_tt
+                << ',' << (int)last_measured_prior_.valid
+                << ',' << last_measured_prior_.delta_pose[0]
+                << ',' << last_measured_prior_.delta_pose[1]
+                << ',' << last_measured_prior_.delta_pose[2]
+                << ',' << meas_cov_xx
+                << ',' << meas_cov_tt
+                << ',' << pred_pos.x()
+                << ',' << pred_pos.y()
+                << ',' << pred_theta
+                << ',' << slot_motion_cov(0,0)
+                << ',' << slot_motion_cov(2,2)
+                << ',' << 0                          // early_exit = 0 (Adam ran)
+                << ',' << res.iterations_used
+                << ',' << res.final_loss
+                << ',' << lr_eff
+                << ',' << res.state[2]
+                << ',' << res.state[3]
+                << ',' << res.state[4]
+                << ',' << res.innovation[0]
+                << ',' << res.innovation[1]
+                << ',' << res.innovation[2]
+                << ',' << res.innovation_norm
+                << ',' << res.sdf_mse
+                << ',' << res.covariance(0,0)
+                << ',' << res.covariance(2,2)
+                << ',' << res.condition_number
+                << ',' << (int)window_mgr_.size()
+                << ',' << tracking_step_count_
+                << ',' << last_loss_breakdown_.boundary
+                << ',' << last_loss_breakdown_.obs
+                << ',' << last_loss_breakdown_.motion
+                << ',' << last_loss_breakdown_.corner
+                << ',' << last_loss_init_
+                << ',' << std::chrono::duration<float, std::milli>(
+                               std::chrono::high_resolution_clock::now() - t_update_start_).count()
+                << ',' << last_t_adam_ms_
+                << ',' << last_t_cov_ms_
+                << ',' << last_t_breakdown_ms_
+                << '\n';
+            debug_log_.flush();
+        }
+
         return res;
     }
 
@@ -1132,6 +1484,7 @@ namespace rc
 
         // Measured odometry prior: predict from encoder/IMU readings
         auto measured_prior = compute_measured_odometry_prior(odometry_history, lidar);
+        last_measured_prior_ = measured_prior;  // save for debug log
 
         if (measured_prior.valid)
         {
@@ -1146,6 +1499,7 @@ namespace rc
             const Eigen::Vector3f pred_odom(odom_pos.x(), odom_pos.y(), odom_theta);
 
             const Eigen::Matrix3f cov_cmd = compute_motion_covariance(odometry_prior, false);
+            last_cmd_cov_ = cov_cmd;  // save for debug log
             const Eigen::Matrix3f cov_odom = compute_motion_covariance(measured_prior, true);
 
             const auto [fused_mean, fused_precision] = fuse_priors(
@@ -1183,15 +1537,19 @@ namespace rc
         const OdometryPrior& odometry_prior,
         std::int64_t lidar_timestamp_ms)
     {
-        const float angular_delta = std::abs(slot_odom_delta[2]);
-        const bool fast_rotation = angular_delta > params.angular_velocity_threshold
-                                    * std::max(odometry_prior.dt / 1000.0f, 0.001f);
-
+        // No fast_rotation block here: the SDF quality check below already decides whether
+        // the predicted pose (including theta) is accurate enough to skip Adam.
+        // If measured odometry is available and accurate, the theta prediction will be good,
+        // mean_sdf_pred will be low, and early exit will fire correctly — even during turns.
+        // If the prediction is poor (large rotation error), mean_sdf_pred will be high and
+        // Adam will run.  An explicit angular-velocity gate was previously needed because
+        // slot_odom_delta used command velocity (inconsistent with the fused prediction).
+        // Now that slot_odom_delta uses measured odometry, the prediction is self-consistent
+        // and the SDF gate alone is sufficient.
         if (!params.prediction_early_exit ||
             !last_update_result.ok ||
             !odometry_prior.valid ||
-            tracking_step_count_ <= params.min_tracking_steps ||
-            fast_rotation)
+            tracking_step_count_ <= params.min_tracking_steps)
             return std::nullopt;
 
         torch::NoGradGuard no_grad;
@@ -1201,7 +1559,13 @@ namespace rc
         const auto sdf_pred = model_->sdf_at_pose(points_tensor, pose_xy, pose_th);
         const float mean_sdf_pred = torch::mean(torch::abs(sdf_pred)).item<float>();
 
-        const float prediction_trust_threshold = params.sigma_sdf * params.prediction_trust_factor;
+        // Widen the SDF trust threshold when the robot is rotating.
+        // A theta error ε at room scale R produces SDF displacement ~R*ε.
+        // The base threshold (sigma_sdf * trust_factor ≈ 7.5 cm) is too tight during rotation:
+        // even a 0.02 rad odometry error at 5 m gives ~10 cm — larger than the base threshold.
+        // We add rotation_sdf_coupling * |delta_theta| to compensate for this geometric effect.
+        const float rot_boost = params.rotation_sdf_coupling * std::abs(odometry_prior.delta_pose[2]);
+        const float prediction_trust_threshold = params.sigma_sdf * params.prediction_trust_factor + rot_boost;
         if (mean_sdf_pred >= prediction_trust_threshold)
             return std::nullopt;
 
@@ -1249,7 +1613,61 @@ namespace rc
 
         res.timestamp_ms = lidar_timestamp_ms;
         last_update_result = res;
+        prev_sdf_mse_ = res.sdf_mse;   // track for boundary quality gate next frame
         last_lidar_timestamp = lidar_timestamp_ms;
+
+        // Debug log for early-exit frames
+        if (debug_log_.is_open())
+        {
+            const auto wall_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            const float lr_eff = params.learning_rate_pos /
+                std::sqrt(static_cast<float>(std::max(1, (int)window_mgr_.size())));
+            float meas_cov_xx = 0.f, meas_cov_tt = 0.f;
+            if (last_measured_prior_.valid && last_measured_prior_.covariance.defined())
+            {
+                auto mc = last_measured_prior_.covariance.to(torch::kCPU);
+                auto ma = mc.accessor<float, 2>();
+                meas_cov_xx = ma[0][0]; meas_cov_tt = ma[2][2];
+            }
+            debug_log_
+                << lidar_timestamp_ms
+                << ',' << wall_now_ms
+                << ',' << odometry_prior.dt
+                << ',' << 0           // n_lidar not available here
+                << ',' << 0 << ',' << 0 << ',' << 0 << ',' << 0  // vel/odom
+                << ',' << (int)odometry_prior.valid
+                << ',' << odometry_prior.delta_pose[0]
+                << ',' << odometry_prior.delta_pose[1]
+                << ',' << odometry_prior.delta_pose[2]
+                << ',' << last_cmd_cov_(0,0) << ',' << last_cmd_cov_(2,2)
+                << ',' << (int)last_measured_prior_.valid
+                << ',' << last_measured_prior_.delta_pose[0]
+                << ',' << last_measured_prior_.delta_pose[1]
+                << ',' << last_measured_prior_.delta_pose[2]
+                << ',' << meas_cov_xx << ',' << meas_cov_tt
+                << ',' << x << ',' << y << ',' << phi
+                << ',' << 0 << ',' << 0   // slot_mcov (not available here)
+                << ',' << 1               // early_exit = 1
+                << ',' << 0               // iters
+                << ',' << mean_sdf_pred
+                << ',' << lr_eff
+                << ',' << x << ',' << y << ',' << phi
+                << ',' << res.innovation[0] << ',' << res.innovation[1] << ',' << res.innovation[2]
+                << ',' << res.innovation_norm
+                << ',' << res.sdf_mse
+                << ',' << res.covariance(0,0) << ',' << res.covariance(2,2)
+                << ',' << 0               // cond_num
+                << ',' << (int)window_mgr_.size()
+                << ',' << tracking_step_count_
+                << ',' << "nan" << ',' << "nan" << ',' << "nan" << ',' << "nan"  // loss_boundary/obs/motion/corner
+                << ',' << "nan"  // loss_init
+                << ',' << std::chrono::duration<float, std::milli>(
+                               std::chrono::high_resolution_clock::now() - t_update_start_).count()
+                << ',' << 0.f << ',' << 0.f << ',' << 0.f  // t_adam, t_cov, t_breakdown
+                << '\n';
+            debug_log_.flush();
+        }
 
         return res;
     }
@@ -1267,15 +1685,37 @@ namespace rc
 
         const Eigen::Vector3f velocity_weights = compute_velocity_adaptive_weights(odometry_prior);
 
+        // ===== Boundary quality gate =====
+        // Scale the boundary prior by how trustworthy the previous frame's pose was.
+        // w = min(1, sigma_sdf² / sdf_mse_prev)
+        // Good prev pose (sdf_mse_prev ≈ 0) → w≈1 (strong prior, normal behaviour).
+        // Bad  prev pose (sdf_mse_prev >> sigma_sdf) → w→0 (prior suppressed, ADAM free to recover).
+        float boundary_weight = 1.0f;
+        if (params.rfe_boundary_quality_gate && prev_sdf_mse_ > 1e-6f)
+        {
+            const float sigma2 = params.sigma_sdf * params.sigma_sdf;
+            boundary_weight = std::min(1.0f, sigma2 / prev_sdf_mse_);
+        }
+
         float last_loss = std::numeric_limits<float>::infinity();
         float prev_loss = std::numeric_limits<float>::infinity();
         int iterations = 0;
+
+        last_adam_losses_.clear();
+        last_adam_losses_.reserve(params.num_iterations);
+        last_loss_init_ = 0.f;
 
         for (int i = 0; i < params.num_iterations; ++i)
         {
             optimizer.zero_grad();
 
-            const torch::Tensor loss = window_mgr_.compute_rfe_loss(*model_, params, get_device());
+            const torch::Tensor loss = window_mgr_.compute_rfe_loss(*model_, params, get_device(),
+                                                                      boundary_weight);
+
+            // Record initial loss (before any parameter update) for convergence diagnostics
+            if (i == 0)
+                last_loss_init_ = loss.item<float>();
+
             loss.backward();
 
             {
@@ -1293,6 +1733,7 @@ namespace rc
 
             prev_loss = last_loss;
             last_loss = loss.item<float>();
+            last_adam_losses_.push_back(last_loss);
             iterations = i + 1;
 
             if (last_loss < params.min_loss_threshold)
@@ -1437,6 +1878,18 @@ namespace rc
         float rot_induced_pos = params.rotation_position_coupling * std::abs(odometry_prior.delta_pose[2]);
         position_std = std::sqrt(position_std * position_std + rot_induced_pos * rot_induced_pos);
 
+        // Encoder angular slip model (measured odometry only):
+        // At high angular speeds, wheel encoders under-report rotation due to slip.
+        // Inflate rotation variance proportionally to angular speed so the Bayesian
+        // fusion reduces the encoder's weight relative to the command predictor.
+        if (is_measured_odometry && params.encoder_rot_slip_k > 0.f)
+        {
+            const float ang_speed = std::abs(odometry_prior.delta_pose[2]) /
+                                    std::max(odometry_prior.dt * 0.001f, 0.001f);
+            const float slip_std  = params.encoder_rot_slip_k * ang_speed;
+            rotation_std = std::sqrt(rotation_std * rotation_std + slip_std * slip_std);
+        }
+
         Eigen::Matrix3f cov = Eigen::Matrix3f::Identity();
         cov(0, 0) = position_std * position_std;
         cov(1, 1) = position_std * position_std;
@@ -1451,32 +1904,31 @@ namespace rc
                 const std::int64_t &t_start_ms,
                 const std::int64_t &t_end_ms)
     {
-        using clock = std::chrono::high_resolution_clock;
-        const auto t_start = clock::time_point(std::chrono::milliseconds(t_start_ms));
-        const auto t_end = clock::time_point(std::chrono::milliseconds(t_end_ms));
-
         Eigen::Vector3f total_delta = Eigen::Vector3f::Zero();
 
         float running_theta = std::atan2(robot_pose.linear()(1,0), robot_pose.linear()(0,0));
 
-        // Integrate over all velocity commands in [t_start, t_end]
+        // Integrate over all velocity commands in [t_start_ms, t_end_ms] using source/recv epoch-ms.
         for (size_t i = 0; i < velocity_history.size(); ++i) {
             const auto& vcmd = velocity_history[i];
 
             // Get time window for this command
-            auto cmd_start = vcmd.timestamp;
-            auto cmd_end = (i + 1 < velocity_history.size())
-                           ? velocity_history[i + 1].timestamp
-                           : t_end;
+            const std::int64_t cmd_start_ms = vcmd.effective_ts_ms();
+            const std::int64_t cmd_end_ms = (i + 1 < velocity_history.size())
+                           ? velocity_history[i + 1].effective_ts_ms()
+                           : t_end_ms;
 
-            // Clip to [t_start, t_end]
-            if (cmd_end < t_start) continue;
-            if (cmd_start > t_end) break;
+            if (cmd_start_ms <= 0 || cmd_end_ms <= 0 || cmd_end_ms <= cmd_start_ms)
+                continue;
 
-            auto effective_start = std::max(cmd_start, t_start);
-            auto effective_end = std::min(cmd_end, t_end);
+            // Clip to [t_start_ms, t_end_ms]
+            if (cmd_end_ms < t_start_ms) continue;
+            if (cmd_start_ms > t_end_ms) break;
 
-            const float dt = std::chrono::duration<float>(effective_end - effective_start).count();
+            const std::int64_t effective_start_ms = std::max(cmd_start_ms, t_start_ms);
+            const std::int64_t effective_end_ms = std::min(cmd_end_ms, t_end_ms);
+
+            const float dt = static_cast<float>(effective_end_ms - effective_start_ms) * 0.001f;
             if (dt <= 0) continue;
 
             // Integrate this segment
@@ -1637,32 +2089,31 @@ namespace rc
                 const int64_t &t_start_ms,
                 const int64_t &t_end_ms)
     {
-        using clock = std::chrono::high_resolution_clock;
-        const auto t_start = clock::time_point(std::chrono::milliseconds(t_start_ms));
-        const auto t_end = clock::time_point(std::chrono::milliseconds(t_end_ms));
-
         Eigen::Vector3f total_delta = Eigen::Vector3f::Zero();
         float running_theta = std::atan2(robot_pose.linear()(1,0), robot_pose.linear()(0,0));
 
-        // Integrate over all odometry readings in [t_start, t_end]
+        // Integrate over all odometry readings in [t_start_ms, t_end_ms] using source/recv epoch-ms.
         for (size_t i = 0; i < odometry_history.size(); ++i)
         {
             const auto& odom = odometry_history[i];
 
             // Get time window for this reading
-            auto cmd_start = odom.timestamp;
-            auto cmd_end = (i + 1 < odometry_history.size())
-                           ? odometry_history[i + 1].timestamp
-                           : t_end;
+            const std::int64_t cmd_start_ms = odom.effective_ts_ms();
+            const std::int64_t cmd_end_ms = (i + 1 < odometry_history.size())
+                           ? odometry_history[i + 1].effective_ts_ms()
+                           : t_end_ms;
 
-            // Clip to [t_start, t_end]
-            if (cmd_end < t_start) continue;
-            if (cmd_start > t_end) break;
+            if (cmd_start_ms <= 0 || cmd_end_ms <= 0 || cmd_end_ms <= cmd_start_ms)
+                continue;
 
-            auto effective_start = std::max(cmd_start, t_start);
-            auto effective_end = std::min(cmd_end, t_end);
+            // Clip to [t_start_ms, t_end_ms]
+            if (cmd_end_ms < t_start_ms) continue;
+            if (cmd_start_ms > t_end_ms) break;
 
-            const float dt = std::chrono::duration<float>(effective_end - effective_start).count();
+            const std::int64_t effective_start_ms = std::max(cmd_start_ms, t_start_ms);
+            const std::int64_t effective_end_ms = std::min(cmd_end_ms, t_end_ms);
+
+            const float dt = static_cast<float>(effective_end_ms - effective_start_ms) * 0.001f;
             if (dt <= 0) continue;
 
             // Odometry velocities are in robot frame: adv=forward(Y), side=lateral(X), rot=angular
@@ -1828,15 +2279,23 @@ namespace rc
     //  WindowManager methods
     // =====================================================================
 
-    bool RoomConcept::WindowManager::append(WindowSlot slot, int max_window_size)
+    bool RoomConcept::WindowManager::append(WindowSlot slot, int max_window_size,
+                                             float mu_quality_threshold)
     {
         bool slid = false;
         if (static_cast<int>(window.size()) >= max_window_size)
         {
-            // Cheap slide: save oldest pose as boundary mu before dropping
             auto pose_cpu = window.front().pose.detach().to(torch::kCPU);
             auto pose_acc = pose_cpu.accessor<float, 1>();
-            boundary_prior.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+
+            // Solution C: only update boundary mu if the dropped slot had acceptable
+            // localization quality. If the slot was confused (displacement, obstacle),
+            // keep the previous mu so the prior continues anchoring to the last good pose.
+            const bool slot_is_good = (window.front().sdf_mse_final < mu_quality_threshold)
+                                      || !boundary_prior.valid;
+            if (slot_is_good)
+                boundary_prior.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+
             window.pop_front();
             slid = true;
         }
@@ -1873,7 +2332,8 @@ namespace rc
     }
 
     torch::Tensor RoomConcept::WindowManager::compute_rfe_loss(
-        const Model& model, const Params& params, torch::Device device) const
+        const Model& model, const Params& params, torch::Device device,
+        float boundary_weight) const
     {
         if (window.empty())
             return torch::tensor(0.0f, torch::TensorOptions().device(device));
@@ -1884,7 +2344,10 @@ namespace rc
         torch::Tensor total_loss = torch::tensor(0.0f, torch::TensorOptions().device(device));
 
         // --- 1. Boundary prior on oldest surviving state (Eq. 28) ---
-        if (boundary_prior.valid && !window.empty())
+        // With W=1 the oldest slot IS the current slot: the prior would anchor the current
+        // pose to the previous frame's post-ADAM estimate, creating an error integrator that
+        // drives sawtooth drift even when the robot is static.  Only apply when W > 1.
+        if (boundary_prior.valid && window.size() > 1)
         {
             const auto& oldest_pose = window.front().pose;
             const auto mu = torch::tensor(
@@ -1901,7 +2364,8 @@ namespace rc
             auto wrapped_diff = torch::cat({raw_diff.index({torch::indexing::Slice(0, 2)}),
                                              torch::atan2(torch::sin(angle_diff), torch::cos(angle_diff)).unsqueeze(0)});
             auto diff = wrapped_diff.unsqueeze(1);
-            auto boundary_loss = 0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze();
+            auto boundary_loss = boundary_weight *
+                0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze();
             total_loss = total_loss + boundary_loss;
         }
 
@@ -1913,12 +2377,38 @@ namespace rc
 
             const auto sdf_vals = model.sdf_at_pose(slot.lidar_points, pose_xy, pose_theta);
 
-            const auto obs_huber = torch::nn::functional::huber_loss(
-                sdf_vals,
-                torch::zeros({sdf_vals.size(0)}, sdf_vals.options()),
-                torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(huber_delta)
-            );
-            auto slot_obs_loss = 0.5f * inv_var * obs_huber;
+            torch::Tensor slot_obs_loss;
+            if (params.far_points_weight && slot.lidar_points.size(0) > 1)
+            {
+                // Distance-proportional weighting with configurable exponent α.
+                // w_i = dist_i^α / mean(dist^α)  →  mean(w) ≈ 1  →  no loss-scale shift.
+                // After clamping to [far_points_min_weight, ∞) we re-normalise so the
+                // mean stays at 1 even when many near points hit the floor.
+                auto pts_xy = slot.lidar_points.index(
+                    {torch::indexing::Slice(), torch::indexing::Slice(0, 2)});
+                auto dists       = torch::norm(pts_xy, 2, /*dim=*/1);                    // [N]
+                auto dists_alpha = torch::pow(dists, params.far_points_exponent);        // [N]
+                auto weights     = dists_alpha / (dists_alpha.mean() + 1e-6f);           // [N], mean≈1
+                weights          = weights.clamp_min(params.far_points_min_weight);      // floor
+                weights          = weights / (weights.mean() + 1e-6f);                   // re-normalise
+
+                auto per_point = torch::nn::functional::huber_loss(
+                    sdf_vals,
+                    torch::zeros_like(sdf_vals),
+                    torch::nn::functional::HuberLossFuncOptions()
+                        .reduction(torch::kNone).delta(huber_delta));                    // [N]
+
+                slot_obs_loss = 0.5f * inv_var * (per_point * weights).mean();
+            }
+            else
+            {
+                const auto obs_huber = torch::nn::functional::huber_loss(
+                    sdf_vals,
+                    torch::zeros({sdf_vals.size(0)}, sdf_vals.options()),
+                    torch::nn::functional::HuberLossFuncOptions()
+                        .reduction(torch::kMean).delta(huber_delta));
+                slot_obs_loss = 0.5f * inv_var * obs_huber;
+            }
             total_loss = total_loss + slot_obs_loss;
         }
 
@@ -1987,6 +2477,119 @@ namespace rc
         return total_loss;
     }
 
+    RoomConcept::WindowManager::LossBreakdown
+    RoomConcept::WindowManager::compute_rfe_loss_breakdown(
+        const Model& model, const Params& params, torch::Device device) const
+    {
+        LossBreakdown bd;
+        if (window.empty()) return bd;
+
+        const float inv_var      = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
+        const float huber_delta  = params.rfe_huber_delta;
+
+        // 1. Boundary prior
+        if (boundary_prior.valid) {
+            const auto& oldest_pose = window.front().pose;
+            auto mu = torch::tensor(
+                {boundary_prior.mu[0], boundary_prior.mu[1], boundary_prior.mu[2]},
+                torch::TensorOptions().dtype(torch::kFloat32).device(device));
+            auto prec_data = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    prec_data[i][j] = boundary_prior.precision(i, j);
+            auto raw_diff = oldest_pose.detach() - mu;
+            auto angle_diff = raw_diff.index({2});
+            auto wrapped_diff = torch::cat({raw_diff.index({torch::indexing::Slice(0, 2)}),
+                torch::atan2(torch::sin(angle_diff), torch::cos(angle_diff)).unsqueeze(0)});
+            auto diff = wrapped_diff.unsqueeze(1);
+            bd.boundary = (0.5f * torch::matmul(diff.t(), torch::matmul(prec_data, diff)).squeeze()).item<float>();
+        }
+
+        // 2. Observation factors
+        float obs_acc = 0.f;
+        for (const auto& slot : window) {
+            auto pose_xy    = slot.pose.detach().index({torch::indexing::Slice(0, 2)});
+            auto pose_theta = slot.pose.detach().index({torch::indexing::Slice(2, 3)});
+            const auto sdf_vals = model.sdf_at_pose(slot.lidar_points, pose_xy, pose_theta);
+            float slot_loss;
+            if (params.far_points_weight && slot.lidar_points.size(0) > 1) {
+                auto pts_xy      = slot.lidar_points.index(
+                    {torch::indexing::Slice(), torch::indexing::Slice(0, 2)});
+                auto dists       = torch::norm(pts_xy, 2, 1);
+                auto dists_alpha = torch::pow(dists, params.far_points_exponent);
+                auto weights     = dists_alpha / (dists_alpha.mean() + 1e-6f);
+                weights          = weights.clamp_min(params.far_points_min_weight);
+                weights          = weights / (weights.mean() + 1e-6f);
+                auto per_point = torch::nn::functional::huber_loss(
+                    sdf_vals, torch::zeros_like(sdf_vals),
+                    torch::nn::functional::HuberLossFuncOptions()
+                        .reduction(torch::kNone).delta(huber_delta));
+                slot_loss = (0.5f * inv_var * (per_point * weights).mean()).item<float>();
+            } else {
+                slot_loss = (0.5f * inv_var *
+                    torch::nn::functional::huber_loss(
+                        sdf_vals,
+                        torch::zeros({sdf_vals.size(0)}, sdf_vals.options()),
+                        torch::nn::functional::HuberLossFuncOptions()
+                            .reduction(torch::kMean).delta(huber_delta)
+                    )).item<float>();
+            }
+            obs_acc += slot_loss;
+        }
+        bd.obs = obs_acc;
+
+        // 3. Motion factors
+        float mot_acc = 0.f;
+        for (size_t i = 1; i < window.size(); i++) {
+            const auto& curr = window[i];
+            const auto& prev = window[i - 1];
+            auto pose_delta  = curr.pose.detach() - prev.pose.detach();
+            auto raw_residual = pose_delta - curr.odom_delta_tensor;
+            auto angle_res   = raw_residual.index({2});
+            auto wrapped_angle = torch::atan2(torch::sin(angle_res), torch::cos(angle_res));
+            auto residual = torch::cat({raw_residual.index({torch::indexing::Slice(0, 2)}),
+                                        wrapped_angle.unsqueeze(0)});
+            auto res_col = residual.unsqueeze(1);
+            mot_acc += (0.5f * torch::matmul(res_col.t(),
+                torch::matmul(curr.motion_prec_tensor, res_col)).squeeze()).item<float>();
+        }
+        bd.motion = mot_acc;
+
+        // 4. Corner factors
+        if (params.enable_corner_tracking) {
+            const float corner_inv_var = 1.0f / (params.corner_obs_sigma * params.corner_obs_sigma);
+            const float corner_huber   = params.corner_huber_delta;
+            const int corner_start = std::max(0, static_cast<int>(window.size()) - params.corner_max_slots);
+            float cor_acc = 0.f;
+            for (size_t si = corner_start; si < window.size(); si++) {
+                const auto& slot = window[si];
+                if (slot.corner_obs.empty()) continue;
+                auto pose_xy    = slot.pose.detach().index({torch::indexing::Slice(0, 2)});
+                auto pose_theta = slot.pose.detach().index({2});
+                auto cos_th = torch::cos(pose_theta);
+                auto sin_th = torch::sin(pose_theta);
+                for (const auto& obs : slot.corner_obs) {
+                    auto c_w = torch::tensor({obs.model_corner_world.x(), obs.model_corner_world.y()},
+                        torch::TensorOptions().dtype(torch::kFloat32).device(device));
+                    auto dw = c_w - pose_xy;
+                    auto pred_x = cos_th * dw.index({0}) + sin_th * dw.index({1});
+                    auto pred_y = -sin_th * dw.index({0}) + cos_th * dw.index({1});
+                    auto predicted = torch::stack({pred_x, pred_y});
+                    auto detected  = torch::tensor({obs.detected_robot.x(), obs.detected_robot.y()},
+                        torch::TensorOptions().dtype(torch::kFloat32).device(device));
+                    auto residual  = detected - predicted;
+                    auto r_sq  = torch::dot(residual, residual);
+                    auto r_norm = torch::sqrt(r_sq + 1e-8f);
+                    auto hw = torch::where(r_norm <= corner_huber, torch::ones_like(r_norm), corner_huber / r_norm);
+                    cor_acc += (0.5f * corner_inv_var * hw * r_sq).item<float>();
+                }
+            }
+            bd.corner = cor_acc;
+        }
+
+        return bd;
+    }
+
     void RoomConcept::WindowManager::recompute_boundary_prior(
         const Model& model, const Params& params, torch::Device device)
     {
@@ -1995,16 +2598,29 @@ namespace rc
 
         const auto& oldest = window.front();
 
-        // Extract MAP pose
-        auto pose_cpu = oldest.pose.detach().to(torch::kCPU);
-        auto pose_acc = pose_cpu.accessor<float, 1>();
-        boundary_prior.mu = Eigen::Vector3f(pose_acc[0], pose_acc[1], pose_acc[2]);
+        // ── mu update (Solution C already applied in append()) ────────────────
+        // By this point boundary_prior.mu was already conditionally updated when the
+        // slot was dropped from the window. We only need to update it here for the
+        // "recompute after recovery / reset" path where append() was not called.
+        // Unconditional write is safe: recompute is only called when window_slid==true
+        // and the slot that slid out already had its quality checked in append().
+        // (No additional guard needed here — the pose in mu was set correctly.)
 
-        // Compute exact 3×3 Hessian of a mini-loss at the oldest slot
+        // ── Hessian computation (Solution B) ─────────────────────────────────
+        // If the oldest slot's scan was of poor quality (sdf_mse_final exceeds the
+        // threshold), the H_obs term would encode a high-confidence direction toward
+        // a contaminated pose. In that case we use only the kinematic (motion) factor
+        // for the precision matrix, which is always trustworthy.
+        const bool use_obs_hessian =
+            (oldest.sdf_mse_final < params.boundary_hessian_quality_threshold);
+
+        Eigen::Matrix3f H = Eigen::Matrix3f::Zero();
+
+        if (use_obs_hessian)
         {
+            // ── Full path: H_obs + H_motion + H_prior (original behaviour) ───
             auto oldest_pose_for_hess = oldest.pose.clone().detach().requires_grad_(true);
-
-            auto pose_xy = oldest_pose_for_hess.index({torch::indexing::Slice(0, 2)});
+            auto pose_xy    = oldest_pose_for_hess.index({torch::indexing::Slice(0, 2)});
             auto pose_theta = oldest_pose_for_hess.index({torch::indexing::Slice(2, 3)});
 
             const float inv_var = 1.0f / (params.rfe_obs_sigma * params.rfe_obs_sigma);
@@ -2013,7 +2629,6 @@ namespace rc
                 sdf_vals, torch::zeros({sdf_vals.size(0)}, sdf_vals.options()),
                 torch::nn::functional::HuberLossFuncOptions().reduction(torch::kMean).delta(params.rfe_huber_delta));
 
-            // Add motion factor to next slot if it exists
             if (window.size() > 1)
             {
                 const auto& next = window[1];
@@ -2024,32 +2639,60 @@ namespace rc
                 auto residual = torch::cat({raw_res.index({torch::indexing::Slice(0, 2)}),
                                             torch::atan2(torch::sin(angle_r), torch::cos(angle_r)).unsqueeze(0)});
                 auto res_col = residual.unsqueeze(1);
-                loss = loss + 0.5f * torch::matmul(res_col.t(), torch::matmul(next.motion_prec_tensor, res_col)).squeeze();
+                loss = loss + 0.5f * torch::matmul(res_col.t(),
+                                                    torch::matmul(next.motion_prec_tensor, res_col)).squeeze();
             }
 
-            // Add existing boundary prior if any
             if (boundary_prior.valid)
             {
                 auto mu_t = torch::tensor(
                     {boundary_prior.mu[0], boundary_prior.mu[1], boundary_prior.mu[2]},
                     torch::TensorOptions().dtype(torch::kFloat32).device(device));
-                auto diff = (oldest_pose_for_hess - mu_t).unsqueeze(1);
-                auto prec_t = torch::zeros({3, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device));
+                auto diff  = (oldest_pose_for_hess - mu_t).unsqueeze(1);
+                auto prec_t = torch::zeros({3, 3},
+                    torch::TensorOptions().dtype(torch::kFloat32).device(device));
                 for (int r = 0; r < 3; r++)
                     for (int c = 0; c < 3; c++)
                         prec_t[r][c] = boundary_prior.precision(r, c);
-                loss = loss + 0.5f * torch::matmul(diff.t(), torch::matmul(prec_t, diff)).squeeze();
+                loss = loss + 0.5f * torch::matmul(diff.t(),
+                                                    torch::matmul(prec_t, diff)).squeeze();
             }
 
-            Eigen::Matrix3f H = RoomConcept::autograd_hessian_3x3(loss, oldest_pose_for_hess);
-
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H);
-            Eigen::Vector3f evals = eig.eigenvalues().cwiseMax(params.eigenvalue_clamp_boundary);
-            H = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
-
-            boundary_prior.precision = H;
+            H = RoomConcept::autograd_hessian_3x3(loss, oldest_pose_for_hess);
+        }
+        else
+        {
+            // ── Degraded path: kinematic precision only ───────────────────────
+            // H_obs is not included because the scan was contaminated (obstacle,
+            // displacement confusion). Use only the motion-factor precision from the
+            // next slot, which reflects purely the odometry model uncertainty.
+            // This gives a conservative, direction-agnostic anchor.
+            if (window.size() > 1)
+            {
+                auto prec_cpu = window[1].motion_prec_tensor.to(torch::kCPU);
+                auto acc = prec_cpu.accessor<float, 2>();
+                for (int r = 0; r < 3; r++)
+                    for (int c = 0; c < 3; c++)
+                        H(r, c) = acc[r][c];
+            }
+            else
+            {
+                // No motion link available: fall back to a weak isotropic prior.
+                H = Eigen::Matrix3f::Identity() * params.eigenvalue_clamp_boundary;
+            }
         }
 
+        // ── Eigenvalue clamping (floor + ceiling) ─────────────────────────────
+        // Floor prevents degenerate (zero-precision) directions.
+        // Ceiling (eigenvalue_clamp_boundary_max) prevents over-confident priors
+        // regardless of cause — acts as a safety net for both paths.
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig(H);
+        Eigen::Vector3f evals = eig.eigenvalues()
+            .cwiseMax(params.eigenvalue_clamp_boundary)
+            .cwiseMin(params.eigenvalue_clamp_boundary_max);
+        H = eig.eigenvectors() * evals.asDiagonal() * eig.eigenvectors().transpose();
+
+        boundary_prior.precision = H;
         boundary_prior.valid = true;
     }
 

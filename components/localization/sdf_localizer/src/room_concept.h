@@ -10,6 +10,7 @@
 #include <variant>
 #include <optional>
 #include <string>
+#include <fstream>
 #include <fps/fps.h>
 
 // ---- PyTorch vs Qt macros (slots/signals/emit) ----
@@ -49,6 +50,7 @@
 #include "buffer_types.h"
 #include "room_model.h"
 #include "corner_detector.h"
+#include "rerun_logger.h"
 
 namespace rc
 {
@@ -89,6 +91,30 @@ public:
         float rfe_obs_sigma = 0.05f;           // σ_obs for SDF observation noise (m)
         float rfe_huber_delta = 0.15f;         // Huber threshold (m)
 
+        // ===== Boundary Prior Quality Gate =====
+        // When the previous frame's localization was poor (sdf_mse_prev > sigma_sdf),
+        // the boundary prior anchors ADAM to a bad pose, preventing convergence.
+        // This gate scales the boundary prior weight by:
+        //   w = min(1, (sigma_sdf / sqrt(sdf_mse_prev))^2)
+        // so a well-localised prior (sdf_mse ≈ 0) has full weight (w≈1),
+        // and a bad prior (sdf_mse >> sigma_sdf) is suppressed (w→0).
+        // Set to false to use fixed weight=1 (legacy behaviour).
+        bool  rfe_boundary_quality_gate = true;
+
+        // ===== Far-point distance weighting =====
+        // Far points have a longer lever arm for orientation correction and are
+        // under-represented relative to their informational value (lidar point
+        // density decreases with range).  When enabled, each point's SDF residual
+        // is scaled by  w_i = dist_i / mean(dist)  before averaging, so distant
+        // points contribute proportionally more to the gradient.
+        // The normalisation keeps the total loss magnitude unchanged.
+        bool  far_points_weight = false;       // enable distance-proportional weighting
+        // w_i = (dist_i^α / mean(dist^α)), clamped to [far_points_min_weight, ∞), re-normalised.
+        // α=1: linear (original); α=2: quadratic boost; α>2: aggressive emphasis on far points.
+        // Normalisation preserves total loss magnitude regardless of α.
+        float far_points_exponent   = 1.0f;  // α — exponent of the distance weight
+        float far_points_min_weight = 0.1f;  // floor weight to avoid silencing near points
+
         // GPU/CPU selection
         // Note: For small tensors (~200 points), CPU is faster due to GPU transfer overhead
         bool use_cuda = false;
@@ -98,9 +124,17 @@ public:
         // This saves CPU when motion model is accurate (smooth motion)
         bool prediction_early_exit = true;
         float sigma_sdf = 0.15f;              // SDF observation noise (15cm)
-        float prediction_trust_factor = 0.5f; // Threshold = sigma_sdf * factor (~7.5cm)
+        float prediction_trust_factor = 0.5f; // Base threshold = sigma_sdf * factor (~7.5cm)
         int min_tracking_steps = 20;          // Wait for system to stabilize before early exit
         float max_uncertainty_for_early_exit = 0.1f;  // Max pose uncertainty to allow early exit
+
+        // ===== Rotation-adaptive Early Exit =====
+        // During rotation, a small theta error (e.g. 0.02 rad) produces large SDF displacements
+        // at room scale (5m × 0.02 rad ≈ 10 cm).  The base threshold (7.5 cm) is too tight.
+        // This coupling factor widens the trust threshold proportionally to the measured rotation:
+        //   threshold = sigma_sdf * trust_factor + rotation_sdf_coupling * |delta_theta|
+        // Set to 0 to disable (reverts to fixed threshold).
+        float rotation_sdf_coupling = 0.5f;   // m/rad — extra SDF tolerance per radian of rotation
 
         // ===== Differential Test (A/B comparison) =====
         bool differential_test_enabled = false;  // Enable shadow single-step evaluator for RFE vs baseline comparison
@@ -114,7 +148,10 @@ public:
         // Adjust optimization emphasis based on current motion profile
         bool velocity_adaptive_weights = true;
         float linear_velocity_threshold = 0.05f;   // m/s - below this = "not moving linearly"
-        float angular_velocity_threshold = 0.05f;  // rad/s - below this = "not rotating"
+        float angular_velocity_threshold = 0.1f;  // rad/s - used for velocity-adaptive gradient weights
+                                                   // (boost theta gradient when rotating).
+                                                   // NOTE: keep well below max robot rotation speed (~1 rad/s).
+                                                   // Previously 1.0 rad/s which was never triggered in practice.
         float weight_boost_factor = 2.0f;          // Multiplier for emphasized parameters
         float weight_reduction_factor = 0.5f;      // Multiplier for de-emphasized parameters
         float weight_smoothing_alpha = 0.3f;       // EMA smoothing for weight transitions
@@ -133,6 +170,14 @@ public:
         float odom_noise_base  = 0.01f;  // Base position noise even when stationary (m)
         float odom_noise_scale = 1.0f;   // Multiplier on all odom noise params (>1 simulates worse odometry)
 
+        // ===== Encoder angular slip model =====
+        // At high angular speeds, wheel encoders under-report rotation due to wheel slip.
+        // The rotation covariance for the measured odometry prior is inflated by:
+        //   rot_var_extra = (encoder_rot_slip_k * |vel_rot|)^2
+        // so that the Bayesian fusion trusts the command (cmd_dth) more than the encoder
+        // at high angular speeds.  Set to 0 to disable.
+        float encoder_rot_slip_k = 0.15f;  // rad uncertainty per rad/s of angular speed
+
         // ===== Recovery =====
         int recovery_cooldown_frames = 30;     // Frames to skip detection after recovery
         int manual_reset_skip_frames = 5;      // Frames to skip optimization after manual pose set
@@ -150,6 +195,23 @@ public:
         // ===== Covariance Numerics =====
         float eigenvalue_clamp_posterior = 1e-4f;      // Min eigenvalue for posterior precision
         float eigenvalue_clamp_boundary = 1e-3f;       // Min eigenvalue for boundary-prior Hessian
+        float eigenvalue_clamp_boundary_max = 500.0f;  // Max eigenvalue — prevents over-confident prior from contaminated scans
+        // ===== Boundary Prior Quality Gate (Solutions B & C) =====
+        // Prevents the boundary prior from being poisoned by bad localization frames
+        // (e.g. after a forced displacement or while an obstacle occludes the scan).
+        //
+        // Solution B — quality-gated Hessian:
+        //   When the oldest slot's sdf_mse_final > boundary_hessian_quality_threshold,
+        //   the boundary prior precision is computed from the motion factor alone (kinematic
+        //   precision only) instead of the full H_obs + H_motion Hessian. This prevents a
+        //   contaminated scan from generating a high-confidence prior at a wrong pose.
+        //
+        // Solution C — quality-gated mu update:
+        //   When the oldest slot's sdf_mse_final > boundary_mu_quality_threshold, the
+        //   boundary prior mu (the pose anchor) is NOT updated. The prior continues to point
+        //   to the last known good pose instead of following the confused estimate.
+        float boundary_hessian_quality_threshold = 0.08f; // m — above this: motion-only Hessian
+        float boundary_mu_quality_threshold = 0.10f;      // m — above this: keep previous mu
         float covariance_regularization = 1e-4f;       // λ added to posterior precision diagonal
         float covariance_det_min = 1e-10f;             // Min determinant for valid covariance
         float condition_number_max = 1e6f;             // Max condition number for valid covariance
@@ -176,6 +238,17 @@ public:
         // Torch threading configuration
         int torch_num_threads = 5;          // Limit CPU threads to avoid overload
         int torch_num_interop_threads = 2;  // Limit inter-op threads for better latency
+
+        // ===== Debug Logging =====
+        bool debug_log_enabled = true;      // Write per-frame CSV to tmp/sdf_localizer/log.csv
+
+        // ===== Rerun streaming =====
+        bool rerun_enabled = false;
+        std::string rerun_host = "127.0.0.1";
+        int rerun_port = 9877;
+        int rerun_sdf_every_n = 20;
+        int rerun_sdf_resolution = 150;
+        int rerun_max_queue = 30;
     };
 
     // Get the torch device based on params
@@ -310,6 +383,10 @@ public:
         torch::Tensor motion_prec_tensor;  // [3,3], Σ_dyn^{-1} on device
         bool subsampled = false;           // true once old-slot subsampling has been applied
 
+        // Quality of this slot's localization (set after Adam/early-exit, read when slot
+        // becomes the oldest and its Hessian is used for the boundary prior).
+        float sdf_mse_final = 0.0f;
+
         // Corner observations for this slot (robot frame)
         struct CornerObs {
             Eigen::Vector2f model_corner_world;  // world-frame model corner
@@ -406,7 +483,9 @@ private:
        const WindowSlot& newest() const { return window.back(); }
 
        /// Slide if full, append new slot.  Returns true if window was slid.
-       bool append(WindowSlot slot, int max_window_size);
+       /// mu_quality_threshold: only update boundary_prior.mu from the dropped slot if its
+       /// sdf_mse_final is below this value (Solution C).
+       bool append(WindowSlot slot, int max_window_size, float mu_quality_threshold = std::numeric_limits<float>::max());
 
        /// Subsample lidar in all slots except the newest.
        void subsample_old_slots(int max_pts_per_slot);
@@ -415,8 +494,20 @@ private:
        std::vector<torch::Tensor> collect_params() const;
 
        /// Build the full RFE loss over the current window (Eq. 27).
+       /// boundary_weight scales the boundary prior term (1.0 = full, 0.0 = disabled).
        torch::Tensor compute_rfe_loss(const Model& model, const Params& params,
-                                       torch::Device device) const;
+                                       torch::Device device,
+                                       float boundary_weight = 1.0f) const;
+
+       /// Per-term loss breakdown — called once after Adam for diagnostic logging.
+       struct LossBreakdown {
+           float boundary = 0.f;
+           float obs      = 0.f;
+           float motion   = 0.f;
+           float corner   = 0.f;
+       };
+       LossBreakdown compute_rfe_loss_breakdown(const Model& model, const Params& params,
+                                                 torch::Device device) const;
 
        /// Recompute boundary prior Hessian from oldest surviving slot.
        void recompute_boundary_prior(const Model& model, const Params& params,
@@ -444,6 +535,25 @@ private:
    FPSCounter loc_fps_;  // Timing for the localization thread
    float update_ms_accum_ = 0.f;
    int   update_ms_count_ = 0;
+
+   // ===== Debug Logging (localization thread only — no mutex needed) =====
+   std::ofstream      debug_log_;
+   RerunLogger        rerun_logger_;
+   int                rerun_frame_counter_ = 0;
+   bool               rerun_room_polygon_sent_ = false;
+   std::vector<float> last_adam_losses_;    // per-iteration losses from last Adam run
+   float              last_loss_init_  = 0.f;  // loss before first Adam step
+   float              prev_sdf_mse_    = 0.f;  // sdf_mse from previous frame (for boundary quality gate)
+   WindowManager::LossBreakdown last_loss_breakdown_;  // FE term breakdown after last Adam
+   // Per-frame timing — t_update_start_ set at entry of update(), shared with early-exit path
+   std::chrono::high_resolution_clock::time_point t_update_start_;
+   float              last_t_adam_ms_      = 0.f;
+   float              last_t_cov_ms_       = 0.f;
+   float              last_t_breakdown_ms_ = 0.f;
+   OdometryPrior      last_measured_prior_; // saved by apply_dual_prior_fusion for logging
+   Eigen::Matrix3f    last_cmd_cov_ = Eigen::Matrix3f::Identity();
+   std::int64_t       prev_lidar_ts_for_log_ = 0;
+   void init_debug_log();
 
    // ===== Differential test: RFE vs single-step =====
    struct DiffTestStats

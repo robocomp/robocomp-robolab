@@ -79,14 +79,68 @@ void SpecificWorker::initialize()
     //int period = configLoader.get<int>("Period.Compute") //NOTE: If you want get period of compute use getPeriod("compute")
     //std::string device = configLoader.get<std::string>("Device.name")
     params.PREDICTION_EARLY_EXIT = configLoader.get<bool>("RoomConcept.PredictionEarlyExit");
-    room_concept_.params.num_iterations          = configLoader.get<int>("RoomConcept.NumIterations");
-    room_concept_.params.rfe_window_size         = configLoader.get<int>("RoomConcept.WindowSize");
-    room_concept_.params.max_lidar_points        = configLoader.get<int>("RoomConcept.MaxLidarPoints");
+
+    // ── Core optimizer ──────────────────────────────────────────────────────
+    room_concept_.params.num_iterations             = configLoader.get<int>("RoomConcept.NumIterations");
+    room_concept_.params.rfe_window_size            = configLoader.get<int>("RoomConcept.WindowSize");
+    room_concept_.params.max_lidar_points           = configLoader.get<int>("RoomConcept.MaxLidarPoints");
     room_concept_.params.rfe_max_lidar_per_old_slot = configLoader.get<int>("RoomConcept.MaxLidarOldSlot");
+    try { room_concept_.params.learning_rate_pos        = static_cast<float>(configLoader.get<double>("RoomConcept.LearningRatePos")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rfe_obs_sigma            = static_cast<float>(configLoader.get<double>("RoomConcept.ObsSigma")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rfe_huber_delta          = static_cast<float>(configLoader.get<double>("RoomConcept.HuberDelta")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.convergence_relative_tol = static_cast<float>(configLoader.get<double>("RoomConcept.ConvergenceRelTol")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.convergence_min_iters    = configLoader.get<int>("RoomConcept.ConvergenceMinIters"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Early exit ──────────────────────────────────────────────────────────
+    try { room_concept_.params.sigma_sdf               = static_cast<float>(configLoader.get<double>("RoomConcept.SigmaSdf")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.prediction_trust_factor = static_cast<float>(configLoader.get<double>("RoomConcept.PredictionTrustFactor")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.min_tracking_steps      = configLoader.get<int>("RoomConcept.MinTrackingSteps"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rotation_sdf_coupling   = static_cast<float>(configLoader.get<double>("RoomConcept.RotationSdfCoupling")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Recovery ────────────────────────────────────────────────────────────
     room_concept_.params.recovery_loss_threshold    = static_cast<float>(configLoader.get<double>("RoomConcept.RecoveryLossThreshold"));
     room_concept_.params.recovery_consecutive_count = configLoader.get<int>("RoomConcept.RecoveryConsecutiveCount");
-    try { room_concept_.params.odom_noise_scale = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseScale")); } catch (...) {}
-    try { room_concept_.params.differential_test_enabled = configLoader.get<bool>("RoomConcept.DifferentialTest"); } catch (...) {}
+    try { room_concept_.params.recovery_cooldown_frames = configLoader.get<int>("RoomConcept.RecoveryCooldownFrames"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Velocity-adaptive gradient weights ──────────────────────────────────
+    try { room_concept_.params.velocity_adaptive_weights    = configLoader.get<bool>("RoomConcept.VelocityAdaptiveWeights"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.linear_velocity_threshold    = static_cast<float>(configLoader.get<double>("RoomConcept.LinearVelocityThreshold")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.angular_velocity_threshold   = static_cast<float>(configLoader.get<double>("RoomConcept.AngularVelocityThreshold")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.weight_boost_factor          = static_cast<float>(configLoader.get<double>("RoomConcept.WeightBoostFactor")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.weight_reduction_factor      = static_cast<float>(configLoader.get<double>("RoomConcept.WeightReductionFactor")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.weight_smoothing_alpha       = static_cast<float>(configLoader.get<double>("RoomConcept.WeightSmoothingAlpha")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Motion / noise model ────────────────────────────────────────────────
+    try { room_concept_.params.odom_noise_scale     = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseScale")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.cmd_noise_trans             = static_cast<float>(configLoader.get<double>("RoomConcept.CmdNoiseTrans")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.cmd_noise_rot               = static_cast<float>(configLoader.get<double>("RoomConcept.CmdNoiseRot")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.cmd_noise_base              = static_cast<float>(configLoader.get<double>("RoomConcept.CmdNoiseBase")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.odom_noise_trans            = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseTrans")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.odom_noise_rot              = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseRot")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.odom_noise_base             = static_cast<float>(configLoader.get<double>("RoomConcept.OdomNoiseBase")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.encoder_rot_slip_k          = static_cast<float>(configLoader.get<double>("RoomConcept.EncoderRotSlipK")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.stationary_motion_threshold = static_cast<float>(configLoader.get<double>("RoomConcept.StationaryMotionThreshold")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Feature flags ───────────────────────────────────────────────────────
+    try { room_concept_.params.differential_test_enabled  = configLoader.get<bool>("RoomConcept.DifferentialTest"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.enable_corner_tracking     = configLoader.get<bool>("RoomConcept.EnableCornerTracking"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rfe_boundary_quality_gate         = configLoader.get<bool>("RoomConcept.BoundaryQualityGate"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.boundary_hessian_quality_threshold = static_cast<float>(configLoader.get<double>("RoomConcept.BoundaryHessianQualityThreshold")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.boundary_mu_quality_threshold      = static_cast<float>(configLoader.get<double>("RoomConcept.BoundaryMuQualityThreshold")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.eigenvalue_clamp_boundary_max      = static_cast<float>(configLoader.get<double>("RoomConcept.EigenvalueClampBoundaryMax")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.far_points_weight      = configLoader.get<bool>("RoomConcept.FarPointsWeight"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.far_points_exponent    = static_cast<float>(configLoader.get<double>("RoomConcept.FarPointsExponent")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.far_points_min_weight  = static_cast<float>(configLoader.get<double>("RoomConcept.FarPointsMinWeight")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.use_cuda                   = configLoader.get<bool>("RoomConcept.UseCuda"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.debug_log_enabled          = configLoader.get<bool>("RoomConcept.DebugLog"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
+    // ── Rerun streaming ─────────────────────────────────────────────────────
+    try { room_concept_.params.rerun_enabled        = configLoader.get<bool>("RoomConcept.RerunEnabled"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rerun_host           = configLoader.get<std::string>("RoomConcept.RerunHost"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rerun_port           = configLoader.get<int>("RoomConcept.RerunPort"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rerun_sdf_every_n    = configLoader.get<int>("RoomConcept.RerunSdfEveryN"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rerun_sdf_resolution = configLoader.get<int>("RoomConcept.RerunSdfResolution"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.rerun_max_queue      = configLoader.get<int>("RoomConcept.RerunMaxQueue"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
 
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);
@@ -534,6 +588,8 @@ void SpecificWorker::navigate_to_target(const std::optional<rc::RoomConcept::Upd
     vel_cmd.recv_ts_ms = static_cast<std::int64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
+    // Commands produced locally have no sensor clock: use receive time as source.
+    vel_cmd.source_ts_ms = vel_cmd.recv_ts_ms;
     const auto ts = static_cast<std::uint64_t>(vel_cmd.recv_ts_ms);
     velocity_buffer_.put<0>(std::move(vel_cmd), ts);
 }
@@ -576,12 +632,13 @@ void SpecificWorker::read_lidar()
             points_high.reserve(data_high.points.size());
             obstacle_points.reserve(data_high.points.size());
             const float min_h_mm   = params.LIDAR_HIGH_MIN_HEIGHT * 1000.f;
+            const float max_h_mm   = params.LIDAR_HIGH_MAX_HEIGHT * 1000.f;
             const float floor_h_mm = params.LIDAR_HIGH_FLOOR_HEIGHT * 1000.f;
             const float robot_h_mm = params.ROBOT_HEIGHT * 1000.f;
             constexpr float mm2m = 0.001f;
             for (const auto &p : data_high.points)
             {
-                const bool is_high     = p.z > min_h_mm;
+                const bool is_high     = p.z > min_h_mm && p.z < max_h_mm;
                 const bool is_obstacle = p.z > floor_h_mm && p.z < robot_h_mm;
                 if (is_high || is_obstacle)
                 {
@@ -755,10 +812,10 @@ void SpecificWorker::JoystickAdapter_sendData(RoboCompJoystickAdapter::TData dat
 		else if (axis.name == "side")
 			cmd.adv_x = 0.0f; // not lateral motion allowed
 	}
-    cmd.timestamp = std::chrono::high_resolution_clock::now();
     cmd.recv_ts_ms = static_cast<std::int64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
+    cmd.source_ts_ms = cmd.recv_ts_ms;
     const auto ts = static_cast<std::uint64_t>(cmd.recv_ts_ms);
 	velocity_buffer_.put<0>(std::move(cmd), ts);
 }
@@ -785,8 +842,6 @@ void SpecificWorker::FullPoseEstimationPub_newFullPose(RoboCompFullPoseEstimatio
     odom.recv_ts_ms   = static_cast<std::int64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
-    odom.timestamp = std::chrono::high_resolution_clock::time_point(
-        std::chrono::milliseconds(pose.timestamp));
     const auto ts = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     odometry_buffer_.put<0>(std::move(odom), ts);

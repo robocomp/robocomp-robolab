@@ -17,7 +17,7 @@ RoomConcept.PredictionEarlyExit = false
 Period.Compute = 100
 Period.Emergency = 500
 
-Component.Debug.Verbose = true
+Component.Debug.Verbose = True
 
 Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"

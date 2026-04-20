@@ -102,8 +102,8 @@ class SpecificWorker : public GenericWorker
 			std::string LIDAR_NAME_HIGH = "helios";
 			float MAX_LIDAR_HIGH_RANGE = 100;  // m
 			int LIDAR_LOW_DECIMATION_FACTOR = 1;
-			float LIDAR_HIGH_MIN_HEIGHT = 1.2; // m, points below this height in the high lidar will be ignored
-			float LIDAR_HIGH_MAX_HEIGHT = 2.2f; // m, points above this height in the high lidar will be ignored
+			float LIDAR_HIGH_MIN_HEIGHT = 1.0; // m, points below this height in the high lidar will be ignored
+			float LIDAR_HIGH_MAX_HEIGHT = 2.0f; // m, points above this height in the high lidar will be ignored
 			float LIDAR_HIGH_FLOOR_HEIGHT = 0.15f; // m, points below this height will be considered floor and ignored for obstacle avoidance
 			
 			// General
@@ -111,8 +111,8 @@ class SpecificWorker : public GenericWorker
 			int MAX_LIDAR_DRAW_POINTS = 500;
 			float VIEW_FIT_RADIUS = 6.0f; // m, only nearby lidar points are considered for auto-fit
 			bool USE_WEBOTS = false;
-			float ODOMETRY_NOISE_FACTOR = 0.1f; // stddev of Gaussian noise added to odometry readings, as a fraction of the measured value (e.g. 0.1 = 10% noise)
-			bool PREDICTION_EARLY_EXIT = false; // Skip RFE optimization when predicted pose already has low SDF error
+			float ODOMETRY_NOISE_FACTOR = 1.0f; // legacy relative noise factor (kept for backward compatibility)
+			bool PREDICTION_EARLY_EXIT = true; // Skip RFE optimization when predicted pose already has low SDF error
 
 		};
 		Params params;

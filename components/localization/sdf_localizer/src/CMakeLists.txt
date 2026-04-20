@@ -78,6 +78,7 @@ LIST(APPEND SOURCES
   
   ../src/timeseries_plot.cpp
   ../src/corner_detector.cpp
+  ../src/rerun_logger.cpp
 )
 
 # Headers set
@@ -94,6 +95,7 @@ LIST(APPEND HEADERS
   ../src/corner_visibility.h
   ../src/timeseries_plot.h
   ../src/corner_detector.h
+  ../src/rerun_logger.h
 )
 LIST(APPEND LIBS ${LIBS} "${TORCH_LIBRARIES}" tbb Qt6PrintSupport Qt6Xml
             Eigen3::Eigen Boost::system Boost::filesystem )

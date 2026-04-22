@@ -188,9 +188,23 @@ public:
         float grid_search_good_threshold = 1.0f;      // SDF loss < this = acceptable pose
         int orientation_search_max_samples = 100;      // Lidar subsample for orientation candidates
 
+        // ===== Optimizer Selection =====
+        // "ADAM"  — adaptive moment estimation (current default)
+        // "LBFGS" — limited-memory BFGS with Wolfe line search (faster convergence)
+        // "CAVI"  — coordinate-ascent variational inference (reserved, not yet implemented)
+        std::string optimizer_type = "ADAM";
+
         // ===== Adam Convergence =====
         float convergence_relative_tol = 0.01f;       // Relative loss-change stopping criterion
         int convergence_min_iters = 8;                 // Minimum iterations before convergence check
+
+        // ===== L-BFGS parameters =====
+        // Used only when optimizer_type == "LBFGS".
+        // lr=1 is the standard initial Newton step; strong_wolfe line search adjusts it.
+        float  lbfgs_lr               = 1.0f;   // Initial step size
+        int    lbfgs_history_size     = 5;      // (s,y) pairs kept for H^-1 approximation
+        double lbfgs_tolerance_grad   = 1e-5;   // Stop when ||grad||_inf < tol
+        double lbfgs_tolerance_change = 1e-7;   // Stop when |Δloss| < tol
 
         // ===== Covariance Numerics =====
         float eigenvalue_clamp_posterior = 1e-4f;      // Min eigenvalue for posterior precision
@@ -541,10 +555,11 @@ private:
    RerunLogger        rerun_logger_;
    int                rerun_frame_counter_ = 0;
    bool               rerun_room_polygon_sent_ = false;
-   std::vector<float> last_adam_losses_;    // per-iteration losses from last Adam run
-   float              last_loss_init_  = 0.f;  // loss before first Adam step
+   std::vector<float> last_adam_losses_;    // per-iteration losses from last Adam/LBFGS run
+   float              last_loss_init_  = 0.f;  // loss before first step
    float              prev_sdf_mse_    = 0.f;  // sdf_mse from previous frame (for boundary quality gate)
    WindowManager::LossBreakdown last_loss_breakdown_;  // FE term breakdown after last Adam
+   float              last_lbfgs_grad_norm_ = 0.f; // final gradient inf-norm after L-BFGS (0 for Adam/early-exit)
    // Per-frame timing — t_update_start_ set at entry of update(), shared with early-exit path
    std::chrono::high_resolution_clock::time_point t_update_start_;
    float              last_t_adam_ms_      = 0.f;
@@ -662,6 +677,10 @@ private:
     /// Run the Adam optimisation loop over the sliding window.
     /// Returns {last_loss, iterations_used}.
     std::pair<float, int> run_adam_loop(const OdometryPrior& odometry_prior);
+
+    /// Run the L-BFGS optimisation loop over the sliding window.
+    /// Returns {last_loss, func_evaluations}.
+    std::pair<float, int> run_lbfgs_loop(const OdometryPrior& odometry_prior);
 
     /// Compute posterior covariance via autograd Hessian.
     /// Updates current_covariance and returns {covariance, condition_number}.

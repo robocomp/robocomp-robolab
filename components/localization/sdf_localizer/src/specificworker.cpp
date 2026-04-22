@@ -142,6 +142,13 @@ void SpecificWorker::initialize()
     try { room_concept_.params.rerun_sdf_resolution = configLoader.get<int>("RoomConcept.RerunSdfResolution"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
     try { room_concept_.params.rerun_max_queue      = configLoader.get<int>("RoomConcept.RerunMaxQueue"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
 
+    // ── Optimizer selection ─────────────────────────────────────────────────
+    try { room_concept_.params.optimizer_type           = configLoader.get<std::string>("RoomConcept.OptimizerType"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.lbfgs_lr                 = static_cast<float>(configLoader.get<double>("RoomConcept.LbfgsLr")); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.lbfgs_history_size       = configLoader.get<int>("RoomConcept.LbfgsHistorySize"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.lbfgs_tolerance_grad     = configLoader.get<double>("RoomConcept.LbfgsToleranceGrad"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+    try { room_concept_.params.lbfgs_tolerance_change   = configLoader.get<double>("RoomConcept.LbfgsToleranceChange"); } catch (const std::exception& e) { qDebug() << "[config]" << e.what(); }
+
 	// Lidar thread is created
     read_lidar_th = std::thread(&SpecificWorker::read_lidar,this);
     qInfo() << __FUNCTION__ << "Started lidar reader";

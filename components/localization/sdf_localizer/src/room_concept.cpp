@@ -121,6 +121,8 @@ namespace rc
             << ",slot_poses_post"
             << ",slot_sdf_mse"
             << ",bp_valid,bp_x,bp_y,bp_theta"
+            << ",lbfgs_grad_norm"
+            << ",loss_curve"
             << "\n";
         debug_log_.flush();
         std::cout << "[DebugLog] Logging to " << path << std::endl;
@@ -1264,9 +1266,9 @@ namespace rc
             return *early;
         }
 
-        // ===== ADAM OPTIMISATION =====
+        // ===== OPTIMISATION =====
         {
-            // Capture slot poses before Adam for debug log (pose persistence check)
+            // Capture slot poses before optimisation for debug log (pose persistence check)
             if (params.debug_log_enabled)
             {
                 std::string s;
@@ -1284,7 +1286,9 @@ namespace rc
             }
 
             const auto t0 = std::chrono::high_resolution_clock::now();
-            auto [last_loss, iterations] = run_adam_loop(odometry_prior);
+            auto [last_loss, iterations] = (params.optimizer_type == "LBFGS")
+                ? run_lbfgs_loop(odometry_prior)
+                : run_adam_loop(odometry_prior);
             last_t_adam_ms_ = std::chrono::duration<float, std::milli>(
                 std::chrono::high_resolution_clock::now() - t0).count();
             res.final_loss     = last_loss;
@@ -1513,6 +1517,9 @@ namespace rc
                            << ',' << bp.mu[1]
                            << ',' << bp.mu[2];
             }
+
+            debug_log_ << ',' << last_lbfgs_grad_norm_
+                       << ',' << losses_str;
 
             debug_log_ << '\n';
             debug_log_.flush();
@@ -1755,6 +1762,8 @@ namespace rc
                            << ',' << bp.mu[1]
                            << ',' << bp.mu[2];
             }
+            debug_log_ << ',' << 0.f   // lbfgs_grad_norm (no optimization ran)
+                       << ',' << "na"; // loss_curve
             debug_log_ << '\n';
             debug_log_.flush();
         }
@@ -1833,7 +1842,97 @@ namespace rc
                 break;
         }
 
+        last_lbfgs_grad_norm_ = 0.f;
         return {last_loss, iterations};
+    }
+
+    // =========================================================================
+    //  L-BFGS optimisation loop
+    // =========================================================================
+    // Replaces Adam when params.optimizer_type == "LBFGS".
+    //
+    // A single optimizer.step(closure) call executes up to params.num_iterations
+    // Newton steps internally, each with a strong-Wolfe line search that finds
+    // the right step size automatically — no need to tune learning_rate_pos.
+    //
+    // velocity_adaptive_weights are applied inside the closure (after backward)
+    // so L-BFGS sees the scaled gradients consistently across all evaluations.
+    // This is equivalent to optimising in a velocity-weighted parameter space.
+    //
+    // iter_count tracks function evaluations (closure calls), not Newton steps.
+    // With strong_wolfe, each Newton step typically calls the closure 2-4 times.
+    // =========================================================================
+    std::pair<float, int> RoomConcept::run_lbfgs_loop(const OdometryPrior& odometry_prior)
+    {
+        auto window_params = window_mgr_.collect_params();
+
+        torch::optim::LBFGS optimizer(
+            window_params,
+            torch::optim::LBFGSOptions(static_cast<double>(params.lbfgs_lr))
+                .max_iter(params.num_iterations)
+                .history_size(static_cast<int64_t>(params.lbfgs_history_size))
+                .line_search_fn(std::string("strong_wolfe"))
+                .tolerance_grad(params.lbfgs_tolerance_grad)
+                .tolerance_change(params.lbfgs_tolerance_change));
+
+        const Eigen::Vector3f velocity_weights = compute_velocity_adaptive_weights(odometry_prior);
+
+        float boundary_weight = 1.0f;
+        if (params.rfe_boundary_quality_gate && prev_sdf_mse_ > 1e-6f)
+        {
+            const float sigma2 = params.sigma_sdf * params.sigma_sdf;
+            boundary_weight = std::min(1.0f, sigma2 / prev_sdf_mse_);
+        }
+
+        float last_loss = std::numeric_limits<float>::infinity();
+        int iter_count = 0;
+
+        last_adam_losses_.clear();
+        last_adam_losses_.reserve(params.num_iterations);
+        last_loss_init_ = 0.f;
+
+        auto closure = [&]() -> torch::Tensor {
+            optimizer.zero_grad();
+
+            const torch::Tensor loss = window_mgr_.compute_rfe_loss(
+                *model_, params, get_device(), boundary_weight);
+            loss.backward();
+
+            if (params.velocity_adaptive_weights)
+            {
+                torch::NoGradGuard no_grad;
+                auto& newest_pose = window_mgr_.newest().pose;
+                if (newest_pose.grad().defined())
+                {
+                    newest_pose.mutable_grad().index({0}) *= velocity_weights[0];
+                    newest_pose.mutable_grad().index({1}) *= velocity_weights[1];
+                    newest_pose.mutable_grad().index({2}) *= velocity_weights[2];
+                }
+            }
+
+            const float lv = loss.item<float>();
+            if (iter_count == 0) last_loss_init_ = lv;
+            last_loss = lv;
+            last_adam_losses_.push_back(lv);
+            ++iter_count;
+
+            return loss;
+        };
+
+        optimizer.step(closure);
+
+        // Gradient infinity norm: measures how far we are from the KKT condition.
+        // Near zero → converged; large → stopped early (max_iter or tolerance_change hit first).
+        last_lbfgs_grad_norm_ = 0.f;
+        {
+            torch::NoGradGuard ng;
+            for (auto& p : window_params)
+                if (p.grad().defined())
+                    last_lbfgs_grad_norm_ = std::max(last_lbfgs_grad_norm_,
+                        p.grad().abs().max().item<float>());
+        }
+
+        return {last_loss, iter_count};
     }
 
     std::pair<Eigen::Matrix3f, float> RoomConcept::compute_posterior_covariance(

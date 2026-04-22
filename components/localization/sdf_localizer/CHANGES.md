@@ -828,22 +828,139 @@ aún), ambos usan `display_pose` como antes.
 
 ---
 
+## 30. Implementación del optimizador L-BFGS (`run_lbfgs_loop`)
+
+**Motivación**  
+Adam usa un learning rate fijo escalado por `1/√W`. Esto requiere muchas iteraciones para
+aprovechar la curvatura del landscape. L-BFGS aproxima el Hessiano inverso con los últimos
+$m$ pares curvatura `(s,y)` y calcula el paso óptimo mediante línea de búsqueda Strong-Wolfe,
+sin necesidad de ajustar ningún learning rate.
+
+**Implementación**
+
+Nuevo método `run_lbfgs_loop()` en `room_concept.cpp`, seleccionado por `params.optimizer_type == "LBFGS"`:
+
+```cpp
+torch::optim::LBFGS optimizer(
+    window_params,
+    torch::optim::LBFGSOptions(params.lbfgs_lr)
+        .max_iter(params.num_iterations)
+        .history_size(params.lbfgs_history_size)
+        .line_search_fn("strong_wolfe")
+        .tolerance_grad(params.lbfgs_tolerance_grad)
+        .tolerance_change(params.lbfgs_tolerance_change));
+optimizer.step(closure);
+```
+
+La closure sigue la misma estructura que Adam: `zero_grad → compute_rfe_loss → backward`.
+El dispatch en `update()` elige el loop correcto:
+
+```cpp
+auto [last_loss, iterations] = (params.optimizer_type == "LBFGS")
+    ? run_lbfgs_loop(odometry_prior)
+    : run_adam_loop(odometry_prior);
+```
+
+**Nuevos parámetros en `Params` y `config.toml`:**
+
+```toml
+OptimizerType        = "LBFGS"   # "ADAM" | "LBFGS"
+LbfgsLr              = 1.0       # paso Newton inicial (Wolfe lo ajusta)
+LbfgsHistorySize     = 10        # pares (s,y) para H⁻¹; recomendado ≥ W
+LbfgsToleranceGrad   = 1e-5      # para cuando ‖∇L‖∞ < τ_g
+LbfgsToleranceChange = 1e-7      # para cuando |ΔL| < τ_c (criterio dominante)
+```
+
+Config wiring en `specificworker.cpp`: 5 nuevos bloques `try/catch` para cargar los
+parámetros LBFGS desde el config.
+
+**Ficheros:** `src/room_concept.h`, `src/room_concept.cpp`, `src/specificworker.cpp`,
+`etc/config.toml`
+
+---
+
+## 31. Extensión del log CSV: `lbfgs_grad_norm` y `loss_curve`
+
+**Añadido**  
+Dos columnas nuevas al final del CSV de diagnóstico:
+
+- **`lbfgs_grad_norm`** — norma infinito del gradiente `‖∇L‖∞` al terminar L-BFGS.
+  Mide la distancia a la condición KKT: valor cercano a cero → convergencia real;
+  valor alto → parada por `max_iter` o `tolerance_change` sin convergencia completa.
+  Vale 0 en frames Adam o early-exit.
+
+- **`loss_curve`** — pérdida en cada evaluación de la closure, separadas por `|`
+  (e.g. `4.61|55.0|4.65|4.61`). Permite ver el perfil de convergencia completo
+  incluyendo los picos de line search. También se rellena en el path Adam
+  (una entrada por iteración).
+
+```cpp
+// run_lbfgs_loop — tras optimizer.step(closure)
+last_lbfgs_grad_norm_ = 0.f;
+for (auto& p : window_params)
+    if (p.grad().defined())
+        last_lbfgs_grad_norm_ = std::max(last_lbfgs_grad_norm_,
+            p.grad().abs().max().item<float>());
+```
+
+El path de early-exit escribe `0.f` y `"na"` respectivamente para mantener el número
+de columnas fijo.
+
+**Ficheros:** `src/room_concept.h` (miembro `last_lbfgs_grad_norm_`),
+`src/room_concept.cpp` (header CSV, escritura en los 2 paths)
+
+---
+
+## 32. Ajuste de parámetros para L-BFGS (`config.toml`)
+
+Tres cambios derivados del análisis del log (comparativas Adam vs L-BFGS con W=1 y W=3):
+
+| Parámetro | Antes | Ahora | Razón |
+|---|---|---|---|
+| `VelocityAdaptiveWeights` | `true` | **`false`** | Con LBFGS, escalar el gradiente post-`backward()` corrompe los pares `(s,y)` de la aproximación H⁻¹, impidiendo la convergencia. El log mostraba `grad_norm` residual ~0.09 (≫ `tol=1e-5`) y 0/53 frames convergidos con W=10. |
+| `NumIterations` | `75` | **`25`** | Con LBFGS el tope activo es `tolerance_change`, no `max_iter`; el máximo observado fue ~25 pasos Newton (~63 evals). Con Adam W=1, 25 iters es suficiente. |
+| `LbfgsHistorySize` | `5` | **`10`** | Con ventana W=10 hay 30 DOF; igualar `history_size` a W mejora la aproximación del Hessiano inverso. |
+
+**Fichero:** `etc/config.toml`
+
+---
+
+## 33. Documento `LBFGS_math.md`
+
+Documento técnico nuevo con:
+- Definición del espacio de parámetros $\mathbb{R}^{3W}$
+- Función de pérdida RFE completa: boundary prior (con quality gate), factor de observación
+  SDF (con Huber y ponderación por distancia), factor de movimiento, factor de esquinas
+- Algoritmo L-BFGS: actualización Newton, two-loop recursion para $H^{-1}$, condiciones
+  Strong-Wolfe, criterios de parada
+- Covarianza posterior vía doble backprop
+- Tabla de parámetros con valores actuales
+- **Resultados experimentales** de las dos comparativas Adam vs L-BFGS:
+  - W=3: L-BFGS −32 % t_optim, −53 % picos máximos, mejor SDF post-optim
+  - W=1: L-BFGS converge 100 % por `tolerance_change`, ×130 menos jitter angular,
+    −15 % sdf_mse global, −41 % t_optim; Adam alcanza `max_iter` en 78 % de frames
+
+**Fichero:** `LBFGS_math.md` (nuevo)
+
+---
+
 ## Resumen de ficheros modificados
 
 | Fichero | Cambios |
 |---|---|
 | `src/common_types.h` | Añade `source_ts_ms`, `recv_ts_ms`, `effective_ts_ms()` a `OdometryReading` y `VelocityCommand` |
-| `src/room_concept.h` | `lidar_scan` en `UpdateResult`; params nuevos (20+ expuestos + B/C/far_points); `sdf_mse_final` en `WindowSlot`; firma `append()` actualizada; comentarios actualizados |
-| `src/room_concept.cpp` | Fix `meas_valid`; Adam lr scaling; midpoint rule; debug log CSV; traza rotación; `lidar_scan`; corner tracking; `slot_odom_delta` medida; eliminación `fast_rotation`; quality-gated boundary prior (B+C+A); far_points potenciado; `sdf_mse_final` en early exit y Adam |
-| `src/specificworker.cpp` | Fix signo `odom.adv`; EMA velocidades; visualización sincronizada; timestamps; UI Adam vs Pred; 20+ params config; params B/C/far_points; `catch(...){}` → logging (§28b) |
+| `src/room_concept.h` | `lidar_scan` en `UpdateResult`; params nuevos (20+ expuestos + B/C/far_points); `sdf_mse_final` en `WindowSlot`; firma `append()` actualizada; **params LBFGS** (`optimizer_type`, `lbfgs_*`); miembro `last_lbfgs_grad_norm_`; declaración `run_lbfgs_loop()` |
+| `src/room_concept.cpp` | Fix `meas_valid`; Adam lr scaling; midpoint rule; debug log CSV; traza rotación; `lidar_scan`; corner tracking; `slot_odom_delta` medida; eliminación `fast_rotation`; quality-gated boundary prior (B+C+A); far_points potenciado; `sdf_mse_final`; **`run_lbfgs_loop()`**; dispatch Adam/LBFGS; columnas `lbfgs_grad_norm` y `loss_curve` en CSV |
+| `src/specificworker.cpp` | Fix signo `odom.adv`; EMA velocidades; visualización sincronizada; timestamps; UI Adam vs Pred; 20+ params config; params B/C/far_points; `catch(...){}` → logging; **wiring 5 params LBFGS** |
 | `src/specificworker.h` | EMA state renombrado a velocidades |
 | `src/viewer_2d.h` | `FrameData` añade `loc_pose`, `use_loc_pose` |
-| `src/viewer_2d.cpp` | `update_frame` unifica `draw_pose` para robot y lidar; elimina oscilación por desajuste de forward-projection (§29) |
-| `src/rerun_logger.h` | **Nuevo** — struct `RerunFrame`, clase `RerunLogger` (hilo sender, ring buffer); `frame_counter_` → `std::atomic<int>` (§28a) |
+| `src/viewer_2d.cpp` | `update_frame` unifica `draw_pose` para robot y lidar; elimina oscilación (§29) |
+| `src/rerun_logger.h` | **Nuevo** — struct `RerunFrame`, clase `RerunLogger`; `frame_counter_` → `std::atomic<int>` |
 | `src/rerun_logger.cpp` | **Nuevo** — serialización JSON, base64, TCP, reconexión automática |
 | `scripts/rerun_bridge.py` | **Nuevo** — bridge Python: TCP → Rerun SDK; blueprint 3D + 4 series |
-| `etc/config.toml` | `NumIterations` 10→75; `ConvergenceRelTol` 0.01→0.001; `StationaryMotionThreshold`; 20+ params expuestos; params B/C/far_points |
-| `debug_ADAM.md` | **Nuevo** — análisis completo de convergencia, boundary prior y experimentos |
+| `etc/config.toml` | Historial de cambios de parámetros + **sección L-BFGS**; `VelocityAdaptiveWeights=false`; `NumIterations=25`; `LbfgsHistorySize=10` |
+| `LBFGS_math.md` | **Nuevo** — matemáticas del optimizador + resultados experimentales |
+| `debug_ADAM.md` | **Nuevo** — análisis completo Adam, boundary prior y experimentos |
 | `RERUN_PIPELINE.md` | **Nuevo** — documentación de la integración Rerun |
 | `ANALYSIS.md` | **Nuevo** — análisis adicional de experimentos |
 | `benchmarks/` | **Nuevo** — snapshots de métricas de referencia pre/post cambios |

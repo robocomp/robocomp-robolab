@@ -37,14 +37,24 @@ MinTrackingSteps       = 5     # Warm-up tras reset: 5 frames (default 20).
                                 # en cuanto la ventana está llena.
 RotationSdfCoupling    = 0.5   # Extra tolerancia SDF por rotación (m/rad)
 
+# ── Selección de optimizador ──────────────────────────────────────────────────
+# "ADAM"  — Adam adaptativo (default probado, robusto lejos del mínimo)
+# "LBFGS" — L-BFGS con line search Wolfe (convergencia más rápida, ~8-12 evals)
+# "CAVI"  — reservado para implementación futura
+OptimizerType          = "LBFGS"
+
+# ── Parámetros L-BFGS ─────────────────────────────────────────────────────────
+# Activos solo cuando OptimizerType = "LBFGS"
+# LbfgsLr: paso inicial; el line search strong-Wolfe lo ajusta automáticamente.
+# Usar 1.0 (paso Newton completo). No requiere escalar como Adam.
+LbfgsLr               = 1.0    # Paso inicial (el line search lo ajusta)
+LbfgsHistorySize      = 10     # Pares (s,y) para H^-1; igualado a W=10 (30 DOF)
+LbfgsToleranceGrad    = 1e-5   # Para cuando ||grad||_inf < tol (convergencia fina)
+LbfgsToleranceChange  = 1e-7   # Para cuando |Δloss| < tol entre pasos
+
 # ── Optimizador Adam ──────────────────────────────────────────────────────────
-NumIterations          = 75    # FIX 3: de 50 a 75. Con W=10 el motion factor
-                                # acumulado en 9 slots necesita más iters para
-                                # drenar su gradiente. Los frames que agotaban
-                                # 50 iters reducían pérdida ×77 (1000→13) y
-                                # terminaban con mejor SDF (4.4cm) que los que
-                                # paraban antes (6.3cm). 75 da margen sin volver
-                                # a los 200ms del antiguo límite de 100.
+NumIterations          = 25    # Iteraciones Adam (o pasos Newton máx para LBFGS).
+                                # Con W=1 solo hay término SDF; Adam converge en ~15-20 iters.
 LearningRatePos        = 0.05  # LR base; escalado a lr/√W internamente
 ObsSigma               = 0.05  # σ ruido SDF en la función de pérdida (m)
 HuberDelta             = 0.15  # Umbral Huber para saturar outliers (m)
@@ -56,7 +66,7 @@ ConvergenceRelTol      = 0.001 # FIX 2: de 0.01 a 0.001. El criterio anterior
 ConvergenceMinIters    = 8     # Iters mínimas antes de aplicar el criterio
 
 # ── Ventana deslizante (RFE) ──────────────────────────────────────────────────
-WindowSize             = 10   # Slots retenidos. Objetivo del experimento.
+WindowSize             = 1  # Slots retenidos. Objetivo del experimento.
 MaxLidarPoints         = 400   # Puntos slot actual (anterior 400). Más densidad
                                 # → gradiente SDF más estable con W grande.
 MaxLidarOldSlot        = 200   # Puntos slots antiguos (anterior 100). Mejora el
@@ -84,7 +94,10 @@ RecoveryCooldownFrames   = 60    # Frames sin detection tras recovery (default 3
                                   # el detector vuelva a estar activo.
 
 # ── Pesos de gradiente adaptativos por velocidad ──────────────────────────────
-VelocityAdaptiveWeights  = true  # Modula gradiente según perfil de movimiento
+VelocityAdaptiveWeights  = false # OFF con LBFGS: escalar grad post-backward corrompe
+                                 # los pares (s,y) de la aproximación H^-1 → el log
+                                 # mostraba grad_norm residual ~0.09 (≫ tol=1e-5) y
+                                 # 0/53 frames con convergencia real.
 LinearVelocityThreshold  = 0.05  # m/s — por debajo = no traslación
 AngularVelocityThreshold = 0.10  # rad/s — por debajo = no rotación
 WeightBoostFactor        = 2.0   # Multiplicador para el eje dominante

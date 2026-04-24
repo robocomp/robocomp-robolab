@@ -84,6 +84,14 @@ static std::string serialize_frame(const RerunFrame& f)
     j << "\"t_cov\":"      << jf(f.t_cov_ms,    2) << ',';
     j << "\"t_bkd\":"      << jf(f.t_breakdown_ms,2) << ',';
 
+    // Online motion model learning state
+    j << "\"ml_slip_k\":"  << jf(f.learned_slip_k)          << ',';
+    j << "\"ml_trans\":"   << jf(f.learned_odom_noise_trans) << ',';
+    j << "\"ml_bx\":"      << jf(f.learned_bias_x)           << ',';
+    j << "\"ml_by\":"      << jf(f.learned_bias_y)           << ',';
+    j << "\"ml_bth\":"     << jf(f.learned_bias_theta)       << ',';
+    j << "\"ml_frames\":"  << ji(f.motion_learn_frames)      << ',';
+
     // Point cloud — [N, 3] as base64 float32 LE
     j << "\"n_pts\":" << ji(f.lidar_points.size()) << ',';
     if (!f.lidar_points.empty()) {

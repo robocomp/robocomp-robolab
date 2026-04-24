@@ -273,16 +273,11 @@ void Viewer2D::draw_lidar_points(const std::vector<Eigen::Vector3f>& points_high
 // ─────────────────────────────────────────────────────────────────────────────
 void Viewer2D::update_frame(const FrameData& fd)
 {
-    // Use the same pose for both robot body and lidar cloud to avoid visual offset.
-    // When use_loc_pose is true, loc_pose and the lidar scan share the same timestamp
-    // (both come from the localization result), so they are spatially consistent.
-    // display_pose adds a forward-projection lag correction that only applies to the
-    // robot body, causing a frame-to-frame oscillation when EMA velocities are noisy.
-    const Eigen::Affine2f& draw_pose = fd.use_loc_pose ? fd.loc_pose : fd.display_pose;
-    draw_lidar_points(fd.lidar_points, {}, draw_pose, fd.max_lidar_points);
+    const Eigen::Affine2f& lidar_pose = fd.use_loc_pose ? fd.loc_pose : fd.display_pose;
+    draw_lidar_points(fd.lidar_points, {}, lidar_pose, fd.max_lidar_points);
 
     if (fd.have_loc || fd.is_initialized)
-        update_robot(draw_pose);
+        update_robot(fd.display_pose);
 
     if (fd.have_loc && !fd.has_room_polygon)
         update_estimated_room_rect(fd.room_width, fd.room_length, false);

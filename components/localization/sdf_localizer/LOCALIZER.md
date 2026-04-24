@@ -1270,3 +1270,199 @@ straight-line motion, freeing CPU for the epistemic planner.
   used for all buffer digests and window arithmetic, avoiding
   floating-point drift and making cross-component timestamp comparison
   trivial.
+
+---
+
+## 14. Online Motion Model Learning
+
+### 14.1 Motivation
+
+The motion factor precision matrix $\boldsymbol{\Lambda}_k = \Sigma_{\mathrm{mot},k}^{-1}$
+is computed from three static parameters (`EncoderRotSlipK`, `OdomNoiseTrans`,
+odometry bias = 0).  In practice these values vary across robots and environments.
+The online learner continuously estimates better values without requiring
+manual re-tuning.
+
+### 14.2 Architecture Overview
+
+`adapt_motion_model()` is called once per frame after the L-BFGS pass.
+It runs **two independent estimators** with different strategies, plus a
+bias accumulator:
+
+| Estimator | Strategy | Reason |
+|-----------|----------|--------|
+| Slip-k $\hat{k}_s$ | Per-pair, newest slot only | Needs instantaneous angular speed; internal pairs have near-zero residuals under `SdfCurrentSlotOnly` |
+| Trans-noise $\hat{\sigma}_T$ | Window-span, variance buffer | Single 55 ms slot covers only 0.02–0.05 m; span over W-1 slots gives 4× better SNR |
+| Odometry bias $\hat{\mathbf{b}}$ | Mean residual, slow EMA | Captures systematic drift over all good pairs |
+
+All updates share a **separate quality gate**
+$\mathrm{SDF\_MSE} < \tau_q^{\mathrm{learn}}$
+(default 0.12 m) that is intentionally more permissive than the
+boundary Hessian gate ($\tau_q^{\mathrm{Hess}} = 0.08$ m).  Using the
+tighter Hessian gate would starve the learner because typical
+$\mathrm{SDF\_MSE}$ while moving is 0.06–0.09 m.
+
+### 14.3 Motion Residuals
+
+After each L-BFGS run the window holds optimised poses
+$\hat{\mathbf{s}}_0,\ldots,\hat{\mathbf{s}}_{W-1}$.  The **per-pair
+residual** for consecutive slot pair $(k-1, k)$ is:
+
+$$
+\mathbf{r}_k
+  = \bigl(\hat{\mathbf{s}}_k - \hat{\mathbf{s}}_{k-1}\bigr) - \boldsymbol{\delta}_k^{\mathrm{odom}}
+  \in \mathbb{R}^3
+$$
+
+with the angular component wrapped to $(-\pi, \pi]$.
+
+The **window-span residual** accumulates across the full window:
+
+$$
+r_{\mathrm{span}}
+  = \bigl\|\bigl(\hat{\mathbf{s}}_{W-1} - \hat{\mathbf{s}}_0\bigr)_{xy}
+           - \textstyle\sum_{k=1}^{W-1}\boldsymbol{\delta}_{k,xy}^{\mathrm{odom}}\bigr\|
+$$
+
+$$
+d_{\mathrm{span}}
+  = \bigl\|\textstyle\sum_{k=1}^{W-1}\boldsymbol{\delta}_{k,xy}^{\mathrm{odom}}\bigr\|
+$$
+
+### 14.4 Slip-K Estimator
+
+When `SdfCurrentSlotOnly = true`, only the **newest** window slot carries
+an SDF observation; all internal slots are anchored solely by motion and
+corner priors, so the L-BFGS optimizer drives their residuals to near-zero
+by construction.  Averaging over all $W-1$ pairs would bias the estimate
+downward by a factor of $W-1$.  The slip-k estimator therefore uses
+**only the newest consecutive pair**:
+
+$$
+\hat{k}_s \;\leftarrow\; (1-\alpha)\,\hat{k}_s
+  + \alpha \cdot \frac{|r_{\theta,W-1}|}{|\omega_{W-1}|}
+$$
+
+gated on $|\omega_{W-1}| \ge \omega_{\min}$ (default 0.05 rad/s) to
+avoid division by near-zero angular speed.
+
+### 14.5 Trans-Noise Estimator (Window Span, Variance-Based)
+
+#### Why window span?
+
+A single consecutive pair in one 55 ms slot covers only 0.02–0.05 m of
+travel.  This barely clears the minimum-translation gate and produces
+high fractional noise.  Accumulating over $W-1 \approx 4$ slots
+(≈ 220 ms, ≈ 0.08–0.20 m) gives 4× larger signal for the same
+sensor-noise floor.
+
+#### Rotation gate
+
+During turns the SDF has poor lateral position constraint, so
+$\hat{\mathbf{s}}_{W-1} - \hat{\mathbf{s}}_0$ contains large
+localization uncertainty unrelated to odometry error.  Samples are
+skipped when the total window rotation satisfies:
+
+$$
+\left|\sum_{k=1}^{W-1} \delta_{\theta,k}^{\mathrm{odom}}\right| > 0.15\;\mathrm{rad}
+$$
+
+#### Variance sample and median buffer
+
+A **variance sample** (not mean-absolute) is accumulated each qualifying
+frame:
+
+$$
+v = \left(\frac{r_{\mathrm{span}}}{d_{\mathrm{span}}}\right)^2
+$$
+
+Samples are collected in a rolling buffer of size 10.  When the buffer
+is full, a single EMA update is performed and the buffer is cleared:
+
+$$
+\hat{\sigma}_T \;\leftarrow\; (1-\alpha)\,\hat{\sigma}_T
+  + \alpha\,\sqrt{\mathrm{median}(v_1,\ldots,v_{10})}
+$$
+
+> **Estimator unbiasedness.**  The mean-absolute estimator
+> $E[|r|/d] = \sigma\sqrt{2/\pi} \approx 0.80\,\sigma$
+> would be biased 25% low for Gaussian innovations.  Storing $(r/d)^2$
+> and taking the square root of the median yields an unbiased ML
+> estimate of $\sigma$ under the Gaussian assumption.
+
+The median (rather than mean) suppresses outlier variance samples caused
+by occasional poor localization frames that pass the quality gate.
+
+### 14.6 Bias Estimator
+
+The systematic bias is updated slowly from the mean residual over all
+good pairs in the window:
+
+$$
+\hat{\mathbf{b}} \;\leftarrow\; (1-\beta)\,\hat{\mathbf{b}} + \beta\,\bar{\mathbf{r}}
+$$
+
+where $\bar{\mathbf{r}}$ is the mean of $\mathbf{r}_k$ over pairs whose
+both adjacent slots pass the quality gate.  The slow rate
+$\beta \ll \alpha$ prevents single-frame pose jumps from biasing the
+accumulator.
+
+The learned bias is currently **diagnostic only** and is not subtracted
+from `odom_delta_tensor` during covariance computation.  It quantifies
+consistent systematic drift that future work could subtract as a
+feedforward correction.
+
+### 14.7 Warmup and Override
+
+- For the first `MotionLearnMinFrames` frames (default 50, ≈ 10 s at 5 Hz),
+  the EMA estimators accumulate but `compute_motion_covariance()` continues
+  using the static **`EncoderRotSlipK`** and **`OdomNoiseTrans`** from config.
+- After warmup, it switches to the live learned values for measured
+  odometry slots.  The command-prior slots are unaffected, providing a
+  stable fallback at all times.
+- Learned state resets on every `RoomConcept` re-initialisation (recovery
+  event), restarting the warmup period.
+
+### 14.8 Configuration
+
+```toml
+[RoomConcept]
+LearnMotionModel            = true    # master switch (false by default)
+MotionLearnAlpha            = 0.05    # EMA rate for slip-k and trans-noise
+MotionLearnBeta             = 0.02    # EMA rate for bias (slower)
+MotionLearnMinOmega         = 0.05    # rad/s — min angular speed for slip-k sample
+MotionLearnMinTrans         = 0.02    # m — min accumulated window-span translation
+MotionLearnQualityThreshold = 0.12    # SDF-MSE gate (more permissive than Hessian gate)
+MotionLearnMinFrames        = 50      # warmup frames before learned values are active
+```
+
+### 14.9 Debug Output
+
+Every 50 frames the learner prints a diagnostic line:
+
+```
+[MotionLearn] frames=N  slip_k=X  trans_noise=Y  bias=[bx,by,bt]
+  (slip_pairs=P  trans_s=S  trans_buf=B  n_pairs=N  mse_span=old/new  gate=G)
+```
+
+| Field | Meaning |
+|-------|---------|
+| `slip_pairs` | Number of pairs that fired the slip-k update this report |
+| `trans_s` | 1 if a trans-noise variance sample was collected this call |
+| `trans_buf` | Current fill of the 10-sample median buffer |
+| `mse_span` | SDF MSE at oldest / newest window slot |
+| `gate` | Quality threshold in use |
+
+### 14.10 Design Notes
+
+The current implementation was reached after diagnosing five successive
+bugs, all of which independently drove `trans_noise` toward unrealistically
+low values:
+
+| Bug | Root cause | Fix |
+|-----|-----------|-----|
+| Multi-pair averaging | Internal pairs have $r_k \approx 0$ under `SdfCurrentSlotOnly`; averaging all $W-1$ pairs gave true noise / $(W-1)$ | Newest-pair-only for slip-k; window-span for trans-noise |
+| Learning starvation | `boundary_hessian_quality_threshold = 0.08` rejected nearly every moving frame | Separate `motion_learn_quality_threshold = 0.12` |
+| Low sample rate | Single 55 ms pair below `min_trans` most frames | Window-span accumulation over ~220 ms |
+| Rotation-induced noise | During turns, SDF lateral uncertainty dominates span residual | Rotation gate at 0.15 rad total window rotation |
+| Biased estimator | Mean-absolute $E[|r|/d] = 0.80\,\sigma$ (25% low) | Variance samples $(r/d)^2$; flush with $\sqrt{\mathrm{median}}$ |

@@ -39,6 +39,7 @@ public:
         // ---- Simple angle-distance controller gains ----
         float k_rot  = 2.0f;
         float gaussian_sigma = 0.5f;
+        float speed_horizon_s = 1.0f;  // max time-to-target used for speed ramp (decoupled from rollout horizon)
 
         // ---- Obstacle avoidance (lidar floor projection) ----
         float obstacle_radius  = 0.35f;
@@ -56,9 +57,9 @@ public:
         // ---- Reactive speed governor (localization quality) ----
         // Scales both v_max and ω_max when SDF-MSE exceeds a safe threshold.
         //   α = clamp(1 − (sdf_mse − sdf_safe) / (sdf_danger − sdf_safe), α_min, 1)
-        float sdf_safe    = 0.04f;       // below this SDF-MSE → full speed
-        float sdf_danger  = 0.08f;       // at/above this → minimum speed
-        float governor_alpha_min = 0.2f;  // minimum speed fraction
+        float sdf_safe    = 0.06f;       // below this SDF-MSE → full speed
+        float sdf_danger  = 0.10f;       // at/above this → minimum speed
+        float governor_alpha_min = 0.4f;  // minimum speed fraction
 
         // ---- FIM scoring at final state (epistemic EFE term) ----
         float fim_corner_sigma  = 0.04f;

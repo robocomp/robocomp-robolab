@@ -110,9 +110,10 @@ class SpecificWorker : public GenericWorker
 			QRectF GRID_MAX_DIM{-5, -5, 10, 10};
 			int MAX_LIDAR_DRAW_POINTS = 500;
 			float VIEW_FIT_RADIUS = 6.0f; // m, only nearby lidar points are considered for auto-fit
-			bool USE_WEBOTS = false;
+			bool USE_WEBOTS = false;		// if true, uses Webots ground-truth pose for display and stats (not for control)
 			float ODOMETRY_NOISE_FACTOR = 1.0f; // legacy relative noise factor (kept for backward compatibility)
 			bool PREDICTION_EARLY_EXIT = true; // Skip RFE optimization when predicted pose already has low SDF error
+			std::string OptimizerType = "LBFGS"; // "ADAM" | "LBFGS"
 
 		};
 		Params params;
@@ -147,8 +148,8 @@ class SpecificWorker : public GenericWorker
 		// Acceleration ramp state
 		rc::EpistemicController::ControlCommand prev_cmd_{};
 		std::chrono::steady_clock::time_point prev_cmd_time_ = std::chrono::steady_clock::now();
-		static constexpr float max_lin_accel_  = 1.5f;   // m/s² max translational acceleration
-		static constexpr float max_rot_accel_  = 3.0f;   // rad/s² max angular acceleration
+			float max_lin_accel_  = 1.5f;   // m/s² max translational acceleration
+			float max_rot_accel_  = 3.0f;   // rad/s² max angular acceleration
 		void navigate_to_target(const std::optional<rc::RoomConcept::UpdateResult>& loc_res,
 		                        const std::optional<rc::ObstacleData>& obstacles);
 

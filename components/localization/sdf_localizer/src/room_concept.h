@@ -178,6 +178,22 @@ public:
         // at high angular speeds.  Set to 0 to disable.
         float encoder_rot_slip_k = 0.15f;  // rad uncertainty per rad/s of angular speed
 
+        // ===== Online Motion Model Learning =====
+        // Continuously adapt noise parameters from post-optimisation residuals.
+        // Uses three EMA estimators:
+        //   • learned_slip_k       — replaces encoder_rot_slip_k (rot-slip model)
+        //   • learned_odom_noise_trans — replaces odom_noise_trans (translational noise fraction)
+        //   • odom_bias            — systematic odometry bias subtracted per step
+        // All updates are gated on localization quality < boundary_hessian_quality_threshold.
+        bool  learn_motion_model           = false;   // Master switch
+        float motion_learn_alpha           = 0.05f;   // EMA rate for slip-k and trans noise
+        float motion_learn_beta            = 0.02f;   // EMA rate for bias vector (slower)
+        float motion_learn_min_omega       = 0.05f;   // Min angular speed (rad/s) to update slip-k
+        float motion_learn_min_trans       = 0.05f;   // Min translation (m) per slot to update trans-noise
+        int   motion_learn_min_frames      = 50;      // Warmup frames before using learned values
+        float motion_learn_quality_threshold = 0.12f; // Per-slot SDF MSE gate for motion learning
+                                                      // (more permissive than boundary_hessian_quality_threshold)
+
         // ===== Recovery =====
         int recovery_cooldown_frames = 30;     // Frames to skip detection after recovery
         int manual_reset_skip_frames = 5;      // Frames to skip optimization after manual pose set
@@ -192,7 +208,7 @@ public:
         // "ADAM"  — adaptive moment estimation (current default)
         // "LBFGS" — limited-memory BFGS with Wolfe line search (faster convergence)
         // "CAVI"  — coordinate-ascent variational inference (reserved, not yet implemented)
-        std::string optimizer_type = "ADAM";
+        std::string optimizer_type = "LBFGS";
 
         // ===== Adam Convergence =====
         float convergence_relative_tol = 0.01f;       // Relative loss-change stopping criterion
@@ -244,6 +260,8 @@ public:
 
         // ===== Corner Detection =====
         bool  enable_corner_tracking = true;      // Master switch for corner factors in Adam loss
+        bool  sdf_current_slot_only = false;           // If true, SDF obs evaluated only for the newest slot;
+                                                       // older slots contribute via motion + corner factors only.
         float corner_obs_sigma = 0.04f;                // Corner measurement noise (meters)
         int   min_tracking_steps_for_corners = 5;      // Require this many tracking steps before adding corner factors
         int   corner_max_slots = 5;                    // Only apply corner factors to the newest N slots
@@ -572,6 +590,17 @@ private:
    std::string        slot_poses_post_;   // packed slot poses after Adam
    std::string        slot_sdf_mse_str_;  // packed sdf_mse_final per slot
    void init_debug_log();
+
+   // ===== Online motion model learned state =====
+   // Initialised to -1 (sentinel = "warmup not done; use static params").
+   // After motion_learn_min_frames quality updates they replace the static Params values.
+   float           learned_slip_k_              = -1.f;  // learned encoder_rot_slip_k
+   float           learned_odom_noise_trans_    = -1.f;  // learned odom_noise_trans fraction
+   Eigen::Vector3f learned_odom_bias_           = Eigen::Vector3f::Zero(); // [dx,dy,dtheta] bias
+   int             motion_learn_good_frames_    = 0;     // quality frames accumulated
+   // Robust buffer for trans-noise samples: collect N then take median for one EMA step.
+   std::vector<float> trans_noise_sample_buf_;
+   void            adapt_motion_model();
 
    // ===== Differential test: RFE vs single-step =====
    struct DiffTestStats

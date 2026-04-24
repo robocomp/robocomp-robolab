@@ -97,6 +97,10 @@ def build_blueprint():
                     name="Pipeline",
                     origin="/metrics/pipeline",
                 ),
+                rrb.TimeSeriesView(
+                    name="Motion Model Learning",
+                    origin="/metrics/motion_learn",
+                ),
                 rrb.TextDocumentView(
                     name="Pose Debug Table",
                     origin="/metrics/debug/pose_table_doc",
@@ -379,6 +383,19 @@ class RerunBridge:
         _log_scalar("metrics/pipeline/window_size", d.get("ws", 0))
         _log_scalar("metrics/pipeline/iters", d.get("iters", 0))
         _log_scalar("metrics/pipeline/early_exit", 1.0 if early else 0.0)
+
+        # ── 8b. Online motion model learning ─────────────────────────────────
+        # C++ uses -1 as "warmup not done" sentinel — convert to NaN so Rerun
+        # skips those frames cleanly instead of plotting garbage.
+        def _ml_scalar(path, raw_val):
+            v = float(raw_val) if raw_val is not None else float("nan")
+            _log_scalar(path, float("nan") if v < 0.0 else v)
+
+        _ml_scalar("metrics/motion_learn/slip_k",    d.get("ml_slip_k",  -1.0))
+        _ml_scalar("metrics/motion_learn/trans_noise", d.get("ml_trans", -1.0))
+        _log_scalar("metrics/motion_learn/bias_x",   d.get("ml_bx",  0.0))
+        _log_scalar("metrics/motion_learn/bias_y",   d.get("ml_by",  0.0))
+        _log_scalar("metrics/motion_learn/bias_theta", d.get("ml_bth", 0.0))
 
         # ── 9. Pose debug table (text) ───────────────────────────────────────
         pred_x = d.get("pred_x", float("nan"))

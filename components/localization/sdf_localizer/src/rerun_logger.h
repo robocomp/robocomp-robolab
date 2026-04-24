@@ -77,6 +77,15 @@ struct RerunFrame
     // ---- Room polygon (optional, sent once / on updates) ----
     bool     has_room_polygon = false;
     std::vector<std::array<float, 2>> room_polygon;  // world-frame corners [x,y]
+
+    // ---- Online motion model learning state ----
+    // -1 means sentinel (warmup not done yet)
+    float    learned_slip_k           = -1.f;  // learned encoder_rot_slip_k
+    float    learned_odom_noise_trans = -1.f;  // learned odom_noise_trans fraction
+    float    learned_bias_x           = 0.f;
+    float    learned_bias_y           = 0.f;
+    float    learned_bias_theta       = 0.f;
+    int      motion_learn_frames      = 0;     // quality frames accumulated
 };
 
 // ──────────────────────────────────────────────────────────────────────────────

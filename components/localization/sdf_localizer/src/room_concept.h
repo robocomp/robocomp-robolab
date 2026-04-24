@@ -74,14 +74,12 @@ public:
     struct Params
     {
         int num_iterations = 25;          // Balance between speed and convergence
-        float learning_rate_pos = 0.05f;  // Moderate LR for position
-        float learning_rate_rot = 0.01f;  // LR for rotation
+        float learning_rate_pos = 0.05f;  // Uniform LR for all pose DoF (x, y, θ)
         float min_loss_threshold = 0.1f;  // Early exit threshold
 
         float wall_thickness = 0.1f;
         float wall_height = 2.4f;        // meters
         int max_lidar_points = 1000;      // Subsample for speed
-        float pose_smoothing = 0.7f;     // EMA smoothing factor (legacy, unused when window > 1)
 
         // ===== Sliding Window (RFE) =====
         // Paper: "Total-Time Active Inference" - Realized Free Energy over a past window
@@ -126,7 +124,6 @@ public:
         float sigma_sdf = 0.15f;              // SDF observation noise (15cm)
         float prediction_trust_factor = 0.5f; // Base threshold = sigma_sdf * factor (~7.5cm)
         int min_tracking_steps = 20;          // Wait for system to stabilize before early exit
-        float max_uncertainty_for_early_exit = 0.1f;  // Max pose uncertainty to allow early exit
 
         // ===== Rotation-adaptive Early Exit =====
         // During rotation, a small theta error (e.g. 0.02 rad) produces large SDF displacements
@@ -423,7 +420,8 @@ public:
         struct CornerObs {
             Eigen::Vector2f model_corner_world;  // world-frame model corner
             Eigen::Vector2f detected_robot;      // detected position in robot frame
-            Eigen::Matrix2f precision;           // Σ_c^{-1}
+            // Note: directional precision (Σ_c^{-1}) is not used in compute_rfe_loss();
+            // the loss applies a scalar corner_obs_sigma uniformly in all directions.
         };
         std::vector<CornerObs> corner_obs;
     };
@@ -589,6 +587,7 @@ private:
    std::string        slot_poses_pre_;    // packed slot poses before Adam  (debug log)
    std::string        slot_poses_post_;   // packed slot poses after Adam
    std::string        slot_sdf_mse_str_;  // packed sdf_mse_final per slot
+   std::string        debug_log_path_;    // full path of the current log file (includes timestamp)
    void init_debug_log();
 
    // ===== Online motion model learned state =====

@@ -440,16 +440,23 @@ Both `integrate_velocity_over_window()` and `integrate_odometry_over_window()`
 apply:
 
 $$
-\Delta\theta = -\omega \cdot \Delta t
+\Delta\theta = +\omega \cdot \Delta t
 $$
 
-This means a **positive** angular velocity command $\omega > 0$ produces a
-**negative** heading change.  This inversion is consistent throughout the
-entire pipeline (commanded, measured, fused priors, motion factors).
+A **positive** angular velocity $\omega > 0$ (CCW in the standard mathematical
+sense) produces a **positive** heading change.  This **unified CCW+ convention**
+is maintained throughout the entire pipeline: velocity buffers, odometry buffers,
+integrators, the RFE window, and the epistemic planner all use CCW-positive without
+any internal negation.
 
-> **Rationale:** The robot middleware reports $\omega$ with the convention
-> that positive means "turn left" in the robot frame, while the world-frame
-> heading decreases for a left turn when X=right, Y=forward.
+The only negation sites are at the hardware boundaries:
+- **Joystick entry**: `cmd.rot = -axis.value` converts the physical CW+ joystick
+  signal into the internal CCW+ convention.
+- **`setSpeedBase` call**: the final motor command negates back to the CW+ API.
+
+> **Historical note:** an earlier version of this code applied $-\omega\cdot\Delta t$
+> throughout.  That sign was removed when the pipeline was unified to CCW+ and
+> this section was not updated.  The code is now the authoritative reference.
 
 ### 5.4 Point Transformation (Robot → Room)
 
@@ -576,29 +583,44 @@ during which Adam runs without early-exit to let the filter reconverge.
 | Approximation | Impact | Notes |
 |---------------|--------|-------|
 | Velocity-adaptive gradient scaling | Acts as a preconditioner; does not affect Hessian (computed separately post-Adam) | Weights are only applied to the newest pose during Adam steps |
-| Motion covariance stored once per slot | Becomes stale if the odometry model changes | Window size $W=10$ ≈ 0.7 s at 14 fps; staleness is bounded |
+| Motion covariance stored once per slot | Becomes stale if the odometry model changes | Window size $W=5$ ≈ 0.35 s at 14 fps; staleness is bounded |
 | Missing log-partition in observation | Constant term has no effect on gradients | Only matters if the loss value is used for information-theoretic diagnostics |
 | Eigenvalue clamping on Hessian | Prevents near-zero eigenvalues from inflating covariance | Floor is $10^{-4}$ (posterior) / $10^{-3}$ (boundary prior) |
+| **`compute_motion_covariance()` is isotropic in X/Y** | Motion factor precision is equal in both world axes regardless of motion direction | `predict_step()` correctly rotates the anisotropic body-frame noise; the per-slot motion covariance does not. Impact is small when SDF is well-constrained. |
+| **Corner factor uses scalar precision** | Directional uncertainty from PCA line-fit normals is ignored; an isotropic $\sigma_{\mathrm{crn}}$ is applied instead | `WindowSlot::CornerObs` does not store a per-corner precision matrix; enabling directional corners would require the loss to use it |
+| **Trans-noise learning has a $\sqrt{W}$ downward bias** | `learned_odom_noise_trans_` converges to $\hat\sigma/\sqrt{W}$ | Window-span residual variance $\approx \sigma^2 D^2/W$; for $W=5$ the stored fraction is $\approx 2.2\times$ smaller than the per-step value — the prior stays slightly over-confident in odometry, which is conservative |
 
 ---
 
 ## 10. Parameter Reference
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `rfe_window_size` | 10 | Number of past states retained |
+| Parameter | Default / Config | Description |
+|-----------|-----------------|-------------|
+| `rfe_window_size` | 10 / **5** | Number of past states retained |
 | `rfe_obs_sigma` | 0.05 m | SDF observation noise std |
 | `rfe_huber_delta` | 0.15 m | Huber loss threshold |
-| `learning_rate_pos` | 0.05 | Adam learning rate |
-| `num_iterations` | 25 | Max Adam iterations per update |
-| `cmd_noise_trans` | 0.20 | Fractional position noise per meter (command) |
-| `cmd_noise_rot` | 0.10 | Fractional rotation noise per radian (command) |
-| `odom_noise_trans` | 0.08 | Fractional position noise per meter (odometry) |
-| `odom_noise_rot` | 0.04 | Fractional rotation noise per radian (odometry) |
-| `sigma_sdf` | 0.15 m | SDF noise for early-exit threshold |
-| `prediction_trust_factor` | 0.5 | Early-exit multiplier |
-| `recovery_loss_threshold` | 0.3 | Loss above which frame is "bad" |
-| `recovery_consecutive_count` | 3 | Bad frames before grid-search recovery |
+| `learning_rate_pos` | 0.05 | Adam / initial L-BFGS step (line-search adjusts automatically) |
+| `num_iterations` | 25 | Max Adam iterations or L-BFGS Newton steps per update |
+| `optimizer_type` | `"LBFGS"` | `"ADAM"` or `"LBFGS"` (strong-Wolfe line search) |
+| `lbfgs_history_size` | 5 / **10** | $(s,y)$ pairs kept for $H^{-1}$ approximation |
+| `cmd_noise_trans` | 0.20 | Fractional position noise per meter (command prior) |
+| `cmd_noise_rot` | 0.10 | Fractional rotation noise per radian (command prior) |
+| `odom_noise_trans` | 0.08 | Fractional position noise per meter (odometry prior) |
+| `odom_noise_rot` | 0.04 | Fractional rotation noise per radian (odometry prior) |
+| `encoder_rot_slip_k` | 0.15 / **0.05** | Extra rotation std per rad/s of angular speed |
+| `sigma_sdf` | 0.15 m | SDF noise std used for early-exit threshold |
+| `prediction_trust_factor` | 0.5 / **0.7** | Early-exit base multiplier (threshold = σ × factor) |
+| `rotation_sdf_coupling` | 0.5 m/rad | Extra SDF tolerance added per radian of rotation |
+| `recovery_loss_threshold` | 0.3 / **0.45** | $\sqrt{\text{sdf\_mse}} >$ threshold → bad frame |
+| `recovery_consecutive_count` | 3 / **10** | Bad frames before grid-search recovery |
+| `learn_motion_model` | false / **true** | Master switch for online EMA motion-model adaptation |
+| `motion_learn_alpha` | 0.05 | EMA rate for slip-k and translational noise fraction |
+| `motion_learn_beta` | 0.02 | EMA rate for odometry bias vector (slower) |
+| `motion_learn_min_frames` | 50 | Warmup: static params used until this many quality frames |
+| `motion_learn_quality_threshold` | 0.12 m | Per-slot SDF MSE gate for motion learning samples |
+
+Values shown as **Default / Config** mean the code default differs from `etc/config.toml`; the
+configured value is what runs in practice.
 
 ---
 

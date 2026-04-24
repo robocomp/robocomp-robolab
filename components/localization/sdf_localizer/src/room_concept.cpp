@@ -71,11 +71,20 @@ namespace rc
         ::mkdir("tmp", 0755);
         ::mkdir("tmp/sdf_localizer", 0755);
 
-        const std::string path = "tmp/sdf_localizer/log.csv";
-        debug_log_.open(path, std::ios::out | std::ios::trunc);
+        // Build timestamped filename: log_YYYY-MM-DD_HH-MM-SS.csv
+        {
+            const auto now = std::chrono::system_clock::now();
+            const std::time_t tt = std::chrono::system_clock::to_time_t(now);
+            std::tm tm_local{};
+            localtime_r(&tt, &tm_local);
+            char ts_buf[32];
+            std::strftime(ts_buf, sizeof(ts_buf), "%Y-%m-%d_%H-%M-%S", &tm_local);
+            debug_log_path_ = std::string("tmp/sdf_localizer/log_") + ts_buf + ".csv";
+        }
+        debug_log_.open(debug_log_path_, std::ios::out | std::ios::trunc);
         if (!debug_log_.is_open())
         {
-            std::cerr << "[DebugLog] ERROR: could not open " << path << std::endl;
+            std::cerr << "[DebugLog] ERROR: could not open " << debug_log_path_ << std::endl;
             return;
         }
 
@@ -124,9 +133,12 @@ namespace rc
             << ",bp_valid,bp_x,bp_y,bp_theta"
             << ",lbfgs_grad_norm"
             << ",loss_curve"
+            << ",ml_slip_k"
+            << ",ml_odom_noise_trans"
+            << ",ml_bias_x,ml_bias_y,ml_bias_theta"
             << "\n";
         debug_log_.flush();
-        std::cout << "[DebugLog] Logging to " << path << std::endl;
+        std::cout << "[DebugLog] Logging to " << debug_log_path_ << std::endl;
     }
 
     std::optional<RoomConcept::UpdateResult> RoomConcept::get_last_result() const
@@ -1260,7 +1272,8 @@ namespace rc
                 WindowSlot::CornerObs obs;
                 obs.model_corner_world = init_polygon_vertices_[m.model_index];
                 obs.detected_robot = m.detected;
-                obs.precision = m.covariance.inverse();
+                // Note: directional precision (m.covariance.inverse()) is not used in the
+                // current loss — compute_rfe_loss() uses scalar corner_obs_sigma uniformly.
                 newest_slot.corner_obs.push_back(obs);
             }
         }
@@ -1292,7 +1305,7 @@ namespace rc
                     auto a = cpu.accessor<float, 1>();
                     std::ostringstream ss;
                     ss << std::fixed << std::setprecision(4)
-                       << a[0] << ',' << a[1] << ',' << a[2];
+                       << a[0] << ';' << a[1] << ';' << a[2];  // ';' avoids CSV column shift
                     s += ss.str();
                 }
                 slot_poses_pre_ = s.empty() ? "na" : s;
@@ -1318,7 +1331,7 @@ namespace rc
                     auto a = cpu.accessor<float, 1>();
                     std::ostringstream ss;
                     ss << std::fixed << std::setprecision(4)
-                       << a[0] << ',' << a[1] << ',' << a[2];
+                       << a[0] << ';' << a[1] << ';' << a[2];  // ';' avoids CSV column shift
                     s += ss.str();
                 }
                 slot_poses_post_ = s.empty() ? "na" : s;
@@ -1537,7 +1550,12 @@ namespace rc
             }
 
             debug_log_ << ',' << last_lbfgs_grad_norm_
-                       << ',' << losses_str;
+                       << ',' << losses_str
+                       << ',' << learned_slip_k_
+                       << ',' << learned_odom_noise_trans_
+                       << ',' << learned_odom_bias_.x()
+                       << ',' << learned_odom_bias_.y()
+                       << ',' << learned_odom_bias_.z();
 
             debug_log_ << '\n';
             debug_log_.flush();
@@ -1751,14 +1769,15 @@ namespace rc
                 << ',' << 0               // cond_num
                 << ',' << (int)window_mgr_.size()
                 << ',' << tracking_step_count_
-                << ',' << "nan" << ',' << "nan" << ',' << "nan" << ',' << "nan"  // loss_boundary/obs/motion/corner
-                << ',' << "nan"  // loss_init
+                << ',' << 0.f << ',' << 0.f << ',' << 0.f << ',' << 0.f  // loss_boundary/obs/motion/corner
+                << ',' << 0.f   // loss_init
                 << ',' << std::chrono::duration<float, std::milli>(
                                std::chrono::high_resolution_clock::now() - t_update_start_).count()
                 << ',' << 0.f << ',' << 0.f << ',' << 0.f  // t_adam, t_cov, t_breakdown
                 << ',' << "na"   // slot_poses_pre (no Adam ran)
                 << ',' << "na"   // slot_poses_post
                 ;
+            (void)0;
 
             // Per-slot sdf_mse and boundary prior are still meaningful on early exit
             {
@@ -1781,7 +1800,12 @@ namespace rc
                            << ',' << bp.mu[2];
             }
             debug_log_ << ',' << 0.f   // lbfgs_grad_norm (no optimization ran)
-                       << ',' << "na"; // loss_curve
+                       << ',' << "na"  // loss_curve
+                       << ',' << learned_slip_k_
+                       << ',' << learned_odom_noise_trans_
+                       << ',' << learned_odom_bias_.x()
+                       << ',' << learned_odom_bias_.y()
+                       << ',' << learned_odom_bias_.z();
             debug_log_ << '\n';
             debug_log_.flush();
         }
@@ -1800,7 +1824,9 @@ namespace rc
             {torch::optim::OptimizerParamGroup(window_params,
                 std::make_unique<torch::optim::AdamOptions>(lr))});
 
-        const Eigen::Vector3f velocity_weights = compute_velocity_adaptive_weights(odometry_prior);
+        const Eigen::Vector3f velocity_weights = params.velocity_adaptive_weights
+            ? compute_velocity_adaptive_weights(odometry_prior)
+            : Eigen::Vector3f::Ones();
 
         // ===== Boundary quality gate =====
         // Scale the boundary prior by how trustworthy the previous frame's pose was.
@@ -1835,6 +1861,7 @@ namespace rc
 
             loss.backward();
 
+            if (params.velocity_adaptive_weights)
             {
                 torch::NoGradGuard no_grad;
                 auto& newest_pose = window_mgr_.newest().pose;
@@ -2289,9 +2316,15 @@ namespace rc
         const float noise_rot   = is_measured_odometry ? params.odom_noise_rot   * params.odom_noise_scale : params.cmd_noise_rot;
         const float noise_base  = is_measured_odometry ? params.odom_noise_base  * params.odom_noise_scale : params.cmd_noise_base;
 
+        // Apply learned bias: subtract systematic odometry drift from the effective delta.
+        // This makes the motion factor mean correct; the covariance still covers residual noise.
+        const Eigen::Vector3f effective_delta = (use_learned && is_measured_odometry)
+            ? odometry_prior.delta_pose - learned_odom_bias_
+            : odometry_prior.delta_pose;
+
         float motion_magnitude = std::sqrt(
-            odometry_prior.delta_pose[0] * odometry_prior.delta_pose[0] +
-            odometry_prior.delta_pose[1] * odometry_prior.delta_pose[1]
+            effective_delta[0] * effective_delta[0] +
+            effective_delta[1] * effective_delta[1]
         );
 
         // Uncertainty grows with distance; when stationary use tight constraint
@@ -2303,11 +2336,11 @@ namespace rc
         }
 
         float position_std = base_uncertainty + noise_trans * motion_magnitude;
-        float rotation_std = params.rotation_noise_base + noise_rot * std::abs(odometry_prior.delta_pose[2]);
+        float rotation_std = params.rotation_noise_base + noise_rot * std::abs(effective_delta[2]);
 
         // Rotation-position coupling: rotation creates position uncertainty
         // (pivot wobble, wheel slip, lever arm effects)
-        float rot_induced_pos = params.rotation_position_coupling * std::abs(odometry_prior.delta_pose[2]);
+        float rot_induced_pos = params.rotation_position_coupling * std::abs(effective_delta[2]);
         position_std = std::sqrt(position_std * position_std + rot_induced_pos * rot_induced_pos);
 
         // Encoder angular slip model (measured odometry only):
@@ -2317,7 +2350,7 @@ namespace rc
                                        : params.encoder_rot_slip_k;
         if (is_measured_odometry && effective_slip_k > 0.f)
         {
-            const float ang_speed = std::abs(odometry_prior.delta_pose[2]) /
+            const float ang_speed = std::abs(effective_delta[2]) /
                                     std::max(odometry_prior.dt * 0.001f, 0.001f);
             const float slip_std  = effective_slip_k * ang_speed;
             rotation_std = std::sqrt(rotation_std * rotation_std + slip_std * slip_std);
@@ -2487,12 +2520,15 @@ namespace rc
             float sigma_y = forward_noise;   // Y = forward (larger)
             float sigma_theta = rot_noise;
 
-            // Transform to global frame: Q_global = R * Q_local * R^T
-            // For X=right, Y=forward:
-            Q[0][0] = sigma_x*sigma_x * sin_t*sin_t + sigma_y*sigma_y * cos_t*cos_t;
-            Q[0][1] = (sigma_y*sigma_y - sigma_x*sigma_x) * cos_t * sin_t;
+            // Transform to global frame: Q_global = R(θ) * Q_local * R(θ)^T
+            // Body X (lateral) → world via direction (cosθ, sinθ)
+            // Body Y (forward) → world via direction (−sinθ, cosθ)
+            // Q[0][0] = σ_x²·cos²θ + σ_y²·sin²θ  (world-X variance)
+            // Q[1][1] = σ_x²·sin²θ + σ_y²·cos²θ  (world-Y variance)
+            Q[0][0] = sigma_x*sigma_x * cos_t*cos_t + sigma_y*sigma_y * sin_t*sin_t;
+            Q[0][1] = (sigma_x*sigma_x - sigma_y*sigma_y) * cos_t * sin_t;
             Q[1][0] = Q[0][1];
-            Q[1][1] = sigma_x*sigma_x * cos_t*cos_t + sigma_y*sigma_y * sin_t*sin_t;
+            Q[1][1] = sigma_x*sigma_x * sin_t*sin_t + sigma_y*sigma_y * cos_t*cos_t;
             Q[2][2] = sigma_theta * sigma_theta;
         } else {
             // Full state: room doesn't accumulate noise, only robot pose
@@ -2500,10 +2536,10 @@ namespace rc
             float sigma_y = forward_noise;
             float sigma_theta = rot_noise;
 
-            Q[2][2] = sigma_y*sigma_y * cos_t*cos_t + sigma_x*sigma_x * sin_t*sin_t;
-            Q[2][3] = (sigma_y*sigma_y - sigma_x*sigma_x) * cos_t * sin_t;
+            Q[2][2] = sigma_x*sigma_x * cos_t*cos_t + sigma_y*sigma_y * sin_t*sin_t;
+            Q[2][3] = (sigma_x*sigma_x - sigma_y*sigma_y) * cos_t * sin_t;
             Q[3][2] = Q[2][3];
-            Q[3][3] = sigma_y*sigma_y * sin_t*sin_t + sigma_x*sigma_x * cos_t*cos_t;
+            Q[3][3] = sigma_x*sigma_x * sin_t*sin_t + sigma_y*sigma_y * cos_t*cos_t;
             Q[4][4] = sigma_theta * sigma_theta;
         }
 
@@ -2595,7 +2631,8 @@ namespace rc
 
         prior.valid = true;
 
-        // Compute covariance using odometry noise model (tighter than command)
+        // Compute covariance using odometry noise model (tighter than command).
+        // Diagonal 3×3 is sufficient here; the full prior fusion uses the fused covariance.
         Eigen::Matrix3f cov_eigen = compute_motion_covariance(prior, true);
         prior.covariance = torch::eye(3, torch::TensorOptions().dtype(torch::kFloat32).device(get_device()));
         prior.covariance[0][0] = cov_eigen(0, 0);

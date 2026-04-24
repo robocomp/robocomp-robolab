@@ -106,7 +106,7 @@ CmdNoiseBase    = 0.05  # Ruido base translacional del comando (m)
 OdomNoiseTrans  = 0.08  # Fracción de ruido translacional de odometría
 OdomNoiseRot    = 0.04  # Fracción de ruido rotacional de odometría
 OdomNoiseBase   = 0.01  # Ruido base translacional de odometría (m)
-EncoderRotSlipK = 0.15  # Incertidumbre extra por slip: (k·|ω|)² (rad/rad·s⁻¹)
+EncoderRotSlipK = 0.05  # Incertidumbre extra por slip: (k·|ω|)² (rad/rad·s⁻¹)
 StationaryMotionThreshold = 0.02  # FIX 1: de 0.001 a 0.02 m. Cuando el robot
                                    # está parado, position_std = este valor y
                                    # cov(0,0) = (0.02)² = 4e-4 m². El valor
@@ -150,7 +150,7 @@ FarPointsExponent    = 2.0   # α — exponente de la distancia.
                               #   mejor precisión angular pero más sensible a puntos espurios.
 FarPointsMinWeight   = 0.1   # Floor de peso (evita anular puntos muy cercanos).
 UseCuda              = false   # Fallback automático a CPU si falla
-DebugLog             = false   # CSV → tmp/sdf_localizer/log.csv
+DebugLog             = true   # CSV → tmp/sdf_localizer/log.csv
 
 # ── Rerun (desactivado para timing limpio) ────────────────────────────────────
 RerunEnabled      = true     # OFF: elimina ~3 ms/frame de overhead de red
@@ -214,8 +214,8 @@ ArrivalDistance    = 0.15   # target reached threshold (m)
 DwellTime          = 2.0    # seconds to pause after reaching target
 
 # ---- Acceleration ramp (SpecificWorker) ----
-MaxLinAccel        = 1.5    # m/s² max translational acceleration
-MaxRotAccel        = 3.0    # rad/s² max angular acceleration
+MaxLinAccel        = 1.2    # m/s² max translational acceleration
+MaxRotAccel        = 2.0    # rad/s² max angular acceleration
 
 [Component.Debug]
 Verbose = true

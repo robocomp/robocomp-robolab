@@ -19,7 +19,7 @@
 #include "specificworker.h"
 #include <array>
 #include <chrono>
-#define DEBUG_FILTER
+// #define DEBUG_FILTER
 
 SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
@@ -109,7 +109,6 @@ void SpecificWorker::initialize()
 		bounds.lower_x, bounds.lower_y, bounds.lower_z,
 		bounds.upper_x, bounds.upper_y, bounds.upper_z);
     run = true;
-    exit(0);
 }
 
 

@@ -18,8 +18,6 @@ add_compile_options(
     -march=native 
     -flto=auto
     -fno-plt
-    -fomit-frame-pointer
-    -funroll-loops
     -fopenmp
 )
 

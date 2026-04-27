@@ -16,6 +16,7 @@ struct LinkNode {
     
     unsigned int embree_instance_id = -1;
     bool has_geometry = false;
+    Eigen::Matrix4f visual_origin = Eigen::Matrix4f::Identity();
 };
 
 struct JointNode {
@@ -26,7 +27,6 @@ struct JointNode {
     
     LinkNode* parent_link = nullptr;
     LinkNode* child_link = nullptr;
-    int kinova_id = -1; 
 };
 
 class URDFMeshLoader {
@@ -37,7 +37,7 @@ public:
     bool loadURDF(const std::string& urdf_path, const std::string& base_dir);
     bool loadSingleSTL(const std::string& stl_path);
     
-    void updateJoints(const std::map<int, float>& joint_angles);
+    void updateJoints(const std::map<std::string, float>& joint_angles);
 
 private:
     RTCDevice m_device;
@@ -54,7 +54,7 @@ private:
     Eigen::Matrix4f parseOrigin(void* xml_element);
     Eigen::Vector3f parseAxis(void* xml_element);
     
-    void computeFK(LinkNode* link, const Eigen::Matrix4f& parent_transform, const std::map<int, float>& joint_angles);
+    void computeFK(LinkNode* link, const Eigen::Matrix4f& parent_transform, const std::map<std::string, float>& joint_angles);
 };
 
 #endif

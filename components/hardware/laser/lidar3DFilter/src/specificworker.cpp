@@ -17,6 +17,9 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <array>
+#include <chrono>
+#define DEBUG_FILTER
 
 SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
@@ -105,6 +108,8 @@ void SpecificWorker::initialize()
 	printf("Embree Scene Bounds: Min(%f, %f, %f) Max(%f, %f, %f)\n", 
 		bounds.lower_x, bounds.lower_y, bounds.lower_z,
 		bounds.upper_x, bounds.upper_y, bounds.upper_z);
+    run = true;
+    exit(0);
 }
 
 
@@ -193,45 +198,93 @@ inline bool check_if_valid(RTCScene scene, const RoboCompLidar3D::TPoint& point,
     return true; // Valid point
 }
 
+void SpecificWorker::update_robot_kinematics(){
+         if(robot == Robots::P3Bot) {
+            try {
+                auto right_future = kinovaarm_proxy->getJointsStateAsync();
+                auto left_future = kinovaarm1_proxy->getJointsStateAsync();
+                auto right_state = right_future.get();
+                auto left_state = left_future.get();
+                std::map<std::string, float> joint_map;
+                for(size_t i = 0; i < right_state.joints.size(); ++i) {
+                    joint_map["right_arm_joint_" + std::to_string(i+1)] = right_state.joints[i].angle;
+                }
+                for(size_t i = 0; i < left_state.joints.size(); ++i) {
+                    joint_map["left_arm_joint_" + std::to_string(i+1)] = left_state.joints[i].angle;
+                }
+                // std::cout << "Size of joint map: " << joint_map.size() << std::endl;
+                // for(auto& [key, value] : joint_map) {
+                //     std::cout << key << ": " << value << std::endl;
+                // }
+                m_mesh_loader->updateJoints(joint_map); // Esto debe llamar internamente a rtcCommitScene
+            } catch(const Ice::Exception& e) {
+                std::cerr << "SpecificWorker: Could not get joint state: " << e << std::endl;
+            }
+        }
+}
+
+
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
 {
-    // 1. Iniciar peticiones asíncronas de inmediato para ganar tiempo de red
-    auto helios_future = lidar3d_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
-    
-    std::future<RoboCompLidar3D::TData> bpearl_future;
-    const bool use_bpearl = (robot == Robots::Shadow);
-    if (use_bpearl)
-        bpearl_future = lidar3d1_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
+    if(!run) return {};
+    #ifdef DEBUG_FILTER
+        //RAMDOM POINTS
+        RoboCompLidar3D::TData buffer;
+        const int STEP_MM = 40;
+        const int RANGE_Z_MM = 1000;          // ±2000 mm (opcional)
+        const int NUM_Z = (RANGE_Z_MM + 100) / STEP_MM + 1;   // 211
+        const int RANGE_XY_MM = 750;
+        const int NUM_POINTS_XY = (RANGE_XY_MM * 2) / STEP_MM + 1;  // 301
 
-    // 2. Mientras la red trabaja, actualizamos la cinemática del robot
-    if(robot == Robots::P3Bot) {
-        try {
-            auto j_state = kinovaarm_proxy->getJointsState();
-            std::map<int, float> joint_map;
-            for(size_t i = 0; i < j_state.joints.size(); ++i) {
-                joint_map[j_state.joints[i].id] = j_state.joints[i].angle;
-                joint_map[i+1] = j_state.joints[i].angle;
+        // Si quieres todos los z con paso de 1 cm:
+        buffer.points.resize(NUM_POINTS_XY * NUM_POINTS_XY * NUM_Z);
+        int idx = 0;
+        for (int x = -RANGE_XY_MM; x <= RANGE_XY_MM; x += STEP_MM)
+        {
+            for (int y = -RANGE_XY_MM; y <= RANGE_XY_MM; y += STEP_MM)
+            {
+                for (int zcnt = 0; zcnt < NUM_Z; ++zcnt)
+                {
+                    buffer.points[idx].x = static_cast<double>(x);
+                    buffer.points[idx].y = static_cast<double>(y);
+                    buffer.points[idx].z = static_cast<double>(200 + zcnt * STEP_MM); // empieza en -10 cm
+                    ++idx;
+                }
             }
-            m_mesh_loader->updateJoints(joint_map); // Esto debe llamar internamente a rtcCommitScene
-        } catch(const Ice::Exception& e) {
-            std::cerr << "SpecificWorker: Could not get joint state: " << e << std::endl;
         }
-    }
+        update_robot_kinematics();
+    #else
+    
+        // 1. Iniciar peticiones asíncronas de inmediato para ganar tiempo de red
+        auto helios_future = lidar3d_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
+        
+        std::future<RoboCompLidar3D::TData> bpearl_future;
+        const bool use_bpearl = (robot == Robots::Shadow);
+        if (use_bpearl)
+            bpearl_future = lidar3d1_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
 
-    // 3. Recoger datos (helios es el buffer base)
-    RoboCompLidar3D::TData buffer = helios_future.get();
+        // 2. Mientras la red trabaja, actualizamos la cinemática del robot
+        update_robot_kinematics();
 
-    if (use_bpearl) {
-        RoboCompLidar3D::TData bpearl_data = bpearl_future.get();
-        buffer.points.insert(
-            buffer.points.end(),
-            std::make_move_iterator(bpearl_data.points.begin()),
-            std::make_move_iterator(bpearl_data.points.end())
-        );
-        buffer.timestamp = std::min(buffer.timestamp, bpearl_data.timestamp);
-    }
+        // 3. Recoger datos (helios es el buffer base)
+        RoboCompLidar3D::TData buffer = helios_future.get();
+
+        if (use_bpearl) {
+            RoboCompLidar3D::TData bpearl_data = bpearl_future.get();
+            buffer.points.insert(
+                buffer.points.end(),
+                std::make_move_iterator(bpearl_data.points.begin()),
+                std::make_move_iterator(bpearl_data.points.end())
+            );
+            buffer.timestamp = std::min(buffer.timestamp, bpearl_data.timestamp);
+        }
+    #endif
+
+
 
     // 4. Filtrado ULTRA-OPTIMIZADO In-Place
+    std::cout << "Num Points Before Filter: " << buffer.points.size() << std::endl;
+    auto t1 = std::chrono::high_resolution_clock::now();
     if (name != "all") {
         const bool want_invalid = (name == "invalid");
         
@@ -257,8 +310,10 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
         // Ajustamos el tamaño del vector sin liberar la memoria ya reservada (capacidad)
         buffer.points.erase(it_end, buffer.points.end());
     }
-
-    //std::cout << "Num Points After Filter: " << buffer.points.size() << std::endl;
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    std::cout << "Time to filter: " << duration.count() << " milliseconds" << std::endl;
+    std::cout << "Num Points After Filter: " << buffer.points.size() << std::endl;
     return buffer;
 }
 

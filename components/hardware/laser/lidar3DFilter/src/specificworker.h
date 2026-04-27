@@ -106,6 +106,7 @@ private:
      */
 	bool startup_check_flag;
 	Robots robot;
+	bool run = false;
 
 	double floor_z, top_z, dilate;
 
@@ -116,6 +117,7 @@ private:
 
 
 	void filterPoints(RoboCompLidar3D::TPoints& data, RoboCompLidar3D::TPoints& invalid_data, RoboCompLidar3D::TPoints& valid_data);
+	void update_robot_kinematics();
 
 
 signals:

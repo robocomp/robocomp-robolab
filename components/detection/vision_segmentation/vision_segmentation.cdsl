@@ -1,0 +1,14 @@
+import "CameraRGBDSimple.idsl";
+import "ImageSegmentation.idsl";
+
+Component vision_segmentation
+{
+    Communications
+    {
+        requires CameraRGBDSimple;
+        implements ImageSegmentation;
+    };
+    language python;
+    gui Qt(QWidget);
+};
+

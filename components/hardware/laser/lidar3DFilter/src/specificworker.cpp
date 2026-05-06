@@ -222,66 +222,8 @@ void SpecificWorker::update_robot_kinematics(){
         }
 }
 
-
-RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
+void SpecificWorker::filterLidarData(RoboCompLidar3D::TData &buffer, const std::string &name)
 {
-    if(!run) return {};
-    #ifdef DEBUG_FILTER
-        //RAMDOM POINTS
-        RoboCompLidar3D::TData buffer;
-        const int STEP_MM = 40;
-        const int RANGE_Z_MM = 1000;          // ±2000 mm (opcional)
-        const int NUM_Z = (RANGE_Z_MM + 100) / STEP_MM + 1;   // 211
-        const int RANGE_XY_MM = 750;
-        const int NUM_POINTS_XY = (RANGE_XY_MM * 2) / STEP_MM + 1;  // 301
-
-        // Si quieres todos los z con paso de 1 cm:
-        buffer.points.resize(NUM_POINTS_XY * NUM_POINTS_XY * NUM_Z);
-        int idx = 0;
-        for (int x = -RANGE_XY_MM; x <= RANGE_XY_MM; x += STEP_MM)
-        {
-            for (int y = -RANGE_XY_MM; y <= RANGE_XY_MM; y += STEP_MM)
-            {
-                for (int zcnt = 0; zcnt < NUM_Z; ++zcnt)
-                {
-                    buffer.points[idx].x = static_cast<double>(x);
-                    buffer.points[idx].y = static_cast<double>(y);
-                    buffer.points[idx].z = static_cast<double>(200 + zcnt * STEP_MM); // empieza en -10 cm
-                    ++idx;
-                }
-            }
-        }
-        update_robot_kinematics();
-    #else
-    
-        // 1. Iniciar peticiones asíncronas de inmediato para ganar tiempo de red
-        auto helios_future = lidar3d_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
-        
-        std::future<RoboCompLidar3D::TData> bpearl_future;
-        const bool use_bpearl = (robot == Robots::Shadow);
-        if (use_bpearl)
-            bpearl_future = lidar3d1_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
-
-        // 2. Mientras la red trabaja, actualizamos la cinemática del robot
-        update_robot_kinematics();
-
-        // 3. Recoger datos (helios es el buffer base)
-        RoboCompLidar3D::TData buffer = helios_future.get();
-
-        if (use_bpearl) {
-            RoboCompLidar3D::TData bpearl_data = bpearl_future.get();
-            buffer.points.insert(
-                buffer.points.end(),
-                std::make_move_iterator(bpearl_data.points.begin()),
-                std::make_move_iterator(bpearl_data.points.end())
-            );
-            buffer.timestamp = std::min(buffer.timestamp, bpearl_data.timestamp);
-        }
-    #endif
-
-
-
-    // 4. Filtrado ULTRA-OPTIMIZADO In-Place
     std::cout << "Num Points Before Filter: " << buffer.points.size() << std::endl;
     auto t1 = std::chrono::high_resolution_clock::now();
     if (name != "all") {
@@ -313,6 +255,60 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
     std::cout << "Time to filter: " << duration.count() << " milliseconds" << std::endl;
     std::cout << "Num Points After Filter: " << buffer.points.size() << std::endl;
+}
+
+
+RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, float start, float len, int decimationDegreeFactor)
+{
+    if(!run) return {};
+    #ifdef DEBUG_FILTER
+        //RAMDOM POINTS
+        RoboCompLidar3D::TData buffer;
+        const int STEP_MM = 40;
+        const int RANGE_Z_MM = 1000;          // ±2000 mm (opcional)
+        const int NUM_Z = (RANGE_Z_MM + 100) / STEP_MM + 1;   // 211
+        const int RANGE_XY_MM = 750;
+        const int NUM_POINTS_XY = (RANGE_XY_MM * 2) / STEP_MM + 1;  // 301
+
+        // Si quieres todos los z con paso de 1 cm:
+        buffer.points.resize(NUM_POINTS_XY * NUM_POINTS_XY * NUM_Z);
+        int idx = 0;
+        for (int x = -RANGE_XY_MM; x <= RANGE_XY_MM; x += STEP_MM)
+        {
+            for (int y = -RANGE_XY_MM; y <= RANGE_XY_MM; y += STEP_MM)
+            {
+                for (int zcnt = 0; zcnt < NUM_Z; ++zcnt)
+                {
+                    buffer.points[idx].x = static_cast<double>(x);
+                    buffer.points[idx].y = static_cast<double>(y);
+                    buffer.points[idx].z = static_cast<double>(200 + zcnt * STEP_MM); // empieza en -10 cm
+                    ++idx;
+                }
+            }
+        }
+        update_robot_kinematics();
+    #else
+        auto helios_future = lidar3d_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
+        
+        std::future<RoboCompLidar3D::TData> bpearl_future;
+        const bool use_bpearl = (robot == Robots::Shadow);
+        if (use_bpearl)
+            bpearl_future = lidar3d1_proxy->getLidarDataAsync(name, start, len, decimationDegreeFactor);
+
+        update_robot_kinematics();
+        RoboCompLidar3D::TData buffer = helios_future.get();
+
+        if (use_bpearl) {
+            RoboCompLidar3D::TData bpearl_data = bpearl_future.get();
+            buffer.points.insert(
+                buffer.points.end(),
+                std::make_move_iterator(bpearl_data.points.begin()),
+                std::make_move_iterator(bpearl_data.points.end())
+            );
+            buffer.timestamp = std::min(buffer.timestamp, bpearl_data.timestamp);
+        }
+    #endif
+    filterLidarData(buffer, name);
     return buffer;
 }
 
@@ -320,34 +316,42 @@ RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarData(std::string name, fl
 
 RoboCompLidar3D::TDataImage SpecificWorker::Lidar3D_getLidarDataArrayProyectedInImage(std::string name)
 {
-	RoboCompLidar3D::TDataImage ret{};
-	//implementCODE
-
-	return ret;
+    return lidar3d_proxy->getLidarDataArrayProyectedInImage(name);
 }
 
 RoboCompLidar3D::TDataCategory SpecificWorker::Lidar3D_getLidarDataByCategory(RoboCompLidar3D::TCategories categories, Ice::Long timestamp)
 {
-	RoboCompLidar3D::TDataCategory ret{};
-	//implementCODE
-
-	return ret;
+	return lidar3d_proxy->getLidarDataByCategory(categories, timestamp);
 }
 
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataProyectedInImage(std::string name)
 {
-	RoboCompLidar3D::TData ret{};
-	//implementCODE
-
-	return ret;
+	return lidar3d_proxy->getLidarDataProyectedInImage(name);
 }
 
 RoboCompLidar3D::TData SpecificWorker::Lidar3D_getLidarDataWithThreshold2d(std::string name, float distance, int decimationDegreeFactor)
 {
-	RoboCompLidar3D::TData ret{};
-	//implementCODE
+    auto helios_future = lidar3d_proxy->getLidarDataWithThreshold2dAsync(name, distance, decimationDegreeFactor);
+    
+    std::future<RoboCompLidar3D::TData> bpearl_future;
+    const bool use_bpearl = (robot == Robots::Shadow);
+    if (use_bpearl)
+        bpearl_future = lidar3d1_proxy->getLidarDataWithThreshold2dAsync(name, distance, decimationDegreeFactor);
 
-	return ret;
+    update_robot_kinematics();
+    RoboCompLidar3D::TData buffer = helios_future.get();
+
+    if (use_bpearl) {
+        RoboCompLidar3D::TData bpearl_data = bpearl_future.get();
+        buffer.points.insert(
+            buffer.points.end(),
+            std::make_move_iterator(bpearl_data.points.begin()),
+            std::make_move_iterator(bpearl_data.points.end())
+        );
+        buffer.timestamp = std::min(buffer.timestamp, bpearl_data.timestamp);
+    }
+    filterLidarData(buffer, name);
+    return buffer;
 }
 
 

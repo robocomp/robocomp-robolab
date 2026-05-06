@@ -1,13 +1,10 @@
 # lidar3DFilter
-A brief introduction to the component. Describe its purpose, functionality, and any specific features here.
-```
-<YOUR BRIEFING>
-```
+This component filters the data from 3D Lidars in real-time using Ray Tracing. It utilizes Embree to accelerate the ray tracing process and Assimp to load 3D models of robots.
 
 ## Dependencies
 The following dependencies are required to build and run lidar3DFilter. Ensure they are installed and properly configured on your system before proceeding:
 ```
-<YOUR DEPENDENCIES>
+sudo apt-get install libembree-dev libassimp-dev
 ```
 
 ## Configuration parameters

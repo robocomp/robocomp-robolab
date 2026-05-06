@@ -116,7 +116,7 @@ private:
 
 
 
-	void filterPoints(RoboCompLidar3D::TPoints& data, RoboCompLidar3D::TPoints& invalid_data, RoboCompLidar3D::TPoints& valid_data);
+	void filterLidarData(RoboCompLidar3D::TData &buffer, const std::string &name);
 	void update_robot_kinematics();
 
 

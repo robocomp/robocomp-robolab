@@ -63,7 +63,10 @@ class SpecificWorker(GenericWorker):
 
         # Load the latest YOLO model (YOLO26 large) for object detection
         print("Loading YOLO model...")
-        self.yolo_model = YOLO('yolo26m-seg.pt')
+        try:
+            self.yolo_model = YOLO('yolo26m-seg.engine')
+        except Exception as e:
+            self.yolo_model = YOLO('yolo26m-seg.pt')
         print("YOLO loaded.")
 
         # FPS tracking variables
@@ -147,13 +150,16 @@ class SpecificWorker(GenericWorker):
                 if rgbd is None:
                     # Avoid racing the proxy thread with a parallel direct proxy call.
                     return
+                img_struct = rgbd.image
+                depth_struct = rgbd.depth
             else:
-                rgbd = self.camerargbdsimple_proxy.getAll("camera")
-            img_struct = rgbd.image
-            depth_struct = rgbd.depth
+                depth = self.camerargbdsimple_proxy.getDepthAsync("camera")
+                image = self.camerargbdsimple_proxy.getImageAsync("camera")
+                rgbd = ifaces.RoboCompCameraRGBDSimple.TRGBD()
+                depth_struct = depth.result()
+                img_struct = image.result()
 
             img = np.frombuffer(img_struct.image, dtype=np.uint8)
-
 
             img = img.reshape(img_struct.height, img_struct.width, img_struct.depth)
 
@@ -223,14 +229,21 @@ class SpecificWorker(GenericWorker):
     def _proxy_loop(self):
         while not self._proxy_thread_stop.is_set():
             try:
-                rgbd = self.camerargbdsimple_proxy.getAll("camera")
+                depth = self.camerargbdsimple_proxy.getDepthAsync("camera")
+                image = self.camerargbdsimple_proxy.getImageAsync("camera")
+                rgbd = ifaces.RoboCompCameraRGBDSimple.TRGBD()
+                rgbd.depth = depth.result()
+                rgbd.image = image.result()
+
                 if self._proxy_thread_stop.is_set():
                     break
                 self._update_proxy_wait_from_period(rgbd)
 
                 self._proxy_queue.put(rgbd, timeout=0.1)
+                
                 self._proxy_thread_stop.wait(self.proxy_wait_ms / 1000.0)
             except queue.Full:
+
                 self._proxy_thread_stop.wait(self.proxy_wait_ms / 1000.0)
             except Exception as e:
                 print(f"Proxy thread error: {e}")
@@ -297,6 +310,10 @@ class SpecificWorker(GenericWorker):
     def _project_depth_points(self, u, v, depth_np, fx, fy, cx, cy):
         if len(u) == 0:
             return None, None, None, None, None
+        
+        h, w = depth_np.shape
+        u = np.clip(u, 0, w - 1).astype(int)
+        v = np.clip(v, 0, h - 1).astype(int)
 
         z = depth_np[v, u]
         valid = (z > 0) & np.isfinite(z)
@@ -314,23 +331,36 @@ class SpecificWorker(GenericWorker):
         y_robocomp = z_cam
         z_robocomp = y_cam
         return x_robocomp, y_robocomp, z_robocomp, u_val, v_val
-
+    
     def _build_segmented_object(self, contour_i32, label_name, conf, depth_np, fx, fy, cx, cy):
         seg_obj = ifaces.RoboCompImageSegmentation.SegmentedObject()
         seg_obj.label = label_name
         seg_obj.score = float(conf)
 
+        # Build imagePolygon using numpy for efficient reshape
         contour_points = contour_i32.reshape(-1, 2)
-        seg_obj.imagePolygon = [
-            ifaces.RoboCompImageSegmentation.Point2D(x=int(p[0]), y=int(p[1]))
-            for p in contour_points
-        ]
+        polygon = ifaces.RoboCompImageSegmentation.Polygon()
+        polygon.U = contour_points[:, 0].tolist()
+        polygon.V = contour_points[:, 1].tolist()
+        polygon.numberPoints = len(contour_points)
+        polygon.timestamp = 0
+        seg_obj.imagePolygon = polygon
+
+        def _empty_cloud():
+            cloud = ifaces.RoboCompImageSegmentation.PointCloud()
+            cloud.X = []
+            cloud.Y = []
+            cloud.Z = []
+            cloud.numberPoints = 0
+            cloud.timestamp = 0
+            return cloud
 
         x0, y0, width, height = cv2.boundingRect(contour_i32)
         if width <= 0 or height <= 0:
-            seg_obj.points3D = []
+            seg_obj.points3D = _empty_cloud()
             return seg_obj
 
+        # Rasterize mask and get pixel coords with numpy
         local_mask = np.zeros((height, width), dtype=np.uint8)
         shifted = (contour_points - np.array([x0, y0], dtype=np.int32)).reshape(-1, 1, 2)
         cv2.fillPoly(local_mask, [shifted], 1)
@@ -341,14 +371,27 @@ class SpecificWorker(GenericWorker):
 
         x_val, y_val, z_val, _, _ = self._project_depth_points(obj_u, obj_v, depth_np, fx, fy, cx, cy)
         if z_val is None:
-            seg_obj.points3D = []
+            seg_obj.points3D = _empty_cloud()
             return seg_obj
 
-        seg_obj.points3D = [
-            ifaces.RoboCompImageSegmentation.Point3D(x=float(x), y=float(y), z=float(z))
-            for x, y, z in zip(x_val, y_val, z_val)
-        ]
+        # Filter out invalid (zero/nan) depth points vectorially
+        z_arr = np.asarray(z_val)
+        x_arr = np.asarray(x_val)
+        y_arr = np.asarray(y_val)
+
+        valid = (z_arr > 0) & np.isfinite(z_arr)
+        x_arr, y_arr, z_arr = x_arr[valid], y_arr[valid], z_arr[valid]
+
+        point_cloud = ifaces.RoboCompImageSegmentation.PointCloud()
+        point_cloud.X = x_arr.tolist()
+        point_cloud.Y = y_arr.tolist()
+        point_cloud.Z = z_arr.tolist()
+        point_cloud.numberPoints = len(z_arr)
+        point_cloud.timestamp = 0
+        seg_obj.points3D = point_cloud
+
         return seg_obj
+
 
     def _process_segmentation(self, results, annotated_img, depth_np, fx, fy, cx, cy, img_height, img_width):
         seg_mask = np.zeros((img_height, img_width), dtype=np.uint8)
@@ -520,6 +563,18 @@ class SpecificWorker(GenericWorker):
         test = ifaces.RoboCompCameraRGBDSimple.TDepth()
         print(f"Testing RoboCompCameraRGBDSimple.TRGBD from ifaces.RoboCompCameraRGBDSimple")
         test = ifaces.RoboCompCameraRGBDSimple.TRGBD()
+        print(f"Testing RoboCompImageSegmentation.PointCloud from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.PointCloud()
+        print(f"Testing RoboCompImageSegmentation.Polygon from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.Polygon()
+        print(f"Testing RoboCompImageSegmentation.SegmentedObject from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.SegmentedObject()
+        print(f"Testing RoboCompImageSegmentation.TImage from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.TImage()
+        print(f"Testing RoboCompImageSegmentation.TDepth from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.TDepth()
+        print(f"Testing RoboCompImageSegmentation.TData from ifaces.RoboCompImageSegmentation")
+        test = ifaces.RoboCompImageSegmentation.TData()
         QTimer.singleShot(200, QApplication.instance().quit)
 
     ################################################################################
@@ -536,18 +591,18 @@ class SpecificWorker(GenericWorker):
             filtered.label = obj.label
             filtered.score = obj.score
             filtered.imagePolygon = obj.imagePolygon
-            filtered.points3D = []
+            filtered.points3D = ifaces.RoboCompImageSegmentation.PointCloud()  # Empty point cloud
             filtered_objects.append(filtered)
         return filtered_objects
 
-    def ImageSegmentation_getSegmentedObjects(self, points3d):
+    def ImageSegmentation_getSegmentedObjects(self, points3d, rgb):
         with self._state_lock:
             self.last_objects_request_time = time.time()
             objects, _, _, _ = self._latest_snapshot
         return self._objects_with_optional_points(objects, points3d)
     
     # IMPLEMENTATION of getAll method from ImageSegmentation interface
-    def ImageSegmentation_getAll(self, points3d):
+    def ImageSegmentation_getAll(self, points3d, rgb):
         with self._state_lock:
             self.last_image_request_time = time.time()
             self.last_objects_request_time = time.time()
@@ -594,6 +649,11 @@ class SpecificWorker(GenericWorker):
 
     ######################
     # From the RoboCompImageSegmentation you can use this types:
-    # ifaces.RoboCompImageSegmentation.Point2D
-    # ifaces.RoboCompImageSegmentation.Point3D
+    # ifaces.RoboCompImageSegmentation.PointCloud
+    # ifaces.RoboCompImageSegmentation.Polygon
     # ifaces.RoboCompImageSegmentation.SegmentedObject
+    # ifaces.RoboCompImageSegmentation.TImage
+    # ifaces.RoboCompImageSegmentation.TDepth
+    # ifaces.RoboCompImageSegmentation.TData
+
+

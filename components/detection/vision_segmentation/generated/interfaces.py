@@ -63,41 +63,59 @@ class PointsType(list):
         super(PointsType, self).insert(index, item)
 setattr(RoboCompCameraRGBDSimple, "PointsType", PointsType)
 
-class Polygon(list):
+class TIntArray(list):
     def __init__(self, iterable=list()):
-        super(Polygon, self).__init__(iterable)
+        super(TIntArray, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, RoboCompImageSegmentation.Point2D)
-        super(Polygon, self).append(item)
+        assert isinstance(item, int)
+        super(TIntArray, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, RoboCompImageSegmentation.Point2D)
-        super(Polygon, self).extend(iterable)
+            assert isinstance(item, int)
+        super(TIntArray, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, RoboCompImageSegmentation.Point2D)
-        super(Polygon, self).insert(index, item)
-setattr(RoboCompImageSegmentation, "Polygon", Polygon)
+        assert isinstance(item, int)
+        super(TIntArray, self).insert(index, item)
+setattr(RoboCompImageSegmentation, "TIntArray", TIntArray)
 
-class PointCloud(list):
+class TFloatArray(list):
     def __init__(self, iterable=list()):
-        super(PointCloud, self).__init__(iterable)
+        super(TFloatArray, self).__init__(iterable)
 
     def append(self, item):
-        assert isinstance(item, RoboCompImageSegmentation.Point3D)
-        super(PointCloud, self).append(item)
+        assert isinstance(item, float)
+        super(TFloatArray, self).append(item)
 
     def extend(self, iterable):
         for item in iterable:
-            assert isinstance(item, RoboCompImageSegmentation.Point3D)
-        super(PointCloud, self).extend(iterable)
+            assert isinstance(item, float)
+        super(TFloatArray, self).extend(iterable)
 
     def insert(self, index, item):
-        assert isinstance(item, RoboCompImageSegmentation.Point3D)
-        super(PointCloud, self).insert(index, item)
-setattr(RoboCompImageSegmentation, "PointCloud", PointCloud)
+        assert isinstance(item, float)
+        super(TFloatArray, self).insert(index, item)
+setattr(RoboCompImageSegmentation, "TFloatArray", TFloatArray)
+
+class TByteArray(list):
+    def __init__(self, iterable=list()):
+        super(TByteArray, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(TByteArray, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(TByteArray, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(TByteArray, self).insert(index, item)
+setattr(RoboCompImageSegmentation, "TByteArray", TByteArray)
 
 class ObjectList(list):
     def __init__(self, iterable=list()):

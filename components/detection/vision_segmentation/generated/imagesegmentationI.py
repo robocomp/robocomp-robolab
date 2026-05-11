@@ -39,8 +39,8 @@ class ImageSegmentationI(ImageSegmentation):
         self.id = id
 
 
-    def getAll(self, points3d, ice):
-        return getattr(self.worker, f"ImageSegmentation{self.id}_getAll")(points3d)
+    def getAll(self, points3d, rgb, ice):
+        return getattr(self.worker, f"ImageSegmentation{self.id}_getAll")(points3d, rgb)
 
     def getDepth(self, ice):
         return getattr(self.worker, f"ImageSegmentation{self.id}_getDepth")()
@@ -48,5 +48,5 @@ class ImageSegmentationI(ImageSegmentation):
     def getImage(self, ice):
         return getattr(self.worker, f"ImageSegmentation{self.id}_getImage")()
 
-    def getSegmentedObjects(self, points3d, ice):
-        return getattr(self.worker, f"ImageSegmentation{self.id}_getSegmentedObjects")(points3d)
+    def getSegmentedObjects(self, points3d, rgb, ice):
+        return getattr(self.worker, f"ImageSegmentation{self.id}_getSegmentedObjects")(points3d, rgb)

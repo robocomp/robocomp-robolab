@@ -379,7 +379,7 @@ class SpecificWorker(GenericWorker):
         x_arr = np.asarray(x_val)
         y_arr = np.asarray(y_val)
 
-        valid = (z_arr > 0) & np.isfinite(z_arr)
+        valid = (y_arr > 0) & np.isfinite(y_arr)
         x_arr, y_arr, z_arr = x_arr[valid], y_arr[valid], z_arr[valid]
 
         point_cloud = ifaces.RoboCompImageSegmentation.PointCloud()

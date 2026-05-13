@@ -69,11 +69,30 @@ class SpecificWorker(GenericWorker):
         except Exception as e:
             self.yolo_model = YOLO('yolo26m-seg.pt')
         
+
+        print("Loading YOLO pose model...")   
+        try:
+            self.yolo_pose_model = YOLO('yolo26m-pose.engine')
+        except Exception as e:
+            self.yolo_pose_model = YOLO('yolo26m-pose.pt')
+
         # GPU optimization: detect CUDA availability (device specified during inference for TensorRT)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"Using device: {self.device}")
         # Note: For TensorRT models, device is specified during inference, not model.to()
         print("YOLO loaded.")
+
+        # Memory reuse optimization: pre-allocate reusable arrays
+        self._reusable_seg_mask = None
+        self._last_img_size = None
+        
+        # Cache empty point cloud to avoid repeated creation
+        self._cached_empty_cloud = ifaces.RoboCompImageSegmentation.PointCloud()
+        self._cached_empty_cloud.X = []
+        self._cached_empty_cloud.Y = []
+        self._cached_empty_cloud.Z = []
+        self._cached_empty_cloud.numberPoints = 0
+        self._cached_empty_cloud.timestamp = 0
 
         # FPS tracking variables
         self.fps_frames = 0
@@ -177,6 +196,7 @@ class SpecificWorker(GenericWorker):
 
             # GPU optimization: specify device for inference (works for both PyTorch and TensorRT models)
             results = self.yolo_model(img, device=self.device, verbose=False)
+            results_pose = self.yolo_pose_model(img, device=self.device, verbose=False)
 
             print(f"YOLO inference time: {(time.time() - time_start) * 1000:.2f} ms")
 
@@ -352,8 +372,12 @@ class SpecificWorker(GenericWorker):
         seg_obj.label = label_name
         seg_obj.score = float(conf)
 
-        # Build imagePolygon using numpy for efficient reshape
-        contour_points = contour_i32.reshape(-1, 2)
+        # Build imagePolygon more efficiently - avoid reshape if already correct shape
+        if contour_i32.ndim == 2 and contour_i32.shape[1] == 2:
+            contour_points = contour_i32
+        else:
+            contour_points = contour_i32.reshape(-1, 2)
+        
         polygon = ifaces.RoboCompImageSegmentation.Polygon()
         polygon.U = contour_points[:, 0].tolist()
         polygon.V = contour_points[:, 1].tolist()
@@ -361,41 +385,46 @@ class SpecificWorker(GenericWorker):
         polygon.timestamp = 0
         seg_obj.imagePolygon = polygon
 
-        def _empty_cloud():
-            cloud = ifaces.RoboCompImageSegmentation.PointCloud()
-            cloud.X = []
-            cloud.Y = []
-            cloud.Z = []
-            cloud.numberPoints = 0
-            cloud.timestamp = 0
-            return cloud
-
+        # Early bounds check with cached empty cloud
         x0, y0, width, height = cv2.boundingRect(contour_i32)
         if width <= 0 or height <= 0:
-            seg_obj.points3D = _empty_cloud()
+            seg_obj.points3D = self._cached_empty_cloud
             return seg_obj
 
-        # Rasterize mask and get pixel coords with numpy
+        # Optimize mask creation - use existing contour_points, avoid reshape
         local_mask = np.zeros((height, width), dtype=np.uint8)
-        shifted = (contour_points - np.array([x0, y0], dtype=np.int32)).reshape(-1, 1, 2)
-        cv2.fillPoly(local_mask, [shifted], 1)
+        shifted_contour = contour_points - np.array([x0, y0], dtype=np.int32)
+        cv2.fillPoly(local_mask, [shifted_contour], 1)
 
         local_v, local_u = np.where(local_mask > 0)
+        if len(local_u) == 0:
+            seg_obj.points3D = self._cached_empty_cloud
+            return seg_obj
+            
         obj_u = local_u + x0
         obj_v = local_v + y0
 
+        # Batch depth projection with early validation
         x_val, y_val, z_val, _, _ = self._project_depth_points(obj_u, obj_v, depth_np, fx, fy, cx, cy)
-        if z_val is None:
-            seg_obj.points3D = _empty_cloud()
+        if z_val is None or len(z_val) == 0:
+            seg_obj.points3D = self._cached_empty_cloud
             return seg_obj
 
-        # Filter out invalid (zero/nan) depth points vectorially
-        z_arr = np.asarray(z_val)
-        x_arr = np.asarray(x_val)
-        y_arr = np.asarray(y_val)
+        # Vectorized filtering - more efficient with numpy arrays
+        z_arr = np.asarray(z_val, dtype=np.float32)
+        x_arr = np.asarray(x_val, dtype=np.float32)
+        y_arr = np.asarray(y_val, dtype=np.float32)
 
-        valid = (y_arr > 0) & np.isfinite(y_arr)
-        x_arr, y_arr, z_arr = x_arr[valid], y_arr[valid], z_arr[valid]
+        # Combined validity check for better performance
+        valid = (z_arr > 0) & np.isfinite(z_arr) & (y_arr > 0) & np.isfinite(y_arr) & np.isfinite(x_arr)
+        if not np.any(valid):
+            seg_obj.points3D = self._cached_empty_cloud
+            return seg_obj
+            
+        # Filter arrays in-place for memory efficiency
+        x_arr = x_arr[valid]
+        y_arr = y_arr[valid]
+        z_arr = z_arr[valid]
 
         point_cloud = ifaces.RoboCompImageSegmentation.PointCloud()
         point_cloud.X = x_arr.tolist()
@@ -409,7 +438,14 @@ class SpecificWorker(GenericWorker):
 
 
     def _process_segmentation(self, results, annotated_img, depth_np, fx, fy, cx, cy, img_height, img_width):
-        seg_mask = np.zeros((img_height, img_width), dtype=np.uint8)
+        # Memory reuse optimization: reuse seg_mask if size hasn't changed
+        if self._reusable_seg_mask is None or self._last_img_size != (img_height, img_width):
+            self._reusable_seg_mask = np.zeros((img_height, img_width), dtype=np.uint8)
+            self._last_img_size = (img_height, img_width)
+        else:
+            self._reusable_seg_mask.fill(0)  # Reset instead of creating new
+        
+        seg_mask = self._reusable_seg_mask if self.display_enabled else None
         segmented_objects = []
         now = time.time()
         draw_overlay = self.display_enabled
@@ -428,49 +464,54 @@ class SpecificWorker(GenericWorker):
         names = self.yolo_model.names
 
         accepted_classes = ["bottle"]
-        # Check if any accepted classes are detected
-        detected_class_names = [names[int(cls.item() if hasattr(cls, 'item') else cls)] 
-                               for cls in classes_gpu]
-        has_accepted_class = any(cls_name in accepted_classes for cls_name in detected_class_names)
+        # Pre-filter accepted classes to avoid processing unwanted objects
+        accepted_indices = []
+        for i, cls_gpu in enumerate(classes_gpu):
+            cls = cls_gpu.item() if hasattr(cls_gpu, 'item') else cls_gpu
+            class_name = names[int(cls)] if isinstance(names, (list, tuple)) else names.get(int(cls), str(cls))
+            if class_name in accepted_classes:
+                accepted_indices.append(i)
         
-        if has_accepted_class:
-            for i, (contour, cls_gpu, conf_gpu) in enumerate(zip(contours, classes_gpu, confs_gpu)):
-                # Convert individual values to CPU only when needed for numpy operations
-                cls = cls_gpu.item() if hasattr(cls_gpu, 'item') else cls_gpu
-                conf = conf_gpu.item() if hasattr(conf_gpu, 'item') else conf_gpu
-                
-                class_id = int(cls)
-                class_name = names[class_id] if isinstance(names, (list, tuple)) else names.get(class_id, str(class_id))
-                
-                # Only process accepted classes
-                if class_name not in accepted_classes:
-                    continue
-                
-                contour_i32 = np.asarray(contour, dtype=np.int32)
-                if contour_i32.size == 0:
-                    continue
+        if not accepted_indices:
+            return annotated_img, seg_mask, segmented_objects
 
-                contour_poly = contour_i32.reshape(-1, 1, 2)
-                if draw_overlay:
-                    cv2.polylines(annotated_img, [contour_poly], isClosed=True, color=(0, 255, 0), thickness=2)
-                if need_seg_mask:
-                    cv2.fillPoly(seg_mask, [contour_poly], 1)
+        for idx in accepted_indices:
+            contour = contours[idx]
+            cls_gpu = classes_gpu[idx]
+            conf_gpu = confs_gpu[idx]
+            
+            # Convert individual values to CPU only when needed for numpy operations
+            cls = cls_gpu.item() if hasattr(cls_gpu, 'item') else cls_gpu
+            conf = conf_gpu.item() if hasattr(conf_gpu, 'item') else conf_gpu
+            
+            class_id = int(cls)
+            class_name = names[class_id] if isinstance(names, (list, tuple)) else names.get(class_id, str(class_id))
+            
+            contour_i32 = np.asarray(contour, dtype=np.int32)
+            if contour_i32.size == 0:
+                continue
 
-                if draw_overlay:
-                    cv2.putText(
-                        annotated_img,
-                        f"{class_name} {float(conf):.2f}",
-                        tuple(contour_i32[0]),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (255, 0, 0),
-                        2,
-                    )
+            contour_poly = contour_i32.reshape(-1, 1, 2)
+            if draw_overlay:
+                cv2.polylines(annotated_img, [contour_poly], isClosed=True, color=(0, 255, 0), thickness=2)
+            if need_seg_mask:
+                cv2.fillPoly(seg_mask, [contour_poly], 1)
 
-                if need_objects:
-                    segmented_objects.append(
-                        self._build_segmented_object(contour_poly, class_name, conf, depth_np, fx, fy, cx, cy)
-                    )
+            if draw_overlay:
+                cv2.putText(
+                    annotated_img,
+                    f"{class_name} {float(conf):.2f}",
+                    tuple(contour_i32[0]),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 0, 0),
+                    2,
+                )
+
+            if need_objects:
+                segmented_objects.append(
+                    self._build_segmented_object(contour_poly, class_name, conf, depth_np, fx, fy, cx, cy)
+                )
 
         return annotated_img, seg_mask, segmented_objects
 

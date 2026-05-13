@@ -42,6 +42,7 @@ import numpy as np
 import queue
 import threading
 import time
+import torch
 from ultralytics import YOLO
 
 # Workaround for OpenCV Qt font warning
@@ -67,6 +68,11 @@ class SpecificWorker(GenericWorker):
             self.yolo_model = YOLO('yolo26m-seg.engine')
         except Exception as e:
             self.yolo_model = YOLO('yolo26m-seg.pt')
+        
+        # GPU optimization: detect CUDA availability (device specified during inference for TensorRT)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"Using device: {self.device}")
+        # Note: For TensorRT models, device is specified during inference, not model.to()
         print("YOLO loaded.")
 
         # FPS tracking variables
@@ -135,6 +141,10 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
+
+        print("------------------------------------------------")
+        time_start = time.time()
+
         # Return early if initialization failed or we're shutting down
         if not hasattr(self, '_state_lock'):
             return
@@ -159,12 +169,17 @@ class SpecificWorker(GenericWorker):
                 depth_struct = depth.result()
                 img_struct = image.result()
 
+            print(f"Proxy fetch time: {(time.time() - time_start) * 1000:.2f} ms")
+
             img = np.frombuffer(img_struct.image, dtype=np.uint8)
 
             img = img.reshape(img_struct.height, img_struct.width, img_struct.depth)
 
-            results = self.yolo_model(img, verbose=False)
-            
+            # GPU optimization: specify device for inference (works for both PyTorch and TensorRT models)
+            results = self.yolo_model(img, device=self.device, verbose=False)
+
+            print(f"YOLO inference time: {(time.time() - time_start) * 1000:.2f} ms")
+
             annotated_img = img.copy()
 
             depth_np, fx, fy, cx, cy = self._get_depth_intrinsics(depth_struct)
@@ -181,7 +196,9 @@ class SpecificWorker(GenericWorker):
                 img_struct.width,
             )
 
-            self._update_qt3d_from_mask(seg_mask, depth_np, fx, fy, cx, cy, img)
+            print(f"Segmentation processing time: {(time.time() - time_start) * 1000:.2f} ms")
+
+            # self._update_qt3d_from_mask(seg_mask, depth_np, fx, fy, cx, cy, img)
 
             image_out = self._build_output_image(img_struct, img.tobytes())
             depth_out = self._build_output_depth(depth_struct)
@@ -192,6 +209,8 @@ class SpecificWorker(GenericWorker):
                 self._latest_snapshot = (segmented_objects, image_out, depth_out, int(time.time() * 1000))
 
             self._update_2d_display(annotated_img)
+
+            print(f"Total compute loop time: {(time.time() - time_start) * 1000:.2f} ms")
             
         except Exception as e:
             print(f"Error reading image: {e}")
@@ -235,15 +254,11 @@ class SpecificWorker(GenericWorker):
                 rgbd.depth = depth.result()
                 rgbd.image = image.result()
 
-                if self._proxy_thread_stop.is_set():
-                    break
-                self._update_proxy_wait_from_period(rgbd)
-
                 self._proxy_queue.put(rgbd, timeout=0.1)
+                self._update_proxy_wait_from_period(rgbd)
                 
                 self._proxy_thread_stop.wait(self.proxy_wait_ms / 1000.0)
             except queue.Full:
-
                 self._proxy_thread_stop.wait(self.proxy_wait_ms / 1000.0)
             except Exception as e:
                 print(f"Proxy thread error: {e}")
@@ -407,38 +422,55 @@ class SpecificWorker(GenericWorker):
             return annotated_img, seg_mask, segmented_objects
 
         contours = result.masks.xy
-        classes = result.boxes.cls.cpu().numpy()
-        confs = result.boxes.conf.cpu().numpy()
+        # GPU optimization: keep tensors on target device, convert to CPU only when needed
+        classes_gpu = result.boxes.cls.to(self.device)
+        confs_gpu = result.boxes.conf.to(self.device)
         names = self.yolo_model.names
 
-        for contour, cls, conf in zip(contours, classes, confs):
-            contour_i32 = np.asarray(contour, dtype=np.int32)
-            if contour_i32.size == 0:
-                continue
+        accepted_classes = ["bottle"]
+        # Check if any accepted classes are detected
+        detected_class_names = [names[int(cls.item() if hasattr(cls, 'item') else cls)] 
+                               for cls in classes_gpu]
+        has_accepted_class = any(cls_name in accepted_classes for cls_name in detected_class_names)
+        
+        if has_accepted_class:
+            for i, (contour, cls_gpu, conf_gpu) in enumerate(zip(contours, classes_gpu, confs_gpu)):
+                # Convert individual values to CPU only when needed for numpy operations
+                cls = cls_gpu.item() if hasattr(cls_gpu, 'item') else cls_gpu
+                conf = conf_gpu.item() if hasattr(conf_gpu, 'item') else conf_gpu
+                
+                class_id = int(cls)
+                class_name = names[class_id] if isinstance(names, (list, tuple)) else names.get(class_id, str(class_id))
+                
+                # Only process accepted classes
+                if class_name not in accepted_classes:
+                    continue
+                
+                contour_i32 = np.asarray(contour, dtype=np.int32)
+                if contour_i32.size == 0:
+                    continue
 
-            contour_poly = contour_i32.reshape(-1, 1, 2)
-            if draw_overlay:
-                cv2.polylines(annotated_img, [contour_poly], isClosed=True, color=(0, 255, 0), thickness=2)
-            if need_seg_mask:
-                cv2.fillPoly(seg_mask, [contour_poly], 1)
+                contour_poly = contour_i32.reshape(-1, 1, 2)
+                if draw_overlay:
+                    cv2.polylines(annotated_img, [contour_poly], isClosed=True, color=(0, 255, 0), thickness=2)
+                if need_seg_mask:
+                    cv2.fillPoly(seg_mask, [contour_poly], 1)
 
-            class_id = int(cls)
-            label_name = names[class_id] if isinstance(names, (list, tuple)) else names.get(class_id, str(class_id))
-            if draw_overlay:
-                cv2.putText(
-                    annotated_img,
-                    f"{label_name} {float(conf):.2f}",
-                    tuple(contour_i32[0]),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 0, 0),
-                    2,
-                )
+                if draw_overlay:
+                    cv2.putText(
+                        annotated_img,
+                        f"{class_name} {float(conf):.2f}",
+                        tuple(contour_i32[0]),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (255, 0, 0),
+                        2,
+                    )
 
-            if need_objects:
-                segmented_objects.append(
-                    self._build_segmented_object(contour_poly, label_name, conf, depth_np, fx, fy, cx, cy)
-                )
+                if need_objects:
+                    segmented_objects.append(
+                        self._build_segmented_object(contour_poly, class_name, conf, depth_np, fx, fy, cx, cy)
+                    )
 
         return annotated_img, seg_mask, segmented_objects
 

@@ -4,9 +4,9 @@ Proxies.CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 12001" # zed_co
 # Endpoints for implements interfaces
 Endpoints.ImageSegmentation = "tcp -p 14111"
 
-Display = False
+Display = True
 ProxyThread = True
-Period.Compute = 5
+Period.Compute = 50
 Period.Emergency = 500
 
 Component.Debug.Verbose = False

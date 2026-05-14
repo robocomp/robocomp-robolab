@@ -69,7 +69,6 @@ class SpecificWorker(GenericWorker):
         except Exception as e:
             self.yolo_model = YOLO('yolo26m-seg.pt')
         
-
         print("Loading YOLO pose model...")   
         try:
             self.yolo_pose_model = YOLO('yolo26m-pose.engine')
@@ -196,9 +195,12 @@ class SpecificWorker(GenericWorker):
 
             # GPU optimization: specify device for inference (works for both PyTorch and TensorRT models)
             results = self.yolo_model(img, device=self.device, verbose=False)
+
+            print(f"YOLO segmentation inference time: {(time.time() - time_start) * 1000:.2f} ms")
+
             results_pose = self.yolo_pose_model(img, device=self.device, verbose=False)
 
-            print(f"YOLO inference time: {(time.time() - time_start) * 1000:.2f} ms")
+            print(f"YOLO pose inference time: {(time.time() - time_start) * 1000:.2f} ms")
 
             annotated_img = img.copy()
 
@@ -218,6 +220,23 @@ class SpecificWorker(GenericWorker):
 
             print(f"Segmentation processing time: {(time.time() - time_start) * 1000:.2f} ms")
 
+            # Process pose estimation results
+            pose_objects = self._process_pose_segmentation(
+                results_pose,
+                annotated_img,
+                depth_np,
+                fx,
+                fy,
+                cx,
+                cy,
+                img_struct.height,
+                img_struct.width,
+            )
+
+            self._modify_person_objects(segmented_objects, pose_objects, depth_np, fx, fy, cx, cy, annotated_img)
+
+            print(f"Pose processing time: {(time.time() - time_start) * 1000:.2f} ms")
+
             # self._update_qt3d_from_mask(seg_mask, depth_np, fx, fy, cx, cy, img)
 
             image_out = self._build_output_image(img_struct, img.tobytes())
@@ -228,6 +247,7 @@ class SpecificWorker(GenericWorker):
                     return
                 self._latest_snapshot = (segmented_objects, image_out, depth_out, int(time.time() * 1000))
 
+            # Display the annotated image with both segmentation and pose overlays
             self._update_2d_display(annotated_img)
 
             print(f"Total compute loop time: {(time.time() - time_start) * 1000:.2f} ms")
@@ -416,7 +436,8 @@ class SpecificWorker(GenericWorker):
         y_arr = np.asarray(y_val, dtype=np.float32)
 
         # Combined validity check for better performance
-        valid = (z_arr > 0) & np.isfinite(z_arr) & (y_arr > 0) & np.isfinite(y_arr) & np.isfinite(x_arr)
+        # Only filter by depth (y_arr > 0) and finite values - don't filter camera Y coordinate
+        valid = (y_arr > 0) & np.isfinite(y_arr) & np.isfinite(x_arr) & np.isfinite(z_arr)
         if not np.any(valid):
             seg_obj.points3D = self._cached_empty_cloud
             return seg_obj
@@ -463,7 +484,7 @@ class SpecificWorker(GenericWorker):
         confs_gpu = result.boxes.conf.to(self.device)
         names = self.yolo_model.names
 
-        accepted_classes = ["bottle"]
+        accepted_classes = ["bottle", "person"]
         # Pre-filter accepted classes to avoid processing unwanted objects
         accepted_indices = []
         for i, cls_gpu in enumerate(classes_gpu):
@@ -515,6 +536,286 @@ class SpecificWorker(GenericWorker):
 
         return annotated_img, seg_mask, segmented_objects
 
+    def _process_pose_segmentation(self, results, annotated_img, depth_np, fx, fy, cx, cy, img_height, img_width):
+        """
+        Process YOLO pose model output to extract keypoints and object IDs.
+        
+        Returns:
+            pose_objects: List of dictionaries containing:
+                - id: Object identifier (index)
+                - class_id: YOLO class ID
+                - class_name: Class name
+                - confidence: Detection confidence score
+                - joints: List of joint dictionaries with keys:
+                    - name/id: Joint identifier
+                    - x: X coordinate in image
+                    - y: Y coordinate in image
+                    - confidence: Keypoint confidence
+                    - x_world: 3D X coordinate (if depth available)
+                    - y_world: 3D Y coordinate (if depth available)
+                    - z_world: 3D Z coordinate (if depth available)
+        """
+        pose_objects = []
+        now = time.time()
+        need_objects = (now - self.last_objects_request_time) <= self.objects_request_hold_seconds
+        
+        result = results[0]
+        
+        # Check if pose data is available
+        if not (hasattr(result, 'keypoints') and result.keypoints is not None):
+            return pose_objects
+        
+        # Extract data efficiently
+        boxes = result.boxes
+        keypoints_data = result.keypoints
+        names = self.yolo_model.names
+        
+        num_poses = len(boxes)
+        if num_poses == 0:
+            return pose_objects
+        
+        # GPU optimization: keep tensors on target device, convert to CPU only when needed
+        classes_gpu = boxes.cls.to(self.device)
+        confs_gpu = boxes.conf.to(self.device)
+        
+        # Extract keypoint coordinates and confidences
+        keypoints_xy = keypoints_data.xy  # Shape: (num_poses, num_joints, 2)
+        keypoints_conf = keypoints_data.conf if hasattr(keypoints_data, 'conf') else None  # Shape: (num_poses, num_joints)
+        
+        # Pre-filter for accepted classes if needed (optional - process all for now)
+        for obj_idx in range(num_poses):
+            try:
+                # Convert GPU tensors to CPU values only when needed
+                cls = classes_gpu[obj_idx].item() if hasattr(classes_gpu[obj_idx], 'item') else classes_gpu[obj_idx]
+                conf = confs_gpu[obj_idx].item() if hasattr(confs_gpu[obj_idx], 'item') else confs_gpu[obj_idx]
+                
+                class_id = int(cls)
+                class_name = names[class_id] if isinstance(names, (list, tuple)) else names.get(class_id, str(class_id))
+                
+                # Extract keypoints for this pose
+                keypoints = keypoints_xy[obj_idx]  # Shape: (num_joints, 2)
+                kp_confs = keypoints_conf[obj_idx] if keypoints_conf is not None else np.ones(len(keypoints))
+                
+                # Build joints list with efficient vectorized operations
+                joints = []
+                valid_joints = 0
+                
+                for joint_idx, (kp_xy, kp_conf) in enumerate(zip(keypoints, kp_confs)):
+                    kp_conf_val = kp_conf.item() if hasattr(kp_conf, 'item') else kp_conf
+                    
+                    joint_dict = {
+                        'id': joint_idx,
+                        'name': f'joint_{joint_idx}',
+                        'x': float(kp_xy[0]),
+                        'y': float(kp_xy[1]),
+                        'confidence': float(kp_conf_val)
+                    }
+                    
+                    # Add 3D coordinates if depth is available and joint confidence is high
+                    if depth_np is not None and kp_conf_val > 0.3:  # Confidence threshold
+                        u, v = int(kp_xy[0]), int(kp_xy[1])
+                        
+                        # Validate pixel coordinates
+                        h, w = depth_np.shape
+                        if 0 <= u < w and 0 <= v < h:
+                            z = depth_np[v, u]
+                            
+                            if z > 0 and np.isfinite(z):
+                                # Project to 3D coordinates
+                                x_cam = (u - cx) * z / fx
+                                y_cam = (cy - v) * z / fy
+                                
+                                # Convert to RoboComp coordinate system
+                                joint_dict['x_world'] = float(x_cam)
+                                joint_dict['y_world'] = float(z)
+                                joint_dict['z_world'] = float(y_cam)
+                                valid_joints += 1
+                    
+                    joints.append(joint_dict)
+                
+                # Only include pose if we have at least some valid joints or always include (configurable)
+                if joints:  # Include all poses with keypoints
+                    pose_obj = {
+                        'id': obj_idx,
+                        'class_id': class_id,
+                        'class_name': class_name,
+                        'confidence': float(conf),
+                        'joints': joints,
+                        'valid_joints_3d': valid_joints
+                    }
+                    pose_objects.append(pose_obj)
+                    
+                    # Draw pose on image if display is enabled
+                    if self.display_enabled:
+                        self._draw_pose_on_image(annotated_img, joints, obj_idx)
+            
+            except Exception as e:
+                print(f"Error processing pose {obj_idx}: {e}")
+                continue
+        
+        return pose_objects
+    
+    def _modify_person_objects(self, segmented_objects, pose_objects, depth_np, fx, fy, cx, cy, annotated_img):
+        """
+        Modify segmented_objects list to update 'person' objects with pose information.
+        
+        For each pose object, find the corresponding segmented object (if any) based on class and proximity,
+        and update the segmented object's point cloud to have only the center point calculated from keypoints.
+        Also draw the computed center point on the annotated image.
+        """
+        h, w = depth_np.shape
+        for pose in pose_objects:
+            if pose['class_name'] == 'person':
+                # Find the closest segmented object with label 'person'
+                closest_obj = None
+                closest_distance = float('inf')
+                
+                # Calculate the center using only chest-related joints.
+                # COCO-style pose ordering: 5=left_shoulder, 6=right_shoulder, 11=left_hip, 12=right_hip.
+                chest_joint_ids = {5, 6, 11, 12}
+                chest_keypoints = [joint for joint in pose['joints'] if joint['confidence'] > 0.3 and joint['id'] in chest_joint_ids]
+                
+                if not chest_keypoints:
+                    chest_keypoints = [joint for joint in pose['joints'] if joint['confidence'] > 0.3]
+
+                keypoints_u = [joint['x'] for joint in chest_keypoints]
+                keypoints_v = [joint['y'] for joint in chest_keypoints]
+
+                if len(keypoints_u) >= 2:
+                    min_u = min(keypoints_u)
+                    max_u = max(keypoints_u)
+                    min_v = min(keypoints_v)
+                    max_v = max(keypoints_v)
+                    pose_centroid_u = (min_u + max_u) / 2
+                    pose_centroid_v = (min_v + max_v) / 2
+
+                    u_center = int(round(pose_centroid_u))
+                    v_center = int(round(pose_centroid_v))
+                    if 0 <= u_center < w and 0 <= v_center < h:
+                        cv2.circle(annotated_img, (u_center, v_center), 6, (0, 0, 255), -1)
+                        cv2.putText(
+                            annotated_img,
+                            'center',
+                            (u_center + 8, v_center - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 0, 255),
+                            1,
+                            cv2.LINE_AA,
+                        )
+
+                    for seg_obj in segmented_objects:
+                        if seg_obj.label == 'person':
+                            # Calculate distance between pose centroid and segmented object polygon centroid
+                            if seg_obj.imagePolygon.numberPoints > 0:
+                                poly_u = np.array(seg_obj.imagePolygon.U)
+                                poly_v = np.array(seg_obj.imagePolygon.V)
+                                centroid_u = np.mean(poly_u)
+                                centroid_v = np.mean(poly_v)
+                                
+                                distance = np.sqrt((centroid_u - pose_centroid_u)**2 + (centroid_v - pose_centroid_v)**2)
+                                if distance < closest_distance:
+                                    closest_obj = seg_obj
+                                    closest_distance = distance
+                    
+                    # If a closest object is found, update its point cloud with the center point
+                    if closest_obj is not None:
+                        u = int(pose_centroid_u)
+                        v = int(pose_centroid_v)
+                        if 0 <= u < w and 0 <= v < h:
+                            z = depth_np[v, u]
+                            if z > 0 and np.isfinite(z):
+                                x_cam = (u - cx) * z / fx
+                                y_cam = (cy - v) * z / fy
+                                # Convert to RoboComp coordinate system
+                                x_robocomp = x_cam
+                                y_robocomp = z
+                                z_robocomp = y_cam
+                                
+                                point_cloud = ifaces.RoboCompImageSegmentation.PointCloud()
+                                point_cloud.X = [x_robocomp]
+                                point_cloud.Y = [y_robocomp]
+                                point_cloud.Z = [z_robocomp]
+                                point_cloud.numberPoints = 1
+                                point_cloud.timestamp = 0
+                                closest_obj.points3D = point_cloud
+
+                                # Draw the computed center point on the annotated image
+                                cv2.circle(
+                                    annotated_img,
+                                    (u, v),
+                                    6,
+                                    (0, 0, 255),
+                                    -1,
+                                )
+                                cv2.putText(
+                                    annotated_img,
+                                    'center',
+                                    (u + 8, v - 8),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    (0, 0, 255),
+                                    1,
+                                    cv2.LINE_AA,
+                                )
+
+    
+
+
+    def _draw_pose_on_image(self, img, joints, pose_id):
+        """
+        Draw pose keypoints and skeleton on image (optimized).
+        
+        Args:
+            img: Image to draw on
+            joints: List of joint dictionaries with x, y coordinates
+            pose_id: ID of the pose for color variation
+        """
+        # Use different colors for different poses
+        colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
+        color = colors[pose_id % len(colors)]
+        
+        # Draw keypoints
+        for joint in joints:
+            x, y = int(joint['x']), int(joint['y'])
+            conf = joint['confidence']
+            
+            # Only draw confident keypoints
+            if conf > 0.3:
+                radius = max(3, int(conf * 5))
+                cv2.circle(img, (x, y), radius, color, -1)
+                
+                # Optional: draw keypoint ID
+                cv2.putText(
+                    img,
+                    str(joint['id']),
+                    (x + 5, y + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.4,
+                    color,
+                    1
+                )
+        
+        # Optional: Draw skeleton connections (common pose estimation connections)
+        # Standard connections for 17-point COCO format
+        skeleton_connections = [
+            (0, 1), (0, 2), (1, 3), (2, 4),
+            (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
+            (5, 11), (6, 12), (11, 12), (11, 13), (13, 15),
+            (12, 14), (14, 16)
+        ]
+        
+        for joint_id_1, joint_id_2 in skeleton_connections:
+            if joint_id_1 < len(joints) and joint_id_2 < len(joints):
+                joint_1 = joints[joint_id_1]
+                joint_2 = joints[joint_id_2]
+                
+                # Only draw if both joints are confident
+                if joint_1['confidence'] > 0.3 and joint_2['confidence'] > 0.3:
+                    pt1 = (int(joint_1['x']), int(joint_1['y']))
+                    pt2 = (int(joint_2['x']), int(joint_2['y']))
+                    cv2.line(img, pt1, pt2, color, 2)
+
     def _update_qt3d_from_mask(self, seg_mask, depth_np, fx, fy, cx, cy, img):
         if not self.display_enabled:
             return
@@ -542,10 +843,13 @@ class SpecificWorker(GenericWorker):
         if not self.display_enabled:
             return
 
-        h, w, ch = annotated_img.shape
+        # Convert BGR (OpenCV format) to RGB for proper display
+        display_img = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
+        
+        h, w, ch = display_img.shape
         bytes_per_line = ch * w
         # Force a deep copy so Qt does not keep a dangling pointer to numpy-owned memory.
-        q_img = QImage(annotated_img.data, w, h, bytes_per_line, QImage.Format_RGB888).copy()
+        q_img = QImage(display_img.data, w, h, bytes_per_line, QImage.Format_RGB888).copy()
         self.image_label.setPixmap(QPixmap.fromImage(q_img))
 
 

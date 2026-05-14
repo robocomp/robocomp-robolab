@@ -60,6 +60,53 @@ Install Python dependencies:
 pip install numpy opencv-python ultralytics PySide6 rich
 ```
 
+## Model Optimization
+
+For optimal GPU performance on NVIDIA hardware, YOLO models can be optimized to TensorRT format using the provided script.
+
+### Prerequisites
+
+- NVIDIA GPU with CUDA support
+- TensorRT installed (comes with ultralytics)
+- PyTorch model file (.pt)
+
+### Usage
+
+```bash
+python3 optimize_yolo_model.py path/to/your/model.pt
+```
+
+**Examples:**
+
+```bash
+# Optimize segmentation model
+python3 optimize_yolo_model.py yolo26m-seg.pt
+
+# Optimize pose estimation model  
+python3 optimize_yolo_model.py yolo26m-pose.pt
+```
+
+### What it does
+
+- Converts PyTorch models (.pt) to TensorRT format (.engine)
+- Enables FP16 precision for faster inference
+- Optimizes for the target GPU architecture
+- Generates optimized engine files for deployment
+
+### Benefits
+
+- **2-3x faster inference** on compatible GPUs
+- **Lower latency** for real-time applications
+- **Reduced CPU usage** during inference
+- **Better power efficiency**
+
+### Notes
+
+- Optimization requires a compatible NVIDIA GPU
+- The process may take several minutes for large models
+- Optimized models (.engine) are hardware-specific
+- Keep both .pt and .engine files for different deployment scenarios
+
 ## Build
 
 From component root:

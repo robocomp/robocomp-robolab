@@ -44,6 +44,7 @@ import threading
 import time
 import torch
 from ultralytics import YOLO
+import os
 
 # Workaround for OpenCV Qt font warning
 cv2_qt_font_dir = os.path.join(os.path.dirname(cv2.__file__), 'qt', 'fonts')
@@ -62,23 +63,36 @@ class SpecificWorker(GenericWorker):
         self.proxy_max_sleep = 0.050
         self.proxy_wait_ms = max(1, int(self.proxy_poll_period * 1000.0))
 
-        # Load the latest YOLO model (YOLO26 large) for object detection
-        print("Loading YOLO model...")
-        try:
-            self.yolo_model = YOLO('yolo26m-seg.engine')
-        except Exception as e:
-            self.yolo_model = YOLO('yolo26m-seg.pt')
-        
-        print("Loading YOLO pose model...")   
-        try:
-            self.yolo_pose_model = YOLO('yolo26m-pose.engine')
-        except Exception as e:
-            self.yolo_pose_model = YOLO('yolo26m-pose.pt')
+        component_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-        # GPU optimization: detect CUDA availability (device specified during inference for TensorRT)
+        seg_engine_path = os.path.join(component_root, 'yolo26m-seg.engine')
+        seg_pt_path = os.path.join(component_root, 'yolo26m-seg.pt')
+        if os.path.exists(seg_engine_path):
+            seg_model_path = seg_engine_path
+        elif os.path.exists(seg_pt_path):
+            seg_model_path = seg_pt_path
+        else:
+            seg_model_path = 'yolo26m-seg.pt'
+            print(f"No local segmentation model found in {component_root}. Ultraytics will download {seg_model_path} if available.")
+
+        pose_engine_path = os.path.join(component_root, 'yolo26m-pose.engine')
+        pose_pt_path = os.path.join(component_root, 'yolo26m-pose.pt')
+        if os.path.exists(pose_engine_path):
+            pose_model_path = pose_engine_path
+        elif os.path.exists(pose_pt_path):
+            pose_model_path = pose_pt_path
+        else:
+            pose_model_path = 'yolo26m-pose.pt'
+            print(f"No local pose model found in {component_root}. Ultraytics will download {pose_model_path} if available.")
+
+        print(f"Loading YOLO model from {seg_model_path}...")
+        self.yolo_model = YOLO(seg_model_path)
+
+        print(f"Loading YOLO pose model from {pose_model_path}...")
+        self.yolo_pose_model = YOLO(pose_model_path)
+
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"Using device: {self.device}")
-        # Note: For TensorRT models, device is specified during inference, not model.to()
         print("YOLO loaded.")
 
         # Memory reuse optimization: pre-allocate reusable arrays
@@ -133,6 +147,23 @@ class SpecificWorker(GenericWorker):
                 self._start_proxy_thread()
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
+
+    def initialize(self):
+        component_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+        seg_model_path = self._choose_model_path(component_root, 'yolo26m-seg')
+        pose_model_path = self._choose_model_path(component_root, 'yolo26m-pose')
+
+        print(f"Loading YOLO model from {seg_model_path}...")
+        self.yolo_model = YOLO(seg_model_path)
+
+        print(f"Loading YOLO pose model from {pose_model_path}...")
+        self.yolo_pose_model = YOLO(pose_model_path)
+
+        # GPU optimization: detect CUDA availability (device specified during inference for TensorRT)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"Using device: {self.device}")
+        print("YOLO loaded.")
 
     def __del__(self):
         """Destructor"""

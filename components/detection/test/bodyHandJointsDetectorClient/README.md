@@ -1,29 +1,34 @@
 # BodyHandJointDetectorClient
-Intro to component here
+This is a test client for [BodyHandJointDetector component](https://github.com/robocomp/robocomp-robolab/tree/master/components/detection/BodyHandJointsDetector).
 
 
 ## Configuration parameters
-As any other component, *BodyHandJointDetectorClient* needs a configuration file to start. In
-```
-etc/config
-```
-you can find an example of a configuration file. We can find there the following lines:
-```
-EXAMPLE HERE
-```
+Follow the instruction in the main component for installation.
 
 ## Starting the component
-To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
+
+Need to CMAKE the code with this command:
 
 ```
-cd <BodyHandJointDetectorClient's path> 
-```
-```
-cp etc/config config
+cmake .
 ```
 
 After editing the new config file we can run the component:
 
+1) Run the main component:
 ```
-bin/BodyHandJointDetectorClient config
+cd ../../BodyHandJointsDetector
+python src/BodyHandJointsDetector.py etc/config
 ```
+
+2) Run the client:
+```
+cd ../test/bodyHandJointsDetectorClient
+python src/BodyHandJointDetectorClient.py etc/config
+```
+
+
+## DEMO:
+
+[![Youtube link](https://robocomp.github.io/web/gsoc/2021/posts/trung_ngo_tan/images/handbodyPoseYoutube.png)](https://www.youtube.com/watch?v=qpOU7or_zx8)
+

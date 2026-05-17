@@ -1,29 +1,28 @@
 # PoseBasedGestureRecognitionClient
-Intro to component here
+This is a test client for [PoseBasedGestureRecognition component](https://github.com/robocomp/robocomp-robolab/tree/master/components/detection/PoseBasedGestureRecognition).
 
 
 ## Configuration parameters
-As any other component, *PoseBasedGestureRecognitionClient* needs a configuration file to start. In
-```
-etc/config
-```
-you can find an example of a configuration file. We can find there the following lines:
-```
-EXAMPLE HERE
-```
+Follow the instruction in the main component for installation.
 
 ## Starting the component
-To avoid changing the *config* file in the repository, we can copy it to the component's home directory, so changes will remain untouched by future git pulls:
+
+Need to CMAKE the code with this command:
 
 ```
-cd <PoseBasedGestureRecognitionClient's path> 
-```
-```
-cp etc/config config
+cmake .
 ```
 
 After editing the new config file we can run the component:
 
+1) Run the main component:
 ```
-bin/PoseBasedGestureRecognitionClient config
+cd ../../PoseBasedGestureRecognition
+python src/PoseBasedGestureRecognition.py etc/config
+```
+
+2) Run the client:
+```
+cd ../test/poseBasedGestureRecognitionClient
+python src/PoseBasedGestureRecognitionClient.py etc/config
 ```

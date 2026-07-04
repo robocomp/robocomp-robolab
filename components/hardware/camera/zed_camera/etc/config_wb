@@ -1,0 +1,29 @@
+
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for publishes interfaces
+Proxies.FullPoseEstimationPubPrefix = "zed"
+Proxies.CameraRGBDSimplePubPrefix = ""
+Proxies.IMUPubPrefix = ""
+
+# Proxies for required interfaces
+Proxies.CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 10009"
+
+# Endpoints for implements interfaces
+Endpoints.CameraRGBDSimple = "tcp -p 12001"
+Endpoints.Lidar3D = "tcp -p 12000"
+
+Period.Compute = 1
+Period.Emergency = 500
+
+Config.Simulated = True
+Config.Display = True
+Config.Publish = False
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

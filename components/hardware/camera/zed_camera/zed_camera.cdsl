@@ -1,0 +1,18 @@
+import "CameraRGBDSimplePub.idsl";
+import "CameraRGBDSimple.idsl";
+import "FullPoseEstimationPub.idsl";
+import "IMUPub.idsl";
+import "Lidar3D.idsl";
+import "MediaPlaneDDS.idsl";
+
+Component zed_camera
+{
+    Communications
+    {
+        implements Lidar3D, CameraRGBDSimple, MediaPlaneDDS;
+        requires CameraRGBDSimple;
+        publishes CameraRGBDSimplePub, FullPoseEstimationPub, IMUPub;
+    };
+    language Cpp11;
+};
+

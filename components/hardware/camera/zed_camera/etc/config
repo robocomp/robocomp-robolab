@@ -1,0 +1,38 @@
+
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for publishes interfaces
+Proxies.FullPoseEstimationPubPrefix = "zed"
+Proxies.CameraRGBDSimplePubPrefix = ""
+Proxies.IMUPubPrefix = ""
+
+# Proxies for required interfaces
+Proxies.CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 0"
+# Endpoints for implements interfaces
+Endpoints.CameraRGBDSimple = "tcp -p 12001"
+Endpoints.Lidar3D = "tcp -p 12000"
+Endpoints.MediaPlaneDDS = "tcp -p 12002"
+
+Period.Compute = 1
+Period.Emergency = 500
+
+Config.Simulated = False
+Config.Display = False
+Config.Publish = False
+Config.ComputeColorCloud = False
+# Publish RGB+depth on the zero-copy DDS media plane (CORTEX). Off by default.
+Config.PublishDDS = False
+
+# DDS media plane (only used when Config.PublishDDS = True). Camera metadata is
+# advertised into DSR by the robot_concept agent, not here.
+DDS.Domain = 7
+DDS.RGBTopic = "rc/zed/rgb"
+DDS.DepthTopic = "rc/zed/depth"
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

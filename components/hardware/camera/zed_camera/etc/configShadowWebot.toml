@@ -1,0 +1,56 @@
+[Proxies]
+# This property is used by the clients to connect to IceStorm.
+TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for publishes interfaces
+CameraRGBDSimplePubPrefix = ""
+FullPoseEstimationPubPrefix = "zed"
+IMUPubPrefix = ""
+
+# Proxies for required interfaces
+CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 10096"
+
+
+[Endpoints]
+# Endpoints for implements interfaces
+Lidar3D = "tcp -p 12000"
+CameraRGBDSimple = "tcp -p 12001"
+MediaPlaneDDS = "tcp -p 12002"
+
+[Config]
+Simulated = true
+Display = false
+ComputeXYZ = false
+FPS = 30                 # cap the processing/publish rate (Hz)
+Extrinsic = [0.0, -0.075, 0.945, 0.0, 0.0, 0.0]
+
+# output
+Publish = false
+PublishDDS = true   # DDS topci
+
+# DDS media plane (only used when Config.PublishDDS = true). Camera metadata is
+# advertised into DSR by the robot_concept agent, not here.
+[DDS]
+Domain = 7
+RGBTopic = "rc/zed/rgb"
+DepthTopic = "rc/zed/depth"
+RGBFormat = "bgr"        # Webots source delivers BGR; label it so YOLO gets colors right
+# QoS — carried in the descriptor relayed to DSR; consumers must agree.
+HistoryDepth = 8
+SharedMemoryOnly = true
+DataSharing = false      # OFF = churn-safe in CORTEX (see media_transport.h)
+
+
+[Period]
+Compute =33 
+Emergency = 500
+
+[Component.Debug]
+Verbose = true
+
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

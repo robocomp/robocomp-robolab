@@ -1,0 +1,39 @@
+# Endpoints for implements interfaces
+Endpoints.Camera360RGB = "tcp -p 10097"
+Endpoints.MediaPlaneDDS = "tcp -p 10099"
+
+# Proxies for required interfaces
+Proxies.Camera360RGB = "camera360rgb:tcp -h localhost -p 10098"
+
+# DDS 360 media plane (zero-copy Image360Frame). Off by default. Metadata is
+# advertised into DSR by the robot_concept agent, not here.
+PublishDDS = true
+DDS.Domain = 7
+DDS.Topic = "rc/ricoh/rgb"
+DDS.Format = "bgr"        # panorama is BGR (gstreamer BGR pipeline)
+DDS.HistoryDepth = 8
+DDS.SharedMemoryOnly = true
+DDS.DataSharing = false
+
+# CONFIGURACIÓN OPTIMIZADA PARA MÁXIMA VELOCIDAD Y FPS
+display = false          # false = no display (ahorra CPU/GPU para captura)
+simulator = false
+compressed = false       # false = sin compresión (más rápido)
+orin = false
+use_gpu = true
+time_offset = 0.0
+
+# STREAMING PARALELO A MEDIAMTX
+streaming = true         # Habilitar streaming paralelo
+stream_host = "localhost"  # IP de MediaMTX
+stream_port = 8554       # Puerto RTSP de MediaMTX
+stream_path = "theta"      # Path del stream en MediaMTX
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "50000000"  # 50MB para imágenes grandes
+
+# PERÍODO OPTIMIZADO PARA MÁXIMA VELOCIDAD
+Period.Compute = 30      # ~33 FPS máximo (ajustado automáticamente)
+Period.Emergency = 500

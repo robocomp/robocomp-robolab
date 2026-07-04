@@ -1,0 +1,50 @@
+# ricoh_omni_dds — all params from etc/config, in TOML form.
+
+# --- Camera / capture (flat keys, read by SpecificWorker::initialize) ---
+display     = false        # false = no display (ahorra CPU/GPU para captura)
+simulator   = true        # true = read from the Camera360RGB proxy (Webots); false = Theta hardware
+compressed  = false        # false = sin compresión (más rápido)
+orin        = false
+use_gpu     = true
+time_offset = 0.0
+
+# --- Streaming paralelo a MediaMTX ---
+streaming   = true         # Habilitar streaming paralelo
+stream_host = "localhost"  # IP de MediaMTX
+stream_port = 8554         # Puerto RTSP de MediaMTX
+stream_path = "theta"      # Path del stream en MediaMTX
+
+# --- DDS 360 media plane (zero-copy Image360Frame). Metadata is advertised into
+#     DSR by the robot_concept agent, not here. ---
+PublishDDS = true
+
+[Proxies]
+# Proxies for required interfaces
+Camera360RGB = "camera360rgb:tcp -h localhost -p 10098"
+
+[Endpoints]
+# Endpoints for implements interfaces
+Camera360RGB = "tcp -p 10097"
+MediaPlaneDDS = "tcp -p 10099"
+
+[DDS]
+Domain = 7
+Topic = "rc/ricoh/rgb"
+Format = "bgr"             # panorama is BGR (gstreamer BGR pipeline)
+HistoryDepth = 8
+SharedMemoryOnly = true
+DataSharing = false
+
+[Period]
+Compute = 30               # ~33 FPS máximo (ajustado automáticamente)
+Emergency = 500
+
+[Component.Debug]
+Verbose = false
+
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "50000000" # 50MB para imágenes grandes

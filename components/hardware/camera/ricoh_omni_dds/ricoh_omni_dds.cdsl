@@ -1,0 +1,12 @@
+import "Camera360RGB.idsl";
+import "MediaPlaneDDS.idsl";
+
+Component ricoh_omni_dds
+{
+    Communications
+    {
+        implements Camera360RGB, MediaPlaneDDS;
+        requires Camera360RGB;
+    };
+    language Cpp11;
+};

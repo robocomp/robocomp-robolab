@@ -1,0 +1,21 @@
+[Proxies]
+# Proxies for required interfaces
+Camera360RGB = "camera360rgb:tcp -h localhost -p 0"
+[Endpoints]
+# Endpoints for implements interfaces
+Camera360RGB = "tcp -p 0"
+MediaPlaneDDS = "tcp -p 0"
+
+
+[Period]
+Compute = 100
+Emergency = 500
+
+[Component.Debug]
+Verbose = true
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

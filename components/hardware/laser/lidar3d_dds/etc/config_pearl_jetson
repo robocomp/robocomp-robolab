@@ -1,25 +1,25 @@
 # Endpoints for implements interfaces
-Endpoints.Lidar3D = "tcp -p 11990"
+Endpoints.Lidar3D="tcp -p 11989"
 
-# Proxies for required interfaces
 Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1
-lidar_model = 0
+lidar_model = 1
 dest_pc_ip_addr = "192.168.50.210"
-msop_port = 6699
-difop_port = 7788
-simulator = true
+msop_port = 6698
+difop_port = 7787
+simulator = false
 
 #Warning use "." for decimals not ","
-rx = -0.0
-ry = 0.0
+rx = 0.0
+ry = 3.14159265359
 rz = 0.0
 tx = 0.0
-ty = -155.0
-#tz = 1030.0	 #970.0
-tz = 989.0 
+ty = 110.0
+tz = 580.0
+
+Component.Debug.Verbose = true
 
 Period.Compute = 50
 Period.Emergency = 500
@@ -28,4 +28,5 @@ Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"
 Ice.Trace.Protocol = "0"
 Ice.MessageSizeMax = "20004800"
-Component.Debug.Verbose = true
+
+

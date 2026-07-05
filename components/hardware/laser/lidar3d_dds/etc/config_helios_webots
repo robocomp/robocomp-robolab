@@ -1,8 +1,16 @@
 # Endpoints for implements interfaces
 Endpoints.Lidar3D = "tcp -p 11990"
+Endpoints.MediaPlaneDDS = "tcp -p 11890"
 
 # Proxies for required interfaces
 Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
+
+# Robot-body self-filter (Embree). Removes lidar points hitting the static robot mesh.
+MeshFilter.enabled = true
+Robot.name = "Shadow"
+Floor.z = 110.0
+Top.z = 2100.0
+Dilate = 0.05
 
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1
@@ -12,14 +20,22 @@ msop_port = 6699
 difop_port = 7788
 simulator = true
 
+# DDS lidar media plane (zero-copy LidarFrame). Metadata is advertised into DSR by
+# the robot_concept agent, not here.
+PublishDDS = true
+DDS.Domain = 7
+DDS.Topic = "rc/lidar3d/points"
+DDS.HistoryDepth = 8
+DDS.SharedMemoryOnly = true
+DDS.DataSharing = false
+
 #Warning use "." for decimals not ","
 rx = -0.0
 ry = 0.0
 rz = 0.0
 tx = 0.0
 ty = -155.0
-#tz = 1030.0	 #970.0
-tz = 989.0 
+tz = 1030.0	 #970.0
 
 Period.Compute = 50
 Period.Emergency = 500

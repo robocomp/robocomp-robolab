@@ -7,19 +7,19 @@ Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1
 lidar_model = 0
-dest_pc_ip_addr = "192.168.50.210"
+dest_pc_ip_addr = "192.168.50.78"
 msop_port = 6699
 difop_port = 7788
-simulator = true
+simulator = false
 
 #Warning use "." for decimals not ","
-rx = -0.0
-ry = 0.0
+rx = 0.0
+ry = 3.1416
 rz = 0.0
 tx = 0.0
-ty = -155.0
-#tz = 1030.0	 #970.0
-tz = 989.0 
+ty = -30.0
+tz = 1040.5
+
 
 Period.Compute = 50
 Period.Emergency = 500
@@ -29,3 +29,4 @@ Ice.Trace.Network = "0"
 Ice.Trace.Protocol = "0"
 Ice.MessageSizeMax = "20004800"
 Component.Debug.Verbose = true
+

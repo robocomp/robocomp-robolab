@@ -1,0 +1,12 @@
+import "Lidar3D.idsl";
+import "MediaPlaneDDS.idsl";
+
+Component lidar3d_dds
+{
+    Communications
+    {
+        implements Lidar3D, MediaPlaneDDS;
+        requires Lidar3D;
+    };
+    language Cpp11;
+};

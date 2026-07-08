@@ -12,18 +12,18 @@ simulator = true
 PublishDDS = true
 Dilate = 0.05
 
-# Static mount (single source of geometry) — read from the DSR shadow.json, node = mount_key.
-# If the file/node/RT is missing the driver rolls back to the rx..tz extrinsics below.
+# Static mount (single source of geometry): read the body<-helios transform from the DSR shadow.json.
+# The self-filter and consumer placement now share this ONE value (~1.03 m) — the mesh is accurate
+# (SolidWorks / printed robot), so no decouple is needed. If shadow.json can't be read, roll back to
+# the rx..tz fallback below (kept in sync at tz=1030).
 mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
 mount_key  = "helios"
-
-# Fallback extrinsic (used only if mount_file/mount_key can't be read). "." decimals.
 rx = -0.0
 ry = 0.0
 rz = 0.0
 tx = 0.0
 ty = -155.0
-tz = 1030.0        # 970.0
+tz = 1030.0        # fallback only (matches shadow.json body<-helios ~1.03 m)
 
 [Proxies]
 # Proxies for required interfaces

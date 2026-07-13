@@ -34,6 +34,97 @@ After editing the new config file we can run the component:
 cmake -B build && make -C build -j12 # Compile the component
 bin/Lidar3D etc/yourConfig # Execute the component
 ```
+
+## Robot-body self-filter (removing "stale" points on the robot)
+
+The raw scan contains returns off the robot's own body, base, wheels, arm, cables and
+mounts. Because they are rigidly attached, they **move with the robot** and, if not removed
+at the source, poison downstream navigation. This component removes them **once**, in
+`compute()` (`src/specificworker.cpp`), upstream of every output (the image projection, the
+Ice buffer and the DDS media plane), so consumers never see them. All the logic lives in
+`src/mesh_filter.cpp` (`MeshFilter::filter`) and is enabled per-config with `MeshFilter.enabled = true`.
+
+### How a point is decided (in order)
+
+Each point is transformed from the **device frame** into the **robot/body frame** using the
+static mount (`body <- sensor`) read from `shadow.json` (`mount_file` / `mount_key`), then a
+point is **kept** only if it passes *all* of these; it is **dropped** if it fails any:
+
+1. **Vertical band** — keep only `Floor.z < z < Top.z` (mm, robot frame). Drops the ground
+   plane and anything above the ceiling.
+2. **Body footprint disc** — drop if the point is within `Footprint.radius` (m) of the robot
+   Z-axis, inside `[Footprint.z_min, Footprint.z_max]` (mm). A tight, full-height cylinder
+   around the body.
+3. **Near-floor skirt** — drop if within the wider `Skirt.radius` (m), but only inside the
+   *low* band `[Skirt.z_min, Skirt.z_max]` (mm). Catches near-floor self/ground-reflection
+   returns that sit past the body footprint, **without** hiding upright obstacles (their
+   returns above `Skirt.z_max` survive).
+4. **Mesh proximity** — drop if within `Dilate` (m) of the robot STL surface (`shadow.stl`,
+   Embree, 6-ray sphere query).
+
+> A point is removed if it lands in **either** disc **or** the mesh shell. The discs and the
+> mesh are complementary: the mesh is precise but only covers what is modelled; the discs are
+> blunt but cover what the mesh does not.
+
+### Why the discs exist (and are not redundant with the mesh)
+
+`shadow.stl` models only the **central column**: measured extent is
+`X ±0.239 m, Y ±0.230 m, Z 0.003 → 1.309 m` — a footprint of only ~24 cm radius. It does
+**not** include the wider wheeled base/skirt, the arm, sensor mounts, handles or cabling.
+Returns off those parts sit **more than `Dilate` (5 cm)** from the modelled surface, so the
+mesh test misses them and they survive. The footprint disc and the near-floor skirt exist to
+remove exactly those un-modelled, rigidly-attached returns. They are **navigation-safe**:
+nothing inside the robot's own footprint can be a real external obstacle.
+
+### Configuration keys
+
+Set per sensor in `etc/config_*` (both `[Section]`-TOML and flat `Section.key` forms work).
+Current Webots values:
+
+| Key                | helios | bpearl | Unit | Meaning |
+|--------------------|:------:|:------:|:----:|---------|
+| `MeshFilter.enabled` | true | true | bool | master switch for the whole self-filter |
+| `Floor.z`          | 110    | 110    | mm   | drop at/below this height (ground) |
+| `Top.z`            | 2100   | 2100   | mm   | drop at/above this height (ceiling) |
+| `Dilate`           | 0.05   | 0.05   | m    | mesh self-radius (6-ray `tfar`) |
+| `Footprint.radius` | 0.55   | 0.55   | m    | full-height body disc (`0` disables) |
+| `Footprint.z_min`  | 110    | 110    | mm   | footprint disc lower bound |
+| `Footprint.z_max`  | 1350   | 1350   | mm   | footprint disc upper bound (top of body) |
+| `Skirt.radius`     | 0.75   | 0.75   | m    | wider near-floor disc (`0` disables) |
+| `Skirt.z_min`      | 110    | 110    | mm   | skirt lower bound |
+| `Skirt.z_max`      | 600    | 350    | mm   | skirt upper bound (keep low for safety) |
+
+On start each instance prints its resolved values, e.g.:
+
+```
+[MeshFilter] robot='Shadow' bounds Min(-0.239,-0.230,0.003) Max(0.239,0.230,1.309) floor_z=110 top_z=2100 dilate=0.050 footprint_r=0.550m z[110,1350] skirt_r=0.750m z[110,600]
+```
+
+### Tuning when the real robot behaves differently
+
+The Webots values are a starting point; the real robot's base, arm pose and reflectivity
+differ. Watch the scan in a cenital viewer and adjust — **config only, no rebuild**, just
+restart the instance so it reloads:
+
+| Symptom | Knob |
+|---------|------|
+| Stray point **near the robot, near the floor**, just outside the removed area | raise `Skirt.radius` (reach further out) or `Skirt.z_max` (reach higher) |
+| Stray point **near the robot at body height** (not near floor) | raise `Footprint.radius`. Costs navigation clearance — it blanks a full-height cylinder, so prefer the skirt for near-floor strays |
+| Stray point **sits in the gap** (past `Footprint.radius` and above `Skirt.z_max`) | raise `Skirt.z_max` until it is covered — this was the fix for the helios rear-left stray (`350 → 600`) |
+| **Real obstacles disappear** close to the robot | you over-blanked: lower `Footprint.radius` / `Skirt.radius`, or lower `Skirt.z_max` so upright obstacles reappear above it |
+| Thin robot part (cable/antenna) still returns, hugging the body | raise `Dilate` a little (grows the mesh shell) before widening a disc |
+| Ground plane / low ceiling leaks in | raise `Floor.z` / lower `Top.z` |
+
+Keys are independent per sensor, so tune helios and bpearl separately. Set a disc's `radius`
+to `0` to disable just that disc. Because the mount comes from `shadow.json`, a *global* shift
+of all self-points (everything offset the same way) points to a wrong mount rather than a disc
+size — fix the RT edge / `mount_file` instead of inflating the discs.
+
+> **Note:** the self-filter is currently enabled only in the Webots configs. The real-robot
+> configs (`config_helios_jetson`, `config_helios_flip`, `config_pearl_jetson`) do **not** set
+> `MeshFilter.enabled`; add the block above (mesh + discs) there when moving to the real robot,
+> re-measuring the discs against the physical base.
+
 -----
 -----
 # Developer Notes

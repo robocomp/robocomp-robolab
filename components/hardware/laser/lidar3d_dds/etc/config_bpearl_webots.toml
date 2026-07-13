@@ -39,11 +39,29 @@ enabled = true
 [Robot]
 name = "Shadow"
 
+# Floor/ceiling scene cut DISABLED — the floor/ceiling are informative (startup LiDAR
+# calibration, ground plane) and are now filtered per-consumer, not at the source. Only
+# the self-filter (footprint/skirt/mesh) stays here. Restore z=110 / z=2100 to re-enable.
 [Floor]
-z = 110.0
+z = -100000.0
 
 [Top]
-z = 2100.0
+z = 100000.0
+
+# Robot-frame footprint disc + wider near-floor skirt. The STL models only the ±0.24 m
+# central column, so returns off the wider base/wheels/protrusions survive the 5 cm mesh
+# query. Drop everything inside the disc (radius m) within the z-band (mm). The skirt is a
+# second, wider disc confined near the floor for ground-reflection / low self returns.
+# Safe: inside the robot's own footprint nothing is a real obstacle. radius = 0 disables.
+[Footprint]
+radius = 0.55
+z_min = 110.0
+z_max = 1350.0
+
+[Skirt]
+radius = 0.75
+z_min = 110.0
+z_max = 350.0
 
 # DDS lidar media plane (zero-copy LidarFrame). Own topic so it does not collide with
 # the helios plane. Metadata is advertised into DSR by the robot_concept agent, not here.

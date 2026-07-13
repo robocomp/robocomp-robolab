@@ -271,6 +271,14 @@ void SpecificWorker::initialize()
         try { mcfg.floor_z    = static_cast<float>(this->configLoader.get<double>("Floor.z")); } catch(...) {}
         try { mcfg.top_z      = static_cast<float>(this->configLoader.get<double>("Top.z")); } catch(...) {}
         try { mcfg.dilate     = static_cast<float>(this->configLoader.get<double>("Dilate")); } catch(...) {}
+        // Robot-frame footprint disc (drops base/wheels/arm returns the STL doesn't model).
+        try { mcfg.footprint_radius = static_cast<float>(this->configLoader.get<double>("Footprint.radius")); } catch(...) {}
+        try { mcfg.footprint_z_min  = static_cast<float>(this->configLoader.get<double>("Footprint.z_min")); } catch(...) {}
+        try { mcfg.footprint_z_max  = static_cast<float>(this->configLoader.get<double>("Footprint.z_max")); } catch(...) {}
+        // Wider near-floor skirt (drops near-floor self / ground-reflection returns).
+        try { mcfg.skirt_radius = static_cast<float>(this->configLoader.get<double>("Skirt.radius")); } catch(...) {}
+        try { mcfg.skirt_z_min  = static_cast<float>(this->configLoader.get<double>("Skirt.z_min")); } catch(...) {}
+        try { mcfg.skirt_z_max  = static_cast<float>(this->configLoader.get<double>("Skirt.z_max")); } catch(...) {}
 
         mesh_filter = std::make_unique<MeshFilter>();
         if (not mesh_filter->init(mcfg))

@@ -64,9 +64,12 @@ bool MeshFilter::init(const Config& cfg)
     RTCBounds b;
     rtcGetSceneBounds(m_scene, &b);
     std::printf("[MeshFilter] robot='%s' bounds Min(%.3f,%.3f,%.3f) Max(%.3f,%.3f,%.3f) "
-                "floor_z=%.0f top_z=%.0f dilate=%.3f\n",
+                "floor_z=%.0f top_z=%.0f dilate=%.3f footprint_r=%.3fm z[%.0f,%.0f] "
+                "skirt_r=%.3fm z[%.0f,%.0f]\n",
                 cfg.robot_name.c_str(), b.lower_x, b.lower_y, b.lower_z,
-                b.upper_x, b.upper_y, b.upper_z, cfg.floor_z, cfg.top_z, cfg.dilate);
+                b.upper_x, b.upper_y, b.upper_z, cfg.floor_z, cfg.top_z, cfg.dilate,
+                cfg.footprint_radius, cfg.footprint_z_min, cfg.footprint_z_max,
+                cfg.skirt_radius, cfg.skirt_z_min, cfg.skirt_z_max);
 
     ready_ = true;
     return true;
@@ -105,6 +108,12 @@ void MeshFilter::filter(RoboCompLidar3D::TData& scan) const
     auto& pts = scan.points;
     const std::size_t n = pts.size();
     const float fz = cfg_.floor_z, tz = cfg_.top_z, dil = cfg_.dilate;
+    // Footprint disc + near-floor skirt (robot frame). Radius m -> mm² to compare
+    // against x²+y² directly.
+    const float fr_mm2 = cfg_.footprint_radius * cfg_.footprint_radius * 1e6f;
+    const float fp_z0 = cfg_.footprint_z_min, fp_z1 = cfg_.footprint_z_max;
+    const float sr_mm2 = cfg_.skirt_radius * cfg_.skirt_radius * 1e6f;
+    const float sk_z0 = cfg_.skirt_z_min, sk_z1 = cfg_.skirt_z_max;
     RTCScene scene = m_scene;
     // Mount device -> robot (points arrive in the device frame; the mesh is robot-frame).
     const Eigen::Matrix3f R = cfg_.mount.linear();
@@ -117,7 +126,13 @@ void MeshFilter::filter(RoboCompLidar3D::TData& scan) const
     {
         const auto& p = pts[i];
         const Eigen::Vector3f pr = R * Eigen::Vector3f(p.x, p.y, p.z) + t;   // -> robot frame (mm)
-        keep[i] = (pr.z() > fz && pr.z() < tz && not point_hits_mesh(scene, pr, dil)) ? 1u : 0u;
+        const float rxy2 = pr.x() * pr.x() + pr.y() * pr.y();
+        // Self returns: inside the body footprint disc, or inside the wider near-floor
+        // skirt -> drop. Each is gated by its own z-band; radius 0 disables it.
+        const bool in_footprint = fr_mm2 > 0.0f && rxy2 < fr_mm2 && pr.z() > fp_z0 && pr.z() < fp_z1;
+        const bool in_skirt     = sr_mm2 > 0.0f && rxy2 < sr_mm2 && pr.z() > sk_z0 && pr.z() < sk_z1;
+        keep[i] = (not in_footprint && not in_skirt && pr.z() > fz && pr.z() < tz
+                   && not point_hits_mesh(scene, pr, dil)) ? 1u : 0u;
     }
 
     // Stable in-place compaction (cheap, sequential).

@@ -48,6 +48,20 @@ public:
         float floor_z = 110.0f;              // mm — drop points at/below this height (ground)
         float top_z   = 2100.0f;             // mm — drop points at/above this height (ceiling)
         float dilate  = 0.05f;               // m  — body self-radius (ray tfar)
+        // Robot-frame footprint disc: the STL models only the central column, so returns
+        // off the wider base/wheels/arm/protrusions sit past the mesh and survive the 5cm
+        // mesh query. Drop any point whose XY distance from the robot origin is below
+        // `footprint_radius`, within [footprint_z_min, footprint_z_max]. Inside the robot's
+        // own footprint nothing can be a real obstacle, so this is navigation-safe.
+        float footprint_radius = 0.0f;       // m  — XY disc around robot origin (0 disables)
+        float footprint_z_min  = 110.0f;     // mm — disc active from this height…
+        float footprint_z_max  = 1350.0f;    // mm — …up to this height (top of body)
+        // Near-floor skirt: a second, WIDER disc confined to a low z-band. Catches
+        // near-floor self / ground-reflection returns that sit past the body footprint,
+        // without blanking upright obstacles (whose returns above skirt_z_max stay).
+        float skirt_radius = 0.0f;           // m  — wider XY disc near the floor (0 disables)
+        float skirt_z_min  = 110.0f;         // mm — skirt active from this height…
+        float skirt_z_max  = 350.0f;         // mm — …up to this (low) height
         // Mount (device -> robot). Points arrive in the sensor/device frame (mm); the
         // filter transforms each into the robot frame (where the mesh lives) to test.
         Eigen::Affine3f mount = Eigen::Affine3f::Identity();

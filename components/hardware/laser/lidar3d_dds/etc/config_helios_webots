@@ -11,6 +11,17 @@ Robot.name = "Shadow"
 Floor.z = 110.0
 Top.z = 2100.0
 Dilate = 0.05
+# Robot-frame footprint disc: drops base/wheels/arm returns the STL doesn't model.
+# radius in metres, z-band in mm. radius = 0 disables. Safe: inside the robot's own
+# footprint nothing is a real obstacle.
+Footprint.radius = 0.55
+Footprint.z_min = 110.0
+Footprint.z_max = 1350.0
+# Wider near-floor skirt (low z-band): catches near-floor self/reflection returns past
+# the body footprint without hiding upright obstacles (their returns above z_max stay).
+Skirt.radius = 0.75
+Skirt.z_min = 110.0
+Skirt.z_max = 600.0
 
 ### Lidar params ###
 # RSHELIOS=0   RSBPEARL=1

@@ -40,8 +40,10 @@ public:
     {
         std::uint32_t domain_id = 7;                // CORTEX media domain
         std::string   topic     = "rc/ricoh/rgb";   // "rgb360" stream topic
-        // Byte order of the panorama buffer (the gstreamer pipeline yields BGR).
-        // Sets only the frame's format LABEL (no copy) so the consumer converts right.
+        // Byte order of the panorama buffer. Real Theta hardware runs a gstreamer BGR pipeline
+        // (is_bgr=true, the default). The Webots simulator path reads the Camera360RGB proxy, which
+        // is RGB-ordered — set DDS.Format="rgb" for that (see config_webots.toml). Sets only the
+        // frame's format LABEL (no copy) so the consumer converts right.
         bool          is_bgr    = true;
         // --- QoS (carried in the descriptor; both ends must agree) ---
         int           history_depth      = 8;

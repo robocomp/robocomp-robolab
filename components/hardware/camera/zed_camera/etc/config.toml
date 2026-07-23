@@ -33,7 +33,7 @@ RGBTopic = "rc/zed/rgb"
 DepthTopic = "rc/zed/depth"
 RGBFormat = "rgb"        # "rgb" (real ZED) or "bgr" (e.g. Webots source)
 # QoS — carried in the descriptor relayed to DSR; consumers must agree.
-HistoryDepth = 8
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
 DataSharing = false      # OFF = churn-safe in CORTEX (see media_transport.h)
 

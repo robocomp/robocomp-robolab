@@ -135,7 +135,8 @@ void SpecificWorker::initialize()
         catch (const std::runtime_error&) { /* keep default */ }
         try { dds_cfg.data_sharing = configLoader.get<bool>("DDS.DataSharing"); }
         catch (const std::runtime_error&) { /* keep default */ }
-        // RGB byte order: "rgb" (real ZED) or "bgr" (e.g. Webots source).
+        // RGB byte order label: "rgb" for both the real ZED (BGRA->RGB converted) and the Webots
+        // CameraRGBDSimple proxy (RGB-ordered); "bgr" only for a source emitting genuine BGR.
         try {
             const std::string fmt = configLoader.get<std::string>("DDS.RGBFormat");
             dds_cfg.rgb_is_bgr = (fmt == "bgr" || fmt == "BGR");
@@ -372,7 +373,9 @@ long SpecificWorker::build_real_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
     const int w = image.getWidth();
     const int h = image.getHeight();
 
-    // --- RGB: convert RGBA -> RGB directly into the Ice byte buffer (no copy/alloc) ---
+    // --- RGB: convert the ZED's native BGRA -> RGB directly into the Ice byte buffer (no copy/alloc) ---
+    // sl::VIEW::LEFT retrieves a 4-channel BGRA image, so the swap-and-drop must be BGRA2RGB (not
+    // RGBA2RGB, which only strips alpha and would leave the bytes in BGR order under an RGB8 label).
     RoboCompCameraRGBDSimple::TImage &rgb_image = rgbd.image;
     rgb_image.width = w;   rgb_image.height = h;  rgb_image.depth = 3;
     rgb_image.cameraID = 0;
@@ -381,9 +384,9 @@ long SpecificWorker::build_real_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
     rgb_image.compressed = false;
     rgb_image.image.resize(static_cast<size_t>(w) * h * 3);
     {
-        const cv::Mat rgba(h, w, CV_8UC4, image.getPtr<sl::uchar1>(sl::MEM::CPU));
+        const cv::Mat bgra(h, w, CV_8UC4, image.getPtr<sl::uchar1>(sl::MEM::CPU));
         cv::Mat rgb_dst(h, w, CV_8UC3, rgb_image.image.data());
-        cv::cvtColor(rgba, rgb_dst, cv::COLOR_RGBA2RGB);
+        cv::cvtColor(bgra, rgb_dst, cv::COLOR_BGRA2RGB);
     }
 
     // --- Depth: memcpy the float depth straight into the Ice byte buffer ---

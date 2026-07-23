@@ -47,9 +47,10 @@ class ZedDDSPublisher
             std::uint32_t domain_id     = 7;              // CORTEX media domain
             std::string   rgb_topic     = "rc/zed/rgb";
             std::string   depth_topic   = "rc/zed/depth";
-            // Byte order of the RGB buffer. The real ZED path produces RGB; a Webots
-            // source may deliver BGR. This only sets the frame's format LABEL (no copy),
-            // so the consumer converts correctly. false = RGB8, true = BGR8.
+            // Byte order of the RGB buffer. BOTH live sources deliver RGB: the real ZED path
+            // converts native BGRA->RGB (see build_real_rgbd), and the Webots CameraRGBDSimple
+            // proxy is RGB-ordered too. This only sets the frame's format LABEL (no copy), so the
+            // consumer converts correctly. false = RGB8 (default, correct for both), true = BGR8.
             bool          rgb_is_bgr    = false;
             // --- QoS (carried in the descriptor; both ends must agree) ---
             int           history_depth      = 8;      // KEEP_LAST depth

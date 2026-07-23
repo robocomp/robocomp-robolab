@@ -11,7 +11,7 @@ PublishDDS = true
 DDS.Domain = 7
 DDS.Topic = "rc/ricoh/rgb"
 DDS.Format = "bgr"        # panorama is BGR (gstreamer BGR pipeline)
-DDS.HistoryDepth = 8
+DDS.HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 DDS.SharedMemoryOnly = true
 DDS.DataSharing = false
 

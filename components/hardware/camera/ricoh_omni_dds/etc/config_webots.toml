@@ -30,8 +30,8 @@ MediaPlaneDDS = "tcp -p 10099"
 [DDS]
 Domain = 7
 Topic = "rc/ricoh/rgb"
-Format = "bgr"             # panorama is BGR (gstreamer BGR pipeline)
-HistoryDepth = 8
+Format = "rgb"             # simulator=true reads the Webots Camera360RGB proxy (RGB bytes), NOT the gstreamer BGR pipeline
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
 DataSharing = false
 

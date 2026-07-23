@@ -34,9 +34,9 @@ PublishDDS = true   # DDS topci
 Domain = 7
 RGBTopic = "rc/zed/rgb"
 DepthTopic = "rc/zed/depth"
-RGBFormat = "bgr"        # Webots source delivers BGR; label it so YOLO gets colors right
+RGBFormat = "rgb"        # Webots CameraRGBDSimple delivers RGB-ordered bytes; label RGB8 so consumers convert right
 # QoS — carried in the descriptor relayed to DSR; consumers must agree.
-HistoryDepth = 8
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
 DataSharing = false      # OFF = churn-safe in CORTEX (see media_transport.h)
 

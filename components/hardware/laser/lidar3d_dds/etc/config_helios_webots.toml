@@ -72,7 +72,7 @@ z_max = 600.0
 [DDS]
 Domain = 7
 Topic = "rc/lidar3d/points"
-HistoryDepth = 8
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
 DataSharing = false
 

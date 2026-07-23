@@ -36,7 +36,7 @@ simulator = true
 PublishDDS = true
 DDS.Domain = 7
 DDS.Topic = "rc/lidar3d/points"
-DDS.HistoryDepth = 8
+DDS.HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 DDS.SharedMemoryOnly = true
 DDS.DataSharing = false
 

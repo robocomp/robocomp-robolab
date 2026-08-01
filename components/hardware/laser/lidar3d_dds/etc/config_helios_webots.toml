@@ -23,7 +23,16 @@ ry = 0.0
 rz = 0.0
 tx = 0.0
 ty = -155.0
-tz = 1030.0        # fallback only (matches shadow.json body<-helios ~1.03 m)
+# 2026-08-01: 1030 -> 1075. This fallback is used ONLY if shadow.json cannot be read, and it had gone
+# 45 mm stale against it (shadow.json body<-helios z = 1.075). That is not a harmless typo: the Embree
+# self-filter is a PROXIMITY test with Dilate = 0.05 m, so a 45 mm mount error leaves 5 mm of margin and
+# the query starts missing self-returns — which is exactly why a 0.55 m blind disc was added here
+# historically, and that disc then blinded the robot to real obstacles within 22 cm of its body.
+# The rollback path is SILENT in behaviour (stderr only, then it carries on), so a stale fallback would
+# resurrect that failure invisibly. Verified against shadow.json 2026-08-01; bpearl's fallback was
+# already in sync. ★If shadow.json's mounts change, change these too — or better, make the rollback
+# refuse to start rather than proceed on numbers nobody checked.
+tz = 1075.0        # fallback only; MUST equal shadow.json body<-helios z (1.075 m)
 
 [Proxies]
 # Proxies for required interfaces
@@ -37,6 +46,56 @@ MediaPlaneDDS = "tcp -p 11890"
 # Robot-body self-filter (Embree). Removes lidar points hitting the static robot mesh.
 [MeshFilter]
 enabled = true
+
+# ---------------------------------------------------------------------------------------------
+# WHERE THE ROBOT'S SHAPE COMES FROM.  "proto" | "mesh"
+#
+# 2026-08-01: a SINGLE MESH IS NOT THE ROBOT. Shadow.proto composes the robot from the body Mesh
+# PLUS four HingeJoint wheel assemblies (28 inline IndexedFaceSets) PLUS camera/lidar solids, each
+# at its own transform. Anything in the other solids was simply absent from the filter's Embree
+# scene, so no dilate value could ever remove its returns — which is how a 0.55 m blind disc came
+# to be bolted on, and that disc blinded the robot within ~0.22 m of its skin.
+#   MEASURED with the assembled scene (bin/proto_scene_probe): the assembly is 28745 triangles vs
+#   the body mesh's 18809, and reaches |x| 0.2464 where the mesh alone stops at 0.2386 — the extra
+#   0.0078 m per side is the WHEELS, which are the outermost geometry on the robot below z = 0.10 m
+#   and are the one thing shadow.stl genuinely omits (its wheel wells are cut out at |x| 0.1770).
+#
+# ⚠ proto_file is the WEBOTS SIMULATION's robot definition. The REAL robot may be described by a
+# different file (URDF / another proto / a CAD export). If the two ever disagree the self-filter is
+# correct in simulation and WRONG on hardware — geometry in the proto but not on the robot silently
+# DELETES real returns near the body, which is the more dangerous direction. Treat this as a
+# per-deployment input, not a constant.
+#
+# ROLLBACK, no rebuild needed: geometry_source = "mesh". mesh_file / mesh_off_* below are untouched
+# and behave exactly as before.
+geometry_source = "proto"
+proto_file = "/home/pbustos/robocomp/components/webots-shadow/protos/Shadow.proto"
+# Webots `boundingObject` is the PHYSICS collision hull; a simulated LiDAR cannot see it (Webots
+# ray-casts the graphics). Measured: including it adds a 0.44 x 0.46 x 0.76 m box that is FATTER
+# than the body it wraps (body radius at z = 0.5 m is 0.150 m, box half-extent 0.22 x 0.23 m), so
+# it would delete real returns in a shell around the robot — the 0.55 m disc's failure mode again.
+proto_include_bounding_objects = false
+# ---------------------------------------------------------------------------------------------
+# 2026-08-01: swapped from Shadow/shadow.stl to Shadow/shadow.obj.
+# The .stl is the Webots BODY only — the wheels and the arm are SEPARATE Webots protos, so their
+# returns were never within Dilate of the filter's mesh and survived as phantom obstacles attached
+# to the robot. Measured with the 0.55 m disc removed: the nearest return clustered at bearing
+# -60..-30 deg in 59% of cycles at z p50 = 0.746 m — a fixed bearing at a fixed height travelling
+# with the robot, i.e. its own arm. The .obj is the full model (47530 faces vs 18809; x +-0.2420 vs
+# +-0.2386, y up to +0.2471 vs +-0.2300, z to 1.3671 vs 1.3089).
+# mesh_off_z: the .obj is authored with z-min at -0.0500 m (it hangs below the floor plane; the
+# project's own viewers recentre it before display). +0.0534 puts its z-min at the .stl's 0.0034 m.
+# xy are NOT offset: the .obj's x is exactly symmetric (+-0.2420), so its origin is right in xy, and
+# the y asymmetry (-0.2306..+0.2471) is real front geometry, not an origin error. Recentring y would
+# move the mesh 8 mm and reintroduce exactly the kind of silent offset the 45 mm mount error was.
+# ROLLBACK: mesh_file = "Shadow/shadow.stl" and mesh_off_z = 0.0
+# ROLLBACK TARGET for geometry_source = "mesh". Points at the in-tree shadow.stl, NOT the shadow.obj
+# that was briefly tried on 2026-08-01: measured, the OBJ is also body-only (both meshes are empty from
+# -90 to +90 deg at z~0.5), so it was a detour, and it is a 12 MB display asset that does not belong in
+# this repo. mesh_off_z = 0 because the STL is already authored in the robot frame; the OBJ needed
+# +0.0534 because its z-min sits at -0.050.
+mesh_file = "Shadow/shadow.stl"
+mesh_off_z = 0.0
 
 [Robot]
 name = "Shadow"
@@ -55,7 +114,19 @@ z = 100000.0
 # inside this disc (radius in metres) within the z-band (mm). Safe: nothing inside the
 # robot's own footprint is a real obstacle. radius = 0 disables.
 [Footprint]
-radius = 0.55
+# 2026-08-01: radius 0.55 -> 0 (DISABLED). It deleted every return within 0.55 m of the robot
+# CENTRE against a 0.3252 m circumscribed body — a ~0.22 m blind shell in which an obstacle with no
+# map representation simply ceased to exist, which is how the robot drove into unmodelled objects.
+# Measured before removal: nearest_lidar_m pinned at median 0.550, p01 0.530, over 4067 cycles.
+# The disc was a COMPENSATION, not geometry: the Embree mesh query was missing self-returns because
+# the helios mount was 45 mm stale (shadow.json says 1.075; the fallback below still says 1030) and
+# Dilate is 0.05 — a 45 mm error leaves 5 mm of margin. The mount is now correct and loaded, so the
+# mesh query is doing the job the disc was papering over.
+# ROLLBACK: restore radius = 0.55 (original file kept as *.pre-disc-removal).
+# ★CAVEAT: the mesh is shadow.stl = the Webots BODY only; the wheels are separate Webots protos and
+# reach 0.246 m. They should still be caught by the 0.05 m dilate, but census this with the proximity
+# CSV's n_shell_pts / shell_sectors / near_lidar_z before trusting it.
+radius = 0.0
 z_min = 110.0
 z_max = 1350.0
 
@@ -74,7 +145,7 @@ Domain = 7
 Topic = "rc/lidar3d/points"
 HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
-DataSharing = false
+DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
 
 [Period]
 Compute = 50

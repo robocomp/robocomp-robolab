@@ -138,7 +138,7 @@ bool URDFMeshLoader::parseJoint(void *xml_element) {
   return true;
 }
 
-void URDFMeshLoader::loadMeshIntoEmbree(LinkNode *link,
+bool URDFMeshLoader::loadMeshIntoEmbree(LinkNode *link,
                                         const std::string &mesh_path) {
   Assimp::Importer importer;
   const aiScene *scene = importer.ReadFile(
@@ -146,9 +146,9 @@ void URDFMeshLoader::loadMeshIntoEmbree(LinkNode *link,
                      aiProcess_SortByPType);
 
   if (!scene || !scene->HasMeshes()) {
-    std::cerr << "URDFMeshLoader: Failed to load mesh " << mesh_path
-              << std::endl;
-    return;
+    std::cerr << "URDFMeshLoader: Failed to load mesh " << mesh_path << ": "
+              << importer.GetErrorString() << std::endl;
+    return false;
   }
 
   RTCScene link_scene = rtcNewScene(m_device);
@@ -203,6 +203,7 @@ void URDFMeshLoader::loadMeshIntoEmbree(LinkNode *link,
 
   std::cout << "Loaded mesh for " << link->name << " (" << mesh_path << ")"
             << std::endl;
+  return true;
 }
 
 bool URDFMeshLoader::loadURDF(const std::string &urdf_path,
@@ -259,16 +260,23 @@ bool URDFMeshLoader::loadURDF(const std::string &urdf_path,
 }
 
 bool URDFMeshLoader::loadSingleSTL(const std::string &stl_path) {
+  return loadSingleMesh(stl_path, Eigen::Matrix4f::Identity());
+}
+
+bool URDFMeshLoader::loadSingleMesh(const std::string &mesh_path,
+                                    const Eigen::Matrix4f &placement) {
   LinkNode *link = new LinkNode();
   link->name = "base_link";
-  loadMeshIntoEmbree(link, stl_path);
+  const bool ok = loadMeshIntoEmbree(link, mesh_path);
   m_links[link->name] = link;
   m_root_link = link;
-  Eigen::Matrix4f I = Eigen::Matrix4f::Identity();
-  if (link->has_geometry) {
+  if (not ok or not link->has_geometry)
+    return false;                 // NEVER report success on an empty scene — see the header.
+  Eigen::Matrix4f P = placement;
+  {
     RTCGeometry geom = rtcGetGeometry(m_scene, link->embree_instance_id);
     rtcSetGeometryTransform(geom, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
-                            I.data());
+                            P.data());
     rtcCommitGeometry(geom);
     rtcCommitScene(m_scene);
   }

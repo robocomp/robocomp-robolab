@@ -9,6 +9,7 @@ LIST(APPEND SOURCES
   ../src/dds_publisher.cpp
   ../src/mesh_filter.cpp
   ../src/urdf_mesh_loader.cpp
+  ../src/webots_proto_loader.cpp
   ${MEDIA_TRANSPORT_DIR}/media_transport.cpp
   ${MEDIA_TRANSPORT_IDL}/image_framePubSubTypes.cxx
   ${MEDIA_TRANSPORT_IDL}/image_frameTypeObjectSupport.cxx
@@ -26,6 +27,7 @@ LIST(APPEND HEADERS
   ../src/dds_publisher.h
   ../src/mesh_filter.h
   ../src/urdf_mesh_loader.h
+  ../src/webots_proto_loader.h
 )
 
 # Robot-body self-filter deps (Embree ray query, assimp mesh load, tinyxml2 URDF parse).

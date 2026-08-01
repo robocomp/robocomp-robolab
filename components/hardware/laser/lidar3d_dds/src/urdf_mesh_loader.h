@@ -36,6 +36,13 @@ public:
 
     bool loadURDF(const std::string& urdf_path, const std::string& base_dir);
     bool loadSingleSTL(const std::string& stl_path);
+    // As loadSingleSTL but for ANY mesh Assimp can read (STL, OBJ, ...), with a rigid placement
+    // applied as the Embree INSTANCE transform. The transform exists because a mesh authored for
+    // display need not sit in the robot frame: shadow.obj's z-min is -0.050 m, i.e. it hangs below
+    // the floor plane, and the project's own viewers recentre it before use. Getting that placement
+    // wrong is the same class of bug as the 45 mm helios mount error — it silently moves the mesh by
+    // a distance comparable to the 0.05 m query radius and the self-filter starts missing returns.
+    bool loadSingleMesh(const std::string& mesh_path, const Eigen::Matrix4f& placement);
     
     void updateJoints(const std::map<std::string, float>& joint_angles);
 
@@ -49,7 +56,10 @@ private:
 
     bool parseLink(void* xml_element); // void* to avoid exposing tinyxml2 in header
     bool parseJoint(void* xml_element);
-    void loadMeshIntoEmbree(LinkNode* link, const std::string& mesh_path);
+    // Returns FALSE when the mesh cannot be read. It used to be `void`, and loadSingleMesh returned
+    // true regardless — so a typo'd path produced an EMPTY Embree scene, a self-filter that dropped
+    // nothing, and a phantom obstacle glued to the robot. Hours were lost to that in 2026-08.
+    bool loadMeshIntoEmbree(LinkNode* link, const std::string& mesh_path);
     
     Eigen::Matrix4f parseOrigin(void* xml_element);
     Eigen::Vector3f parseAxis(void* xml_element);

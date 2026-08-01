@@ -267,7 +267,17 @@ void SpecificWorker::initialize()
         MeshFilter::Config mcfg;
         mcfg.mount = this->robot_lidar;   // device -> robot mount (from shadow.json / config)
         try { mcfg.robot_name = this->configLoader.get<std::string>("Robot.name"); } catch(...) {}
+        // Geometry source. "proto" assembles the WHOLE Webots robot definition (body + wheels +
+        // sensor solids); "mesh" is the historical single-mesh path and the config-only ROLLBACK.
+        // proto_file names the SIMULATION's robot — a per-deployment input, see webots_proto_loader.h.
+        try { mcfg.geometry_source = this->configLoader.get<std::string>("MeshFilter.geometry_source"); } catch(...) {}
+        try { mcfg.proto_file      = this->configLoader.get<std::string>("MeshFilter.proto_file"); } catch(...) {}
+        try { mcfg.proto_include_bounding_objects = this->configLoader.get<bool>("MeshFilter.proto_include_bounding_objects"); } catch(...) {}
         try { mcfg.mesh_dir   = this->configLoader.get<std::string>("MeshFilter.mesh_dir"); } catch(...) {}
+        try { mcfg.mesh_file  = this->configLoader.get<std::string>("MeshFilter.mesh_file"); } catch(...) {}
+        try { mcfg.mesh_off_x = this->configLoader.get<double>("MeshFilter.mesh_off_x"); } catch(...) {}
+        try { mcfg.mesh_off_y = this->configLoader.get<double>("MeshFilter.mesh_off_y"); } catch(...) {}
+        try { mcfg.mesh_off_z = this->configLoader.get<double>("MeshFilter.mesh_off_z"); } catch(...) {}
         try { mcfg.floor_z    = static_cast<float>(this->configLoader.get<double>("Floor.z")); } catch(...) {}
         try { mcfg.top_z      = static_cast<float>(this->configLoader.get<double>("Top.z")); } catch(...) {}
         try { mcfg.dilate     = static_cast<float>(this->configLoader.get<double>("Dilate")); } catch(...) {}

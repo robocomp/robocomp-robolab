@@ -38,7 +38,7 @@ RGBFormat = "rgb"        # Webots CameraRGBDSimple delivers RGB-ordered bytes; l
 # QoS — carried in the descriptor relayed to DSR; consumers must agree.
 HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
-DataSharing = false      # OFF = churn-safe in CORTEX (see media_transport.h)
+DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
 
 
 [Period]

@@ -86,6 +86,7 @@ void GenericWorker::setPeriod(const std::string& state, int period)
     if (it != states.end() && it->second != nullptr)
     {
 		it->second->setPeriod(period);
+		std::cout << "Period for state " << state << " changed to " << period << "ms" << std::endl << std::flush;
 	}
     else
         std::cerr << "No change in the period, the state is not valid or not configured."<< std::endl;

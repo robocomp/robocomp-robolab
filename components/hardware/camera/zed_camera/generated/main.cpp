@@ -59,6 +59,7 @@
  * ...
  *
  */
+#include <clocale>
 #include <signal.h>
 
 // QT includes
@@ -229,6 +230,17 @@ int zed_camera::run(int argc, char* argv[])
 	QCoreApplication a(argc, argv);  // NON-GUI application
 #endif
 
+	// The Q*Application constructor above calls setlocale(LC_ALL, "") — it adopts the user's
+	// locale for the C library. On a machine whose locale uses a decimal COMMA (es_ES, fr_FR,
+	// de_DE, ...) that silently breaks numeric I/O: strtof/atof/scanf then stop at the '.' of a
+	// file written with decimal POINTS and return just the integer part, with NO error flag
+	// ("0.626452" -> 0). Meanwhile std::ofstream keeps formatting through the C++ global locale,
+	// which stays "C" and writes POINTS — so a component corrupts its own data on round-trip.
+	// Pin LC_NUMERIC back to "C" so the two agree. Text stays localised: LC_CTYPE / LC_TIME /
+	// LC_MESSAGES keep the user's locale, and Qt's own formatting goes through QLocale, which
+	// this does not touch. Prefer std::from_chars for parsing anyway — it is locale-independent
+	// by definition and cannot regress if someone changes the locale later.
+	std::setlocale(LC_NUMERIC, "C");
 
 	sigset_t sigs;
 	sigemptyset(&sigs);

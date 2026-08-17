@@ -33,7 +33,7 @@ Topic = "rc/ricoh/rgb"
 Format = "rgb"             # simulator=true reads the Webots Camera360RGB proxy (RGB bytes), NOT the gstreamer BGR pipeline
 HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
 SharedMemoryOnly = true
-DataSharing = false
+DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
 
 [Period]
 Compute = 30               # ~33 FPS máximo (ajustado automáticamente)

@@ -57,13 +57,12 @@ class SpecificWorker(GenericWorker):
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
 
-            self.x_max_vel = 750
-            self.y_max_vel = 400
-            self.angle_max_vel = 2
+            # Axis and button mappings are read from the config file
+            self.axes, self.buttons = self.load_joystick_mapping(configData)
 
-            self.past_values = np.zeros(3)
+            self.past_values = np.zeros(len(self.axes))
             self.stop_counter = 0
-            self.old_button = np.array([0,0,0])
+            self.old_button = np.zeros(len(self.buttons), dtype=int)
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
@@ -79,23 +78,55 @@ class SpecificWorker(GenericWorker):
         #	print("Error reading config params")
         return True
 
+    def load_joystick_mapping(self, configData):
+        """Read axis and button mappings from the config file.
+
+        Expected entries (see etc/config), one CSV string per axis/button:
+            joystickUniversal.NumAxes    = N
+            joystickUniversal.Axis_i     = name, axis_index, min, max, inverted, dead_zone
+            joystickUniversal.NumButtons = M
+            joystickUniversal.Button_i   = name, button_index, step
+        """
+        jc = configData["joystickUniversal"]
+
+        axes = []
+        for i in range(int(jc["NumAxes"])):
+            name, axis, mn, mx, inverted, dead_zone = [s.strip() for s in str(jc[f"Axis_{i}"]).split(",")]
+            axes.append({
+                "name": name,
+                "axis": int(axis),
+                "min": float(mn),
+                "max": float(mx),
+                "inverted": inverted.lower() == "true",
+                "dead_zone": float(dead_zone),
+            })
+
+        buttons = []
+        for i in range(int(jc["NumButtons"])):
+            name, index, step = [s.strip() for s in str(jc[f"Button_{i}"]).split(",")]
+            buttons.append({
+                "name": name,
+                "index": int(index),
+                "step": int(step),
+            })
+
+        return axes, buttons
+
 
     @QtCore.Slot()
     def compute(self):
         # Handle events to keep pygame in sync with the system
         pygame.event.pump()
-        # Get odometry values from joystick
-        odom_values = self.get_odom_with_joystick(np.array([self.joystick.get_axis(1),
-                                           self.joystick.get_axis(0),
-                                           self.joystick.get_axis(3)]))
-        button_values = np.array([self.joystick.get_button(1), self.joystick.get_button(3), self.joystick.get_button(2)])
-        # if hoystick values are 0, 0, 0 for 5 times, return
+        # Get odometry values and button states from the joystick, following the config mapping
+        odom_values = np.array([self.read_axis(a) for a in self.axes])
+        button_values = np.array([self.read_button(b) for b in self.buttons])
+        # if joystick values are all 0 and buttons unchanged for 5 times, slow down and return
         if np.all(odom_values == 0) and np.array_equal(self.old_button, button_values) :
             self.stop_counter += 1
             if self.stop_counter > 4:
                 self.Period = 100
                 return
-            
+
         else:
             if self.stop_counter > 4:
                 self.Period = 16
@@ -105,30 +136,25 @@ class SpecificWorker(GenericWorker):
         print(odom_values, button_values)
         self.publish_odom(odom_values, button_values)
 
-    def get_odom_with_joystick(self, joystick_values):
-        # Read the left joystick axes (0 is horizontal, 1 is vertical)
-        axis_x = joystick_values[0] if abs(joystick_values[0]) > 0.1 else 0 # Left stick horizontal movement
-        axis_y = joystick_values[1] if abs(joystick_values[1]) > 0.1 else 0 # Left stick vertical movement
+    def read_axis(self, axis):
+        # Read a single joystick axis, apply dead zone, scale to [min, max] and invert if requested
+        raw = self.joystick.get_axis(axis["axis"])
+        if abs(raw) <= axis["dead_zone"]:
+            return 0.0
+        value = raw * (axis["max"] if raw >= 0 else -axis["min"])
+        return -value if axis["inverted"] else value
 
-        # Assign the axes to the robot's movement
-        x_odom = -axis_x * self.x_max_vel
-        y_odom = -axis_y * self.y_max_vel
-
-        # Read the right joystick axis (3 is horizontal movement)
-        right_axis_x = joystick_values[2] if abs(joystick_values[2]) > 0.1 else 0 # Right stick horizontal movement
-
-        # Assign the axis to the robot's rotation
-        angle_odom = -right_axis_x * self.angle_max_vel
-
-        return np.array([x_odom, y_odom ,angle_odom])
+    def read_button(self, button):
+        # Button state (0/1) scaled by the configured step
+        return int(self.joystick.get_button(button["index"])) * button["step"]
 
     def publish_odom(self, odom_values, button_values):
-        axis_data = ifaces.RoboCompJoystickAdapter.AxisList([ifaces.RoboCompJoystickAdapter.AxisParams(name="side", value=float(odom_values[1])),
-                                                              ifaces.RoboCompJoystickAdapter.AxisParams(name="advance", value=float(odom_values[0])),
-                                                              ifaces.RoboCompJoystickAdapter.AxisParams(name="rotate", value=float(odom_values[2]))])
-        button_data = ifaces.RoboCompJoystickAdapter.ButtonsList([ifaces.RoboCompJoystickAdapter.ButtonParams(name="block", step=button_values[0]),
-                                                                 ifaces.RoboCompJoystickAdapter.ButtonParams(name="stop", step=button_values[1]),
-                                                                 ifaces.RoboCompJoystickAdapter.ButtonParams(name="joystick_control", step=button_values[2])])
+        axis_data = ifaces.RoboCompJoystickAdapter.AxisList(
+            [ifaces.RoboCompJoystickAdapter.AxisParams(name=a["name"], value=float(v))
+             for a, v in zip(self.axes, odom_values)])
+        button_data = ifaces.RoboCompJoystickAdapter.ButtonsList(
+            [ifaces.RoboCompJoystickAdapter.ButtonParams(name=b["name"], step=int(v))
+             for b, v in zip(self.buttons, button_values)])
         self.joystickadapter_proxy.sendData(ifaces.RoboCompJoystickAdapter.TData(axes=axis_data, buttons=button_data))
 
     def startup_check(self):

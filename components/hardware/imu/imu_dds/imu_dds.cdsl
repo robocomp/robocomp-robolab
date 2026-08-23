@@ -1,0 +1,13 @@
+import "MediaPlaneDDS.idsl";
+import "IMU.idsl";
+
+Component imu_dds
+{
+    Communications
+    {
+        implements MediaPlaneDDS;
+	requires IMU;
+    };
+    language Cpp11;
+};
+

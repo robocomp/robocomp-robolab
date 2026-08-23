@@ -1,0 +1,36 @@
+# Proxies for required interfaces
+# The IMU source. In simulation this is webots-bridge (Endpoints.IMU = tcp -p 10007);
+# on hardware, whichever driver component owns the device (phidgetimu, sbg_ekinox, ...).
+# 10007 is the IMU port on every bridge (webots-bridge, p3bot-bridge, shadow imu), so this
+# stock config works on all of them.
+Proxies.IMU = "imu:tcp -h localhost -p 10007"
+
+# Endpoints for implements interfaces
+# Media-plane descriptor query. robot_concept binds this as one of its MediaPlaneDDS
+# proxies; the ports already taken by its siblings are zed 12002, ricoh 10099,
+# lidar3d_dds helios 11890 and bpearl 11889.
+Endpoints.MediaPlaneDDS = "tcp -p 11891"
+
+# DDS imu media plane (ImuFrame). Metadata is advertised into DSR by the robot_concept
+# agent (it pulls this component's descriptor over MediaPlaneDDS), not here.
+# Domain 7 is the CORTEX media domain — deliberately NOT the DSR domain 0, so media
+# participant churn can never perturb cortex discovery/resync.
+PublishDDS = true
+DDS.Domain = 7
+DDS.Topic = "rc/imu/data"
+DDS.HistoryDepth = 8
+DDS.SharedMemoryOnly = true
+DDS.DataSharing = false
+
+# Compute is the IDLE/source-down CEILING only: the component measures the IMU's own
+# period from its sample stamps and drives the real period down to ~half of it, so this
+# value cannot cap the sensor rate.
+Period.Compute = 100
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

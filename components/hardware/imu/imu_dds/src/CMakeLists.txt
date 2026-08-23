@@ -25,7 +25,29 @@ LIST(APPEND SOURCES
 LIST(APPEND HEADERS
   ../src/specificworker.h
   ../src/dds_publisher.h
+  ../src/imu_sample.h
 )
+
+# ── Optional: real Phidget Spatial support (IMU.Source = "phidget") ──────────
+# OPTIONAL on purpose. The component's other source is the ICE IMU interface, which needs
+# nothing extra, so a machine without the Phidget SDK (every simulation box) must still
+# build. When the header+lib are found we compile phidget_imu.cpp and define
+# HAVE_PHIDGET22; when they are not, IMU.Source = "phidget" fails loudly at startup with
+# the apt line to fix it, instead of failing here for everyone.
+#   sudo apt install libphidget22-dev
+find_path(PHIDGET22_INCLUDE_DIR phidget22.h)
+find_library(PHIDGET22_LIBRARY NAMES phidget22)
+if(PHIDGET22_INCLUDE_DIR AND PHIDGET22_LIBRARY)
+  message(STATUS "imu_dds: Phidget22 found (${PHIDGET22_LIBRARY}) — IMU.Source=\"phidget\" enabled")
+  LIST(APPEND SOURCES ../src/phidget_imu.cpp)
+  LIST(APPEND HEADERS ../src/phidget_imu.h)
+  LIST(APPEND LIBS ${LIBS} ${PHIDGET22_LIBRARY})
+  include_directories(${PHIDGET22_INCLUDE_DIR})
+  add_definitions(-DHAVE_PHIDGET22)
+else()
+  message(WARNING "imu_dds: Phidget22 NOT found — building WITHOUT phidget support "
+                  "(IMU.Source=\"phidget\" will refuse to start). Fix: sudo apt install libphidget22-dev")
+endif()
 
 include_directories(${MEDIA_TRANSPORT_DIR})
 

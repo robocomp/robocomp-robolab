@@ -16,6 +16,21 @@ Endpoints.MediaPlaneDDS = "tcp -p 11891"
 # Domain 7 is the CORTEX media domain — deliberately NOT the DSR domain 0, so media
 # participant churn can never perturb cortex discovery/resync.
 PublishDDS = true
+
+# Where the samples come from: "ice" | "phidget". See etc/config.toml for the full notes.
+# Both sources produce the SAME stream on rc/imu/data, so this one line swaps simulation
+# for hardware and nothing downstream changes.
+IMU.Source = "ice"
+
+# Real Phidget Spatial settings. Only read when IMU.Source = "phidget".
+Phidget.DataIntervalMs = 8
+Phidget.Serial = -1
+Phidget.HubPort = -1
+Phidget.OpenTimeoutMs = 5000
+Phidget.UseAHRS = true
+Phidget.GyroVar = 1e-5
+Phidget.AccVar = 1e-3
+
 DDS.Domain = 7
 DDS.Topic = "rc/imu/data"
 DDS.HistoryDepth = 8

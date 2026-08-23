@@ -40,6 +40,8 @@
 #include <memory>
 #include <string>
 
+#include "imu_sample.h"
+
 class ImuDDSPublisher
 {
 public:
@@ -55,26 +57,6 @@ public:
         // next to any real IMU period (~9 ms here), so a healthy stream can never trip it, while
         // a stalled source hands the plane back to robot_concept within a couple of seconds.
         int           stale_after_ms     = 2000;
-    };
-
-    // One sample, in the units the ICE IMU interface reports them (SI: m/s^2, rad/s,
-    // rad). No conversion happens on this plane — the producer's units ARE the
-    // contract, and ImuFrame documents them.
-    struct Sample
-    {
-        std::uint64_t stamp_ms = 0;                 // capture time, WALL epoch ms
-        // Producer's SIMULATION clock in ms, 0 when the source is a real sensor. Carried because a
-        // consumer integrating the gyro must key on the clock the RATE is measured against: a
-        // simulator reports per SIMULATION second while its stamps are wall. 0 doubles as the
-        // "not simulated" flag.
-        std::uint64_t sim_stamp_ms = 0;
-        float acc[3]  = {0.f, 0.f, 0.f};
-        float gyro[3] = {0.f, 0.f, 0.f};
-        float mag[3]  = {0.f, 0.f, 0.f};
-        float rpy[3]  = {0.f, 0.f, 0.f};            // roll, pitch, yaw
-        float temperature = 0.f;
-        float gyro_var = -1.f;                      // (rad/s)^2; negative = producer does not know
-        float acc_var  = -1.f;                      // (m/s^2)^2; negative = producer does not know
     };
 
     ImuDDSPublisher();
@@ -101,9 +83,9 @@ public:
     // only while actually producing, and hand it back by going quiet.
     [[nodiscard]] std::string descriptor_json() const;
 
-    // Publish one IMU sample. Returns false (dropped) on: not ready, loan unavailable,
-    // or publish failure.
-    bool publish(const Sample& s);
+    // Publish one IMU sample (SI units — see imu_sample.h). Returns false (dropped) on:
+    // not ready, loan unavailable, or publish failure.
+    bool publish(const ImuSample& s);
 
 private:
     struct Impl;

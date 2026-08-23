@@ -3,6 +3,18 @@
 # make it "Endpoints.PublishDDS" and the component would read it as absent -> false.
 PublishDDS = true
 
+# ── Where the samples come from: "ice" | "phidget" ───────────────────────────
+#   ice     - pull RoboCompIMU::getDataImu() over ICE from Proxies.IMU below (the Webots
+#             bridge in simulation, or any driver component implementing the IMU interface).
+#   phidget - read a real Phidget Spatial directly through the phidget22 library, using the
+#             [Phidget] section below. Proxies.IMU is then unused.
+# Both produce the SAME stream on rc/imu/data — identical type, units and topic — so
+# swapping simulation for hardware is this one line and nothing downstream changes.
+# "phidget" needs the component built with libphidget22-dev present; without it the
+# component says so at startup and refuses rather than silently publishing nothing.
+[IMU]
+Source = "ice"
+
 [Proxies]
 # The IMU source. In simulation this is webots-bridge (Endpoints.IMU = tcp -p 10007);
 # on hardware, whichever driver component owns the device (phidgetimu, sbg_ekinox, ...).
@@ -26,6 +38,28 @@ Topic = "rc/imu/data"
 HistoryDepth = 8
 SharedMemoryOnly = true
 DataSharing = false
+
+# Real Phidget Spatial settings. Only read when IMU.Source = "phidget".
+[Phidget]
+# Sampling period asked of the device, ms; clamped up to its own MinDataInterval on attach.
+# 8 ms = 125 Hz, the same cadence the simulated IMU produces.
+DataIntervalMs = 8
+# Device selection. -1 = "any", right for the usual single-IMU robot. Set both only when
+# more than one Phidget is on the bus.
+Serial = -1
+HubPort = -1
+# How long to wait for the device to attach at startup. Timing out is NOT fatal: the
+# component keeps retrying, so plugging the IMU in later brings the stream up with no restart.
+OpenTimeoutMs = 5000
+# Take orientation from the device's on-board AHRS (quaternion -> roll/pitch/yaw). With this
+# off, rpy stays 0 rather than guessed — a 6-axis read cannot observe yaw at all, and a
+# fabricated heading is worse than an absent one.
+UseAHRS = true
+# Nominal per-sample variances, SI units squared. The device reports no covariance of its
+# own, so these are published alongside the data; a consumer weighting samples by a figure
+# unrelated to them gets a covariance that lies. Set negative to say "unknown" honestly.
+GyroVar = 1e-5
+AccVar = 1e-3
 
 [Period]
 # Compute is the IDLE/source-down CEILING only: the component measures the IMU's own

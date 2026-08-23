@@ -4,15 +4,48 @@ Bridges the IMU from the RoboComp **ICE** world onto the CORTEX **zero-copy DDS 
 plane**, so IMU samples reach consumers out-of-band instead of through the DSR graph.
 
 ```
-IMU driver (webots-bridge / p3bot-bridge / phidgetimu ...)
-        │  ICE  RoboCompIMU::getDataImu()
-        ▼
-    imu_dds  ──── ICE MediaPlaneDDS::getMediaDescriptor() ──▶ robot_concept ──▶ DSR "imu" node
-        │                                                        (relays the descriptor)
-        │  FastDDS  domain 7, topic "rc/imu/data", type ImuFrame
-        ▼
-    consumers (room_concept ImuIngestor, ...)  attach via the descriptor
+ IMU.Source = "ice"                         IMU.Source = "phidget"
+ ──────────────────                         ──────────────────────
+ webots-bridge / p3bot-bridge               Phidget Spatial on USB
+        │ ICE getDataImu()                         │ phidget22 (driver thread)
+        ▼                                          ▼
+   read_sample_ice()                       PhidgetImu::read()
+        └──────────────► ImuSample ◄───────────────┘
+                             │            (SI units, one struct)
+                             ▼
+                      ImuDDSPublisher
+                             │  FastDDS  domain 7, "rc/imu/data", ImuFrame
+                             ▼
+        consumers (room_concept ImuIngestor, ...) attach via the descriptor
+
+    imu_dds ── ICE MediaPlaneDDS::getMediaDescriptor() ──▶ robot_concept ──▶ DSR "imu" node
+                                                            (relays the descriptor)
 ```
+
+## Two sources, one stream
+
+`IMU.Source` picks where samples are **read**; it changes nothing about what is
+**published**. Both paths fill the same `ImuSample` (SI units, `src/imu_sample.h`) and go
+through the same `ImuDDSPublisher::publish()`, so the bytes on `rc/imu/data` are identical
+either way — a consumer cannot tell which source is running. Swapping simulation for real
+hardware is this one line, and nothing downstream changes.
+
+| `IMU.Source` | Reads from | Needs |
+|---|---|---|
+| `"ice"` (default) | `RoboCompIMU::getDataImu()` on `Proxies.IMU` | an IMU component (webots-bridge, p3bot-bridge, phidgetimu…) |
+| `"phidget"` | a real Phidget Spatial via `phidget22` (`src/phidget_imu.{h,cpp}`) | `libphidget22-dev` at build time, a device on USB at run time |
+
+The Phidget reader is push-driven: the driver delivers samples on its own thread at the
+configured `DataInterval`, `PhidgetImu` keeps the newest one under a mutex, and `read()`
+reports `false` when nothing new arrived — so `compute()` stays a plain polling loop and
+never blocks on the device. It converts the driver's **g** and **deg/s** to m/s² and rad/s
+on the way in, maps the `PUNK_DBL` (1e300) "unmeasurable" sentinel to NaN, and re-anchors
+the device clock (which counts from attach, not epoch) onto wall-epoch ms so
+`ImuFrame.stamp_ms` keeps its contract while inter-sample deltas stay the device's own.
+
+Phidget support is **optional at build time**: if `phidget22.h` is absent, `phidget_imu.cpp`
+is not compiled and `IMU.Source = "phidget"` refuses at startup with the apt line to fix it,
+rather than breaking the build on every simulation box.
 
 It publishes the **same topic, domain and frame type** that `robot_concept` used to bridge
 itself (`Media.imu_topic = "rc/imu/data"`, domain 7, `ImuFrame.v1`), so a consumer cannot
@@ -42,6 +75,9 @@ negotiates) before enabling this one.
 ## Dependencies
 The following dependencies are required to build and run imu_dds. Ensure they are installed and properly configured on your system before proceeding:
 - **eProsima Fast DDS** + **Fast CDR** (`find_package(fastdds)` / `fastcdr`)
+- **libphidget22-dev** — OPTIONAL, only for `IMU.Source = "phidget"`:
+  `sudo apt install libphidget22-dev`. Without it the component builds and runs fine on the
+  ICE source; CMake says so at configure time.
 - `active_inference/common/media_transport` — the shared `rc::media` publisher and the
   generated `ImuFrame` IDL support. Pulled in by source from `src/CMakeLists.txt`; nothing
   to install, but the `active_inference` tree must be checked out beside this one.
@@ -60,6 +96,12 @@ The following dependencies are required to build and run imu_dds. Ensure they ar
 | `DDS.SharedMemoryOnly` | SHM transport for same-board consumers. |
 | `DDS.DataSharing` | Zero-copy loans. Leave `false` (churn-safe) — see `media_transport.h`. |
 | `Period.Compute` | Idle/source-down **ceiling** only; see above. |
+| `IMU.Source` | `"ice"` or `"phidget"` — where samples are read. Same published stream either way. |
+| `Phidget.DataIntervalMs` | Sampling period asked of the device (8 = 125 Hz); clamped up to its `MinDataInterval`. |
+| `Phidget.Serial` / `Phidget.HubPort` | Device selection; `-1` = any. Set only with several Phidgets on the bus. |
+| `Phidget.OpenTimeoutMs` | Attach wait at startup. Timing out is not fatal — it keeps retrying, so plugging in later works. |
+| `Phidget.UseAHRS` | Orientation from the on-board AHRS (quaternion → rpy). Off ⇒ `rpy` stays 0 rather than guessed. |
+| `Phidget.GyroVar` / `Phidget.AccVar` | Nominal per-sample variances (SI²) published with the data; negative = "unknown". |
 
 ## Starting the component
 To avoid modifying the config file directly in the repository, you can copy it to the component's home directory. This prevents changes from being overridden by future `git pull` commands:

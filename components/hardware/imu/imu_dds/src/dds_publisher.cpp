@@ -102,7 +102,7 @@ std::string ImuDDSPublisher::descriptor_json() const
     return d.to_json();
 }
 
-bool ImuDDSPublisher::publish(const Sample& smp)
+bool ImuDDSPublisher::publish(const ImuSample& smp)
 {
     if (!ready_)
         return false;

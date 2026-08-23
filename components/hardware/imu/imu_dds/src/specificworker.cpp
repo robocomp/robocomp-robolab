@@ -19,11 +19,16 @@
 #include "specificworker.h"
 
 #include <algorithm>
+#include <ranges>
 #include <cstdint>
 #include <cstdlib>
 #include <print>
 
 #include "dds_publisher.h"
+
+#ifdef HAVE_PHIDGET22
+#include "phidget_imu.h"
+#endif
 
 SpecificWorker::SpecificWorker(const ConfigLoader& configLoader, TuplePrx tprx, bool startup_check) : GenericWorker(configLoader, tprx)
 {
@@ -91,18 +96,74 @@ void SpecificWorker::initialize()
     else
         std::cout << "PublishDDS is false — no media plane will be created." << std::endl;
 
-    if (imu_proxy == nullptr)
-        std::cerr << "No IMU proxy configured (Proxies.IMU) — nothing to publish." << std::endl;
+    // ---- Source gate: where the samples come from ----
+    // Both sources produce the same ImuSample and share one publish path, so this only
+    // changes where the data is READ, never what goes onto the plane.
+    try { imu_source = this->configLoader.get<std::string>("IMU.Source"); }
+    catch(...) { imu_source = "ice"; }
+    std::ranges::transform(imu_source, imu_source.begin(), ::tolower);
+    if (imu_source != "ice" and imu_source != "phidget")
+    {
+        std::cerr << "IMU.Source = '" << imu_source << "' is not one of ice|phidget — falling back to 'ice'."
+                  << std::endl;
+        imu_source = "ice";
+    }
+    use_phidget = (imu_source == "phidget");
+
+    if (use_phidget)
+    {
+#ifdef HAVE_PHIDGET22
+        PhidgetImu::Config pcfg;
+        try { pcfg.data_interval_ms = this->configLoader.get<int>("Phidget.DataIntervalMs"); } catch(...) {}
+        try { pcfg.serial = this->configLoader.get<int>("Phidget.Serial"); } catch(...) {}
+        try { pcfg.hub_port = this->configLoader.get<int>("Phidget.HubPort"); } catch(...) {}
+        try { pcfg.open_timeout_ms = this->configLoader.get<int>("Phidget.OpenTimeoutMs"); } catch(...) {}
+        try { pcfg.use_ahrs = this->configLoader.get<bool>("Phidget.UseAHRS"); } catch(...) {}
+        try { pcfg.gyro_var = static_cast<float>(this->configLoader.get<double>("Phidget.GyroVar")); } catch(...) {}
+        try { pcfg.acc_var  = static_cast<float>(this->configLoader.get<double>("Phidget.AccVar")); } catch(...) {}
+
+        // Poll at ~half the device period: the driver pushes on its own thread, so this only
+        // sets how promptly compute() picks a sample up. Also the ceiling, so a missing device
+        // cannot spin the loop.
+        max_period_ms = std::max(1, pcfg.data_interval_ms / 2);
+
+        phidget = std::make_unique<PhidgetImu>();
+        if (phidget->start(pcfg))
+            std::cout << "IMU source: phidget (" << phidget->device_label() << ")" << std::endl;
+        else
+            // Not fatal: compute() keeps retrying, so a cable plugged in later still works.
+            std::cerr << "IMU source: phidget — no device attached yet; will keep retrying."
+                      << std::endl;
+#else
+        std::cerr << "IMU.Source = 'phidget' but this build has NO Phidget support "
+                     "(phidget22.h was not found at configure time). Install libphidget22-dev "
+                     "and rebuild, or set IMU.Source = \"ice\"." << std::endl;
+        use_phidget = false;
+        imu_source = "ice";
+#endif
+    }
+
+    if (not use_phidget)
+    {
+        std::cout << "IMU source: ice (" << (imu_proxy != nullptr ? "proxy ready" : "NO PROXY") << ")"
+                  << std::endl;
+        if (imu_proxy == nullptr)
+            std::cerr << "No IMU proxy configured (Proxies.IMU) — nothing to publish." << std::endl;
+    }
 }
 
 
-void SpecificWorker::compute()
+// Fill `out` from whichever source is configured. Everything downstream is source-agnostic.
+bool SpecificWorker::read_sample(ImuSample& out)
 {
-    if (imu_proxy == nullptr or not publish_dds)
-    {
-        self_adjust_period(max_period_ms);
-        return;
-    }
+    return use_phidget ? read_sample_phidget(out) : read_sample_ice(out);
+}
+
+
+bool SpecificWorker::read_sample_ice(ImuSample& out)
+{
+    if (imu_proxy == nullptr)
+        return false;
 
     RoboCompIMU::DataImu data;
     try
@@ -111,15 +172,14 @@ void SpecificWorker::compute()
     }
     catch (const Ice::Exception &e)
     {
-        // Back off to the idle ceiling while the source is down, and say so ONCE: at the
-        // sensor's own rate a per-failure message would be hundreds of lines a second.
+        // Say it ONCE: at the sensor's own rate a per-failure message would be hundreds of
+        // lines a second.
         if (not proxy_error_logged)
         {
             std::cerr << "Error reading from IMU: " << e.what() << " — retrying..." << std::endl;
             proxy_error_logged = true;
         }
-        self_adjust_period(max_period_ms);
-        return;
+        return false;
     }
     if (proxy_error_logged)
     {
@@ -129,12 +189,83 @@ void SpecificWorker::compute()
         imu_src_period_ms = -1.0;
     }
 
-    // The acc substruct carries the freshest capture stamp; all substructs share a clock,
-    // so it is the frame timestamp and the dedup key.
-    const std::uint64_t stamp_ms = to_epoch_ms(data.acc.timestamp);
+    // The acc substruct carries the freshest capture stamp; all substructs share a clock.
+    out.stamp_ms = to_epoch_ms(data.acc.timestamp);
+    out.acc[0]  = data.acc.XAcc;  out.acc[1]  = data.acc.YAcc;  out.acc[2]  = data.acc.ZAcc;
+    out.gyro[0] = data.gyro.XGyr; out.gyro[1] = data.gyro.YGyr; out.gyro[2] = data.gyro.ZGyr;
+    out.mag[0]  = data.mag.XMag;  out.mag[1]  = data.mag.YMag;  out.mag[2]  = data.mag.ZMag;
+    out.rpy[0]  = data.rot.Roll;  out.rpy[1]  = data.rot.Pitch; out.rpy[2]  = data.rot.Yaw;
+    out.temperature = data.temperature;
+    // The two fields a media-plane consumer cannot reconstruct and must not have to guess.
+    // simTimestamp is 0 on a real IMU, which is exactly the "not simulated" signal the
+    // consumer needs; the gyro covariance is diagonal and isotropic, so m22 is its variance.
+    out.sim_stamp_ms = static_cast<std::uint64_t>(std::max<long long>(0, data.gyro.simTimestamp));
+    out.gyro_var     = data.gyro.cov.m22;
+    // The accelerometer covariance is diagonal and isotropic like the gyro's; m00 is the
+    // horizontal variance, which is the pair a consumer integrates for a velocity change.
+    out.acc_var      = data.acc.cov.m00;
+    return true;
+}
 
-    // Same sample as last tick: we polled faster than the source produces. Publishing it
-    // again would inflate the apparent rate and hand a consumer a zero-dt pair.
+
+bool SpecificWorker::read_sample_phidget(ImuSample& out)
+{
+#ifdef HAVE_PHIDGET22
+    if (not phidget)
+        return false;
+    // No device yet (or it was unplugged and the handle never opened): retry the open on a
+    // slow cadence rather than giving up, so plugging the IMU in brings the stream up with
+    // no restart. Speak once per outage, not once per tick.
+    if (not phidget->attached())
+    {
+        if (not phidget_retry_logged)
+        {
+            std::cerr << "Phidget IMU not attached — retrying..." << std::endl;
+            phidget_retry_logged = true;
+        }
+        self_adjust_period(max_period_ms);
+        return false;
+    }
+    if (phidget_retry_logged)
+    {
+        std::print("Phidget IMU attached: {}\n", phidget->device_label());
+        phidget_retry_logged = false;
+        last_imu_stamp_ms = 0;      // the outage is not a source period; don't feed the EMA
+        imu_src_period_ms = -1.0;
+    }
+    return phidget->read(out);     // false = nothing new since the last poll
+#else
+    (void) out;
+    return false;
+#endif
+}
+
+
+void SpecificWorker::compute()
+{
+    if (not publish_dds)
+    {
+        self_adjust_period(max_period_ms);
+        return;
+    }
+
+    // ONE path from here down, whichever source produced the sample. That is what makes the
+    // stream on rc/imu/data identical for "ice" and "phidget".
+    ImuSample s;
+    if (not read_sample(s))
+    {
+        // No new sample: source down, or we polled faster than it produces. The ICE reader
+        // wants the idle ceiling while its peer is refused; the Phidget reader is push-driven
+        // and already paced by its DataInterval, so leave its period alone.
+        if (not use_phidget)
+            self_adjust_period(max_period_ms);
+        return;
+    }
+
+    const std::uint64_t stamp_ms = s.stamp_ms;
+
+    // Same sample as last tick: publishing it again would inflate the apparent rate and hand
+    // a consumer a zero-dt pair.
     if (stamp_ms != 0 and stamp_ms == last_imu_stamp_ms)
         return;
 
@@ -153,25 +284,9 @@ void SpecificWorker::compute()
         last_imu_stamp_ms = stamp_ms;
     }
 
-    ImuDDSPublisher::Sample s;
-    s.stamp_ms = stamp_ms;
-    s.acc[0]  = data.acc.XAcc;  s.acc[1]  = data.acc.YAcc;  s.acc[2]  = data.acc.ZAcc;
-    s.gyro[0] = data.gyro.XGyr; s.gyro[1] = data.gyro.YGyr; s.gyro[2] = data.gyro.ZGyr;
-    s.mag[0]  = data.mag.XMag;  s.mag[1]  = data.mag.YMag;  s.mag[2]  = data.mag.ZMag;
-    s.rpy[0]  = data.rot.Roll;  s.rpy[1]  = data.rot.Pitch; s.rpy[2]  = data.rot.Yaw;
-    s.temperature = data.temperature;
-    // The two fields a media-plane consumer cannot reconstruct and must not have to guess.
-    // simTimestamp is 0 on a real IMU, which is exactly the "not simulated" signal the
-    // consumer needs; the gyro covariance is diagonal and isotropic, so m22 is its variance.
-    s.sim_stamp_ms = static_cast<std::uint64_t>(std::max<long long>(0, data.gyro.simTimestamp));
-    s.gyro_var     = data.gyro.cov.m22;
-    // The accelerometer covariance is diagonal and isotropic like the gyro's; m00 is the
-    // horizontal variance, which is the pair a consumer integrates for a velocity change.
-    s.acc_var      = data.acc.cov.m00;
-
     dds_publisher->publish(s);
 
-    fps.print("IMU->DDS", 3000);
+    fps.print(use_phidget ? "Phidget->DDS" : "IMU->DDS", 3000);
 }
 
 

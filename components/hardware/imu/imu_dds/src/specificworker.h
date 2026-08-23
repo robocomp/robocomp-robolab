@@ -35,18 +35,37 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
+
+#include "imu_sample.h"
 
 // Zero-copy DDS media-plane publisher (ImuFrame), gated by config. FastDDS headers stay
 // behind this forward declaration (PIMPL in dds_publisher.cpp).
 class ImuDDSPublisher;
 
+// Real Phidget Spatial reader (phidget22), used when IMU.Source = "phidget". Declared
+// (and held) ONLY when the component was built with Phidget support: without it
+// phidget_imu.cpp is not compiled, so a unique_ptr<PhidgetImu> member would need a
+// destructor that does not exist. HAVE_PHIDGET22 comes from src/CMakeLists.txt.
+#ifdef HAVE_PHIDGET22
+class PhidgetImu;
+#endif
+
 /**
  * \brief Class SpecificWorker implements the core functionality of the component.
  *
- * imu_dds is a one-way bridge: it pulls IMU samples off the ICE IMU interface (the
- * Webots bridge in simulation, a Phidget/SBG driver on hardware) and republishes them
- * on the CORTEX zero-copy DDS media plane (domain 7, topic rc/imu/data), advertising
- * the plane over MediaPlaneDDS so robot_concept can relay the descriptor into DSR.
+ * imu_dds is a one-way bridge onto the CORTEX zero-copy DDS media plane (domain 7,
+ * topic rc/imu/data), advertising the plane over MediaPlaneDDS so robot_concept can
+ * relay the descriptor into DSR.
+ *
+ * It has TWO interchangeable sources, picked by IMU.Source:
+ *   "ice"     - pull RoboCompIMU::getDataImu() over ICE (the Webots bridge in simulation,
+ *               or any driver component that implements the IMU interface).
+ *   "phidget" - read a real Phidget Spatial directly through phidget22 (PhidgetImu).
+ *
+ * Both fill the same ImuSample and go through the same publish call, so the bytes on
+ * rc/imu/data are identical either way — a consumer cannot tell which source is running,
+ * which is exactly what makes a sim-to-real swap a one-line config change.
  */
 class SpecificWorker : public GenericWorker
 {
@@ -106,6 +125,22 @@ private:
 	// --- Zero-copy DDS imu media plane (null unless PublishDDS is enabled) ---
 	bool publish_dds = false;
 	std::unique_ptr<ImuDDSPublisher> dds_publisher;
+
+	// --- Source selection (IMU.Source) ---
+	// "ice" (default) or "phidget". Whichever is chosen, read_sample() below hands back the
+	// same ImuSample and compute() publishes it through one path.
+	std::string imu_source = "ice";
+	bool use_phidget = false;
+#ifdef HAVE_PHIDGET22
+	std::unique_ptr<PhidgetImu> phidget;      // null unless use_phidget
+#endif
+	bool phidget_retry_logged = false;        // one-shot: don't spam while no device is attached
+
+	// Fill `out` from the configured source. False = no NEW sample this tick (source down,
+	// or we polled faster than it produces), which is not an error.
+	bool read_sample(ImuSample& out);
+	bool read_sample_ice(ImuSample& out);
+	bool read_sample_phidget(ImuSample& out);
 
 	// --- Self-synchronization with the source ---
 	// The IMU runs far faster than any sensible fixed Compute period (~125 Hz in Webots),

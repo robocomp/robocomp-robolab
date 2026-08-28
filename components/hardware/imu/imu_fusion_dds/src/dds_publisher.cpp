@@ -20,14 +20,13 @@
 #include "dds_publisher.h"
 
 #include <chrono>
-#include <cstring>
 #include <print>
 
 #include "media_transport.h"   // common/media_transport (added to the include path in CMake)
 
-struct LidarDDSPublisher::Impl
+struct PoseDDSPublisher::Impl
 {
-    rc::media::LidarPublisher pub;
+    rc::media::PosePublisher pub;
     std::uint64_t frame_id = 0;
     // Diagnostic publish stats (reported every ~5 s from publish()).
     std::uint64_t stat_ok = 0;
@@ -35,10 +34,10 @@ struct LidarDDSPublisher::Impl
     std::chrono::steady_clock::time_point stat_t0{};
 };
 
-LidarDDSPublisher::LidarDDSPublisher() : pimpl_(std::make_unique<Impl>()) {}
-LidarDDSPublisher::~LidarDDSPublisher() = default;
+PoseDDSPublisher::PoseDDSPublisher() : pimpl_(std::make_unique<Impl>()) {}
+PoseDDSPublisher::~PoseDDSPublisher() = default;
 
-bool LidarDDSPublisher::init(const Config& cfg)
+bool PoseDDSPublisher::init(const Config& cfg)
 {
     cfg_ = cfg;
 
@@ -53,14 +52,14 @@ bool LidarDDSPublisher::init(const Config& cfg)
     ready_ = pimpl_->pub.init(pc);
 
     if (ready_)
-        std::print("[lidar3d_dds] DDS lidar media plane ready domain={} topic='{}' data_sharing={}\n",
+        std::print("[imu_fusion_dds] DDS pose media plane ready domain={} topic='{}' data_sharing={}\n",
                    cfg.domain_id, cfg.topic, pimpl_->pub.data_sharing_active());
     else
-        std::print(stderr, "[lidar3d_dds] DDS lidar media plane init FAILED (topic='{}')\n", cfg.topic);
+        std::print(stderr, "[imu_fusion_dds] DDS pose media plane init FAILED (topic='{}')\n", cfg.topic);
     return ready_;
 }
 
-std::string LidarDDSPublisher::descriptor_json() const
+std::string PoseDDSPublisher::descriptor_json() const
 {
     if (!ready_)
         return {};
@@ -68,53 +67,50 @@ std::string LidarDDSPublisher::descriptor_json() const
     rc::media::MediaDescriptor d;
     d.version                = 1;
     d.domain_id              = cfg_.domain_id;
-    d.type_name              = "LidarFrame";
-    d.type_tag               = rc::media::LIDAR_FRAME_TYPE_TAG;
+    d.type_name              = "PoseFrame";
+    d.type_tag               = rc::media::POSE_FRAME_TYPE_TAG;
     d.history_depth          = cfg_.history_depth;
     d.shared_memory_only     = cfg_.shared_memory_only;
     d.data_sharing           = cfg_.data_sharing;
     d.ready                  = ready_;
-    d.streams["lidar"]       = cfg_.topic;
-    d.stream_types["lidar"]  = "LidarFrame";
-    // Empty unless this component's config declares a [SensorModel] block, in which case
-    // to_json() emits nothing extra and the string stays byte-identical to before.
-    d.model                  = cfg_.model;
+    d.streams["pose"]        = cfg_.topic;
+    d.stream_types["pose"]   = "PoseFrame";
     return d.to_json();
 }
 
-bool LidarDDSPublisher::publish(std::uint64_t stamp_ms, const float* xyz, std::uint32_t count)
+bool PoseDDSPublisher::publish(std::uint64_t stamp_ms,
+                                float x, float y, float yaw,
+                                float vx, float vy, float omega,
+                                float adv, float side, float rot,
+                                float sx, float sy, float syaw,
+                                float svx, float svy,
+                                int confidence)
 {
-    if (!ready_)
-        return false;
-
-    const bool oversize = count > rc::media::MAX_LIDAR_POINTS;
     bool ok = false;
-    if (xyz != nullptr && count != 0 && not oversize)
+    if (ready_)
     {
-        if (rc::media::LidarFrame* s = pimpl_->pub.loan(); s != nullptr)
+        if (rc::media::PoseFrame* s = pimpl_->pub.loan(); s != nullptr)
         {
-            s->stream_id(rc::media::STREAM_LIDAR);
+            s->stream_id(rc::media::STREAM_POSE);
             s->frame_id(pimpl_->frame_id++);
             s->stamp_ms(stamp_ms);
-            s->count(count);
-            s->stride(3);
-            s->format(rc::media::LIDAR_FORMAT_XYZ_F32);
-            std::memcpy(s->points().data(), xyz, static_cast<std::size_t>(count) * 3 * sizeof(float));
+            s->x(x);       s->y(y);       s->yaw(yaw);
+            s->vx(vx);     s->vy(vy);     s->omega(omega);
+            s->adv(adv);   s->side(side); s->rot(rot);
+            s->sx(sx);     s->sy(sy);     s->syaw(syaw);
+            s->svx(svx);   s->svy(svy);
+            s->confidence(confidence);
             ok = pimpl_->pub.publish(s);
         }
         // else: SHM pool exhausted -> counted as a drop below
     }
 
-    // Diagnostic: report published/dropped every ~5 s, with the last scan size so an
-    // oversize drop (count > the LidarFrame bound) is immediately visible.
+    // Diagnostic: report published/dropped every ~5 s.
     ok ? ++pimpl_->stat_ok : ++pimpl_->stat_drop;
     const auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration<double>(now - pimpl_->stat_t0).count() >= 5.0)
     {
-        std::print("[Lidar] published {} / dropped {}  last={} pts (max {}){}\n",
-                   pimpl_->stat_ok, pimpl_->stat_drop, count,
-                   static_cast<std::size_t>(rc::media::MAX_LIDAR_POINTS),
-                   oversize ? "  <-- OVERSIZE: decimate or raise the LidarFrame bound" : "");
+        std::print("[Pose] published {} / dropped {}\n", pimpl_->stat_ok, pimpl_->stat_drop);
         pimpl_->stat_ok = 0;
         pimpl_->stat_drop = 0;
         pimpl_->stat_t0 = now;

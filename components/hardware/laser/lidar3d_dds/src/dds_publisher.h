@@ -33,6 +33,8 @@
 #include <memory>
 #include <string>
 
+#include "media_transport.h"   // rc::media::SensorModel
+
 class LidarDDSPublisher
 {
 public:
@@ -44,6 +46,20 @@ public:
         int           history_depth      = 8;
         bool          shared_memory_only = true;
         bool          data_sharing       = false;       // OFF = churn-safe (see media_transport.h)
+
+        // --- Sensor physics advertised alongside the transport (rc::media::SensorModel) ---
+        // The driver is the only party that knows its own beam geometry and range noise;
+        // every consumer otherwise re-asserts them as its own constants. Declared in this
+        // component's config, not guessed here, and DEFAULT-EMPTY: with no [SensorModel]
+        // block the descriptor is byte-identical to before and consumers keep whatever
+        // they already use. `source` must say what kind of number it is — "datasheet",
+        // "measured", "nominal" — because a nominal constant advertised as fact is exactly
+        // what left the wheel variance channel inert for a day.
+        //
+        // ⚠ EXTRINSICS ARE NOT HERE. Where this lidar sits is the RT tree (and the rx/ry/rz
+        // tx/ty/tz keys already in this config, which feed it). `frame` only NAMES the frame
+        // the intrinsics are expressed in.
+        rc::media::SensorModel model;
     };
 
     LidarDDSPublisher();

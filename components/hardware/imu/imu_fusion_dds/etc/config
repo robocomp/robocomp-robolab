@@ -1,0 +1,81 @@
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Endpoints for subscriptions interfaces
+Endpoints.FullPoseEstimationPubTopic = "tcp -p 0"
+Endpoints.FullPoseEstimationPubPrefix = "base"
+
+# Proxies for required interfaces
+Proxies.IMU = "imu:tcp -h localhost -p 10007"
+
+# false = Phidget real en proceso (driver directo, 250Hz). true = emulación del
+# IMU vía imu_proxy (getAcceleration/getAngularVel), para correr contra un
+# simulador (p.ej. webots-bridge) en vez del hardware real. Ver src/simulated_imu.py.
+Simulation = false
+
+# Endpoint for the MediaPlaneDDS server interface (implements) -- getMediaDescriptor(),
+# for robot_concept to read the DDS pose-plane descriptor and relay it into the graph.
+Endpoints.MediaPlaneDDS = "tcp -p 12500"
+
+# Proxies for publishes interfaces
+Proxies.FullPoseEstimationPubPrefix = "ImuFusion"
+
+
+Period.Compute = 10   # 100Hz: menos "batching"/latencia de update_odom y update_room_pose por ciclo
+                       # (predict() ya corre a la tasa completa del IMU, 250Hz, por drenaje de buffer;
+                       # esto solo afecta la frecuencia de consumo de odometría/room y refresco de vista)
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+# --- IMU Phidget driver ---
+IMU.interval_ms = 10          # periodo de muestreo (1000 / 100 Hz)
+IMU.static_collect_s = 2.0    # segundos de reposo para inicialización estática
+IMU.static_omega_thr = 0.01   # rad/s — umbral de detección de reposo
+IMU.timeout_s = 0.2           # sin datos → FAULT
+IMU.invert_yaw_rate = true    # EXPERIMENTAL: invierte wz (gyro). false = comportamiento validado
+
+# --- ESKF — ruidos obtenidos del análisis de Allan Variance (imu_params.json) ---
+ESKF.sigma_a = 0.4
+ESKF.sigma_g = 0.03
+ESKF.sigma_ba = 0.001
+ESKF.sigma_bg = 0.00000364
+ESKF.sigma_v_odom = 0.1
+ESKF.sigma_w_odom = 0.03
+
+# --- ESKF — ruido adaptativo estático/dinámico (Bug #13, ver DEBUG_IMU_BASE_FUSION.md) ---
+ESKF.enable_adaptive_noise = true
+ESKF.sigma_a_static      = 0.012
+ESKF.sigma_g_static      = 0.0007
+ESKF.sigma_v_odom_static = 0.02
+ESKF.sigma_w_odom_static = 0.01
+ESKF.motion_detect_v_thr = 0.03
+ESKF.motion_detect_w_thr = 0.05
+ESKF.motion_hold_s       = 1.5
+ESKF.motion_ramp_s       = 2.0
+
+# --- Fusión / timeouts / umbrales de calidad ---
+Fusion.odom_timeout_s = 0.5
+Fusion.max_odom_queue = 10
+Fusion.consec_reject_degraded = 10
+Fusion.consec_reject_fault = 30
+Fusion.invert_odom_yaw_rate = true
+Fusion.enable_recording = true
+Fusion.enable_view = true
+
+# --- Publicación zero-copy DDS (FastDDS) del pose fusionado, ver dds_publisher.h/.cpp ---
+# Topic PROPIO (rc/imu_fusion/pose) y en SI (m, rad, m/s, rad/s) absoluto -- NO es el
+# mismo dato que Proxies.FullPoseEstimationPubPrefix (ICE, deltas mm/s legacy
+# SVD48VBase): ese sigue publicándose igual, esto es un plano adicional. false =
+# no se compila/inicializa nada del módulo nativo pose_dds_native.
+PublishDDS = true
+DDS.Domain = 7
+DDS.Topic = "rc/imu_fusion/pose"
+DDS.HistoryDepth = 8
+DDS.SharedMemoryOnly = true
+DDS.DataSharing = false
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

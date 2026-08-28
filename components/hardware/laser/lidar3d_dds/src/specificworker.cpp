@@ -312,6 +312,58 @@ void SpecificWorker::initialize()
         try { dcfg.shared_memory_only = this->configLoader.get<bool>("DDS.SharedMemoryOnly"); } catch(...) {}
         try { dcfg.data_sharing = this->configLoader.get<bool>("DDS.DataSharing"); } catch(...) {}
 
+        // ---- Sensor physics advertised with the plane (optional [SensorModel] block) ----
+        // Absent block => nothing advertised => the descriptor is byte-identical to before
+        // and every consumer keeps its own constants. That is the correct answer when we do
+        // not know: this driver runs against a SIMULATED helios here (simulator = true), so
+        // it has no device to interrogate for vertical angles, and inventing datasheet
+        // numbers would put a fact-shaped guess into the graph.
+        //
+        // Each field is set only if present, so an operator can declare the two they have
+        // measured and leave the rest unknown. `SensorModel.Source` is mandatory for the
+        // block to mean anything — it says whether these are datasheet, measured or nominal.
+        {
+            auto& m = dcfg.model;
+            const auto f = [this](const char* k, std::optional<float>& dst)
+            { try { dst = static_cast<float>(this->configLoader.get<double>(k)); } catch(...) {} };
+
+            try { m.version = this->configLoader.get<int>("SensorModel.Version"); } catch(...) {}
+            if (m.version > 0)
+            {
+                try { m.source = this->configLoader.get<std::string>("SensorModel.Source"); } catch(...) {}
+                try { m.ref    = this->configLoader.get<std::string>("SensorModel.Ref"); } catch(...) {}
+                try { m.frame  = this->configLoader.get<std::string>("SensorModel.Frame"); } catch(...) {}
+                m.stamp_ms = static_cast<std::int64_t>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch()).count());
+
+                try { m.rings = this->configLoader.get<int>("SensorModel.Rings"); } catch(...) {}
+                // Per-ring elevation as a ';'-separated list. Read as a STRING and split with
+                // std::from_chars: these machines run LANG=es_ES.UTF-8 where the C library's
+                // decimal separator is a comma, so strtod/stof would stop at the '.' and
+                // return the integer part SILENTLY. See rc::media::as_float_list.
+                try {
+                    const auto csv = this->configLoader.get<std::string>("SensorModel.RingElevDeg");
+                    m.ring_elev_deg = rc::media::parse_float_list(csv);
+                } catch(...) {}
+
+                f("SensorModel.AzimuthStepDeg", m.azimuth_step_deg);
+                f("SensorModel.RangeMinM",      m.range_min_m);
+                f("SensorModel.RangeMaxM",      m.range_max_m);
+                f("SensorModel.FovStartDeg",    m.fov_start_deg);
+                f("SensorModel.FovEndDeg",      m.fov_end_deg);
+                f("SensorModel.RateHz",         m.rate_hz);
+                f("SensorModel.RangeSigmaFloorM", m.range_sigma_floor_m);
+                f("SensorModel.RangeKRel",        m.range_k_rel);
+                f("SensorModel.RangeKIncidence",  m.range_k_incidence);
+
+                std::cout << "[lidar3d_dds] advertising SensorModel v" << m.version
+                          << " source='" << m.source << "' rings="
+                          << (m.rings ? std::to_string(*m.rings) : std::string("-"))
+                          << " elev=" << m.ring_elev_deg.size() << " values" << std::endl;
+            }
+        }
+
         dds_publisher = std::make_unique<LidarDDSPublisher>();
         if (not dds_publisher->init(dcfg))
         {

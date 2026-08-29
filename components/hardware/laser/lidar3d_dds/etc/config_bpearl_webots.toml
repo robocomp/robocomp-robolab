@@ -150,26 +150,59 @@ MessageSizeMax = "20004800"
 # ---------------------------------------------------------------------------------------------
 # SENSOR MODEL advertised with the media plane
 # ---------------------------------------------------------------------------------------------
-# ★ Source = "simulated", from webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl' -- the proto
-#   worlds/piso/piso.wbt actually instantiates. Delete this section to advertise nothing; absent
-#   means UNKNOWN ("consumer keeps its own constant"), which is always safe.
+# ★ MIXED PROVENANCE, AND `Source` CANNOT SAY SO. The geometry below is the SIMULATOR's (it must
+#   describe the data that actually arrives) and the noise is the REAL RS-Bpearl's datasheet
+#   figure. "simulated" is the CONSERVATIVE label — it understates how well the noise is known
+#   rather than overstating it. `Ref` names both origins.
+# ★ Delete this section to advertise nothing; absent means UNKNOWN ("consumer keeps its own
+#   constant"), which is always safe.
 # ★ The bpearl is a DOWNWARD DOME (rotation -1 -1 0 3.14159 flips it), not a floor sensor. Its job
 #   is the near field the horizontal ring cannot reach. Extrinsics stay in the RT tree.
 [SensorModel]
 Version = 1
 Source = "simulated"
-Ref = "webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl'"
+Ref = "geometry: webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl' (worlds/piso/piso.wbt) | noise: RoboSense RS-Bpearl User Manual 2.0.1 (2020-02-18) sec 3 Table 1"
 Frame = "bpearl"
 
+# ── Geometry: WHAT THE SIMULATOR EMITS ───────────────────────────────────────────────────────
+# ⚠ THIS IS NOT AN RS-Bpearl, AND THE GAP IS LARGER THAN THE HELIOS ONE. The device is 32 channels
+# over a 90 deg dome, 0.1..30 m. The sim is 64 layers over 180 deg out to 100 m. Only the noise
+# line below is borrowed from the real unit; every geometry field here is the sim's own.
 Rings = 64                 # numberOfLayers
 AzimuthStepDeg = 0.4114    # fieldOfView 6.28 rad over horizontalResolution 875
-RateHz = 20.0
-RangeMaxM = 100.0          # maxRange
+RateHz = 20.0              # defaultFrequency
 FovStartDeg = -90.0        # verticalFieldOfView = pi, in the (flipped) sensor frame
 FovEndDeg = 90.0
+RangeMaxM = 100.0          # maxRange
 #
-# ⚠ RingElevDeg and RangeSigmaFloorM deliberately UNSET, for the same reasons as the helios
-# config: the layer placement across the span is ambiguous from outside, and Webots' `noise`
-# semantics here would imply 0.005 * 100 m = 0.5 m, which the live cm-level SDF fits contradict.
-# residual_concept currently assumes BpearlBeamSpacingRad 0.0506 ("~90 deg dome over 31 gaps"),
-# which describes neither this 64-layer 180 deg sim sensor nor an RS-Bpearl-32. Measure it.
+# ⚠ RangeMinM deliberately UNSET. The device's minimum measuring range is 0.10 m (manual sec 2);
+# the sim has none, and this stream is the sim. Publishing it would delete real near returns —
+# and near returns are the entire point of this sensor.
+#
+# ⚠ RingElevDeg deliberately UNSET, for the same reason as the helios config: the manufacturer's
+# per-channel table describes a 32-beam 90 deg dome, this stream is 64 layers over 180 deg, and
+# residual_concept's BpearlBeamSpacingRad 0.0506 ("~90 deg dome over 31 gaps") describes neither.
+# Three candidate spacings, no measurement — so nothing is published. Measure it.
+
+# ── Noise: range channel ─────────────────────────────────────────────────────────────────────
+# RS-Bpearl User Manual 2.0.1 sec 3 Table 1, verbatim: "Accuracy: ±3cm (typical value)", footnoted
+# "the measurement target of accuracy is a 50% NIST Diffuse Reflectance Calibration Targets, the
+# test performance is depending on circumstance factors...".
+#
+# ★ THE MANUAL CONTRADICTS ITSELF and this line takes the stricter-sourced side. Its own
+#   Introduction (sec 2) claims "Accuracy: within up to ± 2 centimeter"; the Product Specifications
+#   table says ±3 cm. The table is the normative one — it is the numbered spec, and it carries the
+#   test-condition footnote the prose does not. It is also the LOOSER of the two, so taking it is
+#   the safe side of an unresolved manufacturer disagreement.
+# ★ READ AS 1 SIGMA, NOT AS A ±BOUND — same deliberate choice as the helios config: the manual does
+#   not say which, and only the 1-sigma reading cannot silently sharpen a downstream belief.
+# ★ WHY A DATASHEET NUMBER ON A SIMULATED STREAM: Webots' `noise 0.005` x maxRange 100 implies
+#   sigma = 0.5 m, which the live cm-level SDF fits refute. The device's figure is the best
+#   available. It is a STAND-IN. Measure it against a fitted plane and set Source = "measured".
+# ★ It is 3 cm rather than the helios' 2 cm because that is what RoboSense publishes for the two
+#   units — the near-field dome is the coarser ranger of the pair.
+RangeSigmaFloorM = 0.03
+#
+# ⚠ RangeKRel / RangeKIncidence deliberately UNSET. One flat typical accuracy, no range term in the
+# manual, so there is no coefficient to publish; 0.0 would assert "no growth with range", which the
+# manual does not claim. Absent = unknown.

@@ -163,39 +163,82 @@ MessageSizeMax = "20004800"
 # ---------------------------------------------------------------------------------------------
 # SENSOR MODEL advertised with the media plane
 # ---------------------------------------------------------------------------------------------
-# Beam geometry emitted in the MediaDescriptor JSON that robot_concept relays verbatim onto the
-# `helios` DSR node, so consumers stop re-asserting it as their own constants.
+# SENSOR MODEL advertised with the media plane
+# ---------------------------------------------------------------------------------------------
+# Beam geometry + range noise, emitted in the MediaDescriptor JSON that robot_concept relays
+# verbatim onto the `helios` DSR node, so consumers stop re-asserting them as their own constants.
 #
-# ★ The SAME sensor on Shadow and P3Bot: an RS-Helios H32F70, 70 deg of vertical FOV in 32 beams,
-#   mounted with tiltAngle -0.34 (-19.5 deg) so the span is -54.5..+15.5.
-# ★ Source = "simulated": these describe the Webots stand-in, not a datasheet or a measurement.
+# ★ MIXED PROVENANCE, AND `Source` CANNOT SAY SO. One string labels the whole block, but the
+#   geometry below is the SIMULATOR's (it must describe the data that actually arrives) while the
+#   noise is the REAL RS-Helios-5515's datasheet figure. "simulated" is the CONSERVATIVE label:
+#   it understates how well the noise is known instead of overstating it, and a consumer that
+#   discounts a simulated source is wrong in the safe direction. `Ref` names both origins. If the
+#   schema ever grows a per-field provenance, split them there rather than relabelling this.
 # ★ Delete this section to advertise nothing. Absent means UNKNOWN = "consumer keeps its own
 #   constant", never zero. Absent is always safe; a wrong number is not.
 # ★ Extrinsics are NOT here (RT tree + mount_file above). Frame only NAMES the frame.
 [SensorModel]
 Version = 1
 Source = "simulated"
-Ref = "RS-Helios H32F70 as instantiated in ShadowDiff.proto / P3Bot.proto"
+Ref = "geometry: webots-shadow/protos/ShadowDiff.proto Lidar 'helios' (worlds/piso/piso.wbt) | noise: RoboSense RS-Helios-5515 User Manual 3.0.1 (2022-06-29) sec 5.1.1"
 Frame = "helios"
 
-Rings = 32
+# ── Geometry: WHAT THE SIMULATOR EMITS, not what an H32F70 would ─────────────────────────────
+# ★★★2026-08-29: was Rings = 32, FovStartDeg = -54.5, FovEndDeg = 15.5. Those are P3Bot.proto's
+# numbers. This config serves SHADOW, and the world that is running (worlds/piso/piso.wbt) builds
+# a ShadowDiff, whose helios reads `numberOfLayers 82, verticalFieldOfView 3.14159 (180 deg),
+# tiltAngle -0.` — a sensor that sees STRAIGHT DOWN. So the very first thing this channel ever
+# published was a 2.5x error in the vertical span of the live stream: any consumer deriving beam
+# spacing from (FovEnd - FovStart) / Rings got 2.19 deg where the data is spread 2.22 deg over a
+# span two and a half times wider. Geometry must describe the DATA, so these now follow the proto.
+#
+# ⚠ P3Bot.proto was corrected on 2026-08-27 (82/180 -> 32/70, tiltAngle -0.34) on the grounds that
+# a 180 deg helios is not a Helios and grants near-field visibility the real robot does not have.
+# ShadowDiff.proto and Shadow.proto have NOT had that fix — they are still 82/180. When they do,
+# this block becomes Rings = 32, FovStartDeg = -55.0, FovEndDeg = 15.0 (the datasheet span), and
+# not one moment before: the two files have to move together or this channel lies again.
+Rings = 82                 # numberOfLayers
 AzimuthStepDeg = 0.4       # fieldOfView 6.28 rad over horizontalResolution 900
 RateHz = 20.0              # defaultFrequency
-FovStartDeg = -54.5        # 70 deg vFOV centred by tiltAngle -0.34
-FovEndDeg = 15.5
+FovStartDeg = -90.0        # verticalFieldOfView pi with tiltAngle 0 => -90..+90
+FovEndDeg = 90.0
 RangeMaxM = 100.0          # maxRange
 #
-# ⚠ RingElevDeg deliberately UNSET. A real H32F70 reports a NON-UNIFORM per-channel vertical-angle
-# table in its difop packet, and Webots' placement of 32 layers across the span is ambiguous from
-# outside: residual_concept assumes 70/31 = 2.258 deg (HeliosBeamSpacingRad 0.0394) while
-# P3Bot.proto's own comment computes 70/32 = 2.19. Those differ by 3% and the occupancy grid's
-# refuted-band width is proportional to it, so publishing either would silently move a live
-# consumer. Measure it off a real sweep.
+# ⚠ RangeMinM deliberately UNSET. The DEVICE has a 0.2 m blind distance (manual sec 5.1.1); the
+# SIM has none, and this stream is the sim. Publishing 0.2 m would have consumers throw away near
+# returns that genuinely exist in the data.
 #
-# ⚠ RangeSigmaFloorM deliberately UNSET, and the reason is now a CONTRADICTION, not a doubt.
-# Webots `noise 0.005` is documented as a fraction of maxRange, and maxRange is 100 -- so the
-# stated model is a 0.5 m range sigma. room_concept fits walls to centimetres on this very
-# stream, which a 0.5 m sigma cannot produce. So either the noise is not reaching the data or the
-# semantics are not what the docs say, and I have not established which. Advertising 0.5 m as
-# fact would wreck every weight downstream; an unset field costs a consumer nothing. Measure it:
-# residuals of returns against a fitted wall plane give the floor directly.
+# ⚠ RingElevDeg still UNSET — but the reason has CHANGED, and is now sharper than "ambiguous".
+# The real H32F70's per-channel table IS published (manual Table 5) and it is strongly NON-UNIFORM:
+# 2 deg per layer from +15 to +7, 1.5 from +7 to +4, 1.33 from +4 to -8, 2 from -8 to -10, and
+# 3 deg from -10 all the way to -55. The channels are not even in elevation order (ch18 = -16 sits
+# between ch17 = -10 and ch19 = -13). So BOTH uniform assumptions in this fleet are wrong for the
+# hardware: residual_concept's 70/31 = 2.258 deg and P3Bot.proto's 70/32 = 2.19. And the manufacturer
+# table does not describe THIS stream either, which is 82 Webots layers spread uniformly over 180 deg
+# (2.22 deg apart). Publishing either list would be a fact-shaped guess about the wrong sensor.
+# It stays unset until the sim matches the device, or until a real sweep is measured.
+
+# ── Noise: range channel ─────────────────────────────────────────────────────────────────────
+# RS-Helios-5515 User Manual 3.0.1 sec 5.1.1, verbatim: "Ranging Accuracy (Typical) ±2cm", with
+# the footnote "the ranging accuracy takes a 50% NIST diffuse reflector as the target. The test
+# results may be affected by environment conditions, including but not limited to factors such as
+# ambient temperature and target distance. The accuracy value is applicable to most channels, and
+# there may exists differences between some channels."
+#
+# ★ READ AS 1 SIGMA, NOT AS A ±BOUND, AND THAT CHOICE IS DELIBERATE. The manual does not say which
+#   it means. Reading ±2 cm as a 3-sigma bound would give 0.7 cm and make every downstream weight
+#   ~3x overconfident; reading it as 1 sigma cannot silently sharpen a belief. When a datasheet is
+#   ambiguous, take the reading that cannot over-trust.
+# ★ WHY A DATASHEET NUMBER ON A SIMULATED STREAM. Webots documents `noise 0.005` as a fraction of
+#   maxRange, and maxRange here is 100 => sigma = 0.5 m. The data REFUTES that: room_concept fits
+#   walls to centimetres on this very stream, which a 0.5 m range sigma cannot produce. So the
+#   simulator's own stated figure is unusable and the device's is the best available. It remains a
+#   STAND-IN for a measurement, not a measurement.
+# ★ HOW TO RETIRE THIS LINE: residuals of returns against a fitted wall plane give the floor
+#   directly. Measure it, put the number here, and set Source = "measured".
+RangeSigmaFloorM = 0.02
+#
+# ⚠ RangeKRel / RangeKIncidence deliberately UNSET. The datasheet quotes ONE flat typical accuracy
+# with no range-proportional term, so there is no coefficient to publish — and 0.0 is not the same
+# as absent: it would assert "this sensor does not degrade with range", a claim the manual never
+# makes. Absent = unknown, and a consumer keeps whatever it already used.

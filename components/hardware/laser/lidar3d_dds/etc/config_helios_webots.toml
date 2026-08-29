@@ -19,7 +19,13 @@ Dilate = 0.05
 mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
 mount_key  = "helios"
 rx = -0.0
-ry = 0.0
+# 2026-08-29: 0 -> pi. The helios is now mounted UPSIDE DOWN (wide part of the fan pointing UP, at
+# the walls) — Shadow.proto/ShadowDiff.proto `rotation 1 1 0 3.14159`, shadow.json body<-helios
+# euler_xyz (0, pi, 0). This fallback is the SILENT path: if shadow.json cannot be read the driver
+# logs to stderr and carries on with these numbers, so leaving ry at 0 here would hand the mesh
+# self-filter an UPRIGHT sensor while the cloud arrives inverted — every self-return tested against
+# the wrong half of the robot. The 45 mm tz staleness below is the same failure mode, one axis over.
+ry = 3.14159265359   # fallback only; MUST equal shadow.json body<-helios euler_y
 rz = 0.0
 tx = 0.0
 ty = -155.0
@@ -205,6 +211,13 @@ AzimuthStepDeg = 0.4       # fieldOfView 6.28 rad over horizontalResolution 900
 RateHz = 20.0              # defaultFrequency
 FovStartDeg = -54.5        # verticalFieldOfView 1.2217 (70 deg) with tiltAngle -0.34 (-19.5 deg)
 FovEndDeg = 15.5           # => -54.48..+15.52, the H32F70's -55..+15 as the sim can express it
+# ⚠ THAT SPAN IS IN THE SENSOR FRAME (`Frame = "helios"`), AND THE SENSOR HANGS UPSIDE DOWN.
+# Read literally it says the fan points DOWN; in the BODY frame it points UP (+54.5..-15.5), because
+# the body<-helios RT edge carries a 180 deg flip (shadow.json euler_xyz (0, pi, 0), 2026-08-29).
+# This is the schema working as intended — "frame only NAMES the frame these intrinsics are expressed
+# in; it never restates the pose" (media_transport.h) — but it is a live trap for a consumer that
+# reads fov_start/end and skips the RT lookup. Apply the RT edge or you will conclude this sensor
+# stares at the floor.
 RangeMaxM = 100.0          # maxRange
 #
 # ⚠ RangeMinM deliberately UNSET. The DEVICE has a 0.2 m blind distance (manual sec 5.1.1); the

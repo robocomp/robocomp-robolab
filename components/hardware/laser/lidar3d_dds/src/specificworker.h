@@ -174,6 +174,21 @@ class SpecificWorker : public GenericWorker
         // Optional zero-copy DDS lidar media plane (null unless PublishDDS is enabled).
         bool publish_dds = false;
         std::unique_ptr<LidarDDSPublisher> dds_publisher;
+
+    // ── PER-RING VERTICAL ANGLES, measured once from a complete sweep ────────────────────────
+    // The descriptor advertises the beam geometry, and the per-ring table is the one field that
+    // cannot honestly be written by hand: a real H32F70's channels are NOT uniformly spaced (the
+    // device reports its own table in the difop packet), and for the simulated unit the placement
+    // of N layers across the span is ambiguous from outside — 70/31 and 70/32 differ by 3%, and
+    // residual_concept's refuted-band width is proportional to it.
+    // Measured on the DEVICE-frame cloud, upstream of the mesh self-filter: processLidarData()
+    // deliberately does not apply the mount, so `theta` here is the beam's own angle. Doing it
+    // after the filter would bin only the returns that survived a z- and radius-banded cut, which
+    // preferentially removes the low rings — the ones that matter most for the near field.
+    // Published ONLY when exactly `model_rings_` distinct angles are seen: a partial table
+    // advertised as a full one is worse than absent, and absent already means "unknown".
+    int  model_rings_ = 0;             // from SensorModel.Rings; 0 = no model configured
+    bool ring_elev_published_ = false; // one-shot latch
         std::vector<float> lidar_xyz;   // reusable interleaved x,y,z (metres) publish buffer
 
         // Optional robot-body self-filter (null unless MeshFilter.enabled). Removes

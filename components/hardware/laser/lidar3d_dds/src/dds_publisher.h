@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "media_transport.h"   // rc::media::SensorModel
 
@@ -73,6 +74,13 @@ public:
     // rc::media::MediaDescriptor JSON (domain, topic, type tag, QoS) for the robot_concept
     // agent to relay onto the "lidar3D" DSR node. Returns "" if not ready.
     [[nodiscard]] std::string descriptor_json() const;
+
+    // Fill in the per-ring vertical angles once they are known. Separate from init() because
+    // they are MEASURED from the first complete sweep (or, on real hardware, read from the
+    // difop packet) — neither is available when the plane comes up. Calling this changes the
+    // descriptor string exactly once, and robot_concept's relay is gated on that string
+    // changing, so it costs one extra write and no churn.
+    void set_ring_elevations(std::vector<float> elev_deg) { cfg_.model.ring_elev_deg = std::move(elev_deg); }
 
     // Publish one scan: `xyz` is interleaved x,y,z in METRES, `count` points (stride 3).
     // Returns false (dropped) on: not ready, empty/oversize payload, loan unavailable, or

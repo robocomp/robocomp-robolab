@@ -206,11 +206,16 @@ Frame = "helios"
 # ⚠ The channel is only as true as the file it is copied from. If either proto moves, this block
 # moves in the same commit — that coupling is the entire point of publishing geometry from the
 # driver instead of letting each consumer keep its own constant.
-Rings = 32                 # numberOfLayers
+# ★2026-08-29 (2nd pass): the sim no longer DECLARES the H32F70 span, it GENERATES it. tiltAngle
+# turned out to rotate the sweep in AZIMUTH (measured: 19.5 deg against the bpearl, matching the
+# declared -0.34 rad), not to tilt the fan, so it is now 0 and the proto emits a symmetric 110 deg
+# fan with 50 layers; the bridge publishes only the 32 inside [-55, +15]. These fields describe
+# what actually arrives on the plane.
+Rings = 32                 # of the 50 layers the sim generates; the bridge drops the other 18
 AzimuthStepDeg = 0.4       # fieldOfView 6.28 rad over horizontalResolution 900
 RateHz = 20.0              # defaultFrequency
-FovStartDeg = -54.5        # verticalFieldOfView 1.2217 (70 deg) with tiltAngle -0.34 (-19.5 deg)
-FovEndDeg = 15.5           # => -54.48..+15.52, the H32F70's -55..+15 as the sim can express it
+FovStartDeg = -55.0        # 110 deg over 50 layers = 2.2449 deg/layer, windowed to [-55, +15]
+FovEndDeg = 14.6           # the topmost surviving channel; the real unit's is +15
 # ⚠ THAT SPAN IS IN THE SENSOR FRAME (`Frame = "helios"`), AND THE SENSOR HANGS UPSIDE DOWN.
 # Read literally it says the fan points DOWN; in the BODY frame it points UP (+54.5..-15.5), because
 # the body<-helios RT edge carries a 180 deg flip (shadow.json euler_xyz (0, pi, 0), 2026-08-29).

@@ -163,42 +163,39 @@ MessageSizeMax = "20004800"
 # ---------------------------------------------------------------------------------------------
 # SENSOR MODEL advertised with the media plane
 # ---------------------------------------------------------------------------------------------
-# Beam geometry and range noise, emitted in the MediaDescriptor JSON that robot_concept relays
-# verbatim onto the `helios` DSR node. The driver owns these numbers because it owns the sensor;
-# otherwise every consumer re-asserts its own constants and the two drift with nothing to make
-# them disagree loudly (residual_concept currently hardcodes LidarModel.HeliosBeamSpacingRad).
+# Beam geometry emitted in the MediaDescriptor JSON that robot_concept relays verbatim onto the
+# `helios` DSR node, so consumers stop re-asserting it as their own constants.
 #
-# ★ Source = "simulated": these describe the WEBOTS sensor, read off the Lidar node in
-#   webots-p3bot/protos/P3Bot.proto. NOT a datasheet, NOT measured on hardware. A consumer is
-#   entitled to know which of the three it is being handed.
-# ★ Delete this section to advertise nothing. Absent means UNKNOWN, which the schema defines as
-#   "consumer keeps its own constant" — never as zero. That is why there is deliberately no copy
-#   of this block in the other helios config: two copies drift, and one absent degrades safely.
-# ★ Extrinsics are NOT here. Where the lidar sits is the RT tree (and mount_file/rx..tz above).
-#   Frame only NAMES the frame these intrinsics are expressed in.
+# ★ The SAME sensor on Shadow and P3Bot: an RS-Helios H32F70, 70 deg of vertical FOV in 32 beams,
+#   mounted with tiltAngle -0.34 (-19.5 deg) so the span is -54.5..+15.5.
+# ★ Source = "simulated": these describe the Webots stand-in, not a datasheet or a measurement.
+# ★ Delete this section to advertise nothing. Absent means UNKNOWN = "consumer keeps its own
+#   constant", never zero. Absent is always safe; a wrong number is not.
+# ★ Extrinsics are NOT here (RT tree + mount_file above). Frame only NAMES the frame.
 [SensorModel]
 Version = 1
 Source = "simulated"
-Ref = "webots-p3bot/protos/P3Bot.proto Lidar 'helios' (RS-Helios H32F70 stand-in)"
+Ref = "RS-Helios H32F70 as instantiated in ShadowDiff.proto / P3Bot.proto"
 Frame = "helios"
 
-# horizontalResolution 900 over fieldOfView 6.28 rad => 360/900 deg
 Rings = 32
-AzimuthStepDeg = 0.4
-RateHz = 20.0
-RangeMaxM = 8.0
-# Vertical span as the proto states it: 70 deg of FOV in 32 beams with tiltAngle -0.34,
-# giving -54.5..+15.5. Keeping the proto's own arithmetic rather than redoing it here.
-FovStartDeg = -54.5
+AzimuthStepDeg = 0.4       # fieldOfView 6.28 rad over horizontalResolution 900
+RateHz = 20.0              # defaultFrequency
+FovStartDeg = -54.5        # 70 deg vFOV centred by tiltAngle -0.34
 FovEndDeg = 15.5
+RangeMaxM = 100.0          # maxRange
 #
 # ⚠ RingElevDeg deliberately UNSET. A real H32F70 reports a NON-UNIFORM per-channel vertical-angle
-# table in its difop packet, and Webots' exact placement of 32 layers across the span is ambiguous
-# from outside: residual_concept assumes 70/31 = 2.258 deg (HeliosBeamSpacingRad 0.0394) while the
-# proto's own comment computes 70/32 = 2.19. Those differ by 3%, and the refuted-band width in the
-# occupancy grid is proportional to it. Publishing either would silently move a live consumer, so
-# this stays absent until the placement is MEASURED off a real sweep.
+# table in its difop packet, and Webots' placement of 32 layers across the span is ambiguous from
+# outside: residual_concept assumes 70/31 = 2.258 deg (HeliosBeamSpacingRad 0.0394) while
+# P3Bot.proto's own comment computes 70/32 = 2.19. Those differ by 3% and the occupancy grid's
+# refuted-band width is proportional to it, so publishing either would silently move a live
+# consumer. Measure it off a real sweep.
 #
-# Webots `noise 0.005` is a fraction of maxRange => 0.005 * 8 m = 0.04 m: a range-INDEPENDENT
-# floor. Hence no proportional term — the simulator has none to report.
-RangeSigmaFloorM = 0.04
+# ⚠ RangeSigmaFloorM deliberately UNSET, and the reason is now a CONTRADICTION, not a doubt.
+# Webots `noise 0.005` is documented as a fraction of maxRange, and maxRange is 100 -- so the
+# stated model is a 0.5 m range sigma. room_concept fits walls to centimetres on this very
+# stream, which a 0.5 m sigma cannot produce. So either the noise is not reaching the data or the
+# semantics are not what the docs say, and I have not established which. Advertising 0.5 m as
+# fact would wreck every weight downstream; an unset field costs a consumer nothing. Measure it:
+# residuals of returns against a fitted wall plane give the floor directly.

@@ -1,0 +1,123 @@
+# lidar3d_dds — helios on P3Bot (Webots).
+#
+# Derived from etc/config_helios_webots (the extension-less file the driver has actually been
+# launched with), with three things corrected for this robot. Read the notes: two of them were
+# silently wrong for P3Bot and the third is what makes obstacles disappear as you approach them.
+#
+#   bin/lidar3d_dds etc/config_helios_webots_p3bot.toml
+
+# Endpoints for implements interfaces
+Endpoints.Lidar3D = "tcp -p 11990"
+Endpoints.MediaPlaneDDS = "tcp -p 11890"
+
+# Proxies for required interfaces
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 11988"
+
+# ── ROBOT-BODY SELF-FILTER (Embree) ───────────────────────────────────────────────────────────────
+# ★1. THE ROBOT. The previous config said Robot.name = "Shadow" while a P3Bot was driving, so the
+# self-filter was ray-testing returns against a DIFFERENT ROBOT'S BODY. With "P3Bot" the filter takes
+# the URDF branch in MeshFilter::init and loads per-link meshes for base_link, low_body, chess,
+# rs_helios, cap and ricoh_theta_z1 — the parts of this robot whose pose is actually KNOWN. That is
+# what the discs below existed to paper over.
+# ⚠ THE ARMS ARE DELIBERATELY ABSENT — see MeshFilter.mesh_dir. Returns off a real arm are therefore
+# NOT filtered and will look like an obstacle hugging the body. The cure for that is joint state in
+# the driver, not a wider disc.
+MeshFilter.enabled = true
+Robot.name = "P3Bot"
+# "mesh" selects the loader; Robot.name selects WHICH geometry it loads (Shadow -> single STL,
+# P3Bot -> URDF). "proto" is the Webots-assembly path and needs a proto_file; it is not used here.
+MeshFilter.geometry_source = "mesh"
+# ★BASE + MAST ONLY. robots/P3Bot/P3Bot.urdf carries both Kinova arms, and the filter has no joint
+# state — so it places them at the URDF zero pose, which is both arms STRAIGHT OUT SIDEWAYS
+# (grippers at x = -1.258 / +1.237 m, z ~ 0.55 m). That deleted a ~2.5 m lateral swath at exactly
+# furniture height; the symptom was "the lateral parts are missing". robots_p3bot_base/ is the same
+# URDF with the arm links removed. See the comment at the top of that file.
+MeshFilter.mesh_dir = "robots_p3bot_base"
+
+Floor.z = 110.0
+Top.z = 2100.0
+Dilate = 0.05
+
+# ── ★2. THE DISCS. THIS IS THE CHANGE THAT MATTERS ────────────────────────────────────────────────
+# Both were BLANKET DELETIONS of everything near the robot, in the height band where low furniture
+# lives, and they are why an obstacle vanishes from the reactive layer as the robot closes on it:
+#
+#     Footprint.radius = 0.55   z 110..1350 mm
+#     Skirt.radius     = 0.75   z 110.. 600 mm
+#
+# MEASURED, live, 2026-08-27, P3Bot driving an L passage between boxes ~0.35-0.5 m tall — squarely
+# inside the SKIRT's z-band. The nearest surviving LiDAR return bottomed at 0.65 m and the ESDF built
+# from it never went below 0.621 m in 1135 cycles, while residual_concept's MAP (built earlier, from
+# ranges where the boxes were still visible) held occupied cells at 0.374 m — inside the body's own
+# 0.405 m diagonal reach. The map knew; the live field had been told not to look. `detect_path_blockage`
+# and the safety gate both read the live field, so both stayed silent through the whole approach.
+#
+# ★THE DISCS' OWN JUSTIFICATION DOES NOT SURVIVE THE URDF. mesh_filter.h states it plainly: "the STL
+# models only the central column, so returns off the wider base/wheels/arm/protrusions sit past the
+# mesh and survive the 5cm mesh query". That is an argument about an INCOMPLETE single mesh. P3Bot is
+# loaded from a 17-link URDF that models the base, the wheels' housing and the arms, so the geometry
+# the discs were compensating for is now in the scene and gets ray-tested properly. Keeping them would
+# delete real world data to protect against a gap that has been closed.
+# ★Floor.z = 110 mm already removes ground returns, which was the skirt's other stated purpose.
+#
+# ROLLBACK, if near-floor phantoms appear right around the robot (they would show up as residual cells
+# at ~0.2-0.4 m that track the robot): restore Skirt.radius = 0.75 first, Footprint.radius = 0.55 only
+# if that is not enough — and say so in the commit, because these numbers were never derived from
+# geometry. robot_footprint.h's header measured what they cost: 1.465 m² deleted below 0.60 m, 6.5x
+# the robot's own footprint.
+# ★NOTE the same disabling was already written for Shadow on 2026-08-01 — into
+# etc/config_helios_webots.toml, which the driver was never launched with, so it never took effect.
+# That is why this file is named for the robot AND carries the reasoning.
+Footprint.radius = 0.0
+Footprint.z_min = 110.0
+Footprint.z_max = 1350.0
+Skirt.radius = 0.0
+Skirt.z_min = 110.0
+Skirt.z_max = 600.0
+
+### Lidar params ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 0
+dest_pc_ip_addr = "192.168.50.210"
+msop_port = 6699
+difop_port = 7788
+simulator = true
+
+# DDS lidar media plane (zero-copy LidarFrame). Metadata is advertised into DSR by
+# the robot_concept agent, not here.
+PublishDDS = true
+DDS.Domain = 7
+DDS.Topic = "rc/lidar3d/points"
+DDS.HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
+DDS.SharedMemoryOnly = true
+DDS.DataSharing = false
+
+# ── ★3. THE MOUNT, FROM THE ROBOT'S OWN BOOTSTRAP ─────────────────────────────────────────────────
+# The rx..tz fallback below is SHADOW'S helios mount (ty -155 mm, tz 1030 mm). P3Bot's helios sits at
+# body-frame (-2.3, -53.5, 1240) mm — so those numbers were 210 mm too low and 100 mm off in y, and the
+# self-filter was testing returns against a body placed a fifth of a metre from where it is.
+# mount_file reads the SAME p3bot.json that seeds the DSR graph, so the driver and the graph can no
+# longer disagree about where the sensor is; mount_key names the node, and the loader converts its RT
+# translation from metres to mm itself. If the file cannot be read the driver falls back to rx..tz and
+# SAYS SO on stdout ("[Mount] could not read ... rolling back") — watch for that line.
+mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/p3bot.json"
+mount_key = "helios"
+
+#Warning use "." for decimals not ","
+# Fallback extrinsics, used ONLY if mount_file fails. Kept as P3Bot's values (mm) rather than Shadow's
+# so a fallback degrades to "slightly stale" instead of "the wrong robot".
+rx = -0.0
+ry = 0.0
+rz = 0.0
+tx = -2.3
+ty = -53.5
+tz = 1240.0
+
+Period.Compute = 50
+Period.Emergency = 500
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"
+Component.Debug.Verbose = true

@@ -146,3 +146,30 @@ Warn.Connections = "0"
 Trace.Network = "0"
 Trace.Protocol = "0"
 MessageSizeMax = "20004800"
+
+# ---------------------------------------------------------------------------------------------
+# SENSOR MODEL advertised with the media plane
+# ---------------------------------------------------------------------------------------------
+# ★ Source = "simulated", from webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl' -- the proto
+#   worlds/piso/piso.wbt actually instantiates. Delete this section to advertise nothing; absent
+#   means UNKNOWN ("consumer keeps its own constant"), which is always safe.
+# ★ The bpearl is a DOWNWARD DOME (rotation -1 -1 0 3.14159 flips it), not a floor sensor. Its job
+#   is the near field the horizontal ring cannot reach. Extrinsics stay in the RT tree.
+[SensorModel]
+Version = 1
+Source = "simulated"
+Ref = "webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl'"
+Frame = "bpearl"
+
+Rings = 64                 # numberOfLayers
+AzimuthStepDeg = 0.4114    # fieldOfView 6.28 rad over horizontalResolution 875
+RateHz = 20.0
+RangeMaxM = 100.0          # maxRange
+FovStartDeg = -90.0        # verticalFieldOfView = pi, in the (flipped) sensor frame
+FovEndDeg = 90.0
+#
+# ⚠ RingElevDeg and RangeSigmaFloorM deliberately UNSET, for the same reasons as the helios
+# config: the layer placement across the span is ambiguous from outside, and Webots' `noise`
+# semantics here would imply 0.005 * 100 m = 0.5 m, which the live cm-level SDF fits contradict.
+# residual_concept currently assumes BpearlBeamSpacingRad 0.0506 ("~90 deg dome over 31 gaps"),
+# which describes neither this 64-layer 180 deg sim sensor nor an RS-Bpearl-32. Measure it.

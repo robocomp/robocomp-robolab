@@ -1,0 +1,86 @@
+# lidar3d_dds — BPearl / Webots (TOML)
+
+### Lidar params (flat keys) ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 1
+dest_pc_ip_addr = "192.168.50.210"
+msop_port = 6698
+difop_port = 7787
+simulator = true
+
+# DDS publish gate + robot-body self-filter dilate (flat keys)
+PublishDDS = true
+Dilate = 0.05
+
+# Static mount (single source of geometry): read the body<-bpearl transform from the DSR shadow.json.
+# Self-filter and consumer placement share this ONE value. Falls back to rx..tz below if unreadable.
+mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_key  = "bpearl"
+rx = 0.0
+ry = 3.14159265359
+rz = 0.0
+tx = 0.0
+ty = 140.0
+tz = 670.0         # fallback only (matches shadow.json body<-bpearl 0.67 m)
+
+[Proxies]
+# Proxies for required interfaces
+Lidar3D = "lidar3d:tcp -h localhost -p 11988"
+
+[Endpoints]
+# Endpoints for implements interfaces
+Lidar3D = "tcp -p 11989"
+MediaPlaneDDS = "tcp -p 11889"
+
+# Robot-body self-filter (Embree). Removes lidar points hitting the static robot mesh.
+[MeshFilter]
+enabled = true
+
+[Robot]
+name = "Shadow"
+
+# Floor/ceiling scene cut DISABLED — the floor/ceiling are informative (startup LiDAR
+# calibration, ground plane) and are now filtered per-consumer, not at the source. Only
+# the self-filter (footprint/skirt/mesh) stays here. Restore z=110 / z=2100 to re-enable.
+[Floor]
+z = -100000.0
+
+[Top]
+z = 100000.0
+
+# Robot-frame footprint disc + wider near-floor skirt. The STL models only the ±0.24 m
+# central column, so returns off the wider base/wheels/protrusions survive the 5 cm mesh
+# query. Drop everything inside the disc (radius m) within the z-band (mm). The skirt is a
+# second, wider disc confined near the floor for ground-reflection / low self returns.
+# Safe: inside the robot's own footprint nothing is a real obstacle. radius = 0 disables.
+[Footprint]
+radius = 0.55
+z_min = 110.0
+z_max = 1350.0
+
+[Skirt]
+radius = 0.75
+z_min = 110.0
+z_max = 350.0
+
+# DDS lidar media plane (zero-copy LidarFrame). Own topic so it does not collide with
+# the helios plane. Metadata is advertised into DSR by the robot_concept agent, not here.
+[DDS]
+Domain = 7
+Topic = "rc/lidar3d/bpearl"
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
+SharedMemoryOnly = true
+DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
+
+[Period]
+Compute = 50
+Emergency = 500
+
+[Component.Debug]
+Verbose = true
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

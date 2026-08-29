@@ -1,0 +1,90 @@
+# lidar3d_dds — Helios / Webots (TOML form of config_helios_webots)
+
+### Lidar params (flat keys) ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 0
+dest_pc_ip_addr = "192.168.50.210"
+msop_port = 6699
+difop_port = 7788
+simulator = true
+
+# DDS publish gate + robot-body self-filter dilate (flat keys)
+PublishDDS = true
+Dilate = 0.05
+
+# Static mount (single source of geometry): read the body<-helios transform from the DSR shadow.json.
+# The self-filter and consumer placement now share this ONE value (~1.03 m) — the mesh is accurate
+# (SolidWorks / printed robot), so no decouple is needed. If shadow.json can't be read, roll back to
+# the rx..tz fallback below (kept in sync at tz=1030).
+mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_key  = "helios"
+rx = -0.0
+ry = 0.0
+rz = 0.0
+tx = 0.0
+ty = -155.0
+tz = 1030.0        # fallback only (matches shadow.json body<-helios ~1.03 m)
+
+[Proxies]
+# Proxies for required interfaces
+Lidar3D = "lidar3d:tcp -h localhost -p 11988"
+
+[Endpoints]
+# Endpoints for implements interfaces
+Lidar3D = "tcp -p 11990"
+MediaPlaneDDS = "tcp -p 11890"
+
+# Robot-body self-filter (Embree). Removes lidar points hitting the static robot mesh.
+[MeshFilter]
+enabled = true
+
+[Robot]
+name = "Shadow"
+
+# Floor/ceiling scene cut DISABLED — the floor/ceiling are informative (startup LiDAR
+# calibration, ground plane) and are now filtered per-consumer, not at the source. Only
+# the self-filter (footprint/skirt/mesh) stays here. Restore z=110 / z=2100 to re-enable.
+[Floor]
+z = -100000.0
+
+[Top]
+z = 100000.0
+
+# Robot-frame footprint disc. The STL models only the ±0.24 m central column, so returns
+# off the wider base/wheels/arm/protrusions survive the 5 cm mesh query. Drop everything
+# inside this disc (radius in metres) within the z-band (mm). Safe: nothing inside the
+# robot's own footprint is a real obstacle. radius = 0 disables.
+[Footprint]
+radius = 0.55
+z_min = 110.0
+z_max = 1350.0
+
+# Wider near-floor skirt: a second disc confined to a low z-band. Catches near-floor
+# self / ground-reflection returns that sit past the body footprint (e.g. the rear-base
+# stray ~0.7 m out) WITHOUT hiding upright obstacles — their returns above z_max stay.
+[Skirt]
+radius = 0.75
+z_min = 110.0
+z_max = 600.0
+
+# DDS lidar media plane (zero-copy LidarFrame). Metadata is advertised into DSR by
+# the robot_concept agent, not here.
+[DDS]
+Domain = 7
+Topic = "rc/lidar3d/points"
+HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
+SharedMemoryOnly = true
+DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
+
+[Period]
+Compute = 50
+Emergency = 500
+
+[Component.Debug]
+Verbose = true
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"

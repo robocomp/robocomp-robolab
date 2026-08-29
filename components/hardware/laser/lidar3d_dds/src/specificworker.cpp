@@ -22,6 +22,7 @@
 #include <cppitertools/enumerate.hpp>
 #include <algorithm>
 #include <optional>
+#include <format>   // std::format: locale-independent, unlike ostream <<
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -357,10 +358,26 @@ void SpecificWorker::initialize()
                 f("SensorModel.RangeKRel",        m.range_k_rel);
                 f("SensorModel.RangeKIncidence",  m.range_k_incidence);
 
+                // Print WHAT A CONSUMER WILL RECEIVE, unset fields included: an absent optional
+                // renders as "-", never as 0. This line is the only cheap way to tell "the driver
+                // is advertising a noise model" from "the driver read a config that has none" —
+                // the distinction that cost a round on 2026-08-29, when a [SensorModel] block was
+                // added to a config four hours AFTER the process that reads it had started. A log
+                // that renders unknown as a number is also how a nominal constant comes to be
+                // mistaken for a measurement, so "-" is deliberate.
+                const auto sh = [](const std::optional<float>& o)
+                { return o ? std::format("{:g}", *o) : std::string("-"); };
                 std::cout << "[lidar3d_dds] advertising SensorModel v" << m.version
                           << " source='" << m.source << "' rings="
                           << (m.rings ? std::to_string(*m.rings) : std::string("-"))
-                          << " elev=" << m.ring_elev_deg.size() << " values" << std::endl;
+                          << " elev=" << m.ring_elev_deg.size() << " values"
+                          << " fov=[" << sh(m.fov_start_deg) << ".." << sh(m.fov_end_deg) << "]deg"
+                          << " az=" << sh(m.azimuth_step_deg) << "deg"
+                          << " rate=" << sh(m.rate_hz) << "Hz"
+                          << " range=[" << sh(m.range_min_m) << ".." << sh(m.range_max_m) << "]m"
+                          << " sigma_r=" << sh(m.range_sigma_floor_m) << "m"
+                          << " k_rel=" << sh(m.range_k_rel)
+                          << " k_inc=" << sh(m.range_k_incidence) << std::endl;
             }
         }
 

@@ -183,40 +183,44 @@ Source = "simulated"
 Ref = "geometry: webots-shadow/protos/ShadowDiff.proto Lidar 'helios' (worlds/piso/piso.wbt) | noise: RoboSense RS-Helios-5515 User Manual 3.0.1 (2022-06-29) sec 5.1.1"
 Frame = "helios"
 
-# ── Geometry: WHAT THE SIMULATOR EMITS, not what an H32F70 would ─────────────────────────────
-# ★★★2026-08-29: was Rings = 32, FovStartDeg = -54.5, FovEndDeg = 15.5. Those are P3Bot.proto's
-# numbers. This config serves SHADOW, and the world that is running (worlds/piso/piso.wbt) builds
-# a ShadowDiff, whose helios reads `numberOfLayers 82, verticalFieldOfView 3.14159 (180 deg),
-# tiltAngle -0.` — a sensor that sees STRAIGHT DOWN. So the very first thing this channel ever
-# published was a 2.5x error in the vertical span of the live stream: any consumer deriving beam
-# spacing from (FovEnd - FovStart) / Rings got 2.19 deg where the data is spread 2.22 deg over a
-# span two and a half times wider. Geometry must describe the DATA, so these now follow the proto.
+# ── Geometry: WHAT THE SIMULATOR EMITS ──────────────────────────────────────────────
+# These are the sim's numbers, and they now agree with the device because the SIM was fixed, not
+# because the config was bent to match a datasheet.
 #
-# ⚠ P3Bot.proto was corrected on 2026-08-27 (82/180 -> 32/70, tiltAngle -0.34) on the grounds that
-# a 180 deg helios is not a Helios and grants near-field visibility the real robot does not have.
-# ShadowDiff.proto and Shadow.proto have NOT had that fix — they are still 82/180. When they do,
-# this block becomes Rings = 32, FovStartDeg = -55.0, FovEndDeg = 15.0 (the datasheet span), and
-# not one moment before: the two files have to move together or this channel lies again.
-Rings = 82                 # numberOfLayers
+# ★★★2026-08-29, the whole episode in three steps, because the middle one is the lesson:
+#   1. This block was first filled in with Rings = 32 / -54.5..+15.5 — P3Bot.proto's numbers. But
+#      this config serves SHADOW, and the running world (worlds/piso/piso.wbt) builds a ShadowDiff,
+#      whose helios read `numberOfLayers 82, verticalFieldOfView 3.14159, tiltAngle -0.`: 82 layers
+#      over 180 deg. The first thing this channel ever published was a 2.5x error in the vertical
+#      span of the live stream.
+#   2. It was briefly set to 82 / -90..+90 — correct about the data, and correct is not the same as
+#      right. It described a sensor that can see STRAIGHT DOWN, which no RS-Helios can.
+#   3. Shadow.proto and ShadowDiff.proto were then given the fix P3Bot.proto took on 2026-08-27
+#      (82/180 -> 32/70, tiltAngle 0 -> -0.34). The sim is now an H32F70 and these fields say so.
+# ⚠ The channel is only as true as the file it is copied from. If either proto moves, this block
+# moves in the same commit — that coupling is the entire point of publishing geometry from the
+# driver instead of letting each consumer keep its own constant.
+Rings = 32                 # numberOfLayers
 AzimuthStepDeg = 0.4       # fieldOfView 6.28 rad over horizontalResolution 900
 RateHz = 20.0              # defaultFrequency
-FovStartDeg = -90.0        # verticalFieldOfView pi with tiltAngle 0 => -90..+90
-FovEndDeg = 90.0
+FovStartDeg = -54.5        # verticalFieldOfView 1.2217 (70 deg) with tiltAngle -0.34 (-19.5 deg)
+FovEndDeg = 15.5           # => -54.48..+15.52, the H32F70's -55..+15 as the sim can express it
 RangeMaxM = 100.0          # maxRange
 #
 # ⚠ RangeMinM deliberately UNSET. The DEVICE has a 0.2 m blind distance (manual sec 5.1.1); the
 # SIM has none, and this stream is the sim. Publishing 0.2 m would have consumers throw away near
 # returns that genuinely exist in the data.
 #
-# ⚠ RingElevDeg still UNSET — but the reason has CHANGED, and is now sharper than "ambiguous".
+# ⚠ RingElevDeg still UNSET, and the reason has narrowed to exactly two questions.
 # The real H32F70's per-channel table IS published (manual Table 5) and it is strongly NON-UNIFORM:
-# 2 deg per layer from +15 to +7, 1.5 from +7 to +4, 1.33 from +4 to -8, 2 from -8 to -10, and
-# 3 deg from -10 all the way to -55. The channels are not even in elevation order (ch18 = -16 sits
-# between ch17 = -10 and ch19 = -13). So BOTH uniform assumptions in this fleet are wrong for the
-# hardware: residual_concept's 70/31 = 2.258 deg and P3Bot.proto's 70/32 = 2.19. And the manufacturer
-# table does not describe THIS stream either, which is 82 Webots layers spread uniformly over 180 deg
-# (2.22 deg apart). Publishing either list would be a fact-shaped guess about the wrong sensor.
-# It stays unset until the sim matches the device, or until a real sweep is measured.
+# 2 deg per layer from +15 to +7, 1.5 from +7 to +4, 1.33 from +4 to -8, 2 from -8 to -10, and 3 deg
+# from -10 all the way to -55. The channels are not even in elevation order (ch18 = -16 sits between
+# ch17 = -10 and ch19 = -13). Webots spreads its 32 layers UNIFORMLY across the 70 deg span, so the
+# manufacturer table does not describe this stream even now that the span and the count match.
+# And the uniform list itself is ambiguous: 70/31 = 2.258 deg per layer if the endpoints are beams,
+# 70/32 = 2.188 if they are not. residual_concept's HeliosBeamSpacingRad 0.0394 rad = 2.258 deg is
+# the first of those — right, if Webots counts gaps the way the constant assumes.
+# Two guesses is one too many to publish. Read the layer elevations off one sweep and set them.
 
 # ── Noise: range channel ─────────────────────────────────────────────────────────────────────
 # RS-Helios-5515 User Manual 3.0.1 sec 5.1.1, verbatim: "Ranging Accuracy (Typical) ±2cm", with

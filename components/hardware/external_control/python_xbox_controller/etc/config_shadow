@@ -1,0 +1,31 @@
+
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for publishes interfaces
+Proxies.JoystickAdapterPrefix = ""
+
+Period.Compute = 16
+Period.Emergency = 500
+
+# Joystick device and axis/button mapping (parsed by SpecificWorker)
+joystickUniversal.Device = "/dev/input/js0"
+joystickUniversal.NumAxes = 3 
+#                          name     axis  min   max   inverted  dead_zone
+joystickUniversal.Axis_0 = "advance, 1, -750, 750, true, 0.1"
+joystickUniversal.Axis_1 = "side,    0,   -1,   1, true, 0.1"
+joystickUniversal.Axis_2 = "rotate,  3,   -1,   1, true, 0.1"
+
+joystickUniversal.NumButtons = 3
+#                            name              button  step
+joystickUniversal.Button_0 = "block,            1, 1"
+joystickUniversal.Button_1 = "stop,             3, 1"
+joystickUniversal.Button_2 = "joystick_control, 2, 1"
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"
+
+
+

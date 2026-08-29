@@ -159,3 +159,46 @@ Warn.Connections = "0"
 Trace.Network = "0"
 Trace.Protocol = "0"
 MessageSizeMax = "20004800"
+
+# ---------------------------------------------------------------------------------------------
+# SENSOR MODEL advertised with the media plane
+# ---------------------------------------------------------------------------------------------
+# Beam geometry and range noise, emitted in the MediaDescriptor JSON that robot_concept relays
+# verbatim onto the `helios` DSR node. The driver owns these numbers because it owns the sensor;
+# otherwise every consumer re-asserts its own constants and the two drift with nothing to make
+# them disagree loudly (residual_concept currently hardcodes LidarModel.HeliosBeamSpacingRad).
+#
+# ★ Source = "simulated": these describe the WEBOTS sensor, read off the Lidar node in
+#   webots-p3bot/protos/P3Bot.proto. NOT a datasheet, NOT measured on hardware. A consumer is
+#   entitled to know which of the three it is being handed.
+# ★ Delete this section to advertise nothing. Absent means UNKNOWN, which the schema defines as
+#   "consumer keeps its own constant" — never as zero. That is why there is deliberately no copy
+#   of this block in the other helios config: two copies drift, and one absent degrades safely.
+# ★ Extrinsics are NOT here. Where the lidar sits is the RT tree (and mount_file/rx..tz above).
+#   Frame only NAMES the frame these intrinsics are expressed in.
+[SensorModel]
+Version = 1
+Source = "simulated"
+Ref = "webots-p3bot/protos/P3Bot.proto Lidar 'helios' (RS-Helios H32F70 stand-in)"
+Frame = "helios"
+
+# horizontalResolution 900 over fieldOfView 6.28 rad => 360/900 deg
+Rings = 32
+AzimuthStepDeg = 0.4
+RateHz = 20.0
+RangeMaxM = 8.0
+# Vertical span as the proto states it: 70 deg of FOV in 32 beams with tiltAngle -0.34,
+# giving -54.5..+15.5. Keeping the proto's own arithmetic rather than redoing it here.
+FovStartDeg = -54.5
+FovEndDeg = 15.5
+#
+# ⚠ RingElevDeg deliberately UNSET. A real H32F70 reports a NON-UNIFORM per-channel vertical-angle
+# table in its difop packet, and Webots' exact placement of 32 layers across the span is ambiguous
+# from outside: residual_concept assumes 70/31 = 2.258 deg (HeliosBeamSpacingRad 0.0394) while the
+# proto's own comment computes 70/32 = 2.19. Those differ by 3%, and the refuted-band width in the
+# occupancy grid is proportional to it. Publishing either would silently move a live consumer, so
+# this stays absent until the placement is MEASURED off a real sweep.
+#
+# Webots `noise 0.005` is a fraction of maxRange => 0.005 * 8 m = 0.04 m: a range-INDEPENDENT
+# floor. Hence no proportional term — the simulator has none to report.
+RangeSigmaFloorM = 0.04

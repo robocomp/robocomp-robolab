@@ -1,0 +1,40 @@
+# Xbox pad -> HumanBridge. Drives the simulated person in Webots, not the robot.
+#
+# UNITS ARE THE HumanControl INTERFACE'S: metres, metres/second, radians/second. The axis min/max
+# below are what full stick deflection means, so they are the speed limits -- unlike config_shadow,
+# whose `advance` is +-750 because Shadow's OmniRobot takes millimetres per second.
+
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Publish on "human/JoystickAdapter", NOT the bare topic webots-bridge subscribes to. Without this
+# prefix one pad drives the robot and the human at the same time.
+Proxies.JoystickAdapterPrefix = "human"
+
+Period.Compute = 16
+Period.Emergency = 500
+
+# Joystick device and axis/button mapping (parsed by SpecificWorker)
+joystickUniversal.Device = "/dev/input/js0"
+joystickUniversal.NumAxes = 4
+#                          name       axis  min    max   inverted  dead_zone
+# Left stick: where the person walks. Note `rotate` is on the LEFT stick here, not the right one it
+# uses in config_shadow -- the right stick is the arm now, and it cannot be both.
+joystickUniversal.Axis_0 = "advance,  1,  -1.2,  1.2, true, 0.15"
+joystickUniversal.Axis_1 = "rotate,   0,  -1.5,  1.5, true, 0.15"
+# Right stick: the selected arm, as JOINT RATES in rad/s. Up/down bends the shoulder, left/right the
+# elbow. Rates, not angles: let go and the arm stays where you left it instead of snapping back.
+joystickUniversal.Axis_2 = "shoulder, 4,  -1.5,  1.5, true, 0.15"
+joystickUniversal.Axis_3 = "elbow,    3,  -1.5,  1.5, true, 0.15"
+
+joystickUniversal.NumButtons = 4
+#                            name        button  step
+joystickUniversal.Button_0 = "left_arm,   4, 1"
+joystickUniversal.Button_1 = "right_arm,  5, 1"
+joystickUniversal.Button_2 = "relax,      0, 1"
+joystickUniversal.Button_3 = "stop,       3, 1"
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

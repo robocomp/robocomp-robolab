@@ -20,7 +20,7 @@ mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/s
 mount_key  = "helios"
 rx = -0.0
 # 2026-08-29: 0 -> pi. The helios is now mounted UPSIDE DOWN (wide part of the fan pointing UP, at
-# the walls) — Shadow.proto/ShadowDiff.proto `rotation 1 1 0 3.14159`, shadow.json body<-helios
+# the walls) — Shadow.proto `rotation 1 1 0 3.14159`, shadow.json body<-helios
 # euler_xyz (0, pi, 0). This fallback is the SILENT path: if shadow.json cannot be read the driver
 # logs to stderr and carries on with these numbers, so leaving ry at 0 here would hand the mesh
 # self-filter an UPRIGHT sensor while the cloud arrives inverted — every self-return tested against
@@ -186,7 +186,7 @@ MessageSizeMax = "20004800"
 [SensorModel]
 Version = 1
 Source = "simulated"
-Ref = "geometry: webots-shadow/protos/ShadowDiff.proto Lidar 'helios' (worlds/piso/piso.wbt) | noise: RoboSense RS-Helios-5515 User Manual 3.0.1 (2022-06-29) sec 5.1.1"
+Ref = "geometry: webots-shadow/protos/Shadow.proto Lidar 'helios' (worlds/piso/piso.wbt) | noise: RoboSense RS-Helios-5515 User Manual 3.0.1 (2022-06-29) sec 5.1.1"
 Frame = "helios"
 
 # ── Geometry: WHAT THE SIMULATOR EMITS ──────────────────────────────────────────────
@@ -195,13 +195,13 @@ Frame = "helios"
 #
 # ★★★2026-08-29, the whole episode in three steps, because the middle one is the lesson:
 #   1. This block was first filled in with Rings = 32 / -54.5..+15.5 — P3Bot.proto's numbers. But
-#      this config serves SHADOW, and the running world (worlds/piso/piso.wbt) builds a ShadowDiff,
+#      this config serves SHADOW, and the running world (worlds/piso/piso.wbt) builds a Shadow,
 #      whose helios read `numberOfLayers 82, verticalFieldOfView 3.14159, tiltAngle -0.`: 82 layers
 #      over 180 deg. The first thing this channel ever published was a 2.5x error in the vertical
 #      span of the live stream.
 #   2. It was briefly set to 82 / -90..+90 — correct about the data, and correct is not the same as
 #      right. It described a sensor that can see STRAIGHT DOWN, which no RS-Helios can.
-#   3. Shadow.proto and ShadowDiff.proto were then given the fix P3Bot.proto took on 2026-08-27
+#   3. Shadow.proto was then given the fix P3Bot.proto took on 2026-08-27
 #      (82/180 -> 32/70, tiltAngle 0 -> -0.34). The sim is now an H32F70 and these fields say so.
 # ⚠ The channel is only as true as the file it is copied from. If either proto moves, this block
 # moves in the same commit — that coupling is the entire point of publishing geometry from the

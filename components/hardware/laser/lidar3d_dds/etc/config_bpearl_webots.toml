@@ -161,7 +161,7 @@ MessageSizeMax = "20004800"
 [SensorModel]
 Version = 1
 Source = "simulated"
-Ref = "geometry: webots-shadow/protos/ShadowDiff.proto Lidar 'bpearl' (worlds/piso/piso.wbt) | noise: RoboSense RS-Bpearl User Manual 2.0.1 (2020-02-18) sec 3 Table 1"
+Ref = "geometry: webots-shadow/protos/Shadow.proto Lidar 'bpearl' (worlds/piso/piso.wbt) | noise: RoboSense RS-Bpearl User Manual 2.0.1 (2020-02-18) sec 3 Table 1"
 Frame = "bpearl"
 
 # ── Geometry: WHAT THE SIMULATOR EMITS ───────────────────────────────────────────────────────

@@ -1,0 +1,16 @@
+import "OmniRobot.idsl";
+import "DifferentialRobot.idsl";
+import "JoystickAdapter.idsl"; 
+import "FullPoseEstimationPub.idsl"; 
+
+Component SVD48VBase
+{
+	Communications
+	{
+		implements OmniRobot, DifferentialRobot;
+		subscribesTo JoystickAdapter;
+		publishes FullPoseEstimationPub;
+	};
+	language python;
+};
+

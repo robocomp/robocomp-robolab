@@ -1,0 +1,41 @@
+# This property is used by the clients to connect to IceStorm.
+Proxies.TopicManager = "IceStorm/TopicManager:default -p 9999"
+
+# Proxies for publishes interfaces
+Proxies.FullPoseEstimationPubPrefix = "base"
+
+
+# Endpoints for subscriptions interfaces
+Endpoints.JoystickAdapterTopic = "tcp -p 18896"
+Endpoints.JoystickAdapterPrefix = ""
+
+# Endpoints for implements interfaces
+Endpoints.DifferentialRobot = "tcp -p 10010"
+Endpoints.OmniRobot = "tcp -p 10004"
+
+port="/dev/Driver_base"#Direcion de dispositivo conectado
+baseType="Omnidirectional"#Diferential/Omnidirectional
+polePairs=10            # Numero de polos del motor
+idDriver1=1				#Direcion RS485 del driver 1
+idDriver2=2				#Direcion RS485 del driver 1
+maxLinSpeed=700		    #max velocidad eje x, z mm/s
+maxRotSpeed=1.5		    #max velocidad de rotacion rad/s
+maxCurrent=18	        #maxima corriente de la ruedas amperios
+maxAcceleration=350	    #Aceleracion mm/s
+maxDeceleration=1000	#Deceleracion mm/s
+wheelRadius=80.0		#Radio de las ruedas
+distAxes=270.0			#Distancias entre ejes
+axesLength=475.0		#Longitud entre ejes
+
+noSafe=True
+
+Period.Compute = 100
+Period.Emergency = 500
+
+Ice.Warn.Connections="0"
+Ice.Trace.Network="0"
+Ice.Trace.Protocol="0"
+Ice.MessageSizeMax="20004800"
+
+
+

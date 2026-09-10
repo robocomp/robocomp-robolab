@@ -412,6 +412,34 @@ void SpecificWorker::compute()
             else //Helios
                 raw_lidar_sim = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
 
+            // Self-synchronise with the source before paying for any processing (see the header).
+            const auto src_stamp = static_cast<std::uint64_t>(raw_lidar_sim.timestamp);
+            if (src_stamp != 0 and src_stamp == last_src_stamp_ms_)
+                return;                       // same scan as last cycle: the state-machine timer retries
+            if (src_stamp != 0)
+            {
+                if (last_src_stamp_ms_ != 0)
+                    if (const double dt = static_cast<double>(src_stamp - last_src_stamp_ms_);
+                        dt > 0.5 and dt < 2000.0)
+                    {
+                        // Decaying minimum — see the header for why an average cannot work here.
+                        src_period_ms_ = (src_period_ms_ < 0.0 or dt < src_period_ms_)
+                                             ? dt
+                                             : src_period_ms_ + 0.002 * (dt - src_period_ms_);
+                        // Oversample the source by ~4x. What sets this factor is the MEASURED cost of a
+                        // wasted pull, and that cost turned out to be small: getLidarData round-trips in
+                        // 0.8 ms median against this bridge (probed 2026-09-10), because the dedup below
+                        // drops a repeat before any filtering, projection or publish. So the whole poll
+                        // period lands in the lag as phase error while buying almost nothing back — the
+                        // earlier 0.9x factor was priced against a 1.1 MB transfer that does not show up
+                        // in the wall clock. 4x costs ~125 pulls/s/ring (~10% of a core each side) and
+                        // cuts the mean phase term from ~16 ms to ~4 ms. Floor 5 ms; ceiling 50 ms so a
+                        // stalled source cannot leave us polling at 200 Hz for ever.
+                        self_adjust_period(std::clamp(static_cast<int>(0.25 * src_period_ms_ + 0.5), 5, 50));
+                    }
+                last_src_stamp_ms_ = src_stamp;
+            }
+
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
         }
@@ -427,7 +455,10 @@ void SpecificWorker::compute()
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
         }
-        raw_lidar.period = static_cast<float>(getPeriod("Compute")); // ms
+        // The SCAN period, which is the source's, not our poll interval — those coincided only
+        // while the poll was fixed. Falls back to the poll period until the source is measured.
+        raw_lidar.period = static_cast<float>(src_period_ms_ > 0.0 ? src_period_ms_
+                                                                  : getPeriod("Compute")); // ms
 
         // ── Measure the per-ring vertical angles, once ────────────────────────────────────────
         // HERE and not later: these points are in the DEVICE frame (processLidarData does not
@@ -445,8 +476,10 @@ void SpecificWorker::compute()
         // would report thousands of "rings". Cluster with a 0.5 deg gap — comfortably above that
         // jitter and comfortably below the smallest real spacing (helios 2.26 deg, bpearl 2.86).
         //
-        // Published ONLY when exactly `model_rings_` clusters appear: a partial table advertised
+        // Published ONLY when all `model_rings_` clusters have been seen: a partial table advertised
         // as a full one is worse than absent, and absent already means "unknown, keep your own".
+        // The clusters ACCUMULATE across sweeps (see ring_elev_acc_ in the header) because a single
+        // sweep is missing every ring whose beams all flew off into open space.
         if (not ring_elev_published_ and model_rings_ > 0 and dds_publisher and not raw_lidar.points.empty())
         {
             std::vector<float> th;
@@ -455,33 +488,64 @@ void SpecificWorker::compute()
                 if (pt.r > 0.f) th.push_back(pt.theta);
             std::sort(th.begin(), th.end());
 
-            constexpr float kGapRad = 0.5f * static_cast<float>(M_PI) / 180.f;
-            std::vector<float> elev;
+            constexpr float  kGapRad = 0.5f * static_cast<float>(M_PI) / 180.f;
+            constexpr double kGapDeg = 0.5;
             for (std::size_t i = 0; i < th.size();)
             {
                 std::size_t j = i;
                 double sum = 0.0;
                 while (j < th.size() and (j == i or th[j] - th[j - 1] < kGapRad)) { sum += th[j]; ++j; }
-                const double mean_theta = sum / static_cast<double>(j - i);
-                elev.push_back(static_cast<float>((M_PI / 2.0 - mean_theta) * 180.0 / M_PI));
+                const double elev = (M_PI / 2.0 - sum / static_cast<double>(j - i)) * 180.0 / M_PI;
                 i = j;
-            }
-            std::sort(elev.begin(), elev.end());              // ascending: FovStart .. FovEnd
 
-            if (static_cast<int>(elev.size()) == model_rings_)
+                // Merge into the accumulated table: same ring if within the same 0.5 deg gap that
+                // separates clusters inside one sweep, otherwise a ring seen here for the first time.
+                auto near = ring_elev_acc_.end();
+                for (auto it = ring_elev_acc_.begin(); it != ring_elev_acc_.end(); ++it)
+                    if (std::abs(it->first - elev) < kGapDeg
+                        and (near == ring_elev_acc_.end() or std::abs(it->first - elev) < std::abs(near->first - elev)))
+                        near = it;
+                if (near != ring_elev_acc_.end())
+                {
+                    near->second += 1;                                   // running mean, sample-weighted
+                    near->first += (elev - near->first) / near->second;
+                }
+                else
+                    ring_elev_acc_.emplace_back(elev, 1);
+            }
+            std::ranges::sort(ring_elev_acc_, {}, &std::pair<double,int>::first);   // ascending: FovStart .. FovEnd
+
+            const int seen = static_cast<int>(ring_elev_acc_.size());
+            if (seen == model_rings_)
             {
+                std::vector<float> elev;
+                elev.reserve(ring_elev_acc_.size());
+                for (const auto &[mean, n] : ring_elev_acc_) elev.push_back(static_cast<float>(mean));
                 dds_publisher->set_ring_elevations(elev);
                 ring_elev_published_ = true;
-                std::cout << "[lidar3d_dds] ring elevations MEASURED from a device-frame sweep: "
-                          << elev.size() << " rings, " << elev.front() << " .. " << elev.back()
-                          << " deg, mean gap "
+                std::cout << "[lidar3d_dds] ring elevations MEASURED over " << seen << " sweeps-worth of"
+                          << " accumulated returns: " << elev.size() << " rings, " << elev.front()
+                          << " .. " << elev.back() << " deg, mean gap "
                           << (elev.size() > 1 ? (elev.back() - elev.front()) / (elev.size() - 1) : 0.f)
                           << " deg" << std::endl;
             }
-            else
-                std::cout << "[lidar3d_dds] ring elevations NOT published: clustered "
-                          << elev.size() << " rings, expected " << model_rings_
-                          << " — a partial table is worse than an absent one" << std::endl;
+            // Speak only on a CHANGE of the count. The old code re-announced the same shortfall on
+            // every frame — a log flood is a missing state transition, not information.
+            else if (seen != ring_elev_reported_)
+            {
+                ring_elev_reported_ = seen;
+                if (seen < model_rings_)
+                    std::cout << "[lidar3d_dds] ring elevations: " << seen << " of " << model_rings_
+                              << " rings seen so far (" << ring_elev_acc_.front().first << " .. "
+                              << ring_elev_acc_.back().first << " deg) — accumulating; the missing ones"
+                              << " are beams that have not hit anything yet" << std::endl;
+                else
+                    std::cout << "[lidar3d_dds] ring elevations NOT published: " << seen
+                              << " clusters exceeds the configured " << model_rings_ << " rings — either"
+                              << " SensorModel.Rings disagrees with the device or a stray return split a"
+                              << " cluster; publishing a table this component cannot vouch for would be"
+                              << " worse than publishing none" << std::endl;
+            }
         }
 
         // Self-filter: drop points hitting the robot body mesh (once, upstream of every

@@ -121,6 +121,28 @@ class SpecificWorker : public GenericWorker
 
     private:
         bool startup_check_flag;
+        // ── Source self-synchronisation (SIMULATED branch only) ──────────────────────────────
+        // The bridge serves Lidar3D as a PULL servant: there is no arrival to react to, so this
+        // component polls. A fixed poll period that is not a divisor of the source period both
+        // downsamples the source and carries its phase error into the published stamp. Measured
+        // 2026-09-10 with Period.Compute = 50 on a 32 ms source: stamp deltas came out BIMODAL at
+        // 32/64 ms (the downsampling signature), 20 Hz published from a ~31 Hz source — about 35%
+        // of the scans discarded — and the frames that did survive reached the media plane a mean
+        // 35 ms old, with the p10-p90 spread equal to one poll period.
+        //
+        // Cure (same one read_lidar_thread uses in robot_concept): measure the SOURCE period from
+        // consecutive source stamps — never from our own loop timing, which is circular and
+        // death-spirals the rate down — poll at ~2x that, and drop a repeated stamp before it costs
+        // a mesh filter, a projection and a publish.
+        // ★ The period estimate is a decaying MINIMUM, not an average, and that is not a detail:
+        // a MISSED source frame can only ever make a stamp delta LARGER (an integer multiple of the
+        // true period), never smaller. Averaging those deltas therefore feeds a positive loop —
+        // miss a frame, over-estimate the period, poll slower, miss more. Measured 2026-09-10 with an
+        // EMA here: the poll oscillated 32-35 ms and logged a setPeriod on nearly every cycle, and
+        // the published rate stalled below the source. The minimum is immune to that by construction;
+        // the slow upward relaxation is what lets it still follow a source that genuinely slows down.
+        std::uint64_t last_src_stamp_ms_ = 0;   // last source stamp accepted (dedup key)
+        double        src_period_ms_ = -1.0;    // decaying MIN of source stamp deltas, ms; <0 = unknown
         std::atomic_bool ready_to_go = false;
         int lidar_model;
         int msop_port;
@@ -189,6 +211,15 @@ class SpecificWorker : public GenericWorker
     // advertised as a full one is worse than absent, and absent already means "unknown".
     int  model_rings_ = 0;             // from SensorModel.Rings; 0 = no model configured
     bool ring_elev_published_ = false; // one-shot latch
+    // ★ ACCUMULATED across sweeps, because ONE sweep does not contain all the rings. A ring is only
+    // visible in a frame where at least one of its beams came back, and the extreme rings of a fan
+    // aimed into open space may return nothing for many seconds — measured 2026-09-10 on the live
+    // helios: 26 of 32 rings present, elevation span 56 deg of the declared 70, the missing ones all
+    // at the bottom. The old single-frame test therefore asked for something the data may never hold
+    // at one instant, so it never published and re-announced that failure on every frame. Rings are a
+    // FIXED property of the device: seeing them at different times is as good as seeing them at once.
+    std::vector<std::pair<double,int>> ring_elev_acc_;   // (running mean elevation deg, samples), ascending
+    int ring_elev_reported_ = -1;      // last cluster count logged; -1 = nothing said yet
         std::vector<float> lidar_xyz;   // reusable interleaved x,y,z (metres) publish buffer
 
         // Optional robot-body self-filter (null unless MeshFilter.enabled). Removes

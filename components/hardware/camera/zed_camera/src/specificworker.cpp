@@ -269,7 +269,21 @@ void SpecificWorker::regulate_period()
 {
     if (camera_fps <= 0)
         return;
-    const double target = 1000.0 / camera_fps;     // desired ms/frame
+    // ★ OVERSAMPLE the source. Config.FPS is the rate we want to PUBLISH; it is not the rate we should
+    // ASK at. build_simulated_rgbd dedups on the source stamp, so polling faster cannot publish
+    // faster — it only shortens the wait between a frame existing at the bridge and us holding it,
+    // which is otherwise uniform over a whole poll period. Measured 2026-09-10: the plane read 35 ms
+    // while the source handed frames over already 27 ms old, i.e. ~8 ms of that was this poll's phase.
+    //
+    // WHY ONLY 2x, when lidar3d_dds and ricoh_omni_dds took 4x: the factor is priced on the measured
+    // cost of a WASTED pull, and this one is by far the most expensive in the fleet — getAll ships RGB
+    // + depth, 6.45 MB, 4.7 ms per call, against 2.2 ms for the 360 panorama and 0.8 ms for a lidar
+    // scan. That cost lands on the BRIDGE too, and the bridge is the shared resource every stream
+    // depends on: loading its servant thread slows the simulation itself, which makes every stream
+    // later in wall time. 2x buys ~4 ms of the ~8 for ~30% of a core; 4x would buy ~6 for a whole one.
+    // If the bridge ever looks CPU-starved, this is the first knob to put back to 1.0.
+    constexpr double kPollOversample = 2.0;
+    const double target = 1000.0 / (camera_fps * kPollOversample);   // desired ms/POLL, not ms/frame
 
     static auto   last  = std::chrono::steady_clock::time_point{};
     static double ema   = target;                  // smoothed measured loop period

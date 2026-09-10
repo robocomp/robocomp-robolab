@@ -156,6 +156,21 @@ private:
 	DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 
 	long long capture_time;
+	// ★ Dedup key for the SIMULATED source. getROI is a PULL: asking faster than the source produces
+	// returns the same panorama again, and without this the component republished it — measured
+	// 2026-09-10 on the live plane, 16% of frames carried a stamp already sent. That is not just
+	// wasted bandwidth: a consumer re-runs its perception on data it already processed, and any
+	// latency measured from the stamp reads high because the repeat is timed at a later wall clock.
+	// The real-camera branch needs no key — capture.read() only returns on a genuine new frame.
+	long long last_source_timestamp_ = -1;
+	// Source period as a DECAYING MINIMUM, and the poll locked to it. A missed frame can only make a
+	// stamp delta an integer MULTIPLE of the true period, never smaller, so an average would inflate
+	// under drops and slow the poll, which drops more — a minimum cannot. The oversample factor is
+	// priced on the MEASURED cost of a wasted pull: getROI round-trips in 2.2 ms median against this
+	// bridge (probed 2026-09-10), an order below the ZED's 4.7 ms / 6.45 MB getAll, so 4x costs ~27%
+	// of a core and removes ~10 ms of polling phase from every published panorama. Measured before:
+	// plane lag 35 ms against a source handing frames over already 22 ms old.
+	double src_period_ms_ = -1.0;
 	// track image period
 	void self_adjust_period(int new_period);
 

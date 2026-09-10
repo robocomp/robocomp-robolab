@@ -17,6 +17,7 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <algorithm>
 #include "dds_publisher.h"
 
 /**
@@ -334,13 +335,39 @@ void SpecificWorker::compute()
         try
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
-            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
 
-            if(!cv_frame.empty())
-            {
-                capture_time = image.timestamp;
-                frame_valid = true;
+            // Advance only on a genuinely new panorama (see last_source_timestamp_ in the header).
+            // BEFORE the pixel copy below, so a duplicate pull costs nothing but the Ice transfer.
+            if(image.timestamp != 0 and image.timestamp == last_source_timestamp_)
+                return;
+            if(image.width <= 0 or image.height <= 0 or image.image.empty())
+            {   // an empty payload is worth saying out loud, unlike a duplicate; it also guards
+                // the .data() below, which the previous &image.image[0] did not.
+                qWarning() << "Skipping frame due to invalid data from the Camera360RGB source";
+                return;
             }
+            // Lock the poll to the source: period as a decaying MINIMUM, oversampled 4x (see header).
+            if(last_source_timestamp_ > 0 and image.timestamp > last_source_timestamp_)
+                if(const double dt = static_cast<double>(image.timestamp - last_source_timestamp_);
+                   dt > 0.5 and dt < 2000.0)
+                {
+                    src_period_ms_ = (src_period_ms_ < 0.0 or dt < src_period_ms_)
+                                         ? dt : src_period_ms_ + 0.002 * (dt - src_period_ms_);
+                    self_adjust_period(std::clamp(static_cast<int>(0.25 * src_period_ms_ + 0.5), 5, 50));
+                }
+            last_source_timestamp_ = image.timestamp;
+
+            // ★ .clone() — NOT a view. A cv::Mat built over image.image only BORROWS the Ice payload,
+            // and `image` dies at the end of this function, so the Mat handed to buffer_image below
+            // would be left pointing at freed memory. Nothing here would fault: the DDS publish copies
+            // into shared memory before the free, so the media plane always looked correct. The victim
+            // is Camera360RGB_getROI, which runs on an Ice DISPATCH thread and slices whatever the
+            // buffer holds — reading a freed 2-4 MB block whenever a client asks. The old comment
+            // ("sin clone para máxima velocidad - usar con cuidado") priced a ~3 MB memcpy at ~26 Hz
+            // against a use-after-free; the copy costs ~1 ms and the buffer must own its pixels.
+            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, image.image.data()).clone();
+            capture_time = image.timestamp;
+            frame_valid = true;
         }
         catch (const Ice::Exception &e)
         {
@@ -400,8 +427,9 @@ void SpecificWorker::compute()
                                    cv_frame.total() * cv_frame.elemSize());
         }
 
-        // Buffer actualizado (sin clone para máxima velocidad - usar con cuidado)
-        // NOTA: Si hay problemas de thread-safety, volver a usar clone()
+        // Safe to move: in the simulator branch cv_frame was cloned at capture (it owns its pixels),
+        // and in the real-camera branch VideoCapture::read allocated it. Either way the buffer the
+        // Ice servant slices from outlives this function.
         buffer_image.put(std::move(cv_frame));
 
         // Print FPS statistics

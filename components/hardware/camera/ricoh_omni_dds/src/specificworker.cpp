@@ -341,11 +341,12 @@ void SpecificWorker::compute()
             if(image.timestamp != 0 and image.timestamp == last_source_timestamp_)
                 return;
             if(image.width <= 0 or image.height <= 0 or image.image.empty())
-            {   // an empty payload is worth saying out loud, unlike a duplicate; it also guards
-                // the .data() below, which the previous &image.image[0] did not.
-                qWarning() << "Skipping frame due to invalid data from the Camera360RGB source";
+                // SILENT. The bridge servant long-polls and answers with an empty payload when no
+                // new panorama arrived inside its window, so this is the normal "nothing yet" reply
+                // of a paused or slow simulator, not a fault — warning here would flood the log at
+                // the retry rate. It also guards the .data() below, which the previous
+                // &image.image[0] did not.
                 return;
-            }
             // Lock the poll to the source: period as a decaying MINIMUM, oversampled 4x (see header).
             if(last_source_timestamp_ > 0 and image.timestamp > last_source_timestamp_)
                 if(const double dt = static_cast<double>(image.timestamp - last_source_timestamp_);
@@ -365,7 +366,11 @@ void SpecificWorker::compute()
             // buffer holds — reading a freed 2-4 MB block whenever a client asks. The old comment
             // ("sin clone para máxima velocidad - usar con cuidado") priced a ~3 MB memcpy at ~26 Hz
             // against a use-after-free; the copy costs ~1 ms and the buffer must own its pixels.
-            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, image.image.data()).clone();
+            // A VIEW here, deliberately: the DDS publish below copies straight into the loaned SHM
+            // sample, so making it wait behind a 5.5 MB clone of its own would be a copy nobody reads.
+            // The clone happens at buffer_image.put() instead — after the publish — because only the
+            // Ice servant path needs a buffer that outlives this function. See the note there.
+            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, image.image.data());
             capture_time = image.timestamp;
             frame_valid = true;
         }
@@ -427,10 +432,14 @@ void SpecificWorker::compute()
                                    cv_frame.total() * cv_frame.elemSize());
         }
 
-        // Safe to move: in the simulator branch cv_frame was cloned at capture (it owns its pixels),
-        // and in the real-camera branch VideoCapture::read allocated it. Either way the buffer the
-        // Ice servant slices from outlives this function.
-        buffer_image.put(std::move(cv_frame));
+        // ★ CLONE HERE, and only here. In the simulator branch cv_frame is a VIEW of the Ice payload,
+        // which dies with `image` at the end of this function, so handing the view to a buffer an Ice
+        // DISPATCH thread slices from is a use-after-free — moving a Mat moves the header, never
+        // ownership of borrowed pixels. Cloning at this point rather than at capture keeps the 5.5 MB
+        // copy off the media plane's critical path: the DDS publish above has already copied into
+        // shared memory by now. In the real-camera branch VideoCapture::read already allocated, so the
+        // clone is redundant there but costs one memcpy on a path that is not latency-critical.
+        buffer_image.put(cv_frame.clone());
 
         // Print FPS statistics
         fps.print("FPS:");

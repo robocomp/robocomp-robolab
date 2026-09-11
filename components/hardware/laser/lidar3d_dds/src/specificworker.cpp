@@ -412,6 +412,13 @@ void SpecificWorker::compute()
             else //Helios
                 raw_lidar_sim = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
 
+            // The bridge servant now LONG-POLLS: it blocks until the next scan and answers with an
+            // EMPTY payload if none arrives inside its window. That is "nothing new", not an error
+            // and not a scan — passing it on would publish an empty cloud and, worse, put one into
+            // buffer_data for this component's own Ice clients.
+            if (raw_lidar_sim.points.empty())
+                return;
+
             // Self-synchronise with the source before paying for any processing (see the header).
             const auto src_stamp = static_cast<std::uint64_t>(raw_lidar_sim.timestamp);
             if (src_stamp != 0 and src_stamp == last_src_stamp_ms_)
@@ -426,15 +433,17 @@ void SpecificWorker::compute()
                         src_period_ms_ = (src_period_ms_ < 0.0 or dt < src_period_ms_)
                                              ? dt
                                              : src_period_ms_ + 0.002 * (dt - src_period_ms_);
-                        // Oversample the source by ~4x. What sets this factor is the MEASURED cost of a
-                        // wasted pull, and that cost turned out to be small: getLidarData round-trips in
-                        // 0.8 ms median against this bridge (probed 2026-09-10), because the dedup below
-                        // drops a repeat before any filtering, projection or publish. So the whole poll
-                        // period lands in the lag as phase error while buying almost nothing back — the
-                        // earlier 0.9x factor was priced against a 1.1 MB transfer that does not show up
-                        // in the wall clock. 4x costs ~125 pulls/s/ring (~10% of a core each side) and
-                        // cuts the mean phase term from ~16 ms to ~4 ms. Floor 5 ms; ceiling 50 ms so a
-                        // stalled source cannot leave us polling at 200 Hz for ever.
+                        // ★ WHAT THIS FACTOR MEANS NOW THAT THE SERVANT BLOCKS. It is no longer an
+                        // oversample: a pull that arrives before the next scan does not transfer
+                        // anything, it WAITS. What it buys is that we are ALREADY BLOCKED when the scan
+                        // lands — and that is the whole of the win, because a consuming get() hands back
+                        // a frame that is already sitting in the buffer immediately, aged by however
+                        // long it has been there. Ask too slowly and the phase comes straight back.
+                        // So the rule is simply: stay comfortably below the source period. 4x does, with
+                        // margin for a source that speeds up (the lidars now run at their real 20 Hz, so
+                        // this settles near 12 ms). The CPU argument that used to cap this factor is
+                        // void — a waiting call copies and marshals nothing. Floor 5 ms; ceiling 50 ms
+                        // so a stalled source cannot leave us spinning.
                         self_adjust_period(std::clamp(static_cast<int>(0.25 * src_period_ms_ + 0.5), 5, 50));
                     }
                 last_src_stamp_ms_ = src_stamp;
@@ -553,17 +562,15 @@ void SpecificWorker::compute()
         if (mesh_filter_enabled && mesh_filter)
             mesh_filter->filter(raw_lidar);
 
-        //Process lidar helios and add lidar data to doubleBuffer
-        if (lidar_model==0)
-        { //Helios
-            RoboCompLidar3D::TDataImage processed_real_lidar_array;
-            processed_real_lidar_array = lidar2cam(raw_lidar);
-            buffer_array_data.put(std::move(processed_real_lidar_array));
-        }
-
         num_points = raw_lidar.points.size();
 
-        // Publish the scan on the zero-copy DDS media plane (interleaved xyz, mm -> m).
+        // ★ THE MEDIA PLANE FIRST, before any other output. Everything below this feeds the Ice pull
+        // servants, which are polled and therefore already tolerate being one cycle behind; the plane
+        // is the low-latency path and there is no reason for it to wait behind work done for someone
+        // else. lidar2cam in particular projects every point into an image for
+        // getLidarDataArrayProyectedInImage, which nothing in active_inference calls.
+        // The mesh self-filter stays ABOVE this: consumers of the plane depend on robot-body returns
+        // being gone, so that one is not "other people's work", it is part of producing the scan.
         if (publish_dds && dds_publisher && not raw_lidar.points.empty())
         {
             const std::size_t n = raw_lidar.points.size();
@@ -578,6 +585,14 @@ void SpecificWorker::compute()
             }
             dds_publisher->publish(static_cast<std::uint64_t>(raw_lidar.timestamp),
                                    lidar_xyz.data(), static_cast<std::uint32_t>(n));
+        }
+
+        //Process lidar helios and add lidar data to doubleBuffer
+        if (lidar_model==0)
+        { //Helios
+            RoboCompLidar3D::TDataImage processed_real_lidar_array;
+            processed_real_lidar_array = lidar2cam(raw_lidar);
+            buffer_array_data.put(std::move(processed_real_lidar_array));
         }
 
         buffer_data.put(std::move(raw_lidar));

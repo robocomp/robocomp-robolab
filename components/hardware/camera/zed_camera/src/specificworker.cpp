@@ -269,19 +269,18 @@ void SpecificWorker::regulate_period()
 {
     if (camera_fps <= 0)
         return;
-    // ★ OVERSAMPLE the source. Config.FPS is the rate we want to PUBLISH; it is not the rate we should
-    // ASK at. build_simulated_rgbd dedups on the source stamp, so polling faster cannot publish
-    // faster — it only shortens the wait between a frame existing at the bridge and us holding it,
-    // which is otherwise uniform over a whole poll period. Measured 2026-09-10: the plane read 35 ms
-    // while the source handed frames over already 27 ms old, i.e. ~8 ms of that was this poll's phase.
+    // ★ ASK OFTEN ENOUGH TO BE WAITING WHEN THE FRAME LANDS. Config.FPS is the rate we want to
+    // PUBLISH; it is not the rate we should ASK at. getAll now blocks at the bridge until the next
+    // frame, so a poll that arrives early costs nothing — it waits instead of shipping a duplicate
+    // 6.45 MB payload. What it buys is being blocked ALREADY when the frame appears: a consuming
+    // get() hands back a frame that is merely sitting in the buffer straight away, aged by however
+    // long it has been there, so asking slower than the source brings the polling phase right back.
     //
-    // WHY ONLY 2x, when lidar3d_dds and ricoh_omni_dds took 4x: the factor is priced on the measured
-    // cost of a WASTED pull, and this one is by far the most expensive in the fleet — getAll ships RGB
-    // + depth, 6.45 MB, 4.7 ms per call, against 2.2 ms for the 360 panorama and 0.8 ms for a lidar
-    // scan. That cost lands on the BRIDGE too, and the bridge is the shared resource every stream
-    // depends on: loading its servant thread slows the simulation itself, which makes every stream
-    // later in wall time. 2x buys ~4 ms of the ~8 for ~30% of a core; 4x would buy ~6 for a whole one.
-    // If the bridge ever looks CPU-starved, this is the first knob to put back to 1.0.
+    // The factor therefore only has to stay comfortably under the source period; 2x does. The CPU
+    // argument that used to cap it (each wasted getAll cost 4.7 ms of bridge serialisation, on the
+    // shared resource every stream depends on) no longer applies, because a waiting call marshals
+    // nothing. Raising it further buys nothing either — being blocked earlier is not being blocked
+    // better. Measured after the change: plane lag 17.0 -> 9.2 ms.
     constexpr double kPollOversample = 2.0;
     const double target = 1000.0 / (camera_fps * kPollOversample);   // desired ms/POLL, not ms/frame
 
@@ -470,6 +469,12 @@ long SpecificWorker::build_simulated_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
 {
     // Single round-trip to the source (image + depth) instead of two separate calls.
     RoboCompCameraRGBDSimple::TRGBD src = camerargbdsimple_proxy->getAll("");
+
+    // The bridge servant long-polls: it blocks for the next frame and answers with an EMPTY TRGBD
+    // when none arrived inside its window. That is "nothing new", not a frame — building one out of
+    // it would publish a zero-sized image onto the media plane.
+    if (src.image.image.empty() or src.depth.depth.empty())
+        return -1;
 
     // Advance only on a genuinely new frame (dedup by the source stamp).
     static long last_source_timestamp = -1;

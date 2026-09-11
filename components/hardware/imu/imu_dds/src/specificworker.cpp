@@ -271,14 +271,25 @@ void SpecificWorker::compute()
 
     // Measure the SOURCE period from its own stamps and poll at ~2x it. Bounds reject a
     // stalled clock (dt 0) and a restart/rollover (dt seconds) — neither is a period.
+    //
+    // ★ DECAYING MINIMUM, never an average. A sample we FAIL to see makes the next stamp delta an
+    // integer MULTIPLE of the true period, so an average of the deltas can only ever read high, and
+    // reading high makes us poll slower, which loses more samples: a loop with no bottom. It is not
+    // hypothetical — on 2026-09-11 a dispatch starvation at the source (four long-polling servants
+    // sharing one Ice thread pool) held this component to 29 Hz on a 117 Hz source; the EMA latched
+    // at a 35 ms "period", and it stayed latched after the starvation was fixed, because nothing in
+    // an average can pull it back down. A minimum cannot latch: the first correctly-spaced pair of
+    // stamps restores it. The slow upward relaxation is what still lets it follow a source that has
+    // genuinely slowed.
     if (stamp_ms != 0)
     {
         if (last_imu_stamp_ms != 0)
             if (const double src_dt = static_cast<double>(stamp_ms - last_imu_stamp_ms);
                 src_dt > 0.5 and src_dt < 2000.0)
             {
-                imu_src_period_ms = (imu_src_period_ms < 0.0) ? src_dt
-                                                              : 0.8 * imu_src_period_ms + 0.2 * src_dt;
+                imu_src_period_ms = (imu_src_period_ms < 0.0 or src_dt < imu_src_period_ms)
+                                        ? src_dt
+                                        : imu_src_period_ms + 0.002 * (src_dt - imu_src_period_ms);
                 self_adjust_period(static_cast<int>(0.5 * imu_src_period_ms + 0.5));
             }
         last_imu_stamp_ms = stamp_ms;

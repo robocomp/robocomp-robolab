@@ -165,11 +165,13 @@ private:
 	long long last_source_timestamp_ = -1;
 	// Source period as a DECAYING MINIMUM, and the poll locked to it. A missed frame can only make a
 	// stamp delta an integer MULTIPLE of the true period, never smaller, so an average would inflate
-	// under drops and slow the poll, which drops more — a minimum cannot. The oversample factor is
-	// priced on the MEASURED cost of a wasted pull: getROI round-trips in 2.2 ms median against this
-	// bridge (probed 2026-09-10), an order below the ZED's 4.7 ms / 6.45 MB getAll, so 4x costs ~27%
-	// of a core and removes ~10 ms of polling phase from every published panorama. Measured before:
-	// plane lag 35 ms against a source handing frames over already 22 ms old.
+	// under drops and slow the poll, which drops more — a minimum cannot.
+	// ★ The 4x factor is not an oversample any more: getROI blocks at the bridge until the next
+	// panorama, so an early poll transfers nothing, it waits. What the factor buys is being ALREADY
+	// BLOCKED when the frame lands — a consuming get() returns a frame that is merely sitting in the
+	// buffer immediately, aged by however long it sat, so asking slower than the source restores the
+	// polling phase we removed. It only has to stay comfortably below the source period, and the CPU
+	// cost that used to bound it is gone with the duplicate transfers. Plane lag 50 -> 8.0 ms.
 	double src_period_ms_ = -1.0;
 	// track image period
 	void self_adjust_period(int new_period);

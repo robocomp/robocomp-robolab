@@ -10,17 +10,29 @@ Period.Emergency = 500
 
 # Joystick device and axis/button mapping (parsed by SpecificWorker)
 joystickUniversal.Device = "/dev/input/js0"
-joystickUniversal.NumAxes = 3 
+joystickUniversal.NumAxes = 4
 #                          name     axis  min   max   inverted  dead_zone
 joystickUniversal.Axis_0 = "advance, 1, -750, 750, true, 0.1"
 joystickUniversal.Axis_1 = "side,    0,   -1,   1, true, 0.1"
 joystickUniversal.Axis_2 = "rotate,  3,   -1,   1, true, 0.1"
+# Altitude, for the drone only. The base ignores it; the bridge uses it when drone mode is on.
+# Axis 4 is the RIGHT stick's vertical on an Xbox pad -- the only analogue axis left, since 0/1 are
+# the left stick and 3 is the right stick's horizontal (already "rotate"). The triggers (2 and 5)
+# were the alternative and are wrong for this: they rest at one end of their travel, so a
+# trigger-per-direction is needed to climb AND descend. "inverted" makes stick-up climb.
+joystickUniversal.Axis_3 = "altitude, 4,   -1,   1, true, 0.1"
 
-joystickUniversal.NumButtons = 3
+joystickUniversal.NumButtons = 4
 #                            name              button  step
 joystickUniversal.Button_0 = "block,            1, 1"
 joystickUniversal.Button_1 = "stop,             3, 1"
 joystickUniversal.Button_2 = "joystick_control, 2, 1"
+# Which vehicle the sticks drive: press to swap between the base and the drone. Button 0 is 'A' on
+# an Xbox pad and was the only one unmapped, so nothing above changes meaning. This publisher has no
+# idea what the button does -- it reports the button's state every cycle while it is held, and the
+# BRIDGE toggles on the press edge. Adding it here is therefore safe for any other subscriber: a
+# consumer that does not know the name simply ignores it.
+joystickUniversal.Button_3 = "drone_mode,       0, 1"
 
 Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"

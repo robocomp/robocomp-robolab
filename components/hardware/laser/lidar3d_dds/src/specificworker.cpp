@@ -48,22 +48,54 @@ Eigen::Affine3f build_extrinsic(float rx, float ry, float rz, float tx, float ty
 // Read a sensor's static mount (lidar -> robot) from the DSR shadow.json — the single
 // source of geometry. Finds the node named `node_name`, then the incoming RT edge, and
 // reads linkAttribute.rt_rotation_euler_xyz.value (rad) + rt_translation.value (METRES,
-// converted to mm here). Returns nullopt on any problem (missing file/node/edge/fields)
-// so the caller can roll back to the config extrinsics.
-std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, const std::string& node_name)
+// converted to mm here).
+//
+// ⚠ IT REPORTS WHY IT FAILED, AND THE CALLER MUST NOT SWALLOW THAT.
+//
+// This used to return a bare std::nullopt for SEVEN different failures — unreadable file, JSON
+// syntax error, no DSRModel, empty symbols, node name not found, no RT edge, wrong array sizes —
+// and the caller rolled back to the config extrinsics for every one of them, after a single line on
+// stderr. That fallback is not a neutral default: for helios the config still carries tz = 1030
+// against this file's 1.075 m, i.e. the 45 mm stale mount that active_inference/ROBOT_GEOMETRY.md
+// records as having cost real debugging time. So a typo in the JSON produced a plausible-but-wrong
+// extrinsic, immediately followed by a success-shaped "Extrinsic Matrix:" dump — harder to catch
+// than a crash, not easier. One nullopt encoded both "the file is broken" and "this sensor is not
+// mounted", and the caller's fallback turned that ambiguity into data.
+//
+// `why` is set on every failure path so the caller can say which of the seven fired.
+std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, const std::string& node_name,
+                                                      std::string& why)
 {
     QFile f(QString::fromStdString(path));
     if (not f.open(QIODevice::ReadOnly))
+    {
+        why = "the file could not be opened for reading";
         return std::nullopt;
+    }
 
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
-    if (err.error != QJsonParseError::NoError or not doc.isObject())
+    if (err.error != QJsonParseError::NoError)
+    {
+        // Strict JSON only: Qt accepts no // or /* */ comments and no trailing commas. A stray one
+        // here used to mean stale extrinsics; now it means a named error.
+        why = "JSON parse error at byte offset " + std::to_string(err.offset) + ": "
+              + err.errorString().toStdString()
+              + " (this parser accepts strict JSON only - no comments, no trailing commas)";
         return std::nullopt;
+    }
+    if (not doc.isObject())
+    {
+        why = "the file parsed, but its top level is not a JSON object";
+        return std::nullopt;
+    }
 
     const QJsonObject symbols = doc.object().value("DSRModel").toObject().value("symbols").toObject();
     if (symbols.isEmpty())
+    {
+        why = "the file is valid JSON but declares no DSRModel.symbols, so it is not a DSR model";
         return std::nullopt;
+    }
 
     // node name -> id
     const QString want = QString::fromStdString(node_name);
@@ -71,7 +103,10 @@ std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, c
     for (auto it = symbols.begin(); it != symbols.end(); ++it)
         if (it.value().toObject().value("name").toString() == want) { target_id = it.key(); break; }
     if (target_id.isEmpty())
+    {
+        why = "no node named '" + node_name + "' exists in that file (check mount_key)";
         return std::nullopt;
+    }
 
     // find the RT edge whose dst is that node
     for (auto it = symbols.begin(); it != symbols.end(); ++it)
@@ -84,11 +119,16 @@ std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, c
             const QJsonArray rot = la.value("rt_rotation_euler_xyz").toObject().value("value").toArray();
             const QJsonArray tr  = la.value("rt_translation").toObject().value("value").toArray();
             if (rot.size() != 3 or tr.size() != 3)
+            {
+                why = "the RT edge into '" + node_name + "' has rt_rotation_euler_xyz/rt_translation"
+                      " that are not both 3-element arrays";
                 return std::nullopt;
+            }
             return build_extrinsic(
                 static_cast<float>(rot[0].toDouble()), static_cast<float>(rot[1].toDouble()), static_cast<float>(rot[2].toDouble()),
                 static_cast<float>(tr[0].toDouble() * 1000.0), static_cast<float>(tr[1].toDouble() * 1000.0), static_cast<float>(tr[2].toDouble() * 1000.0));
         }
+    why = "node '" + node_name + "' exists but nothing has an RT edge into it";
     return std::nullopt;
 }
 }  // namespace
@@ -171,18 +211,38 @@ void SpecificWorker::initialize()
         bool from_file = false;
         if (not mount_file.empty())
         {
-            if (auto m = load_mount_from_shadow(mount_file, mount_key); m.has_value())
+            // A NAMED mount_file that cannot be read is FATAL, and deliberately so. Rolling back
+            // here would swap the geometry's single source of truth for numbers that are merely
+            // plausible - the config's helios tz = 1030 vs this file's 1075 mm - and then print an
+            // "Extrinsic Matrix:" that looks like success. Starting with a 45 mm error is worse than
+            // not starting. Naming a file is a statement that it IS the mount; if it is not
+            // readable, that statement is false and the operator needs to know now.
+            std::string why;
+            if (auto m = load_mount_from_shadow(mount_file, mount_key, why); m.has_value())
             {
                 this->robot_lidar = *m;
                 from_file = true;
                 std::cout << "[Mount] loaded static mount '" << mount_key << "' from " << mount_file << std::endl;
             }
             else
-                std::cerr << "[Mount] could not read '" << mount_key << "' from '" << mount_file
-                          << "' — rolling back to config extrinsics (rx..tz)" << std::endl;
+            {
+                std::cerr << "\n[Mount] FATAL: cannot read mount '" << mount_key << "' from '"
+                          << mount_file << "'\n"
+                          << "[Mount]   cause: " << why << "\n"
+                          << "[Mount]   Refusing to fall back to the config extrinsics (rx..tz): they are\n"
+                          << "[Mount]   a PLAUSIBLE WRONG ANSWER, not a neutral default (helios tz=1030 vs\n"
+                          << "[Mount]   1075 mm in the JSON = 45 mm of silent error), and the run would look\n"
+                          << "[Mount]   healthy. Fix the file, or remove mount_file from the config to ask\n"
+                          << "[Mount]   for the config extrinsics ON PURPOSE.\n" << std::endl;
+                std::terminate();
+            }
         }
         else
+        {
+            // No mount_file: the config extrinsics are what was ASKED for. That is the one case
+            // where the fallback is a decision rather than an accident, so it stays.
             std::cout << "[Mount] no mount_file configured — using config extrinsics (rx..tz)" << std::endl;
+        }
 
         if (not from_file)
             this->robot_lidar = build_extrinsic(rx, ry, rz, tx, ty, tz);

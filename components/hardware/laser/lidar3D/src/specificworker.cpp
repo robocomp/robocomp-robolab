@@ -17,11 +17,125 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <optional>
 #include <cppitertools/enumerate.hpp>
 #include <eigen3/Eigen/src/Core/PartialReduxEvaluator.h>
 
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
+
+
+// ── STATIC MOUNT FROM shadow.json ────────────────────────────────────────────────────────────
+// COPIED VERBATIM from lidar3d_dds/src/specificworker.cpp (same tree, .../laser/lidar3d_dds):
+// the two components must read the geometry the same way or their clouds disagree, which is
+// exactly what happened before this -- config_helios_webots carried ry = 0 and tz = 989 while
+// shadow.json (and Shadow.proto, and active_inference/ROBOT_GEOMETRY.md) say the helios hangs
+// INVERTED at 1.075 m, so its cloud came out mirrored about x and the room drew as two
+// rectangles. Keep the two copies in step; if this file and lidar3d_dds's ever diverge, the
+// DSR model is the one that is right.
+namespace
+{
+// Build the lidar->robot extrinsic (Translation * RotXYZ), matching the legacy rx..tz path.
+Eigen::Affine3f build_extrinsic(float rx, float ry, float rz, float tx, float ty, float tz)
+{
+    Eigen::Affine3f a{Eigen::Translation3f(tx, ty, tz)};
+    a.rotate(Eigen::AngleAxisf(rx, Eigen::Vector3f::UnitX())
+           * Eigen::AngleAxisf(ry, Eigen::Vector3f::UnitY())
+           * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
+    return a;
+}
+
+// Read a sensor's static mount (lidar -> robot) from the DSR shadow.json — the single
+// source of geometry. Finds the node named `node_name`, then the incoming RT edge, and
+// reads linkAttribute.rt_rotation_euler_xyz.value (rad) + rt_translation.value (METRES,
+// converted to mm here).
+//
+// ⚠ IT REPORTS WHY IT FAILED, AND THE CALLER MUST NOT SWALLOW THAT.
+//
+// This used to return a bare std::nullopt for SEVEN different failures — unreadable file, JSON
+// syntax error, no DSRModel, empty symbols, node name not found, no RT edge, wrong array sizes —
+// and the caller rolled back to the config extrinsics for every one of them, after a single line on
+// stderr. That fallback is not a neutral default: for helios the config still carries tz = 1030
+// against this file's 1.075 m, i.e. the 45 mm stale mount that active_inference/ROBOT_GEOMETRY.md
+// records as having cost real debugging time. So a typo in the JSON produced a plausible-but-wrong
+// extrinsic, immediately followed by a success-shaped "Extrinsic Matrix:" dump — harder to catch
+// than a crash, not easier. One nullopt encoded both "the file is broken" and "this sensor is not
+// mounted", and the caller's fallback turned that ambiguity into data.
+//
+// `why` is set on every failure path so the caller can say which of the seven fired.
+std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, const std::string& node_name,
+                                                      std::string& why)
+{
+    QFile f(QString::fromStdString(path));
+    if (not f.open(QIODevice::ReadOnly))
+    {
+        why = "the file could not be opened for reading";
+        return std::nullopt;
+    }
+
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (err.error != QJsonParseError::NoError)
+    {
+        // Strict JSON only: Qt accepts no // or /* */ comments and no trailing commas. A stray one
+        // here used to mean stale extrinsics; now it means a named error.
+        why = "JSON parse error at byte offset " + std::to_string(err.offset) + ": "
+              + err.errorString().toStdString()
+              + " (this parser accepts strict JSON only - no comments, no trailing commas)";
+        return std::nullopt;
+    }
+    if (not doc.isObject())
+    {
+        why = "the file parsed, but its top level is not a JSON object";
+        return std::nullopt;
+    }
+
+    const QJsonObject symbols = doc.object().value("DSRModel").toObject().value("symbols").toObject();
+    if (symbols.isEmpty())
+    {
+        why = "the file is valid JSON but declares no DSRModel.symbols, so it is not a DSR model";
+        return std::nullopt;
+    }
+
+    // node name -> id
+    const QString want = QString::fromStdString(node_name);
+    QString target_id;
+    for (auto it = symbols.begin(); it != symbols.end(); ++it)
+        if (it.value().toObject().value("name").toString() == want) { target_id = it.key(); break; }
+    if (target_id.isEmpty())
+    {
+        why = "no node named '" + node_name + "' exists in that file (check mount_key)";
+        return std::nullopt;
+    }
+
+    // find the RT edge whose dst is that node
+    for (auto it = symbols.begin(); it != symbols.end(); ++it)
+        for (const auto& lv : it.value().toObject().value("links").toArray())
+        {
+            const QJsonObject lk = lv.toObject();
+            if (lk.value("label").toString() != "RT" or lk.value("dst").toString() != target_id)
+                continue;
+            const QJsonObject la = lk.value("linkAttribute").toObject();
+            const QJsonArray rot = la.value("rt_rotation_euler_xyz").toObject().value("value").toArray();
+            const QJsonArray tr  = la.value("rt_translation").toObject().value("value").toArray();
+            if (rot.size() != 3 or tr.size() != 3)
+            {
+                why = "the RT edge into '" + node_name + "' has rt_rotation_euler_xyz/rt_translation"
+                      " that are not both 3-element arrays";
+                return std::nullopt;
+            }
+            return build_extrinsic(
+                static_cast<float>(rot[0].toDouble()), static_cast<float>(rot[1].toDouble()), static_cast<float>(rot[2].toDouble()),
+                static_cast<float>(tr[0].toDouble() * 1000.0), static_cast<float>(tr[1].toDouble() * 1000.0), static_cast<float>(tr[2].toDouble() * 1000.0));
+        }
+    why = "node '" + node_name + "' exists but nothing has an RT edge into it";
+    return std::nullopt;
+}
+}  // namespace
 
 /**
 * \brief Default constructor
@@ -81,17 +195,55 @@ void SpecificWorker::initialize()
         difop_port = this->configLoader.get<int>("difop_port");
         dest_pc_ip_addr =this->configLoader.get<std::string>("dest_pc_ip_addr");
 
-        //Extrinsic
-        float rx, ry, rz, tx, ty, tz;
-        rx = this->configLoader.get<double>("rx");
-        ry = this->configLoader.get<double>("ry");
-        rz = this->configLoader.get<double>("rz");
-        tx = this->configLoader.get<double>("tx");
-        ty = this->configLoader.get<double>("ty");
-        tz = this->configLoader.get<double>("tz");
-        this->robot_lidar = Eigen::Translation3f(Eigen::Vector3f(tx,ty,tz));
-        this->robot_lidar.rotate(Eigen::AngleAxisf (rx,Eigen::Vector3f::UnitX()) * Eigen::AngleAxisf (ry, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(rz, Eigen::Vector3f::UnitZ()));
-        std::cout<<"Extrinsec Matrix:"<<std::endl<<this->robot_lidar.matrix()<<std::endl;
+        // Extrinsic (lidar -> robot). SINGLE SOURCE OF TRUTH: the static mount is read from the DSR
+        // model named by mount_file, keyed by sensor name (mount_key, defaulting to the one implied
+        // by lidar_model). rx..tz remain as a fallback for a config that names no file.
+        const float rx = this->configLoader.get<double>("rx");
+        const float ry = this->configLoader.get<double>("ry");
+        const float rz = this->configLoader.get<double>("rz");
+        const float tx = this->configLoader.get<double>("tx");
+        const float ty = this->configLoader.get<double>("ty");
+        const float tz = this->configLoader.get<double>("tz");
+
+        std::string mount_file, mount_key;
+        try { mount_file = this->configLoader.get<std::string>("mount_file"); } catch(...) {}
+        try { mount_key  = this->configLoader.get<std::string>("mount_key");  } catch(...) {}
+        if (mount_key.empty())
+            mount_key = (lidar_model == 1) ? "bpearl" : "helios";
+
+        bool from_file = false;
+        if (not mount_file.empty())
+        {
+            // A NAMED mount_file that cannot be read is FATAL, and deliberately so -- the same rule
+            // lidar3d_dds applies. Rolling back here would swap the geometry's single source of truth
+            // for numbers that are merely plausible, and then print an extrinsic matrix that looks
+            // like success. Naming a file is a statement that it IS the mount.
+            std::string why;
+            if (auto m = load_mount_from_shadow(mount_file, mount_key, why); m.has_value())
+            {
+                this->robot_lidar = *m;
+                from_file = true;
+                std::cout << "[Mount] loaded static mount '" << mount_key << "' from " << mount_file << std::endl;
+            }
+            else
+            {
+                std::cerr << "\n[Mount] FATAL: cannot read mount '" << mount_key << "' from '"
+                          << mount_file << "'\n"
+                          << "[Mount]   cause: " << why << "\n"
+                          << "[Mount]   Refusing to fall back to the config extrinsics (rx..tz): they are a\n"
+                          << "[Mount]   PLAUSIBLE WRONG ANSWER, not a neutral default, and the run would look\n"
+                          << "[Mount]   healthy. Fix the file, or remove mount_file from the config to ask for\n"
+                          << "[Mount]   the config extrinsics ON PURPOSE.\n" << std::endl;
+                std::terminate();
+            }
+        }
+        else
+            std::cout << "[Mount] no mount_file configured -- using config extrinsics (rx..tz)" << std::endl;
+
+        if (not from_file)
+            this->robot_lidar = build_extrinsic(rx, ry, rz, tx, ty, tz);
+
+        std::cout << "Extrinsic Matrix:" << std::endl << this->robot_lidar.matrix() << std::endl;
 
         simulator = this->configLoader.get<bool>("simulator");
 

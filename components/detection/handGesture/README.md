@@ -12,7 +12,7 @@ This section assumes the user has already installed the RoboComp core library an
 
 Before using the component, the user needs to install the necessary libraries:
 ```
-pip install numpy opencv-python pickle scikit-learn==0.22.2.post1
+pip install numpy opencv-python pickle-mixin scikit-learn==0.22.2.post1
 ```
 Note: Make sure your scikit-learn version is `0.22.2.post1`
 

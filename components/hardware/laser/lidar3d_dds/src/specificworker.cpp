@@ -647,6 +647,9 @@ void SpecificWorker::compute()
                                    lidar_xyz.data(), static_cast<std::uint32_t>(n));
         }
 
+        // Ordered by phi as the Ice interface expects — after the plane went out (see processLidarData).
+        std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
         { //Helios
@@ -747,8 +750,10 @@ RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points
         };
     }
 
-    // Ordered by phi as the interface expects.
-    std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+    // NOT sorted here: the phi order is an Ice-interface promise (Lidar3D_getLidarData cuts its angular
+    // window with find_if over it), and compute() sorts AFTER the media-plane publish. The plane's
+    // consumers never read it (LidarPlaneReader concatenates helios+bpearl anyway), so sorting
+    // ~50k 40-byte structs here only delayed every scan by the sort's few ms.
     return raw_lidar;
 }
 

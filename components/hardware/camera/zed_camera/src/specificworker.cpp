@@ -22,6 +22,9 @@
 #include <chrono>
 #include <cstring>
 #include <algorithm>
+#include <cstdlib>
+#include <fstream>
+#include <locale>
 #include "Eigen/Dense"
 
 namespace
@@ -328,12 +331,39 @@ void SpecificWorker::step_real()
 // ---- Simulated branch: pull from the CameraRGBDSimple proxy, reproject depth. ----
 void SpecificWorker::step_simulated()
 {
+    // ZED_LATENCY_CSV=<path> splits the plane's "upstream" age (capture stamp -> DDS write) into the
+    // bridge+Ice part and this component's part, one row per published frame. Unset = no cost.
+    //   call_ms   getAll() round trip (includes the bridge's long-poll WAIT for the next frame)
+    //   age_ms    wall now at getAll() return − capture stamp  = bridge work after the stamp + Ice
+    //   local_ms  getAll() return -> both DDS writes done      = this component
+    static std::ofstream lat_csv = []{
+        std::ofstream f;
+        if (const char *p = std::getenv("ZED_LATENCY_CSV"); p != nullptr)
+        {
+            f.open(p);
+            f.imbue(std::locale::classic());
+            f << "stamp_ms,width,height,bytes,call_ms,age_ms,local_ms\n";
+        }
+        return f;
+    }();
+    const auto wall_ms = []{ return std::chrono::duration<double, std::milli>(
+                                 std::chrono::system_clock::now().time_since_epoch()).count(); };
+
     RoboCompCameraRGBDSimple::TRGBD rgbd;
     RoboCompLidar3D::TColorCloudData colorCloud;
+    const double t_call = wall_ms();
     const long num_points = build_simulated_rgbd(rgbd, colorCloud);
+    const double t_ret = wall_ms();
     if (num_points < 0)          // no new frame from the source yet
         return;
+    const long long stamp = rgbd.image.alivetime;
+    const int w = rgbd.image.width, h = rgbd.image.height;
+    const std::size_t bytes = rgbd.image.image.size() + rgbd.depth.depth.size();
     publish_and_store(std::move(rgbd), colorCloud, num_points);
+    if (lat_csv.is_open())
+        lat_csv << stamp << ',' << w << ',' << h << ',' << bytes << ','
+                << (t_ret - t_call) << ',' << (t_ret - static_cast<double>(stamp)) << ','
+                << (wall_ms() - t_ret) << '\n' << std::flush;
 }
 
 // Common tail shared by both branches: publish (Ice + DDS) straight from the freshly

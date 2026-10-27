@@ -3,7 +3,7 @@
 # make it "Endpoints.PublishDDS" and the component would read it as absent -> false.
 PublishDDS = true
 
-# ── Where the samples come from: "ice" | "phidget" ───────────────────────────
+# ── Where the samples come from: "ice" | "phidget" ─────────────────────────────────
 #   ice     - pull RoboCompIMU::getDataImu() over ICE from Proxies.IMU below (the Webots
 #             bridge in simulation, or any driver component implementing the IMU interface).
 #   phidget - read a real Phidget Spatial directly through the phidget22 library, using the
@@ -12,14 +12,16 @@ PublishDDS = true
 # swapping simulation for hardware is this one line and nothing downstream changes.
 # "phidget" needs the component built with libphidget22-dev present; without it the
 # component says so at startup and refuses rather than silently publishing nothing.
+# On this robot (robolab-shadow, 192.168.5.97): real Phidget Spatial hardware, not the ICE
+# proxy -- carried over from the pre-refactor `Simulation = false` setting this replaces.
 [IMU]
-Source = "ice"
+Source = "phidget"
 
 [Proxies]
 # The IMU source. In simulation this is webots-bridge (Endpoints.IMU = tcp -p 10007);
 # on hardware, whichever driver component owns the device (phidgetimu, sbg_ekinox, ...).
 # 10007 is the IMU port on every bridge (webots-bridge, p3bot-bridge, shadow imu), so this
-# stock config works on all of them.
+# stock config works on all of them. Only read when IMU.Source = "ice".
 IMU = "imu:tcp -h localhost -p 10007"
 
 [Endpoints]

@@ -1,9 +1,21 @@
+# Simulation=true (default): read the IMU over the ICE proxy below (webots-bridge in sim,
+# or any bridge component on hardware). Simulation=false: skip the proxy entirely and read
+# a Phidget Spatial directly over USB (see [Phidget] below) -- requires imu_dds to have been
+# built with libphidget22-dev installed.
+Simulation = false
+
 # Proxies for required interfaces
 # The IMU source. In simulation this is webots-bridge (Endpoints.IMU = tcp -p 10007);
 # on hardware, whichever driver component owns the device (phidgetimu, sbg_ekinox, ...).
 # 10007 is the IMU port on every bridge (webots-bridge, p3bot-bridge, shadow imu), so this
-# stock config works on all of them.
+# stock config works on all of them. Ignored when Simulation=false.
 Proxies.IMU = "imu:tcp -h localhost -p 10007"
+
+# Real Phidget Spatial (Precision 3/3/3) over USB. Only read when Simulation=false.
+Phidget.DataIntervalMs = 4
+# Uncomment to pick a specific device instead of the first one found:
+# Phidget.SerialNumber = 12345
+# Phidget.HubPort = 0
 
 # Endpoints for implements interfaces
 # Media-plane descriptor query. robot_concept binds this as one of its MediaPlaneDDS

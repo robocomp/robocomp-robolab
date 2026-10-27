@@ -24,6 +24,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <deque>
 #include <format>
 #include <limits>
 #include <mutex>
@@ -79,17 +80,20 @@ struct PhidgetImu::Impl
 
     std::atomic<bool>    attached{false};
 
-    // Anchor mapping the device clock onto the wall clock. The spatial callback's
-    // `timestamp` counts milliseconds since the channel attached — NOT an epoch — but
-    // ImuFrame.stamp_ms is contractually WALL epoch ms, and consumers use it for
-    // staleness and cross-stream alignment. So capture (wall, device) once at the first
-    // sample and offset every later one by that difference: absolute time becomes
-    // correct while the INTER-SAMPLE deltas stay the device's own, which is what anything
-    // integrating a rate actually depends on. Re-anchored on every attach, because the
-    // device clock restarts there.
-    bool          anchored = false;
-    double        hw_t0_ms = 0.0;
-    std::uint64_t wall_t0_ms = 0;
+    // Mapping of the device clock onto the wall clock. The spatial callback's `timestamp`
+    // counts milliseconds since the channel attached — NOT an epoch — but ImuFrame.stamp_ms is
+    // contractually WALL epoch ms, and consumers use it for staleness and cross-stream alignment.
+    // stamp = device_time + offset, where offset = MIN over the last kOffsetWindowMs of
+    // (wall_at_arrival − device_time): the sample that reached us with the least delay is the
+    // best estimate of the true offset, and the window follows the device crystal's drift.
+    // ★MEASURED 2026-10-02 (rerun_logger): the previous ONE-TIME anchor (wall of the first
+    // sample) put the whole session 70 ms late in one run and 2 ms in the next — whatever the
+    // first sample's delivery delay happened to be — and it never tracked drift. Inter-sample
+    // deltas are still the device's own. Reset on every attach (the device clock restarts).
+    static constexpr double kOffsetWindowMs = 10'000.0;
+    bool          anchored = false;                        // false → reset the offset window
+    std::deque<std::pair<double, double>> offsets;         // (device ms, wall − device), increasing offsets
+    std::uint64_t last_stamp_ms = 0;
 
     void on_spatial(const double acc[3], const double gyro[3], const double mag[3], double hw_ts_ms);
     void on_algorithm(const double quat[4]);
@@ -167,12 +171,21 @@ void PhidgetImu::Impl::on_spatial(const double acc[3], const double gyro[3],
 
     if (not anchored)
     {
-        hw_t0_ms   = hw_ts_ms;
-        wall_t0_ms = wall;
-        anchored   = true;
+        offsets.clear();
+        anchored = true;
     }
-    const double since_t0 = hw_ts_ms - hw_t0_ms;
-    latest.stamp_ms = wall_t0_ms + static_cast<std::uint64_t>(since_t0 < 0.0 ? 0.0 : since_t0);
+    // Sliding-window minimum (monotonic deque, O(1) amortised) of the arrival offset.
+    const double offset = static_cast<double>(wall) - hw_ts_ms;
+    while (not offsets.empty() and offsets.back().second >= offset)
+        offsets.pop_back();
+    offsets.emplace_back(hw_ts_ms, offset);
+    while (offsets.front().first < hw_ts_ms - kOffsetWindowMs)
+        offsets.pop_front();
+    // Strictly increasing: consumers drop a repeated stamp as a duplicate, and the offset can
+    // shrink (a faster sample arrives) which would otherwise step the clock backwards.
+    const auto stamp = static_cast<std::uint64_t>(std::llround(hw_ts_ms + offsets.front().second));
+    latest.stamp_ms = std::max(stamp, last_stamp_ms + 1);
+    last_stamp_ms   = latest.stamp_ms;
 
     // A real sensor has no simulation clock; 0 IS the "not simulated" flag consumers key on.
     latest.sim_stamp_ms = 0;

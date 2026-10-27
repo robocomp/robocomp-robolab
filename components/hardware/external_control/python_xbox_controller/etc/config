@@ -19,8 +19,8 @@ joystickUniversal.Axis_2 = "rotate,  3, -2,   2,   true, 0.1"
 joystickUniversal.NumButtons = 3
 #                            name              button  step
 joystickUniversal.Button_0 = "block,            1, 1"
-joystickUniversal.Button_1 = "stop,             3, 1"
-joystickUniversal.Button_2 = "joystick_control, 2, 1"
+joystickUniversal.Button_1 = "stop,             2, 1"
+joystickUniversal.Button_2 = "joystick_control, 3, 1"
 
 Ice.Warn.Connections = "0"
 Ice.Trace.Network = "0"

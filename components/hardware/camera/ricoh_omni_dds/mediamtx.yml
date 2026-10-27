@@ -10,6 +10,15 @@ readTimeout: 10s
 writeTimeout: 10s
 
 ###############################################
+# API - queried by ricoh_omni_dds to check the RTMP publisher's real health
+# instead of blindly tearing down and reopening it on a fixed timer (see
+# mediamtx_path_has_publisher() in specificworker.cpp). Localhost-only.
+###############################################
+
+api: yes
+apiAddress: 127.0.0.1:9997
+
+###############################################
 # RTSP server
 ###############################################
 

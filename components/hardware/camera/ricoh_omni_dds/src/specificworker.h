@@ -53,6 +53,7 @@ Add to .bashrc and source:
 #include <opencv2/imgproc.hpp>
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
+#include <QProcess>
 #include <thread>
 #include <chrono>
 #include <memory>
@@ -140,6 +141,19 @@ private:
 		bool display = false;
 		bool orin = false;
 		bool use_gpu = true;
+		std::string gpu_decoder = "nvh264dec"; // GStreamer NVDEC element name; varies by nvcodec plugin build ("nvh264dec" vs older "nvdec")
+		std::string gpu_downloader = "gldownload"; // "gldownload" (needs a real GL/DRI2 display) or "cudadownload" (no display needed)
+		// GPU decode runs in an isolated child process (see launch_gpu_helper()): nvh264dec
+		// needs h264parse, which carries a reproducible upstream segfault
+		// (GstBaseParse::gst_base_parse_set_latency — see debug_ricoh_omni_dds.md). Frames
+		// cross into this process over a GStreamer shmsink/shmsrc channel.
+		std::string gpu_shm_socket = "/tmp/ricoh_omni_dds_gpu.sock";
+		int gpu_shm_size = 100000000; // ~100MB ring buffer, a few 2K BGR frames' worth
+		// avdec_h264/x264enc default to 0 ("auto" = one worker thread per detected CPU
+		// core). On a high core-count machine that alone can push CPU into the hundreds
+		// of percent even with a single stream — cap them explicitly per machine.
+		int decode_threads = 4;
+		int encode_threads = 2;
 		bool compressed = false;
 		bool simulator = false;
 		bool streaming = true;      // Streaming paralelo a MediaMTX
@@ -148,6 +162,11 @@ private:
 		int stream_port = 8554;
 		std::string stream_path = "theta";
 		int time_offset;
+
+		// MediaMTX gestionado por el propio componente (solo si !simulator)
+		bool launch_mediamtx = true;
+		std::string mediamtx_bin = "./mediamtx";
+		std::string mediamtx_config = "mediamtx.yml";
 	};
 	PARAMS pars;
 	int MAX_WIDTH, MAX_HEIGHT, DEPTH;
@@ -162,6 +181,69 @@ private:
 	// Optional zero-copy DDS 360 media plane (null unless PublishDDS is enabled).
 	bool publish_dds = false;
 	std::unique_ptr<Ricoh360DDSPublisher> dds_publisher;
+
+	// MediaMTX child process (real hardware mode only). Launched detached (not as a
+	// QProcess instance) because the connection-retry loop below blocks the Qt event
+	// loop, and a still-running QProcess instance gets killed when it is destroyed
+	// without the event loop ever having pumped its child-exit notification.
+	qint64 mediamtx_pid = -1;
+	void launch_mediamtx();
+
+	// GPU decode helper child process (only when pars.use_gpu). Same launch pattern as
+	// mediamtx: detached via a shell (not a QProcess instance) so a blocking retry loop
+	// elsewhere doesn't get it killed on destruction before the event loop ever pumps
+	// its child-exit notification.
+	qint64 gpu_helper_pid = -1;
+	std::string gpu_helper_pipeline;
+	void launch_gpu_helper();
+	bool gpu_helper_alive() const;
+
+	// shmsrc doesn't relay the sender's negotiated caps automatically (confirmed: with
+	// no capsfilter, appsink samples have no caps at all; with a format-only capsfilter,
+	// OpenCV's gst_video_info_from_caps() fails — "can't handle unknown layout" — width
+	// and height are required). Since the real resolution depends on what the camera/
+	// decoder negotiate and isn't fixed in config, it's discovered at runtime by parsing
+	// the helper's own verbose (-v) log for its shmsink's negotiated input caps, and
+	// used to build a fully-specified receiver-side capsfilter.
+	std::string gpu_caps_fragment = "video/x-raw,format=BGR";
+	bool discover_gpu_caps();
+
+	bool reconnect_camera();
+	void maybe_reconnect();
+	std::chrono::steady_clock::time_point last_reconnect;
+
+	// cv::VideoWriter::write() has no way to report a push failure to application code
+	// on the GStreamer backend (writeFrame() only logs a warning internally — no
+	// exception, no return value) — a stalled RTMP link that mediamtx eventually drops
+	// (logged there as "i/o timeout"/"EOF") is therefore invisible to us: our catch
+	// block never fires, streaming_enabled never flips false, and nothing ever reopens
+	// it. Confirmed live on shadow-hp 2026-08-13 (mediamtx.log showed the disconnect,
+	// this process kept calling write() into a dead pipe indefinitely).
+	//
+	// First mitigation (2026-08-13) was an unconditional periodic refresh every 120s —
+	// worked, but tore down a perfectly healthy connection every single cycle, causing
+	// a visible ~120s-periodic glitch in the remote view (confirmed live on
+	// robolab-shadow 2026-09-24 via mediamtx.log: publish/EOF/publish every exactly
+	// 120s). Replaced with an actual health check against mediamtx's own HTTP API
+	// (requires `api: yes` in mediamtx.yml — see mediamtx_path_has_publisher()): poll
+	// cheaply and often, but only reopen stream_writer when mediamtx itself reports no
+	// active publisher for our path, instead of on a blind timer.
+	std::chrono::steady_clock::time_point last_stream_refresh;
+	static constexpr int STREAM_HEALTH_CHECK_INTERVAL_S = 5;
+	bool mediamtx_path_has_publisher() const;
+
+	// Adaptive backoff: doubles on each failed reconnect (capped), resets to base on
+	// success. Without this, a flapping USB link retries every fixed 2s forever, each
+	// attempt potentially leaking a GStreamer pipeline that release() couldn't fully
+	// tear down (source/sink stuck mid-teardown) — backing off slows the leak rate.
+	int reconnect_cooldown_s = 2;
+	static constexpr int MAX_RECONNECT_COOLDOWN_S = 30;
+
+	// Was a function-local `static int` in compute(): that made it a one-shot,
+	// process-lifetime counter, so once tripped it re-tripped on the very first write
+	// after every future reopen, causing open/immediate-close churn on stream_writer.
+	// As a member it's reset per streaming session (see reconnect_camera()/compute()).
+	int stream_write_errors = 0;
 
 signals:
 	//void customSignal();

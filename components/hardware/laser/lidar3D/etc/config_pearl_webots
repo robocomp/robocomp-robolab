@@ -14,7 +14,7 @@ simulator = true
 #Warning use "." for decimals not ","
 # Static mount (single source of geometry): the body<-bpearl transform comes from the DSR model,
 # not from the numbers below. shadow.json says euler_xyz (0, pi, 0) at 0.670 m.
-mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_file = "/home/robocomp/robocomp/components/active_inference/robot_concept/shadow.json"
 mount_key  = "bpearl"
 # Fallback only, used when mount_file is absent. Kept EQUAL to shadow.json.
 # ⚠ tz WAS 703, i.e. 670 + the robot's 32.5 mm placement height in the world -- a FLOOR-referenced

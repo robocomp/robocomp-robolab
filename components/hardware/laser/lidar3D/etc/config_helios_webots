@@ -18,7 +18,7 @@ simulator = true
 # active_inference/ROBOT_GEOMETRY.md): shadow.json says euler_xyz (0, pi, 0) at 1.075 m. This file
 # carried ry = 0 and tz = 989 -- the pre-flip numbers -- so its cloud came out mirrored about x and
 # 86 mm low, drawing the room as two rectangles crossed with the bpearl's.
-mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_file = "/home/robocomp/robocomp/components/active_inference/robot_concept/shadow.json"
 mount_key  = "helios"
 # Fallback only, used when mount_file is absent. Kept EQUAL to shadow.json so that removing the
 # file cannot silently reintroduce the old error.

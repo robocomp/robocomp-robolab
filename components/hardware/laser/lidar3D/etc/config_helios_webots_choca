@@ -1,0 +1,41 @@
+# chocachoca second session (Webots on 1235, webots-bridge etc/chocachoca_config.toml on 20xxx).
+# Same as the file without _choca, ports moved so it runs beside the main session.
+# Endpoints for implements interfaces
+Endpoints.Lidar3D = "tcp -p 20090"
+
+# Proxies for required interfaces
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 20088"
+
+### Lidar params ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 0
+dest_pc_ip_addr = "192.168.50.210"
+msop_port = 6699
+difop_port = 7788
+simulator = true
+
+#Warning use "." for decimals not ","
+# Static mount (single source of geometry): the body<-helios transform comes from the DSR model,
+# not from the numbers below. ★ THE HELIOS HANGS UPSIDE DOWN (Shadow.proto, since 2026-08-29, and
+# active_inference/ROBOT_GEOMETRY.md): shadow.json says euler_xyz (0, pi, 0) at 1.075 m. This file
+# carried ry = 0 and tz = 989 -- the pre-flip numbers -- so its cloud came out mirrored about x and
+# 86 mm low, drawing the room as two rectangles crossed with the bpearl's.
+mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_key  = "helios"
+# Fallback only, used when mount_file is absent. Kept EQUAL to shadow.json so that removing the
+# file cannot silently reintroduce the old error.
+rx = 0.0
+ry = 3.14159265359
+rz = 0.0
+tx = 0.0
+ty = -155.0
+#tz = 1030.0	 #970.0
+tz = 1075.0        # shadow.json body<-helios z (was 989)
+Period.Compute = 50
+Period.Emergency = 500
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"
+Component.Debug.Verbose = true

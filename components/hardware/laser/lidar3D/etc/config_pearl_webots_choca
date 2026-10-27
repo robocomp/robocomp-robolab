@@ -1,0 +1,41 @@
+# chocachoca second session (Webots on 1235, webots-bridge etc/chocachoca_config.toml on 20xxx).
+# Same as the file without _choca, ports moved so it runs beside the main session.
+# Endpoints for implements interfaces
+Endpoints.Lidar3D="tcp -p 20089"
+
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 20088"
+
+### Lidar params ###
+# RSHELIOS=0   RSBPEARL=1
+lidar_model = 1
+dest_pc_ip_addr = "192.168.50.210"
+msop_port = 6698
+difop_port = 7787
+simulator = true
+
+#Warning use "." for decimals not ","
+# Static mount (single source of geometry): the body<-bpearl transform comes from the DSR model,
+# not from the numbers below. shadow.json says euler_xyz (0, pi, 0) at 0.670 m.
+mount_file = "/home/pbustos/robocomp/components/active_inference/robot_concept/shadow.json"
+mount_key  = "bpearl"
+# Fallback only, used when mount_file is absent. Kept EQUAL to shadow.json.
+# ⚠ tz WAS 703, i.e. 670 + the robot's 32.5 mm placement height in the world -- a FLOOR-referenced
+# height, not the body frame. Reading the DSR model moves the cloud 33 mm down into the true body
+# frame, where the floor sits at about -33 mm rather than 0. Downstream height cuts (lidar3DFilter
+# Floor.z, and any consumer's own floor clearance) are 33 mm tighter than they read.
+rx = 0.0
+ry = 3.14159265359
+rz = 0.0
+tx = 0.0
+ty = 140.0
+tz = 670.0
+
+Component.Debug.Verbose = true
+
+Period.Compute = 50
+Period.Emergency = 500
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

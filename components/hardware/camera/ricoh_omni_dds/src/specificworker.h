@@ -175,6 +175,23 @@ private:
 	DoubleBuffer<cv::Mat, cv::Mat> buffer_image;
 
 	long long capture_time;
+	// ★ Dedup key for the SIMULATED source. getROI is a PULL: asking faster than the source produces
+	// returns the same panorama again, and without this the component republished it — measured
+	// 2026-09-10 on the live plane, 16% of frames carried a stamp already sent. That is not just
+	// wasted bandwidth: a consumer re-runs its perception on data it already processed, and any
+	// latency measured from the stamp reads high because the repeat is timed at a later wall clock.
+	// The real-camera branch needs no key — capture.read() only returns on a genuine new frame.
+	long long last_source_timestamp_ = -1;
+	// Source period as a DECAYING MINIMUM, and the poll locked to it. A missed frame can only make a
+	// stamp delta an integer MULTIPLE of the true period, never smaller, so an average would inflate
+	// under drops and slow the poll, which drops more — a minimum cannot.
+	// ★ The 4x factor is not an oversample any more: getROI blocks at the bridge until the next
+	// panorama, so an early poll transfers nothing, it waits. What the factor buys is being ALREADY
+	// BLOCKED when the frame lands — a consuming get() returns a frame that is merely sitting in the
+	// buffer immediately, aged by however long it sat, so asking slower than the source restores the
+	// polling phase we removed. It only has to stay comfortably below the source period, and the CPU
+	// cost that used to bound it is gone with the duplicate transfers. Plane lag 50 -> 8.0 ms.
+	double src_period_ms_ = -1.0;
 	// track image period
 	void self_adjust_period(int new_period);
 

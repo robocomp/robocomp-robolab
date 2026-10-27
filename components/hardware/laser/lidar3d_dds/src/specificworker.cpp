@@ -78,22 +78,54 @@ void load_opt_u32(const ConfigLoader& cfg, const std::string& key, std::uint32_t
 // Read a sensor's static mount (lidar -> robot) from the DSR shadow.json — the single
 // source of geometry. Finds the node named `node_name`, then the incoming RT edge, and
 // reads linkAttribute.rt_rotation_euler_xyz.value (rad) + rt_translation.value (METRES,
-// converted to mm here). Returns nullopt on any problem (missing file/node/edge/fields)
-// so the caller can roll back to the config extrinsics.
-std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, const std::string& node_name)
+// converted to mm here).
+//
+// ⚠ IT REPORTS WHY IT FAILED, AND THE CALLER MUST NOT SWALLOW THAT.
+//
+// This used to return a bare std::nullopt for SEVEN different failures — unreadable file, JSON
+// syntax error, no DSRModel, empty symbols, node name not found, no RT edge, wrong array sizes —
+// and the caller rolled back to the config extrinsics for every one of them, after a single line on
+// stderr. That fallback is not a neutral default: for helios the config still carries tz = 1030
+// against this file's 1.075 m, i.e. the 45 mm stale mount that active_inference/ROBOT_GEOMETRY.md
+// records as having cost real debugging time. So a typo in the JSON produced a plausible-but-wrong
+// extrinsic, immediately followed by a success-shaped "Extrinsic Matrix:" dump — harder to catch
+// than a crash, not easier. One nullopt encoded both "the file is broken" and "this sensor is not
+// mounted", and the caller's fallback turned that ambiguity into data.
+//
+// `why` is set on every failure path so the caller can say which of the seven fired.
+std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, const std::string& node_name,
+                                                      std::string& why)
 {
     QFile f(QString::fromStdString(path));
     if (not f.open(QIODevice::ReadOnly))
+    {
+        why = "the file could not be opened for reading";
         return std::nullopt;
+    }
 
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
-    if (err.error != QJsonParseError::NoError or not doc.isObject())
+    if (err.error != QJsonParseError::NoError)
+    {
+        // Strict JSON only: Qt accepts no // or /* */ comments and no trailing commas. A stray one
+        // here used to mean stale extrinsics; now it means a named error.
+        why = "JSON parse error at byte offset " + std::to_string(err.offset) + ": "
+              + err.errorString().toStdString()
+              + " (this parser accepts strict JSON only - no comments, no trailing commas)";
         return std::nullopt;
+    }
+    if (not doc.isObject())
+    {
+        why = "the file parsed, but its top level is not a JSON object";
+        return std::nullopt;
+    }
 
     const QJsonObject symbols = doc.object().value("DSRModel").toObject().value("symbols").toObject();
     if (symbols.isEmpty())
+    {
+        why = "the file is valid JSON but declares no DSRModel.symbols, so it is not a DSR model";
         return std::nullopt;
+    }
 
     // node name -> id
     const QString want = QString::fromStdString(node_name);
@@ -101,7 +133,10 @@ std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, c
     for (auto it = symbols.begin(); it != symbols.end(); ++it)
         if (it.value().toObject().value("name").toString() == want) { target_id = it.key(); break; }
     if (target_id.isEmpty())
+    {
+        why = "no node named '" + node_name + "' exists in that file (check mount_key)";
         return std::nullopt;
+    }
 
     // find the RT edge whose dst is that node
     for (auto it = symbols.begin(); it != symbols.end(); ++it)
@@ -114,11 +149,16 @@ std::optional<Eigen::Affine3f> load_mount_from_shadow(const std::string& path, c
             const QJsonArray rot = la.value("rt_rotation_euler_xyz").toObject().value("value").toArray();
             const QJsonArray tr  = la.value("rt_translation").toObject().value("value").toArray();
             if (rot.size() != 3 or tr.size() != 3)
+            {
+                why = "the RT edge into '" + node_name + "' has rt_rotation_euler_xyz/rt_translation"
+                      " that are not both 3-element arrays";
                 return std::nullopt;
+            }
             return build_extrinsic(
                 static_cast<float>(rot[0].toDouble()), static_cast<float>(rot[1].toDouble()), static_cast<float>(rot[2].toDouble()),
                 static_cast<float>(tr[0].toDouble() * 1000.0), static_cast<float>(tr[1].toDouble() * 1000.0), static_cast<float>(tr[2].toDouble() * 1000.0));
         }
+    why = "node '" + node_name + "' exists but nothing has an RT edge into it";
     return std::nullopt;
 }
 }  // namespace
@@ -201,18 +241,38 @@ void SpecificWorker::initialize()
         bool from_file = false;
         if (not mount_file.empty())
         {
-            if (auto m = load_mount_from_shadow(mount_file, mount_key); m.has_value())
+            // A NAMED mount_file that cannot be read is FATAL, and deliberately so. Rolling back
+            // here would swap the geometry's single source of truth for numbers that are merely
+            // plausible - the config's helios tz = 1030 vs this file's 1075 mm - and then print an
+            // "Extrinsic Matrix:" that looks like success. Starting with a 45 mm error is worse than
+            // not starting. Naming a file is a statement that it IS the mount; if it is not
+            // readable, that statement is false and the operator needs to know now.
+            std::string why;
+            if (auto m = load_mount_from_shadow(mount_file, mount_key, why); m.has_value())
             {
                 this->robot_lidar = *m;
                 from_file = true;
                 std::cout << "[Mount] loaded static mount '" << mount_key << "' from " << mount_file << std::endl;
             }
             else
-                std::cerr << "[Mount] could not read '" << mount_key << "' from '" << mount_file
-                          << "' — rolling back to config extrinsics (rx..tz)" << std::endl;
+            {
+                std::cerr << "\n[Mount] FATAL: cannot read mount '" << mount_key << "' from '"
+                          << mount_file << "'\n"
+                          << "[Mount]   cause: " << why << "\n"
+                          << "[Mount]   Refusing to fall back to the config extrinsics (rx..tz): they are\n"
+                          << "[Mount]   a PLAUSIBLE WRONG ANSWER, not a neutral default (helios tz=1030 vs\n"
+                          << "[Mount]   1075 mm in the JSON = 45 mm of silent error), and the run would look\n"
+                          << "[Mount]   healthy. Fix the file, or remove mount_file from the config to ask\n"
+                          << "[Mount]   for the config extrinsics ON PURPOSE.\n" << std::endl;
+                std::terminate();
+            }
         }
         else
+        {
+            // No mount_file: the config extrinsics are what was ASKED for. That is the one case
+            // where the fallback is a decision rather than an accident, so it stays.
             std::cout << "[Mount] no mount_file configured — using config extrinsics (rx..tz)" << std::endl;
+        }
 
         if (not from_file)
             this->robot_lidar = build_extrinsic(rx, ry, rz, tx, ty, tz);
@@ -449,6 +509,43 @@ void SpecificWorker::compute()
             else //Helios
                 raw_lidar_sim = lidar3d_proxy->getLidarData("helios", 0, 360, 1);
 
+            // The bridge servant now LONG-POLLS: it blocks until the next scan and answers with an
+            // EMPTY payload if none arrives inside its window. That is "nothing new", not an error
+            // and not a scan — passing it on would publish an empty cloud and, worse, put one into
+            // buffer_data for this component's own Ice clients.
+            if (raw_lidar_sim.points.empty())
+                return;
+
+            // Self-synchronise with the source before paying for any processing (see the header).
+            const auto src_stamp = static_cast<std::uint64_t>(raw_lidar_sim.timestamp);
+            if (src_stamp != 0 and src_stamp == last_src_stamp_ms_)
+                return;                       // same scan as last cycle: the state-machine timer retries
+            if (src_stamp != 0)
+            {
+                if (last_src_stamp_ms_ != 0)
+                    if (const double dt = static_cast<double>(src_stamp - last_src_stamp_ms_);
+                        dt > 0.5 and dt < 2000.0)
+                    {
+                        // Decaying minimum — see the header for why an average cannot work here.
+                        src_period_ms_ = (src_period_ms_ < 0.0 or dt < src_period_ms_)
+                                             ? dt
+                                             : src_period_ms_ + 0.002 * (dt - src_period_ms_);
+                        // ★ WHAT THIS FACTOR MEANS NOW THAT THE SERVANT BLOCKS. It is no longer an
+                        // oversample: a pull that arrives before the next scan does not transfer
+                        // anything, it WAITS. What it buys is that we are ALREADY BLOCKED when the scan
+                        // lands — and that is the whole of the win, because a consuming get() hands back
+                        // a frame that is already sitting in the buffer immediately, aged by however
+                        // long it has been there. Ask too slowly and the phase comes straight back.
+                        // So the rule is simply: stay comfortably below the source period. 4x does, with
+                        // margin for a source that speeds up (the lidars now run at their real 20 Hz, so
+                        // this settles near 12 ms). The CPU argument that used to cap this factor is
+                        // void — a waiting call copies and marshals nothing. Floor 5 ms; ceiling 50 ms
+                        // so a stalled source cannot leave us spinning.
+                        self_adjust_period(std::clamp(static_cast<int>(0.25 * src_period_ms_ + 0.5), 5, 50));
+                    }
+                last_src_stamp_ms_ = src_stamp;
+            }
+
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
         }
@@ -484,11 +581,19 @@ void SpecificWorker::compute()
             }
 
         }
-        // The sweep period MEASURED between consecutive stamps, not the Compute timer. Since 2026-10-26 the timer
-        // runs at 5 ms so that compute() is always already waiting in popWait() when a sweep completes: with a 50 ms
-        // timer at the 50 ms sweep rate the phase locked at start-up, and in some runs every sweep waited ~45 ms in
-        // the queue before being published (consumers got the Helios 90 ms after its stamp instead of 49).
+        if (simulator)
         {
+            // The SCAN period, which is the source's, not our poll interval — those coincided only
+            // while the poll was fixed. Falls back to the poll period until the source is measured.
+            raw_lidar.period = static_cast<float>(src_period_ms_ > 0.0 ? src_period_ms_
+                                                                      : getPeriod("Compute")); // ms
+        }
+        else
+        {
+            // The sweep period MEASURED between consecutive stamps, not the Compute timer. Since 2026-10-26 the timer
+            // runs at 5 ms so that compute() is always already waiting in popWait() when a sweep completes: with a 50 ms
+            // timer at the 50 ms sweep rate the phase locked at start-up, and in some runs every sweep waited ~45 ms in
+            // the queue before being published (consumers got the Helios 90 ms after its stamp instead of 49).
             static std::int64_t prev_ts = 0;
             static float period_ms = 0.f;
             const auto ts = static_cast<std::int64_t>(raw_lidar.timestamp);
@@ -514,8 +619,10 @@ void SpecificWorker::compute()
         // would report thousands of "rings". Cluster with a 0.5 deg gap — comfortably above that
         // jitter and comfortably below the smallest real spacing (helios 2.26 deg, bpearl 2.86).
         //
-        // Published ONLY when exactly `model_rings_` clusters appear: a partial table advertised
+        // Published ONLY when all `model_rings_` clusters have been seen: a partial table advertised
         // as a full one is worse than absent, and absent already means "unknown, keep your own".
+        // The clusters ACCUMULATE across sweeps (see ring_elev_acc_ in the header) because a single
+        // sweep is missing every ring whose beams all flew off into open space.
         if (not ring_elev_published_ and model_rings_ > 0 and dds_publisher and not raw_lidar.points.empty())
         {
             std::vector<float> th;
@@ -524,33 +631,64 @@ void SpecificWorker::compute()
                 if (pt.r > 0.f) th.push_back(pt.theta);
             std::sort(th.begin(), th.end());
 
-            constexpr float kGapRad = 0.5f * static_cast<float>(M_PI) / 180.f;
-            std::vector<float> elev;
+            constexpr float  kGapRad = 0.5f * static_cast<float>(M_PI) / 180.f;
+            constexpr double kGapDeg = 0.5;
             for (std::size_t i = 0; i < th.size();)
             {
                 std::size_t j = i;
                 double sum = 0.0;
                 while (j < th.size() and (j == i or th[j] - th[j - 1] < kGapRad)) { sum += th[j]; ++j; }
-                const double mean_theta = sum / static_cast<double>(j - i);
-                elev.push_back(static_cast<float>((M_PI / 2.0 - mean_theta) * 180.0 / M_PI));
+                const double elev = (M_PI / 2.0 - sum / static_cast<double>(j - i)) * 180.0 / M_PI;
                 i = j;
-            }
-            std::sort(elev.begin(), elev.end());              // ascending: FovStart .. FovEnd
 
-            if (static_cast<int>(elev.size()) == model_rings_)
+                // Merge into the accumulated table: same ring if within the same 0.5 deg gap that
+                // separates clusters inside one sweep, otherwise a ring seen here for the first time.
+                auto near = ring_elev_acc_.end();
+                for (auto it = ring_elev_acc_.begin(); it != ring_elev_acc_.end(); ++it)
+                    if (std::abs(it->first - elev) < kGapDeg
+                        and (near == ring_elev_acc_.end() or std::abs(it->first - elev) < std::abs(near->first - elev)))
+                        near = it;
+                if (near != ring_elev_acc_.end())
+                {
+                    near->second += 1;                                   // running mean, sample-weighted
+                    near->first += (elev - near->first) / near->second;
+                }
+                else
+                    ring_elev_acc_.emplace_back(elev, 1);
+            }
+            std::ranges::sort(ring_elev_acc_, {}, &std::pair<double,int>::first);   // ascending: FovStart .. FovEnd
+
+            const int seen = static_cast<int>(ring_elev_acc_.size());
+            if (seen == model_rings_)
             {
+                std::vector<float> elev;
+                elev.reserve(ring_elev_acc_.size());
+                for (const auto &[mean, n] : ring_elev_acc_) elev.push_back(static_cast<float>(mean));
                 dds_publisher->set_ring_elevations(elev);
                 ring_elev_published_ = true;
-                std::cout << "[lidar3d_dds] ring elevations MEASURED from a device-frame sweep: "
-                          << elev.size() << " rings, " << elev.front() << " .. " << elev.back()
-                          << " deg, mean gap "
+                std::cout << "[lidar3d_dds] ring elevations MEASURED over " << seen << " sweeps-worth of"
+                          << " accumulated returns: " << elev.size() << " rings, " << elev.front()
+                          << " .. " << elev.back() << " deg, mean gap "
                           << (elev.size() > 1 ? (elev.back() - elev.front()) / (elev.size() - 1) : 0.f)
                           << " deg" << std::endl;
             }
-            else
-                std::cout << "[lidar3d_dds] ring elevations NOT published: clustered "
-                          << elev.size() << " rings, expected " << model_rings_
-                          << " — a partial table is worse than an absent one" << std::endl;
+            // Speak only on a CHANGE of the count. The old code re-announced the same shortfall on
+            // every frame — a log flood is a missing state transition, not information.
+            else if (seen != ring_elev_reported_)
+            {
+                ring_elev_reported_ = seen;
+                if (seen < model_rings_)
+                    std::cout << "[lidar3d_dds] ring elevations: " << seen << " of " << model_rings_
+                              << " rings seen so far (" << ring_elev_acc_.front().first << " .. "
+                              << ring_elev_acc_.back().first << " deg) — accumulating; the missing ones"
+                              << " are beams that have not hit anything yet" << std::endl;
+                else
+                    std::cout << "[lidar3d_dds] ring elevations NOT published: " << seen
+                              << " clusters exceeds the configured " << model_rings_ << " rings — either"
+                              << " SensorModel.Rings disagrees with the device or a stray return split a"
+                              << " cluster; publishing a table this component cannot vouch for would be"
+                              << " worse than publishing none" << std::endl;
+            }
         }
 
         // Self-filter: drop points hitting the robot body mesh (once, upstream of every
@@ -560,9 +698,13 @@ void SpecificWorker::compute()
 
         num_points = raw_lidar.points.size();
 
-        // DDS FIRST (2026-09-11): must never be gated behind lidar2cam()'s per-point
-        // reprojection or the Ice-facing buffers below, which serve the little-used RPC
-        // interfaces (Lidar3D_getLidarData*).
+        // ★ THE MEDIA PLANE FIRST, before any other output (DDS FIRST, 2026-09-11). Everything below
+        // this feeds the Ice pull servants, which are polled and therefore already tolerate being one
+        // cycle behind; the plane is the low-latency path and there is no reason for it to wait behind
+        // work done for someone else. lidar2cam in particular projects every point into an image for
+        // getLidarDataArrayProyectedInImage, which nothing in active_inference calls.
+        // The mesh self-filter stays ABOVE this: consumers of the plane depend on robot-body returns
+        // being gone, so that one is not "other people's work", it is part of producing the scan.
         if (publish_dds && dds_publisher && not raw_lidar.points.empty())
         {
             const std::size_t n = raw_lidar.points.size();
@@ -578,6 +720,9 @@ void SpecificWorker::compute()
             dds_publisher->publish(static_cast<std::uint64_t>(raw_lidar.timestamp),
                                    lidar_xyz.data(), static_cast<std::uint32_t>(n));
         }
+
+        // Ordered by phi as the Ice interface expects — after the plane went out (see processLidarData).
+        std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
 
         //Process lidar helios and add lidar data to doubleBuffer
         if (lidar_model==0)
@@ -679,8 +824,10 @@ RoboCompLidar3D::TData SpecificWorker::processLidarData(const auto &input_points
         };
     }
 
-    // Ordered by phi as the interface expects.
-    std::ranges::sort(raw_lidar.points, {}, &RoboCompLidar3D::TPoint::phi);
+    // NOT sorted here: the phi order is an Ice-interface promise (Lidar3D_getLidarData cuts its angular
+    // window with find_if over it), and compute() sorts AFTER the media-plane publish. The plane's
+    // consumers never read it (LidarPlaneReader concatenates helios+bpearl anyway), so sorting
+    // ~50k 40-byte structs here only delayed every scan by the sort's few ms.
     return raw_lidar;
 }
 

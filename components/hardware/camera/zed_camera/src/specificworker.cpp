@@ -22,6 +22,9 @@
 #include <chrono>
 #include <cstring>
 #include <algorithm>
+#include <cstdlib>
+#include <fstream>
+#include <locale>
 #include "Eigen/Dense"
 
 namespace
@@ -314,7 +317,20 @@ void SpecificWorker::regulate_period()
 {
     if (camera_fps <= 0)
         return;
-    const double target = 1000.0 / camera_fps;     // desired ms/frame
+    // ★ ASK OFTEN ENOUGH TO BE WAITING WHEN THE FRAME LANDS. Config.FPS is the rate we want to
+    // PUBLISH; it is not the rate we should ASK at. getAll now blocks at the bridge until the next
+    // frame, so a poll that arrives early costs nothing — it waits instead of shipping a duplicate
+    // 6.45 MB payload. What it buys is being blocked ALREADY when the frame appears: a consuming
+    // get() hands back a frame that is merely sitting in the buffer straight away, aged by however
+    // long it has been there, so asking slower than the source brings the polling phase right back.
+    //
+    // The factor therefore only has to stay comfortably under the source period; 2x does. The CPU
+    // argument that used to cap it (each wasted getAll cost 4.7 ms of bridge serialisation, on the
+    // shared resource every stream depends on) no longer applies, because a waiting call marshals
+    // nothing. Raising it further buys nothing either — being blocked earlier is not being blocked
+    // better. Measured after the change: plane lag 17.0 -> 9.2 ms.
+    constexpr double kPollOversample = 2.0;
+    const double target = 1000.0 / (camera_fps * kPollOversample);   // desired ms/POLL, not ms/frame
 
     static auto   last  = std::chrono::steady_clock::time_point{};
     static double ema   = target;                  // smoothed measured loop period
@@ -370,12 +386,39 @@ void SpecificWorker::step_real()
 // ---- Simulated branch: pull from the CameraRGBDSimple proxy, reproject depth. ----
 void SpecificWorker::step_simulated()
 {
+    // ZED_LATENCY_CSV=<path> splits the plane's "upstream" age (capture stamp -> DDS write) into the
+    // bridge+Ice part and this component's part, one row per published frame. Unset = no cost.
+    //   call_ms   getAll() round trip (includes the bridge's long-poll WAIT for the next frame)
+    //   age_ms    wall now at getAll() return − capture stamp  = bridge work after the stamp + Ice
+    //   local_ms  getAll() return -> both DDS writes done      = this component
+    static std::ofstream lat_csv = []{
+        std::ofstream f;
+        if (const char *p = std::getenv("ZED_LATENCY_CSV"); p != nullptr)
+        {
+            f.open(p);
+            f.imbue(std::locale::classic());
+            f << "stamp_ms,width,height,bytes,call_ms,age_ms,local_ms\n";
+        }
+        return f;
+    }();
+    const auto wall_ms = []{ return std::chrono::duration<double, std::milli>(
+                                 std::chrono::system_clock::now().time_since_epoch()).count(); };
+
     RoboCompCameraRGBDSimple::TRGBD rgbd;
     RoboCompLidar3D::TColorCloudData colorCloud;
+    const double t_call = wall_ms();
     const long num_points = build_simulated_rgbd(rgbd, colorCloud);
+    const double t_ret = wall_ms();
     if (num_points < 0)          // no new frame from the source yet
         return;
+    const long long stamp = rgbd.image.alivetime;
+    const int w = rgbd.image.width, h = rgbd.image.height;
+    const std::size_t bytes = rgbd.image.image.size() + rgbd.depth.depth.size();
     publish_and_store(std::move(rgbd), colorCloud, num_points);
+    if (lat_csv.is_open())
+        lat_csv << stamp << ',' << w << ',' << h << ',' << bytes << ','
+                << (t_ret - t_call) << ',' << (t_ret - static_cast<double>(stamp)) << ','
+                << (wall_ms() - t_ret) << '\n' << std::flush;
 }
 
 // Common tail shared by both branches: publish (Ice + DDS) straight from the freshly
@@ -607,6 +650,12 @@ long SpecificWorker::build_simulated_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
 {
     // Single round-trip to the source (image + depth) instead of two separate calls.
     RoboCompCameraRGBDSimple::TRGBD src = camerargbdsimple_proxy->getAll("");
+
+    // The bridge servant long-polls: it blocks for the next frame and answers with an EMPTY TRGBD
+    // when none arrived inside its window. That is "nothing new", not a frame — building one out of
+    // it would publish a zero-sized image onto the media plane.
+    if (src.image.image.empty() or src.depth.depth.empty())
+        return -1;
 
     // Advance only on a genuinely new frame (dedup by the source stamp).
     static long last_source_timestamp = -1;

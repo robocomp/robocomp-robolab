@@ -307,13 +307,24 @@ void SpecificWorker::compute()
         try
         {
             image = this->camera360rgb_proxy->getROI(-1, -1, -1, -1, -1, -1);
-            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, &image.image[0]);
 
-            if(!cv_frame.empty())
-            {
-                capture_time = image.timestamp;
-                frame_valid = true;
+            if(image.width <= 0 or image.height <= 0 or image.image.empty())
+            {   // guards the .data() below, which the previous &image.image[0] did not: indexing an
+                // empty vector is undefined before cv_frame.empty() ever gets to be consulted.
+                qWarning() << "Skipping frame due to invalid data from the Camera360RGB source";
+                return;
             }
+
+            // ★ .clone() — NOT a view. A cv::Mat built over image.image only BORROWS the Ice payload,
+            // and `image` dies at the end of this function, so the Mat handed to buffer_image below
+            // would be left pointing at freed memory (moving a Mat moves the header, never ownership
+            // of borrowed pixels). The victim is Camera360RGB_getROI: it runs on an Ice DISPATCH
+            // thread and slices whatever the buffer holds, i.e. a freed 2-4 MB block, whenever a
+            // client asks — silent corruption on a path with no watcher. Fixed identically in the
+            // sibling ricoh_omni_dds on 2026-09-10; the two must not diverge again.
+            cv_frame = cv::Mat(cv::Size(image.width, image.height), CV_8UC3, image.image.data()).clone();
+            capture_time = image.timestamp;
+            frame_valid = true;
         }
         catch (const Ice::Exception &e)
         {
@@ -362,8 +373,9 @@ void SpecificWorker::compute()
             }
         }
 
-        // Buffer actualizado (sin clone para máxima velocidad - usar con cuidado)
-        // NOTA: Si hay problemas de thread-safety, volver a usar clone()
+        // Safe to move: in the simulator branch cv_frame was cloned at capture (it owns its pixels),
+        // and in the real-camera branch VideoCapture::read allocated it. Either way the buffer the
+        // Ice servant slices from outlives this function.
         buffer_image.put(std::move(cv_frame));
 
         // Print FPS statistics

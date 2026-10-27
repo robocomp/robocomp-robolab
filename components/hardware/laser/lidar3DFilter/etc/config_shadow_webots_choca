@@ -1,0 +1,26 @@
+# chocachoca second session (Webots on 1235, webots-bridge etc/chocachoca_config.toml on 20xxx).
+# Same as the file without _choca, ports moved so it runs beside the main session.
+# Proxies for required interfaces
+Proxies.KinovaArm = "kinovaarm:tcp -h localhost -p 12333"
+Proxies.KinovaArm1 = "kinovaarm:tcp -h localhost -p 12333"
+Proxies.Lidar3D = "lidar3d:tcp -h localhost -p 20090"
+Proxies.Lidar3D1 = "lidar3d:tcp -h localhost -p 20089"
+
+# Endpoints for implements interfaces
+Endpoints.Lidar3D = "tcp -p 20095"
+
+Robot.name = "Shadow"
+
+Floor.z = 110.0
+Top.z = 2100.0
+Dilate = 0.05
+
+Period.Compute = 50000
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "20004800"

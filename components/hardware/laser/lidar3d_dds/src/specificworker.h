@@ -49,7 +49,9 @@
 
 #include <memory>
 
-typedef PointXYZI PointT;
+// XYZIRT: el driver da el tiempo de cada punto; se usa para la marca del barrido (Timestamp.Reference = "mid")
+// y deja disponible la compensación del giro dentro del barrido.
+typedef PointXYZIRT PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
@@ -157,6 +159,11 @@ class SpecificWorker : public GenericWorker
 
         // SIMULATOR
         bool simulator = false;
+        // Marca de tiempo del barrido (sección [Timestamp] de la config; por defecto, el comportamiento anterior)
+        bool ts_use_lidar_clock = false;     // true: hora PTP del paquete; false: reloj del PC al decodificar
+        float ts_split_angle_deg = 0.f;      // acimut del dispositivo donde se corta el barrido
+        std::string ts_reference = "last";  // last | first | mid: instante del barrido que representa la marca
+        std::vector<double> ts_age_ms;       // diagnóstico: hora del PC al recibir − marca
 
         // FPS
         FPSCounter fps;

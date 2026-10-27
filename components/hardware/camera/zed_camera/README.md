@@ -62,6 +62,33 @@ After editing the new config file we can run the component:
 cmake -B build && make -C build -j12 # Compile the component
 bin/zed_camera etc/yourConfig # Execute the component
 ```
+
+## Troubleshooting
+
+### Camera not detected / stuck ZED SDK init (software power cycle)
+
+The ZED 2i has no accessible USB power switch and is usually wired directly to
+a root hub port (no external powered hub in between), so there is no
+`uhubctl`-style way to cut its VBUS power from software. If the camera stops
+responding (SDK init hangs, `sl::Camera::open()` fails, or the device vanishes
+from `lsusb` after a firmware hiccup) and physically unplugging the USB cable
+isn't possible, force a logical USB disconnect/reconnect instead. This doesn't
+cut power, but it makes the kernel re-enumerate the device from scratch
+(new device number, drivers reloaded), which is often enough to recover a
+device whose USB state got stuck:
+
+```bash
+# find the device's bus-port path (e.g. "2-3") from:
+lsusb -t | grep -B2 STEREOLABS
+
+# then toggle it off/on (needs sudo):
+echo 0 | sudo tee /sys/bus/usb/devices/<bus>-<port>/authorized
+echo 1 | sudo tee /sys/bus/usb/devices/<bus>-<port>/authorized
+
+# verify it re-enumerated and interfaces are bound to uvcvideo again:
+lsusb -t | grep -A2 STEREOLABS
+```
+
 -----
 -----
 # Developer Notes

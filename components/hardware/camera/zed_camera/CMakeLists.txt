@@ -1,5 +1,26 @@
-cmake_minimum_required( VERSION 3.10 )
-PROJECT( zed_camera )
+cmake_minimum_required(VERSION 3.10)
+
+# Forzar g++-14 (soporte C++23 <print>, no disponible en gcc-13 de noble)
+if(NOT CMAKE_CXX_COMPILER)
+    find_program(GXX14 g++-14)
+    if(GXX14)
+        set(CMAKE_CXX_COMPILER ${GXX14} CACHE FILEPATH "C++ compiler" FORCE)
+    endif()
+endif()
+
+if(POLICY CMP0074)
+    cmake_policy(SET CMP0074 NEW)
+endif()
+
+project(zed_camera)
+
+# Ruta del Toolkit CUDA
+set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda" CACHE PATH "CUDA Toolkit")
+set(CUDA_ROOT "/usr/local/cuda")
+set(CUDAToolkit_ROOT "/usr/local/cuda")
+
+# Ayuda a FindCUDA a localizar nvcc
+set(CUDA_NVCC_EXECUTABLE "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc" CACHE FILEPATH "CUDA compiler" FORCE)
 
 IF ( "$ENV{ROBOCOMP}" STREQUAL "")
   MESSAGE(WARNING "ROBOCOMP variable not set. Using the default value: /home/robocomp/robocomp")

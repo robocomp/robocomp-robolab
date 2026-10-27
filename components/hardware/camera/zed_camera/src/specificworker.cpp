@@ -95,11 +95,40 @@ void SpecificWorker::initialize()
         compute_color_cloud = false;
     }
     try {
+        imu_calibration = configLoader.get<bool>("Config.IMUCalibration");
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "IMUCalibration not found, using default false. " << e.what() << std::endl;
+        imu_calibration = false;
+    }
+    try {
+        trace_perf = configLoader.get<bool>("Config.TimeDebug");
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "TimeDebug not found, using default false. " << e.what() << std::endl;
+        trace_perf = false;
+    }
+    try {
         camera_fps = configLoader.get<int>("Config.FPS");
     }
     catch (const std::runtime_error& e) {
         std::cerr << "FPS not found, using default 30. " << e.what() << std::endl;
         camera_fps = 30;
+    }
+    try {
+        const std::string depth_mode_str = configLoader.get<std::string>("Config.DepthMode");
+        // sl::fromString returns false on a successful parse and true when the
+        // string wasn't recognized (confirmed empirically -- inverted from the
+        // intuitive reading of the return value).
+        if (sl::fromString(sl::String(depth_mode_str.c_str()), depth_mode))
+        {
+            std::cerr << "Config.DepthMode '" << depth_mode_str << "' not recognized, using default NEURAL_PLUS." << std::endl;
+            depth_mode = sl::DEPTH_MODE::NEURAL_PLUS;
+        }
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "DepthMode not found, using default NEURAL_PLUS. " << e.what() << std::endl;
+        depth_mode = sl::DEPTH_MODE::NEURAL_PLUS;
     }
     // Config.FPS is the single rate knob. Seed the compute-loop period from it: in sim
     // this is the rate the regulator then fine-tunes; for the real camera it just keeps
@@ -135,8 +164,7 @@ void SpecificWorker::initialize()
         catch (const std::runtime_error&) { /* keep default */ }
         try { dds_cfg.data_sharing = configLoader.get<bool>("DDS.DataSharing"); }
         catch (const std::runtime_error&) { /* keep default */ }
-        // RGB byte order label: "rgb" for both the real ZED (BGRA->RGB converted) and the Webots
-        // CameraRGBDSimple proxy (RGB-ordered); "bgr" only for a source emitting genuine BGR.
+        // RGB byte order: "rgb" (real ZED) or "bgr" (e.g. Webots source).
         try {
             const std::string fmt = configLoader.get<std::string>("DDS.RGBFormat");
             dds_cfg.rgb_is_bgr = (fmt == "bgr" || fmt == "BGR");
@@ -187,12 +215,8 @@ void SpecificWorker::initialize()
         // INIT PARAMETERS
         init_parameters.camera_resolution = sl::RESOLUTION::HD720; // Use HD720 opr HD1200 video mode, depending on camera type.
         init_parameters.camera_fps = camera_fps; // Config.FPS (ZED supports 15/30/60/100 per resolution)
-        #ifdef POSE
-            init_parameters.depth_mode = sl::DEPTH_MODE::NEURAL_PLUS; // Use ULTRA depth mode
-        #else
-            init_parameters.depth_mode = sl::DEPTH_MODE::NEURAL_PLUS; // Use ULTRA depth mode
-        #endif
-        init_parameters.coordinate_units = sl::UNIT::MILLIMETER; // Use millimeter units (for depth measurements)
+        init_parameters.depth_mode = depth_mode; // Config.DepthMode
+        init_parameters.coordinate_units = sl::UNIT::METER; // Meters -- matches the simulated (Webots) depth path and the FullPoseEstimation convention used fleet-wide (changed 2026-09-11, see cam_to_robot_t below)
         init_parameters.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP; // Use a right-handed Y-up coordinate system
         init_parameters.enable_image_enhancement = true; // Mejora visual en condiciones complejas
         //init_parameters.async_grab_camera_recovery = false; // Evita bloqueos si hay pérdida temporal de conexión
@@ -225,18 +249,39 @@ void SpecificWorker::initialize()
         sl::Transform reset_transform;
         zed.resetPositionalTracking(reset_transform);
 
+        // Lanzar hilo (must be before calibrate_imu_orientation)
+        running = true;
+
+        // IMU calibration: 5s of accelerometer to estimate static orientation
+        if (imu_calibration)
+            calibrate_imu_orientation();
+
         // Get the distance between the center of the camera and the left eye
 
         sl::CameraInformation cam_info = zed.getCameraInformation();
 
         cam_params = cam_info.camera_configuration.calibration_parameters.left_cam;
         translation_left_to_center = cam_info.camera_configuration.calibration_parameters.stereo_transform;
-        // Lanzar hilo
-        running = true;
 
     //IMU, barometer and magnetometer
     // sensor_thread = std::thread(&SpecificWorker::sensorsLoop, this);
     }
+
+    // ---- Diagnostic perf trace (perf_trace.csv), relative to the component's cwd ----
+    // Gated by Config.TimeDebug: write_trace() no-ops for free when trace_file was never
+    // opened (std::ofstream's operator bool is false), so this is the only gate needed.
+    if (trace_perf)
+    {
+        trace_file.open("perf_trace.csv", std::ios::out | std::ios::trunc);
+        if (trace_file)
+        {
+            trace_file << "epoch_ms,grab_ms,build_ms,ice_ms,dds_ms,color_cloud_ms,store_ms,display_ms,pose_ms,total_ms,ice_ok,dds_rgb_ok,dds_depth_ok\n";
+            qInfo() << "Perf trace: writing perf_trace.csv";
+        }
+        else
+            qWarning() << "Perf trace: could not open perf_trace.csv, tracing disabled";
+    }
+
     qInfo() << "Initialization completed for SpecificWorker";
 }
 
@@ -302,14 +347,24 @@ void SpecificWorker::regulate_period()
 // ---- Real ZED branch: grab, build the frame, publish/store, then pose. ----
 void SpecificWorker::step_real()
 {
+    const auto t_start = std::chrono::steady_clock::now();
     if (zed.grab() != sl::ERROR_CODE::SUCCESS)   // no new frame this tick
         return;
+    const auto t_grab = std::chrono::steady_clock::now();
 
-    RoboCompCameraRGBDSimple::TRGBD rgbd;
+    RoboCompCameraRGBDSimple::TRGBD rgbd = take_recycled_rgbd();
     RoboCompLidar3D::TColorCloudData colorCloud;
     const long num_points = build_real_rgbd(rgbd, colorCloud);
-    publish_and_store(std::move(rgbd), colorCloud, num_points);
+    const auto t_build = std::chrono::steady_clock::now();
+
+    StageTimings st;
+    publish_and_store(std::move(rgbd), colorCloud, num_points, &st);
+    const auto t_publish = std::chrono::steady_clock::now();
+
     process_pose_data();
+    const auto t_pose = std::chrono::steady_clock::now();
+
+    write_trace(t_start, t_grab, t_build, t_publish, t_pose, st);
 }
 
 // ---- Simulated branch: pull from the CameraRGBDSimple proxy, reproject depth. ----
@@ -325,24 +380,91 @@ void SpecificWorker::step_simulated()
 
 // Common tail shared by both branches: publish (Ice + DDS) straight from the freshly
 // built frame — no lock held during serialization — then move it into the shared
-// buffers for the pull servants, and optionally display.
+// buffers for the pull servants, and optionally display. When `timings` is given
+// (real branch only, for perf_trace.csv), each sub-stage's wall-clock cost is recorded.
 void SpecificWorker::publish_and_store(RoboCompCameraRGBDSimple::TRGBD &&rgbd,
                                        RoboCompLidar3D::TColorCloudData &colorCloud,
-                                       long num_points)
+                                       long num_points,
+                                       StageTimings *timings)
 {
-    if (publish_rgbd)
-        camerargbdsimplepub_pubproxy->pushRGBD(rgbd);
-
+    // DDS FIRST (2026-09-11): the RPC/Ice path (below) is little-used and must never gate DDS
+    // latency -- if a future Ice subscriber is slow, it must not delay the media plane.
+    auto t0 = std::chrono::steady_clock::now();
     if (publish_dds && dds_publisher)
-        publish_dds_frames(rgbd);
+    {
+        int rgb_ok = 0, depth_ok = 0;
+        publish_dds_frames(rgbd, rgb_ok, depth_ok);
+        if (timings) { timings->dds_rgb_ok = rgb_ok; timings->dds_depth_ok = depth_ok; }
+    }
+    auto t1 = std::chrono::steady_clock::now();
+    if (timings) timings->dds_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+
+    if (publish_rgbd)
+    {
+        try
+        {
+            camerargbdsimplepub_pubproxy->pushRGBD(rgbd);
+            if (timings) timings->ice_ok = 1;
+        }
+        catch (const Ice::Exception &e)
+        {
+            if (timings) timings->ice_ok = 0;
+            std::cerr << "Error publishing Ice RGBD: " << e.what() << std::endl;
+        }
+    }
+    auto t2 = std::chrono::steady_clock::now();
+    if (timings) timings->ice_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
 
     if (compute_color_cloud)
         store_color_cloud(colorCloud, num_points);
+    auto t3 = std::chrono::steady_clock::now();
+    if (timings) timings->color_cloud_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
 
     store_rgbd(std::move(rgbd));
+    auto t4 = std::chrono::steady_clock::now();
+    if (timings) timings->store_ms = std::chrono::duration<double, std::milli>(t4 - t3).count();
 
     if (display)
         show_frames();
+    auto t5 = std::chrono::steady_clock::now();
+    if (timings) timings->display_ms = std::chrono::duration<double, std::milli>(t5 - t4).count();
+}
+
+// Append one perf_trace.csv row: epoch_ms (to correlate with dmesg/journalctl) plus the
+// wall-clock cost of every pipeline stage. Flushed periodically so `tail -f` works live.
+void SpecificWorker::write_trace(std::chrono::steady_clock::time_point t_start,
+                                 std::chrono::steady_clock::time_point t_grab,
+                                 std::chrono::steady_clock::time_point t_build,
+                                 std::chrono::steady_clock::time_point t_publish,
+                                 std::chrono::steady_clock::time_point t_pose,
+                                 const StageTimings &st)
+{
+    if (!trace_file)
+        return;
+
+    const auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b - a).count(); };
+    const auto epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    trace_file << epoch_ms << ','
+               << ms(t_start, t_grab)   << ','
+               << ms(t_grab, t_build)   << ','
+               << st.ice_ms             << ','
+               << st.dds_ms             << ','
+               << st.color_cloud_ms     << ','
+               << st.store_ms           << ','
+               << st.display_ms         << ','
+               << ms(t_publish, t_pose) << ','
+               << ms(t_start, t_pose)   << ','
+               << st.ice_ok             << ','
+               << st.dds_rgb_ok         << ','
+               << st.dds_depth_ok       << '\n';
+
+    if (++trace_frame_count >= 30)   // flush ~every 2s at 15 FPS so tail -f sees fresh data
+    {
+        trace_file.flush();
+        trace_frame_count = 0;
+    }
 }
 
 // Move the frame into the shared buffer. The (cheap) move-construction runs before
@@ -354,17 +476,31 @@ void SpecificWorker::store_rgbd(RoboCompCameraRGBDSimple::TRGBD &&rgbd)
     buffer_rgbd = std::move(ptr);
 }
 
+// Pull the outgoing frame's byte vectors back out of the shared buffer so this
+// cycle's build_real_rgbd() resize() calls reuse their capacity instead of
+// allocating fresh. At HD720, image+depth are ~6.3 MB combined -- well past
+// glibc's mmap_threshold, so a cold resize() is an mmap/munmap syscall pair,
+// not a cheap malloc. Servants only ever get a copy of *buffer_rgbd (see
+// CameraRGBDSimple_getAll), never the shared_ptr itself, so it is always safe
+// to reclaim here.
+RoboCompCameraRGBDSimple::TRGBD SpecificWorker::take_recycled_rgbd()
+{
+    std::unique_lock<std::shared_mutex> lock(rgbd_mutex);
+    if (buffer_rgbd)
+        return std::move(*buffer_rgbd);
+    return {};
+}
+
 ///////////////////////////////////////////////////////////////////////
 
 // Acquire from the real ZED camera and build the RGBD frame (+ optional color cloud).
-// RGB is converted RGBA->RGB straight INTO the Ice byte buffer and depth is memcpy'd
+// RGB is converted BGRA->RGB straight INTO the Ice byte buffer and depth is memcpy'd
 // straight in — no intermediate cv::Mat/vector copies. Returns the valid point count.
 long SpecificWorker::build_real_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
                                      RoboCompLidar3D::TColorCloudData &colorCloud)
 {
     zed.retrieveImage(image, sl::VIEW::LEFT);
     zed.retrieveMeasure(depth, sl::MEASURE::DEPTH);
-    zed.retrieveMeasure(point_cloud, sl::MEASURE::XYZRGBA);
 
     const long alivetime = image.timestamp.getNanoseconds();
     colorCloud.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -373,9 +509,7 @@ long SpecificWorker::build_real_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
     const int w = image.getWidth();
     const int h = image.getHeight();
 
-    // --- RGB: convert the ZED's native BGRA -> RGB directly into the Ice byte buffer (no copy/alloc) ---
-    // sl::VIEW::LEFT retrieves a 4-channel BGRA image, so the swap-and-drop must be BGRA2RGB (not
-    // RGBA2RGB, which only strips alpha and would leave the bytes in BGR order under an RGB8 label).
+    // --- RGB: convert BGRA (ZED SDK's native CPU layout) -> RGB directly into the Ice byte buffer (no copy/alloc) ---
     RoboCompCameraRGBDSimple::TImage &rgb_image = rgbd.image;
     rgb_image.width = w;   rgb_image.height = h;  rgb_image.depth = 3;
     rgb_image.cameraID = 0;
@@ -401,51 +535,68 @@ long SpecificWorker::build_real_rgbd(RoboCompCameraRGBDSimple::TRGBD &rgbd,
     depth_image.depth.resize(static_cast<size_t>(dw) * dh * sizeof(float));
     std::memcpy(depth_image.depth.data(), depth.getPtr<float>(sl::MEM::CPU), depth_image.depth.size());
 
-    // --- Reproject the aligned XYZRGBA cloud into the robot frame ---
-    const cv::Mat pc(point_cloud.getHeight(), point_cloud.getWidth(), CV_32FC4,
-                     point_cloud.getPtr<sl::float1>(sl::MEM::CPU));
-    const Eigen::Matrix3f R = extrinsic.linear();
-    const Eigen::Vector3f t = extrinsic.translation();
+    // --- Reproject the aligned XYZRGBA cloud into the robot frame (vectorized) ---
+    // Gated by compute_xyz (Config.ComputeXYZ): retrieveMeasure(XYZRGBA) below is a
+    // w*h*4*4-byte GPU->CPU copy (~14 MB at HD720), so skip the retrieve itself, not
+    // just the projection loop, when nobody consumes rgbd.points.
+    std::vector<RoboCompCameraRGBDSimple::Point3D> cloud;
+    int n = 0;
 
-    std::vector<RoboCompCameraRGBDSimple::Point3D> cloud(pc.total());
-    if (compute_color_cloud)
-        resize_color_cloud(colorCloud, pc.total());
-
-    long index = 0;
-    for (int y = 0; y < pc.rows; ++y)
+    if (compute_xyz)
     {
-        const cv::Vec4f *row = pc.ptr<cv::Vec4f>(y);
-        for (int x = 0; x < pc.cols; ++x)
+        zed.retrieveMeasure(point_cloud, sl::MEASURE::XYZRGBA);
+        const cv::Mat pc(point_cloud.getHeight(), point_cloud.getWidth(), CV_32FC4,
+                         point_cloud.getPtr<sl::float1>(sl::MEM::CPU));
+        const Eigen::Matrix3f R = extrinsic.linear();
+        const Eigen::Vector3f t = extrinsic.translation();
+
+        // Single pass: filter valid points and transform them in place (Eigen, no
+        // cv::Mat/GEMM). The previous cv::Mat batch (pts * R_cv + cv::repeat) routed
+        // through OpenBLAS's threaded sgemm on every frame, which for an Nx3 * 3x3
+        // multiply is pure thread-spawn overhead across all cores (CPU spiking to
+        // ~2000%) for work a single core does trivially.
+        const int total = pc.total();
+        cloud.reserve(total);
+        std::vector<int> valid_idx;
+        if (compute_color_cloud)
+            valid_idx.reserve(total);
+
+        const cv::Vec4f *pc_ptr = pc.ptr<cv::Vec4f>(0);
+        for (int i = 0; i < total; ++i)
         {
-            const cv::Vec4f &v = row[x];
-            if (!std::isfinite(v[0]) || !std::isfinite(v[1]) || !std::isfinite(v[2]))
-                continue;
-
-            const Eigen::Vector3f p = R * Eigen::Vector3f(v[0], v[1], v[2]) + t;
-            cloud[index].x = p.x();
-            cloud[index].y = p.y();
-            cloud[index].z = p.z();
-
-            if (compute_color_cloud)
+            const cv::Vec4f &v = pc_ptr[i];
+            if (std::isfinite(v[0]) && std::isfinite(v[1]) && std::isfinite(v[2]))
             {
-                colorCloud.X[index] = p.x();
-                colorCloud.Y[index] = p.y();
-                colorCloud.Z[index] = p.z();
-                const uint32_t rgba = *reinterpret_cast<const uint32_t *>(&v[3]);
-                colorCloud.R[index] = (rgba >> 0)  & 0xFF;
-                colorCloud.G[index] = (rgba >> 8)  & 0xFF;
-                colorCloud.B[index] = (rgba >> 16) & 0xFF;
+                const Eigen::Vector3f p = R * Eigen::Vector3f(v[0], v[1], v[2]) + t;
+                cloud.push_back({.x = p.x(), .y = p.y(), .z = p.z()});
+                if (compute_color_cloud)
+                    valid_idx.push_back(i);
             }
-            ++index;
+        }
+
+        n = static_cast<int>(cloud.size());
+
+        if (n > 0 && compute_color_cloud)
+        {
+            resize_color_cloud(colorCloud, n);
+            for (int i = 0; i < n; ++i)
+            {
+                colorCloud.X[i] = cloud[i].x;
+                colorCloud.Y[i] = cloud[i].y;
+                colorCloud.Z[i] = cloud[i].z;
+                const uint32_t rgba = *reinterpret_cast<const uint32_t *>(&pc_ptr[valid_idx[i]][3]);
+                colorCloud.R[i] = (rgba >> 0)  & 0xFF;
+                colorCloud.G[i] = (rgba >> 8)  & 0xFF;
+                colorCloud.B[i] = (rgba >> 16) & 0xFF;
+            }
         }
     }
-    cloud.resize(index);
 
     rgbd.points.alivetime = alivetime;
     rgbd.points.period = init_parameters.camera_fps;
     rgbd.points.compressed = false;
     rgbd.points.points = std::move(cloud);
-    return index;
+    return n;
 }
 
 // Pull one frame from the simulated CameraRGBDSimple proxy (Webots) and reproject its
@@ -562,7 +713,10 @@ void SpecificWorker::store_color_cloud(RoboCompLidar3D::TColorCloudData &colorCl
 // Publish the given RGBD frame on the zero-copy DDS media plane (RGB + depth as
 // separate ImageFrame streams). Reads the local frame directly — no lock, no buffer
 // deref. The source alivetime is normalized to epoch-ms so consumers can realign.
-void SpecificWorker::publish_dds_frames(const RoboCompCameraRGBDSimple::TRGBD &rgbd)
+// rgb_ok/depth_ok report whether each stream was actually published (0 = dropped,
+// e.g. SHM pool exhausted -- see ZedDDSPublisher::publish_rgb/publish_depth) so
+// perf_trace.csv can distinguish a silent frame drop from a timing delay.
+void SpecificWorker::publish_dds_frames(const RoboCompCameraRGBDSimple::TRGBD &rgbd, int &rgb_ok, int &depth_ok)
 {
     const auto &img = rgbd.image;
     const auto &dep = rgbd.depth;
@@ -577,21 +731,21 @@ void SpecificWorker::publish_dds_frames(const RoboCompCameraRGBDSimple::TRGBD &r
     if (!img.image.empty() && img.width > 0 && img.height > 0)
     {
         const std::uint32_t channels = img.depth > 0 ? static_cast<std::uint32_t>(img.depth) : 3u;
-        dds_publisher->publish_rgb(stamp_ms,
+        rgb_ok = dds_publisher->publish_rgb(stamp_ms,
                                    static_cast<std::uint32_t>(img.width),
                                    static_cast<std::uint32_t>(img.height),
                                    static_cast<std::uint32_t>(img.width) * channels,
-                                   img.image.data(), img.image.size());
+                                   img.image.data(), img.image.size()) ? 1 : 0;
     }
     if (!dep.depth.empty() && dep.width > 0 && dep.height > 0)
     {
         // depth carries float32 pixels: row stride = width*4, size() = total bytes.
-        dds_publisher->publish_depth(stamp_ms,
+        depth_ok = dds_publisher->publish_depth(stamp_ms,
                                      static_cast<std::uint32_t>(dep.width),
                                      static_cast<std::uint32_t>(dep.height),
                                      static_cast<std::uint32_t>(dep.width) * sizeof(float),
                                      reinterpret_cast<const std::uint8_t *>(dep.depth.data()),
-                                     dep.depth.size());
+                                     dep.depth.size()) ? 1 : 0;
     }
 }
 
@@ -607,14 +761,11 @@ void SpecificWorker::show_frames()
     cv::Mat depth_frame(cv::Size(buffer_rgbd->depth.width, buffer_rgbd->depth.height),
                         CV_32FC1, &buffer_rgbd->depth.depth[0], cv::Mat::AUTO_STEP);
 
-    // Depth scaling differs by source: simulated depth is in metres, real ZED in mm.
-    if (simulated)
-    {
-        cv::cvtColor(rgb_frame, rgb_frame, cv::COLOR_RGB2BGR);
-        depth_frame.convertTo(depth_frame, CV_8UC1, 255.0 / 10, 0);
-    }
-    else
-        depth_frame.convertTo(depth_frame, CV_8UC1, 255.0 / 10000, 0);
+    // Both sources are now metres (real ZED switched 2026-09-11, coordinate_units=METER) --
+    // same display scale for both. Both now carry true RGB (real ZED fixed 2026-09-15,
+    // was mislabeled BGR out of build_real_rgbd) so the BGR swap for imshow is unconditional.
+    cv::cvtColor(rgb_frame, rgb_frame, cv::COLOR_RGB2BGR);
+    depth_frame.convertTo(depth_frame, CV_8UC1, 255.0 / 10, 0);
 
     cv::applyColorMap(depth_frame, depth_frame, cv::COLORMAP_RAINBOW);
     cv::imshow("rgb", rgb_frame);
@@ -643,7 +794,8 @@ void SpecificWorker::process_pose_data()
     Eigen::Quaternionf q_cam = aa_z * aa_y * aa_x;  // orden ZYX
 
     // 3) Transformación fija cámara?robot
-    static const Eigen::Vector3f cam_to_robot_t(60.0f, 76.6f, 0.0f);
+    // metres (was 60.0f, 76.6f mm -- converted 2026-09-11 alongside coordinate_units switching to METER)
+    static const Eigen::Vector3f cam_to_robot_t(0.060f, 0.0766f, 0.0f);
 
     // 4) Velocidades (diferencial)
     long timestamp = zed_pose.timestamp.getNanoseconds();
@@ -704,6 +856,70 @@ void SpecificWorker::process_pose_data()
         // "| RX:"<< pose.rx << "|RY:"<<pose.ry<< "|RZ:"<< pose.rz<<"| VX:"<<pose.vx<<"|VY:"<<pose.vy<<"|VZ:"<< pose.vz<<
         // "| VRX:"<< pose.vrx << "|VRY:"<<pose.vry<< "|VRZ:"<< pose.vrz<<"| Time:"<<pose.timestamp<<"              ";    
 
+}
+
+void SpecificWorker::calibrate_imu_orientation()
+{
+    constexpr float CALIBRATION_DURATION_S = 5.0f;
+    constexpr int SAMPLE_INTERVAL_US = 2500;
+    constexpr int WARMUP_GRABS = 10;
+
+    qInfo() << "IMU calibration: collecting accelerometer data for" << CALIBRATION_DURATION_S << "s...";
+
+    // Warmup: grab a few frames so the ZED SDK starts producing IMU data
+    for (int i = 0; i < WARMUP_GRABS && running; ++i)
+    {
+        zed.grab();
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
+
+    Eigen::Vector3f acc_sum = Eigen::Vector3f::Zero();
+    int sample_count = 0;
+    TimestampHandler cal_ts;  // local handler to avoid stale shared ts state
+    auto start = std::chrono::steady_clock::now();
+
+    while (running)
+    {
+        auto now = std::chrono::steady_clock::now();
+        float elapsed = std::chrono::duration<float>(now - start).count();
+        if (elapsed >= CALIBRATION_DURATION_S)
+            break;
+
+        zed.getSensorsData(sensors_data, sl::TIME_REFERENCE::CURRENT);
+
+        if (cal_ts.isNew(sensors_data.imu))
+        {
+            const auto &imu = sensors_data.imu;
+            acc_sum.x() += imu.linear_acceleration.x;
+            acc_sum.y() += imu.linear_acceleration.y;
+            acc_sum.z() += imu.linear_acceleration.z;
+            sample_count++;
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(SAMPLE_INTERVAL_US));
+    }
+
+    if (sample_count == 0)
+    {
+        qWarning() << "IMU calibration: no samples collected";
+        return;
+    }
+
+    Eigen::Vector3f g = acc_sum / static_cast<float>(sample_count);
+    qInfo() << "IMU calibration: avg acceleration [" << g.x() << g.y() << g.z() << "] m/s^2 over" << sample_count << "samples";
+
+    init_roll  = std::atan2(g.y(), g.z());
+    init_pitch = std::atan2(-g.x(), std::sqrt(g.y() * g.y() + g.z() * g.z()));
+    init_yaw   = 0.f;
+
+    Eigen::AngleAxisf aa_x(init_roll,  Eigen::Vector3f::UnitX());
+    Eigen::AngleAxisf aa_y(init_pitch, Eigen::Vector3f::UnitY());
+    Eigen::AngleAxisf aa_z(init_yaw,   Eigen::Vector3f::UnitZ());
+    initial_orientation = aa_z * aa_y * aa_x;
+
+    imu_calibrated = true;
+
+    Eigen::Vector3f euler_deg = initial_orientation.toRotationMatrix().eulerAngles(0, 1, 2) * 180.f / M_PI;
+    qInfo() << "IMU calibration complete: roll=" << euler_deg.x() << "deg, pitch=" << euler_deg.y() << "deg, yaw=" << euler_deg.z() << "deg";
 }
 
 void SpecificWorker::sensorsLoop()

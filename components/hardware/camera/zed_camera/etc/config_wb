@@ -20,6 +20,15 @@ Period.Emergency = 500
 Config.Simulated = True
 Config.Display = True
 Config.Publish = False
+# ZED SDK depth engine (sl::DEPTH_MODE). Only used when Simulated = false. From
+# lightest/fastest to heaviest/most accurate:
+#   PERFORMANCE  - deprecated classical stereo matching, optimized for speed
+#   QUALITY      - deprecated classical stereo matching, better on low-texture surfaces
+#   ULTRA        - deprecated classical stereo matching, favors edges/sharpness, more GPU memory
+#   NEURAL_LIGHT - neural disparity estimation, lightest neural option (needs AI module)
+#   NEURAL       - neural disparity estimation, balanced accuracy/cost (needs AI module)
+#   NEURAL_PLUS  - neural disparity estimation, most accurate, heaviest GPU/CPU cost (needs AI module)
+Config.DepthMode = "NEURAL_PLUS"
 
 Component.Debug.Verbose = true
 

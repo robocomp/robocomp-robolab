@@ -18,6 +18,8 @@ LIST(APPEND SOURCES
   ${MEDIA_TRANSPORT_IDL}/lidar_frameTypeObjectSupport.cxx
   ${MEDIA_TRANSPORT_IDL}/imu_framePubSubTypes.cxx
   ${MEDIA_TRANSPORT_IDL}/imu_frameTypeObjectSupport.cxx
+  ${MEDIA_TRANSPORT_IDL}/pose_framePubSubTypes.cxx
+  ${MEDIA_TRANSPORT_IDL}/pose_frameTypeObjectSupport.cxx
 )
 
 # Headers set

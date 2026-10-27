@@ -22,6 +22,15 @@ Simulated = true
 Display = false
 ComputeXYZ = false
 FPS = 30                 # cap the processing/publish rate (Hz)
+# ZED SDK depth engine (sl::DEPTH_MODE). Only used when Simulated = false. From
+# lightest/fastest to heaviest/most accurate:
+#   PERFORMANCE  - deprecated classical stereo matching, optimized for speed
+#   QUALITY      - deprecated classical stereo matching, better on low-texture surfaces
+#   ULTRA        - deprecated classical stereo matching, favors edges/sharpness, more GPU memory
+#   NEURAL_LIGHT - neural disparity estimation, lightest neural option (needs AI module)
+#   NEURAL       - neural disparity estimation, balanced accuracy/cost (needs AI module)
+#   NEURAL_PLUS  - neural disparity estimation, most accurate, heaviest GPU/CPU cost (needs AI module)
+DepthMode = "NEURAL_PLUS"
 Extrinsic = [0.0, -0.075, 0.945, 0.0, 0.0, 0.0]
 
 # output
@@ -34,11 +43,11 @@ PublishDDS = true   # DDS topci
 Domain = 7
 RGBTopic = "rc/zed/rgb"
 DepthTopic = "rc/zed/depth"
-RGBFormat = "rgb"        # Webots CameraRGBDSimple delivers RGB-ordered bytes; label RGB8 so consumers convert right
+RGBFormat = "bgr"        # Webots source delivers BGR; label it so YOLO gets colors right
 # QoS — carried in the descriptor relayed to DSR; consumers must agree.
-HistoryDepth = 2   # 8->2: real-time media plane, shallow history (DDS_SHADOW.md sec 2.2)
+HistoryDepth = 8
 SharedMemoryOnly = true
-DataSharing = true   # zero-copy SHM loans (static topology only — churn-unsafe, see media_transport.h)
+DataSharing = false      # OFF = churn-safe in CORTEX (see media_transport.h)
 
 
 [Period]

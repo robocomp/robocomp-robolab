@@ -8,22 +8,49 @@ FullPoseEstimationPubPrefix = "zed"
 IMUPubPrefix = ""
 
 # Proxies for required interfaces
-CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 10009"
+CameraRGBDSimple = "camerargbdsimple:tcp -h localhost -p 10196"
 
 
 [Endpoints]
 # Endpoints for implements interfaces
-Lidar3D = "tcp -p 12000"
-CameraRGBDSimple = "tcp -p 12001"
+Lidar3D = "tcp -p 11100" 
+CameraRGBDSimple = "tcp -p 11101"
+MediaPlaneDDS = "tcp -p 11102"
+
+[DDS]
+Config.PublishDDS = true
+Domain = 7
+RGBTopic = "rc/zed/rgb"
+DepthTopic = "rc/zed/depth"
+Format = "rgb"
+HistoryDepth = 1
+SharedMemoryOnly = true
+DataSharing = true
+
 
 [Config]
+FPS = 20
+# ZED SDK depth engine (sl::DEPTH_MODE). From lightest/fastest to heaviest/most accurate:
+#   PERFORMANCE  - deprecated classical stereo matching, optimized for speed
+#   QUALITY      - deprecated classical stereo matching, better on low-texture surfaces
+#   ULTRA        - deprecated classical stereo matching, favors edges/sharpness, more GPU memory
+#   NEURAL_LIGHT - neural disparity estimation, lightest neural option (needs AI module)
+#   NEURAL       - neural disparity estimation, balanced accuracy/cost (needs AI module)
+#   NEURAL_PLUS  - neural disparity estimation, most accurate, heaviest GPU/CPU cost (needs AI module)
+DepthMode = "NEURAL_PLUS"
+ComputeXYZ = false
+ComputeColorCloud = false
 Simulated = false
-Display = true
+Display = false
 Publish = false
-Extrinsic = [0.0, -0.075, 0.945, 0.0, 0.0, 0.0]
-
+PublishDDS = true
+Extrinsic = [0.0, -0.075, 0.945, 165.391, 0.0, 0.0]
+IMUCalibration = true
+# Per-frame stage-timing trace (perf_trace.csv: grab/build/ice/dds/store/display/pose
+# wall-clock cost + ice_ok/dds_rgb_ok/dds_depth_ok publish success). Off by default.
+TimeDebug = true
 [Period]
-Compute = 20
+Compute = 65
 Emergency = 500
 
 [Component.Debug]
@@ -31,7 +58,7 @@ Verbose = true
 
 
 [Ice]
-Warn.Connections = "0"
+Warn.Connections = "1"
 Trace.Network = "0"
 Trace.Protocol = "0"
 MessageSizeMax = "20004800"

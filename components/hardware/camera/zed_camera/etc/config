@@ -18,9 +18,19 @@ Period.Compute = 1
 Period.Emergency = 500
 
 Config.Simulated = False
-Config.Display = False
+Config.Display = True
 Config.Publish = False
 Config.ComputeColorCloud = False
+# Run 5s IMU calibration at init to estimate static orientation from accelerometer
+Config.IMUCalibration = False
+# ZED SDK depth engine (sl::DEPTH_MODE). From lightest/fastest to heaviest/most accurate:
+#   PERFORMANCE  - deprecated classical stereo matching, optimized for speed
+#   QUALITY      - deprecated classical stereo matching, better on low-texture surfaces
+#   ULTRA        - deprecated classical stereo matching, favors edges/sharpness, more GPU memory
+#   NEURAL_LIGHT - neural disparity estimation, lightest neural option (needs AI module)
+#   NEURAL       - neural disparity estimation, balanced accuracy/cost (needs AI module)
+#   NEURAL_PLUS  - neural disparity estimation, most accurate, heaviest GPU/CPU cost (needs AI module)
+Config.DepthMode = "NEURAL_PLUS"
 # Publish RGB+depth on the zero-copy DDS media plane (CORTEX). Off by default.
 Config.PublishDDS = False
 

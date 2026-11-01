@@ -28,3 +28,30 @@ Ice.Trace.Network = "0"
 Ice.Trace.Protocol = "0"
 Ice.MessageSizeMax = "20004800"
 Component.Debug.Verbose = true
+
+# ---------------------------------------------------------------------------------------------
+# SENSOR MODEL advertised with the media plane (real RoboSense RS-Helios-5515)
+# ---------------------------------------------------------------------------------------------
+# Intrinsics from the manufacturer datasheet, put into the MediaDescriptor so consumers stop
+# keeping their own constants. Delete the block to advertise nothing (absent = unknown, safe).
+# Extrinsics are NOT here: they live in the RT tree (the unit is mounted INVERTED; that flip is in
+# the body<-helios edge). FovStart/End are therefore in the DEVICE frame, + up.
+# RingElevDeg is deliberately UNSET: Rings > 0 activates the driver's clustering of per-point
+# elevations (specificworker.cpp, "ring elevations MEASURED"), which publishes the REAL non-uniform
+# channel table once all 32 rings have been seen. Needs no other key.
+# AzimuthStepDeg 0.2 = 360 deg / 1800 columns at the unit's default 10 Hz (0.4 deg at 20 Hz).
+# The units run at 20 Hz (user, 2026-10-31), so 0.4 deg; change both together if the rate changes.
+# RangeMaxM = 80 is the 10 %-reflectivity figure; the ideal-target maximum is 150 m.
+# RangeSigmaFloorM = 0.02: "Ranging Accuracy (Typical) +-2 cm" read as 1 sigma (cannot over-trust).
+SensorModel.Version = 1
+SensorModel.Source = "datasheet"
+SensorModel.Ref = "RoboSense RS-Helios-5515 User Manual 3.0.1 (2022-06-29) sec 5.1.1 (datasheet; range 80 m @10% reflectivity, 150 m ideal)"
+SensorModel.Frame = "helios"
+SensorModel.Rings = 32
+SensorModel.FovStartDeg = -55.0
+SensorModel.FovEndDeg = 15.0
+SensorModel.AzimuthStepDeg = 0.4
+SensorModel.RateHz = 20.0   # the units run at 20 Hz (user, 2026-10-31)
+SensorModel.RangeMinM = 0.1
+SensorModel.RangeMaxM = 80.0
+SensorModel.RangeSigmaFloorM = 0.02

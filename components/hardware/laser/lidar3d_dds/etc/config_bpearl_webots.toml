@@ -103,19 +103,23 @@ Ref = "geometry: webots-shadow/protos/Shadow.proto Lidar 'bpearl' (worlds/piso/p
 Frame = "bpearl"
 
 # ── Geometry: WHAT THE SIMULATOR EMITS ───────────────────────────────────────────────────────
-# ⚠ THIS IS NOT AN RS-Bpearl, AND THE GAP IS LARGER THAN THE HELIOS ONE. The device is 32 channels
-# over a 90 deg dome, 0.1..30 m. The sim is 64 layers over 180 deg out to 100 m. Only the noise
-# line below is borrowed from the real unit; every geometry field here is the sim's own.
-Rings = 64                 # numberOfLayers
+# 2026-10-31 CORRECTION: the channel layout already MATCHES the real unit. The proto has 64 layers
+# over 180 deg, but shadow-bridge-dds keeps only the theta < pi half for bpearl, on both of its paths
+# (media_plane.cpp:240 up_half_only, specificworker.cpp:1425-1427). That is 32 layers over the
+# 0..+90 deg dome in the (flipped) sensor frame, as on an RS-Bpearl (32 channels over 90 deg). This
+# block used to claim 64 rings over -90..90, which described the proto, not the published stream.
+# The remaining sim-vs-device gaps are the range (100 m vs 30 m at 10%), the absent minimum range,
+# and the 2.857 vs 2.81 deg spacing.
+Rings = 32                 # the published half of numberOfLayers 64
 AzimuthStepDeg = 0.4114    # fieldOfView 6.28 rad over horizontalResolution 875
 RateHz = 20.0              # defaultFrequency
-FovStartDeg = -90.0        # verticalFieldOfView = pi, in the (flipped) sensor frame
+FovStartDeg = 1.428571     # 90 - 31*180/63: layers j=0..31 of 64 over 180 deg (step 180/63), not 0 -- in the (flipped) sensor frame
 FovEndDeg = 90.0
 RangeMaxM = 100.0          # maxRange
 #
-# ⚠ RangeMinM deliberately UNSET. The device's minimum measuring range is 0.10 m (manual sec 2);
-# the sim has none, and this stream is the sim. Publishing it would delete real near returns —
-# and near returns are the entire point of this sensor.
+# RangeMinM left UNSET here: this file is the old lidar3d path. The real device's minimum is 0.10 m
+# (manual sec 2), but the shadow-bridge now advertises the Webots minRange (0.058 m) itself in its
+# SensorModel, so nothing is needed from this file.
 #
 # ⚠ RingElevDeg deliberately UNSET, for the same reason as the helios config: the manufacturer's
 # per-channel table describes a 32-beam 90 deg dome, this stream is 64 layers over 180 deg, and

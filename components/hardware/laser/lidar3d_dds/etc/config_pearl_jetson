@@ -30,3 +30,29 @@ Ice.Trace.Protocol = "0"
 Ice.MessageSizeMax = "20004800"
 
 
+
+# ---------------------------------------------------------------------------------------------
+# SENSOR MODEL advertised with the media plane (real RoboSense RS-Bpearl)
+# ---------------------------------------------------------------------------------------------
+# Intrinsics from the manufacturer datasheet. Delete the block to advertise nothing (absent =
+# unknown, safe). Extrinsics are NOT here (RT tree); FovStart/End are in the DEVICE frame: the
+# Bpearl is a hemispherical dome, 0..90 deg.
+# RingElevDeg is deliberately UNSET: Rings > 0 activates the driver's clustering of per-point
+# elevations (specificworker.cpp, "ring elevations MEASURED"), which publishes the measured table
+# once all 32 rings have been seen. Needs no other key.
+# AzimuthStepDeg 0.2 = 360 deg / 1800 columns at the default 10 Hz (0.4 deg at 20 Hz).
+# The units run at 20 Hz (user, 2026-10-31), so 0.4 deg; change both together if the rate changes.
+# RangeMaxM = 30 is the 10 %-reflectivity figure; the maximum is 100 m.
+# RangeSigmaFloorM = 0.03: manual Table 1 accuracy +-3 cm read as 1 sigma (cannot over-trust).
+SensorModel.Version = 1
+SensorModel.Source = "datasheet"
+SensorModel.Ref = "RoboSense RS-Bpearl User Manual 2.0.1 (2020-02-18) sec 3 Table 1 (datasheet; range 30 m @10% reflectivity, 100 m max)"
+SensorModel.Frame = "bpearl"
+SensorModel.Rings = 32
+SensorModel.FovStartDeg = 0.0
+SensorModel.FovEndDeg = 90.0
+SensorModel.AzimuthStepDeg = 0.4
+SensorModel.RateHz = 20.0   # the units run at 20 Hz (user, 2026-10-31)
+SensorModel.RangeMinM = 0.1
+SensorModel.RangeMaxM = 30.0
+SensorModel.RangeSigmaFloorM = 0.03

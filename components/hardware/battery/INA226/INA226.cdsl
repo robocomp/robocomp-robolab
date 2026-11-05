@@ -1,0 +1,12 @@
+import "BatteryStatus.idsl";
+import "Power.idsl";
+
+Component INA226
+{
+    Communications
+    {
+        implements BatteryStatus, Power;
+    };
+    language python;
+};
+

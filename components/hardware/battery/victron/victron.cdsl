@@ -1,10 +1,11 @@
 import "BatteryStatus.idsl";
+import "Power.idsl";
 
 Component victron
 {
     Communications
     {
-        implements BatteryStatus;
+        implements BatteryStatus, Power;
     };
     language python;
 };

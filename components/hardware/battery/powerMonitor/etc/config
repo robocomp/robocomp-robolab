@@ -1,0 +1,19 @@
+# Proxies for required interfaces
+Proxies.Power = "power:tcp -h localhost -p 15002"
+Proxies.Power1 = "power:tcp -h localhost -p 15001"
+# Power2 unused for now (no third source configured); left unreachable on purpose
+Proxies.Power2 = "power:tcp -h localhost -p 0"
+
+# Endpoints for implements interfaces
+Endpoints.Power = "tcp -p 15003"
+
+
+Period.Compute = 100
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "2097151"

@@ -1,0 +1,28 @@
+# Endpoints for implements interfaces
+[Endpoints]
+BatteryStatus="tcp -p 16987"
+Power = "tcp -p 15001"
+
+[Period]
+Compute = 100
+Emergency = 500
+
+[Component]
+Debug.Verbose = true
+
+[Ice]
+Warn.Connections = "0"
+Trace.Network = "0"
+Trace.Protocol = "0"
+MessageSizeMax = "20004800"
+
+[Battery]
+max=28.8
+min=19.90
+
+[ID]
+#battery = "0x4F"
+24 = "0x4F"
+24Aux = "0x50"
+
+

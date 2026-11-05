@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-#    Copyright (C) 2023 by YOUR NAME HERE
+#    Copyright (C) 2026 by Alejandro Torrejon Harto
 #
 #    This file is part of RoboComp
 #
@@ -19,8 +19,8 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from PySide2.QtCore import QTimer
-from PySide2.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 from rich.console import Console
 from genericworker import *
 import interfaces as ifaces
@@ -31,25 +31,11 @@ import threading
 
 console = Console(highlight=False)
 
-try:
-    import setproctitle
-    setproctitle.setproctitle(os.path.basename(os.getcwd()))
-except:
-    pass
-
-
-# If RoboComp was compiled with Python bindings you can use InnerModel in Python
-# import librobocomp_qmat
-# import librobocomp_osgviewer
-# import librobocomp_innermodel
-
-
-
 
 class SpecificWorker(GenericWorker):
-    def __init__(self, proxy_map, startup_check=False):
-        super(SpecificWorker, self).__init__(proxy_map)
-        self.Period = 1000
+    def __init__(self, proxy_map, configData, startup_check=False):
+        super(SpecificWorker, self).__init__(proxy_map, configData)
+        self.Period = configData["Period"]["Compute"]
         
         self.on_warning = True
         self.warning_mode = 0
@@ -60,22 +46,16 @@ class SpecificWorker(GenericWorker):
             self.startup_check()
         else:
             self.batteryStatus = ifaces.RoboCompBatteryStatus.TBattery()
-            self.victron = None
+            self.power_name = "battery"
+            self.powerData = {}
+            self.victron = Vedirect(serialport=configData["serialPort"], timeout=None,vMaxCharging=float(configData["vMaxCharging"]),
+                                            vMax=float(configData["vMax"]), vMin=float(configData["vMin"]))
             self.timer.timeout.connect(self.compute)
             self.timer.start(self.Period)
 
     def __del__(self):
         """Destructor"""
         self.on_warning = False
-
-    def setParams(self, params):
-        try:
-            self.victron = Vedirect(serialport=params["serialPort"], timeout=None,vMaxCharging=float(params["vMaxCharging"]),
-                                vMax=float(params["vMax"]), vMin=float(params["vMin"]))
-        except Exception as e:
-            print(e)
-            print("Error reading config params")
-        return True
 
     def warning_function(self):
         while self.on_warning:
@@ -115,6 +95,14 @@ class SpecificWorker(GenericWorker):
                 self.batteryStatus.percentage = self.victron.calc_percentage(charger=True, voltage=self.batteryStatus.voltage)
                 self.warning_ticks = 0
                 
+            self.powerData[self.power_name] = ifaces.RoboCompPower.PowerData(
+                name=self.power_name,
+                voltage=self.batteryStatus.voltage,
+                current=self.batteryStatus.current,
+                power=self.batteryStatus.voltage * self.batteryStatus.current,
+                timestamp=int(time.time() * 1000)
+            )
+
             print(self.batteryStatus)
             # Mostramos los datos por pantalla de forma bonita
             print("=========== Datos recibidos ===========")
@@ -125,7 +113,10 @@ class SpecificWorker(GenericWorker):
     def startup_check(self):
         print(f"Testing RoboCompBatteryStatus.TBattery from ifaces.RoboCompBatteryStatus")
         test = ifaces.RoboCompBatteryStatus.TBattery()
+        print(f"Testing RoboCompPower.Power from ifaces.RoboCompPower")
+        test = ifaces.RoboCompPower.Power()
         QTimer.singleShot(200, QApplication.instance().quit)
+
 
 
 
@@ -136,17 +127,32 @@ class SpecificWorker(GenericWorker):
     # IMPLEMENTATION of getBatteryState method from BatteryStatus interface
     #
     def BatteryStatus_getBatteryState(self):
-        
-        #
-        # write your CODE here
-        #
         return self.batteryStatus
+
+    #
+    # IMPLEMENTATION of getPower method from Power interface
+    #
+    def Power_getPower(self, name):
+        try:
+            return self.powerData[name]
+        except KeyError:
+            raise ifaces.RoboCompPower.UnknownSourceException(name=name)
+
+    #
+    # IMPLEMENTATION of getPowers method from Power interface
+    #
+    def Power_getPowers(self):
+        return ifaces.RoboCompPower.Powers(self.powerData.values())
     # ===================================================================
     # ===================================================================
 
 
     ######################
     # From the RoboCompBatteryStatus you can use this types:
-    # RoboCompBatteryStatus.TBattery
+    # ifaces.RoboCompBatteryStatus.TBattery
+
+    ######################
+    # From the RoboCompPower you can use this types:
+    # ifaces.RoboCompPower.PowerData
 
 

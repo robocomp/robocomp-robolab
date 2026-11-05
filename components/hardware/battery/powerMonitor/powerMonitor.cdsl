@@ -1,0 +1,12 @@
+import "Power.idsl";
+
+Component powerMonitor
+{
+    Communications
+    {
+        implements Power;
+        requires Power, Power, Power;
+    };
+    language python;
+};
+

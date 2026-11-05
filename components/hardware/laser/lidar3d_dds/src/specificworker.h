@@ -26,7 +26,7 @@
 #define SPECIFICWORKER_H
 
 // If you want reduce compute period automaticaly for lack of use
-#define HIBERNATION_ENABLED
+//#define HIBERNATION_ENABLED
 
 #include <genericworker.h>
 #include <rs_driver/api/lidar_driver.hpp>

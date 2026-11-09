@@ -3,7 +3,7 @@ Endpoints.LEDArray = "tcp -p 10991"
 
 # Interface: "SPI" (Orange Pi Zero 2W, pin 19) or "GPIO" (Raspberry Pi, uses LED.GPIO)
 LED.Interface = "SPI"
-LED.Number = 54
+LED.Number = 19
 LED.GPIO = 18
 
 Period.Compute = 1000

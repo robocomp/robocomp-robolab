@@ -69,6 +69,42 @@ Tras editar el nuevo fichero de configuración, arrancamos el componente:
 bin/victron config
 ```
 
+### Arrancar con la placa
+
+`etc/robocomp-victron.service` arranca el componente con la placa y lo reinicia 15 s después si falla. Añade el grupo `dialout` solo a este servicio, para acceder al puerto serie. Sus rutas son las del usuario `orangepi` y del entorno `~/software/pip_venv`. Si cambian, edítalas antes de instalarlo.
+
+Instálalo en la placa:
+
+```bash
+cd $ROBOCOMP/components/robocomp-robolab/components/hardware/battery/victron
+sudo cp etc/robocomp-victron.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now robocomp-victron
+```
+
+| Acción | Comando |
+|--------|---------|
+| Ver el estado | `systemctl status robocomp-victron` |
+| Ver los logs en directo | `journalctl -u robocomp-victron -f` |
+| Reiniciar tras un cambio | `sudo systemctl restart robocomp-victron` |
+| Parar | `sudo systemctl stop robocomp-victron` |
+| Quitarlo del arranque | `sudo systemctl disable --now robocomp-victron` |
+
+Si modificas el `.service`, cópialo otra vez, ejecuta `sudo systemctl daemon-reload` y reinicia el servicio. Mientras el servicio esté activo, no arranques el componente a mano: fallará con `Address already in use`. Páralo antes con `sudo systemctl stop robocomp-victron`.
+
+### Subir cambios desde otro equipo
+
+Para editar en otro equipo y llevar los cambios a la placa, copia solo los ficheros modificados. Cambia `<ip-placa>` por la IP de la placa, que puedes ver en ella con `hostname -I`:
+
+```bash
+cd $ROBOCOMP/components/robocomp-robolab/components/hardware/battery/victron
+scp src/specificworker.py orangepi@<ip-placa>:~/robocomp/components/robocomp-robolab/components/hardware/battery/victron/src/
+scp etc/config orangepi@<ip-placa>:~/robocomp/components/robocomp-robolab/components/hardware/battery/victron/etc/
+ssh -t orangepi@<ip-placa> sudo systemctl restart robocomp-victron
+```
+
+No copies `generated/`, `build/` ni `bin/`. La placa tiene los suyos, generados para su versión de Ice (3.7), y los de otro equipo pueden no funcionar en ella.
+
 ## Referencias
 
 - [VE.Direct protocol parsing (foro Victron Community)](https://community.victronenergy.com/questions/29816/how-to-parse-vedirect-protocol.html)

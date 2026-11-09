@@ -47,7 +47,10 @@ class SpecificWorker(GenericWorker):
 
             for name in names:
                 self.powerSensor[name] = INA226(busnum=1, address=int(configData["ID"][name],16), max_expected_amps=20, shunt_ohms=0.002)
-                self.powerSensor[name].configure()
+                # 16 samples x (1.1 ms bus + 1.1 ms shunt) = ~35 ms per measurement, below the compute period
+                self.powerSensor[name].configure(avg_mode=INA226.AVG_16BIT,
+                                                 bus_ct=INA226.VCT_1100us_BIT,
+                                                 shunt_ct=INA226.VCT_1100us_BIT)
 
                 if name == "battery":
                     self.batterySensor =  self.powerSensor[name]
@@ -83,10 +86,11 @@ class SpecificWorker(GenericWorker):
         try:
             v = sensor.voltage()
             c = sensor.current() / 1000.0
-            p = sensor.power() / 1000.0
+            # The power register is unsigned; V*I keeps the charge/discharge sign of the current
+            p = v * c
             return v, c, p
         except Exception as e:
-            console.print(f"[I2C] Error reading INA226: {e}", style="error")
+            console.print(f"[I2C] Error reading INA226: {e}", style="red", markup=False)
             raise
 
     # =============== Methods for Component Implements ==================
@@ -101,7 +105,7 @@ class SpecificWorker(GenericWorker):
             ret.voltage, ret.current, ret.power = self._read_sensor(self.batterySensor)
             ret.percentage = self.calc_percentage(voltage=ret.voltage)
         else:
-            console.print("No has Battery sensor", style="error")
+            console.print("No has Battery sensor", style="red", markup=False)
         return ret
     #
     # IMPLEMENTATION of getPower method from Power interface
@@ -128,7 +132,7 @@ class SpecificWorker(GenericWorker):
                 p.timestamp = int(time() * 1000)
                 powers.append(p)
             except Exception as e:
-                console.print(f"Skipping power sensor '{name}' due to read error", style="error")
+                console.print(f"Skipping power sensor '{name}' due to read error", style="red", markup=False)
                 continue
         return powers
     # ===================================================================

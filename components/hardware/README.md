@@ -19,6 +19,8 @@
   - `PyIMU` component is a Python version implementation of IMU driver.
 - `laser` folder contains:
   - `hokuyo` component provides a wrapper for accessing data from [Hokuyo c_urg library](https://debian.pkgs.org/8/debian-main-amd64/liburg0-dev_0.8.18-2_amd64.deb.html) and serves the laser measurements.
+- `led` folder contains:
+  - `ledStrip` component is a Python driver for WS2812B addressable LED strips, for Raspberry Pi (GPIO) and Orange Pi Zero 2W (SPI).
 - `motor` folder contains motor driver components for specific motors.
 
 The detail of the description, installation, and configuration of each component can be found on the respective component folder.

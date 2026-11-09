@@ -77,3 +77,39 @@ Tras editar el nuevo fichero de configuración, arrancamos el componente:
 ```bash
 bin/INA226 config
 ```
+
+### Arrancar con la placa
+
+`etc/robocomp-ina226.service` arranca el componente con la placa y lo reinicia 5 s después si falla. Añade el grupo `i2c` solo a este servicio (`SupplementaryGroups=i2c`), así que no hace falta meter al usuario en ese grupo. Sus rutas son las del usuario `orangepi` y del entorno `~/software/pip_venv`. Si cambian, edítalas antes de instalarlo.
+
+Instálalo en la placa:
+
+```bash
+cd $ROBOCOMP/components/robocomp-robolab/components/hardware/battery/INA226
+sudo cp etc/robocomp-ina226.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now robocomp-ina226
+```
+
+| Acción | Comando |
+|--------|---------|
+| Ver el estado | `systemctl status robocomp-ina226` |
+| Ver los logs en directo | `journalctl -u robocomp-ina226 -f` |
+| Reiniciar tras un cambio | `sudo systemctl restart robocomp-ina226` |
+| Parar | `sudo systemctl stop robocomp-ina226` |
+| Quitarlo del arranque | `sudo systemctl disable --now robocomp-ina226` |
+
+Si modificas el `.service`, cópialo otra vez, ejecuta `sudo systemctl daemon-reload` y reinicia el servicio. Mientras el servicio esté activo, no arranques el componente a mano: fallará con `Address already in use`. Páralo antes con `sudo systemctl stop robocomp-ina226`.
+
+### Subir cambios desde otro equipo
+
+Para editar en otro equipo y llevar los cambios a la placa, copia solo los ficheros modificados. Cambia `<ip-placa>` por la IP de la placa, que puedes ver en ella con `hostname -I`:
+
+```bash
+cd $ROBOCOMP/components/robocomp-robolab/components/hardware/battery/INA226
+scp src/specificworker.py orangepi@<ip-placa>:~/robocomp/components/robocomp-robolab/components/hardware/battery/INA226/src/
+scp etc/config.toml orangepi@<ip-placa>:~/robocomp/components/robocomp-robolab/components/hardware/battery/INA226/etc/
+ssh -t orangepi@<ip-placa> sudo systemctl restart robocomp-ina226
+```
+
+No copies `generated/`, `build/` ni `bin/`. La placa tiene los suyos, generados para su versión de Ice (3.7), y los de otro equipo pueden no funcionar en ella.

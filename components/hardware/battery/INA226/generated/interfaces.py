@@ -6,7 +6,12 @@ console = Console()
 import os
 
 slice_dir = os.path.dirname(os.path.abspath(__file__))
-Ice.loadSlice(["-I", slice_dir, os.path.join(slice_dir, "BatteryStatus.ice"), os.path.join(slice_dir, "Power.ice")])
+try:
+    # Ice 3.8
+    Ice.loadSlice(["-I", slice_dir, os.path.join(slice_dir, "BatteryStatus.ice"), os.path.join(slice_dir, "Power.ice")])
+except (TypeError):
+    # Ice 3.7
+    Ice.loadSlice(f'-I {slice_dir} {os.path.join(slice_dir, "BatteryStatus.ice")} {os.path.join(slice_dir, "Power.ice")}')
 import RoboCompBatteryStatus
 import RoboCompPower
 

@@ -1,0 +1,24 @@
+[Unit]
+Description=RoboComp powerMonitor
+StartLimitIntervalSec=0
+After=docker.service robocomp-ina226.service robocomp-victron.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=orangepi
+Group=orangepi
+
+WorkingDirectory=/home/orangepi/robocomp/components/robocomp-robolab/components/hardware/battery/powerMonitor
+Environment=ROBOCOMP=/home/orangepi/robocomp
+Environment=PATH=/home/orangepi/software/pip_venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=QT_QPA_PLATFORM=offscreen
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/orangepi/software/pip_venv/bin/python /home/orangepi/robocomp/components/robocomp-robolab/components/hardware/battery/powerMonitor/bin/powerMonitor etc/config
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

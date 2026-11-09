@@ -1,0 +1,17 @@
+# Endpoints for implements interfaces
+Endpoints.LEDArray = "tcp -p 10991"
+
+# Interface: "SPI" (Orange Pi Zero 2W, pin 19) or "GPIO" (Raspberry Pi, uses LED.GPIO)
+LED.Interface = "SPI"
+LED.Number = 54
+LED.GPIO = 18
+
+Period.Compute = 1000
+Period.Emergency = 500
+
+Component.Debug.Verbose = true
+
+Ice.Warn.Connections = "0"
+Ice.Trace.Network = "0"
+Ice.Trace.Protocol = "0"
+Ice.MessageSizeMax = "2097151"

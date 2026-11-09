@@ -1,0 +1,23 @@
+[Unit]
+Description=RoboComp INA226
+StartLimitIntervalSec=0
+
+
+[Service]
+Type=simple
+User=orangepi
+Group=orangepi
+SupplementaryGroups=i2c
+WorkingDirectory=/home/orangepi/robocomp/components/robocomp-robolab/components/hardware/battery/INA226
+Environment=ROBOCOMP=/home/orangepi/robocomp
+Environment=PATH=/home/orangepi/software/pip_venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=QT_QPA_PLATFORM=offscreen
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/orangepi/software/pip_venv/bin/python /home/orangepi/robocomp/components/robocomp-robolab/components/hardware/battery/INA226/bin/INA226 etc/config.toml
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+import "LEDArray.idsl";
+
+Component ledStrip
+{
+    Communications
+    {
+        implements LEDArray;
+    };
+    language python;
+};
+

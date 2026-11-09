@@ -73,7 +73,7 @@ class SpecificWorker(GenericWorker):
             try:
                 powers = proxy.getPowers()
             except Ice.Exception as e:
-                console.print(f"[{source_name}] unreachable: {e}", style="error")
+                console.print(f"[{source_name}] unreachable: {e}", style="red", markup=False)
                 continue
 
             for p in powers:
@@ -91,7 +91,7 @@ class SpecificWorker(GenericWorker):
             try:
                 self.influx_write_api.write(bucket=self.influx_bucket, org=self.influx_org, record=points)
             except Exception as e:
-                console.print(f"[InfluxDB] write error: {e}", style="error")
+                console.print(f"[InfluxDB] write error: {e}", style="red", markup=False)
 
         return True
 

@@ -29,8 +29,10 @@
 #define HIBERNATION_ENABLED
 
 #include <genericworker.h>
+#ifndef LIDAR3D_SIMULATOR_ONLY
 #include <rs_driver/api/lidar_driver.hpp>
 #include <rs_driver/msg/point_cloud_msg.hpp>
+#endif
 #include <fps/fps.h>
 #include <doublebuffer/DoubleBuffer.h>
 #include <atomic>
@@ -47,10 +49,12 @@
 #include <omp.h>
 // #include <execution>
 
+#ifndef LIDAR3D_SIMULATOR_ONLY
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 extern robosense::lidar::SyncQueue<std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
+#endif
 
 /**
  * \brief Class SpecificWorker implements the core functionality of the component.
@@ -115,6 +119,11 @@ class SpecificWorker : public GenericWorker
         int msop_port;
         int difop_port;
         std::string dest_pc_ip_addr;
+        std::vector<int> compression_params;
+        double remap_angle(double angle);
+        int remap_angle_real(int angle);
+
+#ifndef LIDAR3D_SIMULATOR_ONLY
         robosense::lidar::LidarType lidar_model_list[2] =
         {
                 robosense::lidar::LidarType::RSHELIOS,
@@ -123,13 +132,11 @@ class SpecificWorker : public GenericWorker
 
         robosense::lidar::RSDriverParam param;                           ///< Create a parameter object
         robosense::lidar::LidarDriver<PointCloudMsg> driver;             ///< Declare the driver object
-        std::vector<int> compression_params;
 
         static std::shared_ptr<PointCloudMsg> driverGetPointCloudFromCallerCallback(void);
-        double remap_angle(double angle);
-        int remap_angle_real(int angle);
         static void driverReturnPointCloudToCallerCallback(std::shared_ptr<PointCloudMsg> msg);
         static void exceptionCallback(const robosense::lidar::Error& code);
+#endif
 
         // Buffers
         DoubleBuffer<RoboCompLidar3D::TData, RoboCompLidar3D::TData> buffer_data;

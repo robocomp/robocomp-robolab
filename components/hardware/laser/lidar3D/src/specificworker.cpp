@@ -25,8 +25,10 @@
 #include <cppitertools/enumerate.hpp>
 #include <eigen3/Eigen/src/Core/PartialReduxEvaluator.h>
 
+#ifndef LIDAR3D_SIMULATOR_ONLY
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 robosense::lidar::SyncQueue <std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
+#endif
 
 
 // ── STATIC MOUNT FROM shadow.json ────────────────────────────────────────────────────────────
@@ -246,6 +248,14 @@ void SpecificWorker::initialize()
         std::cout << "Extrinsic Matrix:" << std::endl << this->robot_lidar.matrix() << std::endl;
 
         simulator = this->configLoader.get<bool>("simulator");
+#ifdef LIDAR3D_SIMULATOR_ONLY
+        if (not simulator)
+        {
+            std::cerr << "[lidar3D] ERROR: this binary was built without rs_driver (LIDAR3D_SIMULATOR_ONLY). "
+                         "Set simulator = true or rebuild with rs_driver installed." << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+#endif
 
 
         // ---------------------------------------------------------
@@ -294,6 +304,7 @@ void SpecificWorker::initialize()
         std::terminate();
     }
 
+#ifndef LIDAR3D_SIMULATOR_ONLY
     if (not simulator)
     {
         param.input_type = robosense::lidar::InputType::ONLINE_LIDAR;
@@ -315,6 +326,7 @@ void SpecificWorker::initialize()
         driver.start();
         std::cout << __FUNCTION__ << " Driver initiated OK" << std::endl;
     }
+#endif // LIDAR3D_SIMULATOR_ONLY
 
     std::this_thread::sleep_for(std::chrono::milliseconds(getPeriod("Compute")));
     ready_to_go.store(true);
@@ -338,6 +350,7 @@ void SpecificWorker::compute()
             raw_lidar = processLidarData(raw_lidar_sim);
             raw_lidar.timestamp = raw_lidar_sim.timestamp;
         }
+#ifndef LIDAR3D_SIMULATOR_ONLY
         else // real lidar
         {
             std::shared_ptr <PointCloudMsg> msg = stuffed_cloud_queue.popWait();
@@ -350,6 +363,7 @@ void SpecificWorker::compute()
             raw_lidar.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
         }
+#endif // LIDAR3D_SIMULATOR_ONLY
         raw_lidar.period = static_cast<float>(getPeriod("Compute")); // ms
 
         //Process lidar helios and add lidar data to doubleBuffer
@@ -388,6 +402,7 @@ void SpecificWorker::restore()
 
 }
 
+#ifndef LIDAR3D_SIMULATOR_ONLY
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // @brief point cloud callback function. The caller should register it to the lidar driver.
@@ -427,6 +442,7 @@ void SpecificWorker::exceptionCallback(const robosense::lidar::Error &code)
     //       so please DO NOT do time-consuming task here.
     std::cout << code.toString() << std::endl;
 }
+#endif // LIDAR3D_SIMULATOR_ONLY
 
 void SpecificWorker::self_adjust_period(int new_period)
 {

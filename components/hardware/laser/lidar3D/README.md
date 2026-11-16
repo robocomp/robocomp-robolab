@@ -1,39 +1,128 @@
 # Lidar3D
-A brief introduction to the component. Describe its purpose, functionality, and any specific features here.
+RoboComp driver for **RoboSense 3D LiDARs** (Helios and Bpearl). It reads the point cloud, transforms it
+into the robot frame and serves it through the `Lidar3D` interface (full cloud, angular sectors,
+2D-distance threshold, colour cloud and points projected onto a 360º camera image).
+
+It works with both:
+- **Real lidar**: through the RoboSense SDK [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver) (UDP MSOP/DIFOP packets).
+- **Simulator** (Webots): reads the cloud from another `Lidar3D` proxy (the simulator bridge) and applies the same processing.
+
 ```
-<YOUR BRIEFING>
+ RoboSense lidar --UDP--> rs_driver ─┐
+                                     ├─> robot-frame transform ─> sort by phi ─> buffer ─> Lidar3D interface
+ Webots (Lidar3D proxy) ─────────────┘
 ```
 
 ## Dependencies
-The following dependencies are required to build and run Lidar3D. Ensure they are installed and properly configured on your system before proceeding:
-    - Install repo [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver)
-    - Install libopen3d-dev
+- RoboComp (with the new code generator, `ConfigLoader`, toml++ and Qt6, see the *Developer Notes* below).
+- OpenCV 4, Eigen3, OpenMP, cppitertools.
+- [rs_driver](https://github.com/RoboSense-LiDAR/rs_driver) — **optional**, only needed for the real lidar:
+  ```bash
+  sudo apt install libpcap-dev
+  mkdir ~/software 2> /dev/null; git clone https://github.com/RoboSense-LiDAR/rs_driver.git ~/software/rs_driver
+  cd ~/software/rs_driver && cmake -B build && sudo make install -C build -j12 && cd -
+  ```
 
-## Run
-Set ip of the running computer in config and in lidar, by accessing the lidar ip in a browser, section Setting.
-    
-The difference between lidars is the ports:
-    Helios
-    - MSOP = 6699
-    - DIFOP = 7788
-    Pearl
-    - MSOP = 6698
-    - DIFOP = 7787
+### Building with or without rs_driver
+`rs_driver` is detected automatically at configure time:
 
-## Starting the component
-To avoid modifying the config file directly in the repository, you can copy it to the component's home directory. This prevents changes from being overridden by future `git pull` commands:
+| Situation | Result |
+|---|---|
+| `rs_driver` installed | Full build: real lidar **and** simulator (`lidar3D: rs_driver found ...`) |
+| `rs_driver` not installed | **Simulator-only** build, with a CMake warning (`lidar3D: SIMULATOR-ONLY build`) |
+| `-DLIDAR3D_SIMULATOR_ONLY=ON` | Forces the simulator-only build even if `rs_driver` is installed |
+
+A simulator-only binary refuses to start with `simulator = false` and prints an explicit error,
+instead of failing silently.
 
 ```bash
-cd <Lidar3D's path> 
-cp etc/config etc/yourConfig
+cmake -B build && make -C build -j12                              # auto-detect
+cmake -B build -DLIDAR3D_SIMULATOR_ONLY=ON && make -C build -j12  # force simulator-only
+```
+> The binary is always written to `bin/Lidar3D`, whatever the build folder.
+
+## Configuration
+Ready-made configs in `etc/`:
+
+| File | Lidar | Mode |
+|---|---|---|
+| `config_helios_jetson`, `config_helios_flip` | Helios | Real |
+| `config_pearl_jetson` | Bpearl | Real |
+| `config_helios_webots`, `config_P3bot_helios_webots` | Helios | Simulator |
+| `config_pearl_webots` | Bpearl | Simulator |
+| `config_*_webots_choca` | Helios / Bpearl | Simulator (user-specific paths) |
+
+### Parameters
+| Parameter | Description |
+|---|---|
+| `Endpoints.Lidar3D` | Port where this component serves `Lidar3D` (by convention 11990 Helios, 11989 Bpearl). |
+| `Proxies.Lidar3D` | Source `Lidar3D` proxy, only used when `simulator = true` (Webots bridge, usually port 11988). |
+| `lidar_model` | `0` = Helios (`RSHELIOS`), `1` = Bpearl (`RSBP`). In simulation it selects the `"helios"` / `"bpearl"` name requested from the proxy. |
+| `simulator` | `true`: read from the proxy. `false`: real lidar through `rs_driver`. |
+| `dest_pc_ip_addr` | IP of the computer receiving the lidar packets (real lidar only). |
+| `msop_port`, `difop_port` | Lidar UDP ports (real lidar only, see below). |
+| `rx`, `ry`, `rz` | Lidar→robot rotation (rad, XYZ). Use `.` as decimal separator. |
+| `tx`, `ty`, `tz` | Lidar→robot translation (mm). |
+| `mount_file`, `mount_key` | *Optional.* DSR model (`shadow.json`) and node name (`helios`, `bpearl`) to read the extrinsic from. |
+| `Period.Compute`, `Period.Emergency` | State periods (ms). |
+
+#### Extrinsics: `mount_file` vs `rx..tz`
+- If `mount_file` is set, the lidar→robot transform is read from the `RT` edge pointing to the node
+  `mount_key` in the DSR model (rotation in rad, translation in metres → converted to mm). This is the
+  single source of geometry and must match `lidar3d_dds`.
+- If reading that file fails for **any** reason (missing file, invalid JSON, node not found, no `RT`
+  edge...) the component **aborts** with the cause, it does **not** fall back to `rx..tz`.
+- Remove `mount_file` from the config to use the `rx..tz` values on purpose.
+
+### Real lidar network setup
+Set the IP of the receiving computer both in the config (`dest_pc_ip_addr`) and in the lidar, opening
+the lidar IP in a browser (default `192.168.1.200`), section *Setting*. The ports depend on the model:
+
+| Lidar | MSOP | DIFOP |
+|---|---|---|
+| Helios | 6699 | 7788 |
+| Bpearl | 6698 | 7787 |
+
+## Interface `Lidar3D`
+Points are returned in the robot frame (mm), sorted by `phi` (`atan2(x, y)`, rad, in `[-π, π]`).
+
+| Method | Description |
+|---|---|
+| `getLidarData(name, start, len, decimationDegreeFactor)` | Points in the angular sector `[start, start+len]` (rad, handles the ±π wrap). `len >= 2π` returns the full cloud. `decimationDegreeFactor` keeps one ray every N degrees (`1` = no decimation). |
+| `getLidarDataWithThreshold2d(name, distance, decimationDegreeFactor)` | Points whose 2D distance to the robot is below `distance` (mm). |
+| `getLidarDataProyectedInImage(name)` | Full cloud. |
+| `getLidarDataArrayProyectedInImage(name)` | Points projected onto the 360º (equirectangular) camera image, Helios only. |
+| `getColorCloudData()` | Full cloud as `int16` X/Y/Z arrays (colour fixed to white). |
+| `getLidarDataByCategory(...)` | Not implemented (returns empty). |
+
+The `name` parameter is ignored: the component serves a single lidar.
+
+Every method returns empty data until the component has finished initialising.
+
+## Starting the component
+To avoid modifying the config files in the repository directly, copy one and edit the copy. This
+prevents changes from being overwritten by future `git pull` commands:
+
+```bash
+cd <Lidar3D's path>
+cp etc/config_helios_jetson etc/yourConfig   # or the *_webots one for simulation
 ```
 
-After editing the new config file we can run the component:
+Then build and run:
 
 ```bash
 cmake -B build && make -C build -j12 # Compile the component
-bin/Lidar3D etc/yourConfig # Execute the component
+bin/Lidar3D etc/yourConfig           # Execute the component
 ```
+
+In simulation, start Webots and its `Lidar3D` bridge (the one in `Proxies.Lidar3D`) first.
+
+## Notes
+- `HIBERNATION_ENABLED` is defined in `specificworker.h`: with no calls for 5 s the component slows
+  down its period, and recovers on the next call.
+- The camera projection (`lidar2cam`) uses hard-coded extrinsics/resolution in `initialize()`, with
+  different values for simulator and real robot.
+
 -----
 -----
 # Developer Notes
